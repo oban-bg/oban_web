@@ -1,0 +1,11 @@
+.container {
+  background-color: $color--invert;
+  border-radius: $radius--med;
+  box-shadow: $shadow--s;
+  padding: $space--xs 0;
+}
+
+.sidebar {
+  margin-right: $space--base;
+  min-width: 20em;
+}

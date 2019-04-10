@@ -1,0 +1,82 @@
+.menu {
+  ul,
+  li {
+    margin-bottom: 0;
+  }
+
+  &--contained {
+    background-color: $color--invert;
+    border-radius: $radius--med;
+    box-shadow: $shadow--s;
+    padding: $space--xs 0;
+  }
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+}
+
+.menu-title {
+  font-size: $font-size--base;
+  font-weight: $font-weight--7;
+  margin: 0;
+  padding: 0.75em 1em;
+}
+
+.menu-divider {
+  border-top: 1px solid $color--line-s;
+  margin: $space--xs 0;
+  padding: 0;
+}
+
+.menu-item {
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  margin-bottom: 0;
+  padding: 0.75em 1em;
+  position: relative;
+  transition: background $timing--hover;
+
+  &:hover {
+    background-color: $color--hover-bg;
+  }
+
+  &--active:before {
+    background-color: $color--dscout;
+    content: '';
+    display: block;
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0px;
+    width: 2px;
+  }
+
+  &--selected {
+    background-color: $color--hover-bg;
+  }
+}
+
+.menu-item,
+.menu-toggle {
+  appearance: none;
+  background-color: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: $line-height--copy;
+  position: relative;
+  text-align: left;
+  width: 100%;
+
+  &:active {
+    color: inherit;
+  }
+
+  &[disabled],
+  &.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+}

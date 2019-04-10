@@ -1,0 +1,7 @@
+{
+  "module": {
+    "type": "commonjs",
+    "noInterop": true
+  },
+  "minify": true
+}

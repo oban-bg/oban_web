@@ -1,4 +1,45 @@
 <section class="oban-hero">
-  <h1>Oban</h1>
+  <h1>Oban Where</h1>
   <p>A streaming job processor built on postgres</p>
+</section>
+
+<section class="flex">
+  <div class="sidebar sidebar--filters">
+    <div class="menu menu--contained">
+      <header class="menu-title">States</header>
+      <hr class="menu-divider" />
+      <ul class="menu-list">
+        <li>
+          <button class="menu-item">Executing</button>
+        </li>
+
+        <li><button class="menu-item">Available</button></li>
+        <li><button class="menu-item">Scheduled</button></li>
+        <li><button class="menu-item">Completed</button></li>
+        <li><button class="menu-item">Discarded</button></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container flex--1">
+    <table class="jobs-table">
+      <thead class="jobs-table__header">
+        <tr>
+          <th>ID</th>
+          <th>Queue</th>
+          <th>Module</th>
+          <th>Args</th>
+          <th>Duration</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td class="jobs-column--id">123</td>
+          <td class="jobs-column--queue">default</td>
+          <td class="jobs-column--module">Axon.Handler.EventHandler</td>
+          <td class="jobs-column--args">45, "Whatever"</td>
+          <td class="jobs-column--action">Kill</td>
+      </tbody>
+  </div>
 </section>

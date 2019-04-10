@@ -1,0 +1,55 @@
+@import 'variables';
+@import 'mixins';
+
+table {
+  border-collapse: collapse;
+  border-color: $color--faint;
+  border-spacing: $space--s;
+  width: 100%;
+}
+
+td, th {
+  font-weight: normal;
+  padding: $space--s;
+  text-align: left;
+
+  &:first-child {
+    padding-left: $space--base;
+  }
+
+  &:last-child {
+    padding-right: $space--base;
+  }
+}
+
+tr {
+  @include border-b;
+  border-color: $color--faint;
+  transition: background $timing--hover;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: rgba($color--main, .03);
+  }
+}
+
+thead > tr {
+  background-color: transparent !important;
+  border-color: $color--faint;
+
+  &:last-child {
+    @include border-b;
+    border-color: $color--faint;
+  }
+}
+
+caption {
+  padding: $space--s $space--base;
+}
+
+tr.selected {
+  background-color: $color--faint;
+}

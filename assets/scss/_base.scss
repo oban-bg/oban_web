@@ -1,0 +1,31 @@
+@import 'variables';
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+html {
+  font-size: 16px;
+  text-size-adjust: none;
+}
+
+body {
+  background-color: $color--faint;
+  color: rgba($color--main, 1);
+  font-family: $font-stack;
+  font-size: $font-size--s;
+  line-height: $line-height--copy;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+main {
+  margin: auto;
+  padding: 2rem;
+}

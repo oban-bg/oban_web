@@ -1,0 +1,201 @@
+// grid
+
+$grid-unit: .25em;  // Grid size
+
+@function grid-units($n, $unit: $grid-unit) {
+  @return $n * $unit;
+}
+
+$space--none: 0;
+$space--1px:  1px;
+$space--xs:   $grid-unit;
+$space--s:    grid-units(3);  // space below paragraphs and block elements
+$space--m:    grid-units(4);  // small space
+$space--base: grid-units(8);  // standard space
+$space--l:    grid-units(12); // large space
+$space--xl:   grid-units(16); // extra large space
+
+$space--icon-1x: 1.563em;
+$space--icon-2x: 3.125em;
+
+$space--1:  $space--base;
+$space--2:  grid-units(2, $space--base);
+$space--3:  grid-units(3, $space--base);
+$space--4:  grid-units(4, $space--base);
+$space--5:  grid-units(5, $space--base);
+$space--6:  grid-units(6, $space--base);
+$space--7:  grid-units(7, $space--base);
+$space--8:  grid-units(8, $space--base);
+$space--9:  grid-units(9, $space--base);
+$space--10: grid-units(10, $space--base);
+$space--11: grid-units(11, $space--base);
+$space--12: grid-units(12, $space--base);
+$space--13: grid-units(13, $space--base);
+$space--14: grid-units(14, $space--base);
+$space--15: grid-units(15, $space--base);
+$space--16: grid-units(16, $space--base);
+
+// media-queries
+
+$breakpoint--not-small: 'screen and (min-width: 30em)' !default;
+$breakpoint--medium:    'screen and (min-width: 30em) and (max-width: 60em)'
+                        !default;
+$breakpoint--large:     'screen and (min-width: 60em)' !default;
+
+// fonts
+
+$font-stack: -apple-system, BlinkMacSystemFont,
+             'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+             'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+$font-ms:    'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+$font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'NotoColorEmoji',
+             'Segoe UI Symbol', 'Android Emoji', 'EmojiSymbols';
+
+// line-heights
+
+$line-height--copy:  1.5;
+$line-height--solid: 1;
+$line-height--title: 1.25;
+$line-height--loose: 2;
+
+// letter-spacings
+
+$tracked--loose:    .03125em;
+$tracked--looser:   .0625em;
+$tracked--tight:   -.03125em;
+$tracked--tighter: -.0625em;
+$tracked--mega:     .25em;
+
+// radii
+
+$radius--none:   0;
+$radius--tiny:   .125rem;
+$radius--small:  .188em;
+$radius--med:    .313rem;
+$radius--large:  .625rem;
+$radius--circle: 50%;
+$radius--pill:   50rem;
+
+// timings
+
+$timing--click:  .1s;
+$timing--hover:  .2s;
+$timing--fade:   .4s;
+$timing--rotate: .6s;
+
+// font-sizes
+
+$font-size--xxxl: 2.074em;
+$font-size--xxl:  1.728em;
+$font-size--xl:   1.44em;
+$font-size--l:    1.2em;
+$font-size--base: 1em;
+$font-size--s:    .875em;
+$font-size--xs:   .750em;
+$font-size--xxs:  .563em;
+
+// font-weights
+
+$font-weight--normal: normal;
+$font-weight--b:      bold;
+$font-weight--1:      100;
+$font-weight--2:      200;
+$font-weight--3:      300;
+$font-weight--4:      400;
+$font-weight--5:      500;
+$font-weight--6:      600;
+$font-weight--7:      700;
+$font-weight--8:      800;
+$font-weight--9:      900;
+
+// colors
+
+$color--main:       #222;                    // text color
+$color--invert:     #fff;                    // white
+$color--main-light: rgba($color--main, .6);  // sibling to text, lighter version
+$color--dem:        rgba($color--main, .3);  // de-emphasised elements
+$color--disabled:   rgba($color--main, .15); // disabled elements
+$color--faint:      rgba($color--main, .05); // use this to de-emphasise more
+$color--min:        rgba($color--main, .02); // off-white. minimal visible bg
+$color--none:       rgba(0,0,0, 0);          // transparent
+
+// if you need any of the colors above without being affected by the
+// background, use these (or when using svg icons)
+
+$color--main-light-s: mix($color--invert, $color--main, 40%);
+$color--dem-s:        mix($color--invert, $color--main, 70%);
+$color--disabled-s:   mix($color--invert, $color--main, 85%);
+$color--faint-s:      mix($color--invert, $color--main, 95%);
+$color--min-s:        mix($color--invert, $color--main, 98%);
+
+// special purpose
+
+$color--edit-state:   rgba($color--main, .03); // bg for edit questions
+$color--hover-bg:     rgba($color--main, .03); // bg color for hovers in lists
+$color--edit-state-s: mix($color--invert, $color--main, 97%);
+$color--hover-bg-s:   mix($color--invert, $color--main, 97%);
+
+$color--part-0: #2bae92; // dark green (approx Niagara)
+$color--part-1: #a5d570; // light green (approx Feijoa)
+$color--part-2: #ffd566; // yellow (approx Dandelion)
+$color--part-3: #fead04; // orange (approx Orange)
+$color--part-4: #e76161; // red (approx Roman)
+$color--part-5: #f2659a; // pink (approx Brilliant Rose)
+$color--part-6: #aa81d2; // purple (approx East Side)
+$color--part-7: #00acf1; // dark blue (approx Deep Sky Blue)
+$color--part-8: #8edde8; // light blue (approx Anakiwa)
+$color--part-9: #86c4c2; // teal (approx Bermuda)
+
+$part-colors: ($color--part-0, $color--part-1, $color--part-2, $color--part-3,
+               $color--part-4, $color--part-5, $color--part-6, $color--part-7,
+               $color--part-8, $color--part-9);
+
+// lines
+
+$color--line: rgba($color--main, .1); // color for lines
+$color--line-s: mix($color--invert, $color--main, 90%); // color for lines
+
+// accents
+
+$color--dscout:  #1d83f6; // new dscout blue
+$color--close:   #776fc7; // purple
+$color--success: #2ed491; // green
+$color--alert:   #ff2d55; // signal-red
+$color--archive: #c69c6d; // brown
+$color--note:    #ffe291; // faint yellow
+$color--marker:  #fff480; // less faint yellow
+$color--test:    #8bd9d0; // baby-ish blue
+$color--scout:   #8cffd0; // light green
+$color--live:    $color--alert;
+$color--diary:   $color--part-0;
+$color--screener: $color--part-6;
+
+// form fields
+
+$color--field-text:         rgba($color--main, .2); // placeholder text
+$color--field-text-focus:   rgba($color--main, .2); // placeholder text on focus
+$color--field-text-filled:  rgba($color--main, .8);
+$color--field-text-invalid: rgba($color--alert, 1);
+
+$color--field-bg:           rgba($color--main,  .02);
+$color--field-bg-focus:     rgba($color--main,  .01);
+$color--field-bg-filled:    rgba($color--main,  .01);
+$color--field-bg-invalid:   rgba($color--alert, .02);
+
+$color--field-b:            rgba($color--main,   .1);
+$color--field-b-radio:      rgba($color--main,   .2);
+$color--field-b-focus:      rgba($color--dscout, .5);
+$color--field-b-filled:     rgba($color--main,   .05);
+$color--field-b-invalid:    rgba($color--alert,  .3);
+
+// code-highlight
+
+$color--code-highlight: $color--dscout;
+
+// box-shadows
+
+$shadow--s : 0 .22rem .5rem rgba($color--main, 0.03);
+$shadow--m : 0 .22rem .5rem rgba($color--main, 0.08);
+$shadow--l : 0 $space--m $space--base rgba($color--main, 0.1);
+$shadow--xl: 0 $space--m $space--base rgba($color--main, 0.2);
+$shadow    : $shadow--s;

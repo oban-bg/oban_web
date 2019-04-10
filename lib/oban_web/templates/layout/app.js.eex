@@ -1,0 +1,1 @@
+'use strict';var myfunc=function(){console.log('hello from my func');};myfunc();
