@@ -1,0 +1,9 @@
+.icon {
+  height: 1.563rem;
+  width: 1.563rem;
+  vertical-align: middle;
+
+  &.--tight {
+    width: auto;
+  }
+}

@@ -5,4 +5,8 @@ hr {
   color: $color--line;
   margin-bottom: $space--base;
   margin-top: $space--base;
+
+  &.flat {
+    margin: 0;
+  }
 }

@@ -1,0 +1,16 @@
+<tr>
+  <td class="jobs-column--queue <%= queue_class(@job) %>"><%= @job.queue %></td>
+  <td class="jobs-column--worker"><%= job_worker(@job) %></td>
+  <td class="jobs-column--args"><%= job_args(@job) %></td>
+  <td class="jobs-column--duration">00:12 ago</td>
+  <td class="jobs-column--action">
+    <button class="btn--icon btn--destructive">
+      <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
+        <g>
+        <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="8" x2="17" y1="17" y2="8"></line>
+        <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="17" x2="8" y1="17" y2="8"></line>
+        </g>
+      </svg>
+    </button>
+  </td>
+</tr>

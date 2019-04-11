@@ -1,0 +1,34 @@
+.jobs-column {
+  &--queue {
+    border-left: 3px solid $color--faint;
+    width: 10%;
+  }
+
+  &--worker {
+    width: 25%;
+  }
+
+  &--args {
+    font-family: $font-ms;
+    font-size: 12px;
+    width: 50%;
+  }
+
+  &--duration {
+    width: 10%;
+  }
+
+  &--action {
+    width: 4%;
+  }
+}
+
+.queue-tag--0 { border-color: $color--part-0; }
+.queue-tag--1 { border-color: $color--part-1; }
+.queue-tag--2 { border-color: $color--part-2; }
+.queue-tag--3 { border-color: $color--part-3; }
+.queue-tag--4 { border-color: $color--part-4; }
+.queue-tag--5 { border-color: $color--part-5; }
+.queue-tag--6 { border-color: $color--part-6; }
+.queue-tag--7 { border-color: $color--part-7; }
+.queue-tag--8 { border-color: $color--part-8; }

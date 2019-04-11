@@ -5,7 +5,7 @@ STYLESHEETS := $(wildcard assets/css/*.scss)
 all: css js
 
 css: $(STYLESHEETS)
-	cd assets && npx node-sass scss/app.scss --output-style=compressed > ../lib/oban_web/templates/layout/app.css.eex; \
+	cd assets && npx node-sass scss/app.scss --output-style=compressed > ../lib/oban_web/templates/layout/app.css.eex
 
 js: assets/js/app.js
 	cd assets && npx swc js/app.js -o ../lib/oban_web/templates/layout/app.js.eex

@@ -12,14 +12,6 @@ td, th {
   font-weight: normal;
   padding: $space--s;
   text-align: left;
-
-  &:first-child {
-    padding-left: $space--base;
-  }
-
-  &:last-child {
-    padding-right: $space--base;
-  }
 }
 
 tr {
@@ -38,16 +30,15 @@ tr {
 
 thead > tr {
   background-color: transparent !important;
-  border-color: $color--faint;
+  border-color: $color--line;
 
   &:last-child {
     @include border-b;
-    border-color: $color--faint;
   }
 }
 
-caption {
-  padding: $space--s $space--base;
+th {
+  font-weight: $font-weight--7;
 }
 
 tr.selected {

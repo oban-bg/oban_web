@@ -1,0 +1,60 @@
+@import 'variables';
+@import 'mixins';
+
+.btn {
+  background-color: $color--main;
+  border-radius: $radius--small;
+  border: initial;
+  color: $color--invert;
+  display: inline-block;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: $line-height--copy;
+  margin: 0;
+  padding: $space--s $space--base;
+  position: relative;
+  text-decoration: inherit;
+  transition-duration: $timing--hover;
+  transition-property: background, box-shadow, color, fill, top, filter;
+  -webkit-appearance: none;
+
+  &[disabled] {
+    cursor: default;
+    filter: grayscale(1);
+    opacity: .3;
+    pointer-events: none;
+    transition: opacity $timing--fade;
+  }
+
+  &:hover {
+    background-color: mix(black, $color--main, 20%);
+  }
+
+  &:active {
+    background-color: mix(black, $color--main, 40%);
+    transition-duration: $timing--click;
+  }
+
+  &--icon {
+    background-color: rgba($color--main, .0);
+    border: none;
+    color: $color--dem-s;
+    cursor: pointer;
+    display: inline-block;
+    font-size: inherit;
+    transition-property: background, color, height, width;
+    transition-duration: $timing--hover;
+  }
+
+  &--destructive {
+    &.btn--active,
+    &.btn--selected,
+    &:hover {
+      color: $color--alert;
+    }
+  }
+
+  &:hover {
+    color: $color--main;
+  }
+}

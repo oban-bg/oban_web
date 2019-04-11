@@ -1,22 +1,43 @@
-<section class="oban-hero">
-  <h1>Oban Where</h1>
-  <p>A streaming job processor built on postgres</p>
-</section>
-
 <section class="flex">
   <div class="sidebar sidebar--filters">
     <div class="menu menu--contained">
       <header class="menu-title">States</header>
-      <hr class="menu-divider" />
+      <hr class="flat" />
       <ul class="menu-list">
         <li>
-          <button class="menu-item">Executing</button>
+          <div class="menu-item flex">
+            <button class="menu-item__btn">Executing</button>
+            <span class="menu-item__cnt">(42)</span>
+          </div>
         </li>
 
-        <li><button class="menu-item">Available</button></li>
-        <li><button class="menu-item">Scheduled</button></li>
-        <li><button class="menu-item">Completed</button></li>
-        <li><button class="menu-item">Discarded</button></li>
+        <li>
+          <div class="menu-item flex">
+            <button class="menu-item__btn">Available</button>
+            <span class="menu-item__cnt">(123)</span>
+          </div>
+        </li>
+
+        <li>
+          <div class="menu-item flex">
+            <button class="menu-item__btn">Scheduled</button>
+            <span class="menu-item__cnt">(30)</span>
+          </div>
+        </li>
+
+        <li>
+          <div class="menu-item flex">
+            <button class="menu-item__btn">Completed</button>
+            <span class="menu-item__cnt">(4,320)</span>
+          </div>
+        </li>
+
+        <li>
+          <div class="menu-item flex">
+            <button class="menu-item__btn">Discarded</button>
+            <span class="menu-item__cnt">(323)</span>
+          </div>
+        </li>
       </ul>
     </div>
   </div>
@@ -25,21 +46,15 @@
     <table class="jobs-table">
       <thead class="jobs-table__header">
         <tr>
-          <th>ID</th>
           <th>Queue</th>
-          <th>Module</th>
+          <th>Worker</th>
           <th>Args</th>
-          <th>Duration</th>
+          <th>Started</th>
         </tr>
       </thead>
 
       <tbody>
-        <tr>
-          <td class="jobs-column--id">123</td>
-          <td class="jobs-column--queue">default</td>
-          <td class="jobs-column--module">Axon.Handler.EventHandler</td>
-          <td class="jobs-column--args">45, "Whatever"</td>
-          <td class="jobs-column--action">Kill</td>
+        <%= render_many @jobs, ObanWeb.DashboardView, "job_column.html", as: :job %>
       </tbody>
   </div>
 </section>

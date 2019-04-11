@@ -38,9 +38,8 @@ $space--16: grid-units(16, $space--base);
 // media-queries
 
 $breakpoint--not-small: 'screen and (min-width: 30em)' !default;
-$breakpoint--medium:    'screen and (min-width: 30em) and (max-width: 60em)'
-                        !default;
-$breakpoint--large:     'screen and (min-width: 60em)' !default;
+$breakpoint--medium: 'screen and (min-width: 30em) and (max-width: 60em)' !default;
+$breakpoint--large: 'screen and (min-width: 60em)' !default;
 
 // fonts
 
@@ -145,10 +144,6 @@ $color--part-6: #aa81d2; // purple (approx East Side)
 $color--part-7: #00acf1; // dark blue (approx Deep Sky Blue)
 $color--part-8: #8edde8; // light blue (approx Anakiwa)
 $color--part-9: #86c4c2; // teal (approx Bermuda)
-
-$part-colors: ($color--part-0, $color--part-1, $color--part-2, $color--part-3,
-               $color--part-4, $color--part-5, $color--part-6, $color--part-7,
-               $color--part-8, $color--part-9);
 
 // lines
 
