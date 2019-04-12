@@ -1,16 +1,17 @@
 STYLESHEETS := $(wildcard assets/css/*.scss)
 
-.PHONY: all
+.PHONY: all watch prepare
 
 all: css js
 
 css: $(STYLESHEETS)
-	cd assets && npx node-sass scss/app.scss --output-style=compressed > ../lib/oban_web/templates/layout/app.css.eex
+	sassc -t compressed assets/scss/app.scss lib/oban_web/templates/layout/app.css.eex
 
 js: assets/js/app.js
-	cd assets && npx swc js/app.js -o ../lib/oban_web/templates/layout/app.js.eex
-
-.PHONY: watch
+	px --no-map --es-syntax-everywhere assets/js/app.js lib/oban_web/templates/layout/app.js.eex
 
 watch:
 	bin/watch.sh
+
+prepare:
+	brew install sassc && cargo install pax

@@ -1,3 +1,3 @@
-const myfunc = () => { console.log("hello from my func"); }
+import { square } from './secondary'
 
-myfunc();
+console.log(square(4));

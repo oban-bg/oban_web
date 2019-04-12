@@ -1,1 +1,85 @@
-'use strict';var myfunc=function(){console.log('hello from my func');};myfunc();
+~function(global) {
+  const Pax = {}
+  Pax.baseRequire = typeof require !== "undefined" ? require : n => {
+    throw new Error(`Could not resolve module name: ${n}`)
+  }
+  Pax.modules = {}
+  Pax.files = {}
+  Pax.mains = {}
+  Pax.resolve = (base, then) => {
+    base = base.split('/')
+    base.shift()
+    for (const p of then.split('/')) {
+      if (p === '..') base.pop()
+      else if (p !== '.') base.push(p)
+    }
+    return '/' + base.join('/')
+  }
+  Pax.Module = function Module(filename, parent) {
+    this.filename = filename
+    this.id = filename
+    this.loaded = false
+    this.parent = parent
+    this.children = []
+    this.exports = {}
+  }
+  Pax.makeRequire = self => {
+    const require = m => require._module(m).exports
+    require._deps = {}
+    require.main = self
+
+    require._esModule = m => {
+      const mod = require._module(m)
+      return mod.exports.__esModule ? mod.exports : {
+        get default() {return mod.exports},
+      }
+    }
+    require._module = m => {
+      let fn = self ? require._deps[m] : Pax.main
+      if (fn == null) {
+        const module = {exports: Pax.baseRequire(m)}
+        require._deps[m] = {module: module}
+        return module
+      }
+      if (fn.module) return fn.module
+      const module = new Pax.Module(fn.filename, self)
+      fn.module = module
+      module.require = Pax.makeRequire(module)
+      module.require._deps = fn.deps
+      module.require.main = self ? self.require.main : module
+      if (self) self.children.push(module)
+      fn(module, module.exports, module.require, fn.filename, fn.filename.split('/').slice(0, -1).join('/'), {url: 'file://' + (fn.filename.charAt(0) === '/' ? '' : '/') + fn.filename})
+      module.loaded = true
+      return module
+    }
+    return require
+  }
+
+  Pax.files["/Users/parker/Work/Code/oban_web/assets/js/app.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.deps = {"./secondary":file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fsecondary$2ejs}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/app.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
+Object.defineProperty(exports, '__esModule', {value: true})
+with (function() {
+  const __module0 = require._esModule('./secondary')
+  return Object.freeze(Object.create(null, {
+    [Symbol.toStringTag]: {value: 'ModuleImports'},
+    square: {get() {return __module0.square}, enumerable: true},
+  }))
+}()) ~function() {
+'use strict';
+
+     
+
+console.log(square(4));
+}()}
+  Pax.files["/Users/parker/Work/Code/oban_web/assets/js/secondary.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fsecondary$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fsecondary$2ejs.deps = {}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fsecondary$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/secondary.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fsecondary$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
+Object.defineProperty(exports, '__esModule', {value: true})
+~function() {
+'use strict';
+Object.defineProperties(exports, {
+  square: {get() {return square}, enumerable: true},
+});
+
+ const square = x => x * x
+}()}
+  Pax.main = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs; Pax.makeRequire(null)()
+  if (typeof module !== 'undefined') module.exports = Pax.main.module && Pax.main.module.exports
+}(typeof global !== "undefined" ? global : typeof window !== "undefined" ? window : this)

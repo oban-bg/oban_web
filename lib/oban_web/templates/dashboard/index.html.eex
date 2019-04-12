@@ -43,9 +43,47 @@
   </div>
 
   <div class="container flex--1">
+    <div class="flex">
+      <h2>
+        <span>Jobs</span>
+        <span>(12)</span>
+      </h2>
+
+      <div class="field">
+        <input type="search" placeholder="Filter" />
+      </div>
+
+      <button class="btn--icon" name="pause" title="Pause">
+        <svg class="icon" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <g>
+            <rect x="11" y="8" width="12" height="34" rx="1" ry="1" stroke="none" fill="currentColor"></rect>
+            <rect x="27" y="8" width="12" height="34" rx="1" ry="1" stroke="none" fill="currentColor"> </rect>
+          </g>
+        </svg>
+      </button>
+
+      <button class="btn--icon" name="slowmo" title="Slow Motion">
+        <svg class="icon" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <g>
+            <path d="M13,34.77V15.23a.6.6,0,0,1,.89-.52l17.38,9.77a.6.6,0,0,1,0,1L13.89,35.3A.6.6,0,0,1,13,34.77Z" stroke="none" fill="currentColor"></path>
+            <rect x="30" y="15" width="7" height="34" rx="1" ry="1" stroke="none" fill="currentColor"></rect>
+          </g>
+        </svg>
+      </button>
+
+      <button class="btn--icon" name="live" title="Live Updates">
+        <svg class="icon" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+          <g>
+            <path d="M12,41.29V8.71a1,1,0,0,1,1.49-.87l29,16.29a1,1,0,0,1,0,1.74l-29,16.29A1,1,0,0,1,12,41.29Z" stroke="none" fill="currentColor"></path>
+          </g>
+        </svg>
+      </button>
+    </div>
+
     <table class="jobs-table">
       <thead class="jobs-table__header">
         <tr>
+          <th>Node</th>
           <th>Queue</th>
           <th>Worker</th>
           <th>Args</th>
