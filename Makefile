@@ -10,8 +10,13 @@ css: $(STYLESHEETS)
 js: assets/js/app.js
 	px --no-map --es-syntax-everywhere assets/js/app.js lib/oban_web/templates/layout/app.js.eex
 
-watch:
-	bin/watch.sh
+watch: all watch_loop
+
+watch_loop:
+	while true; do \
+		fswatch -1 --recursive assets; \
+		make all; \
+	done
 
 prepare:
-	brew install sassc && cargo install pax
+	brew install fswatch sassc && cargo install pax
