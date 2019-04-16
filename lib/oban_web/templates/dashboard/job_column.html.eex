@@ -3,7 +3,7 @@
   <td class="jobs-column--queue <%= queue_class(@job) %>"><%= @job.queue %></td>
   <td class="jobs-column--worker"><%= job_worker(@job) %></td>
   <td class="jobs-column--args"><%= job_args(@job) %></td>
-  <td class="jobs-column--duration">00:12 ago</td>
+  <td class="jobs-column--duration"><%= job_time(@job) %> ago</td>
   <td class="jobs-column--action">
     <button class="btn--icon btn--destructive" name="kill" title="Kill Job">
       <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">

@@ -3,13 +3,15 @@ defmodule ObanWeb.DashboardController do
 
   import Ecto.Query, only: [where: 2]
 
-  # TODO: Dynamically fetch the repo
+  alias Oban.Config
 
   def index(conn, _params) do
+    %Config{repo: repo} = Oban.config()
+
     executing =
       Oban.Job
       |> where(state: "executing")
-      |> Lysmore.Repo.all()
+      |> repo.all()
 
     render(conn, "index.html", jobs: executing)
   end
