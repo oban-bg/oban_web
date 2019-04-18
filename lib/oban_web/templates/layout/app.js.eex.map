@@ -1,1 +1,0 @@
-{"version":3,"file":"","sourceRoot":"","sources":["app.js","secondary.js"],"sourcesContent":["import { square } from './secondary'\n\nconsole.log(square(4));\n","export const square = x => x * x\n"],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAAA;AACA;AACA;AACA;;;;;;;;;ACHA;AACA;;;;"}

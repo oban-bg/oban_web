@@ -1,0 +1,12 @@
+<div class="menu menu--contained">
+  <header class="menu-title">Nodes</header>
+  <hr class="flat" />
+  <ul class="menu-list">
+    <li>
+      <div class="menu-item flex">
+        <button class="menu-btn">SorenBook</button>
+        <span class="menu-cnt">(42)</span>
+      </div>
+    </li>
+  </ul>
+</div>

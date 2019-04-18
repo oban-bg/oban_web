@@ -1,0 +1,14 @@
+<div class="menu menu--contained">
+  <header class="menu-title">States</header>
+  <hr class="flat" />
+  <ul class="menu-list">
+    <%= for {state, count} <- @states do %>
+      <li>
+        <div class="menu-item flex">
+          <button class="menu-btn"><%= state %></button>
+          <span class="menu-cnt">(<%= count %>)</span>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+</div>

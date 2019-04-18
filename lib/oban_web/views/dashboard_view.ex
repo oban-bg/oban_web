@@ -5,11 +5,13 @@ defmodule ObanWeb.DashboardView do
 
   alias Oban.Job
 
-  def queue_class(%Job{queue: queue}) do
+  def queue_class(%Job{queue: queue}), do: queue_class(queue)
+
+  def queue_class(queue, steps \\ 12) when is_binary(queue) do
     key =
       queue
       |> :erlang.phash2()
-      |> Integer.mod(8)
+      |> Integer.mod(steps)
 
     "queue-tag--#{key}"
   end

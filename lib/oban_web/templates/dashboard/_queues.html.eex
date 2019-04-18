@@ -1,0 +1,14 @@
+<div class="menu menu--contained">
+  <header class="menu-title">Queues</header>
+  <hr class="flat" />
+  <ul class="menu-list">
+    <%= for {queue, {count, limit}} <- @queues do %>
+      <li>
+        <div class="menu-item flex">
+          <button class="menu-btn menu-btn-tag <%= queue_class(queue) %>"><%= queue %></button>
+          <span class="menu-cnt">(<%= count %>/<%= limit %>)</span>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+</div>

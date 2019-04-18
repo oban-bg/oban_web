@@ -58,30 +58,36 @@
   &--selected {
     background-color: $color--hover-bg;
   }
+}
 
-  &__cnt {
-    color: $color--dem;
-    text-align: right;
+.menu-btn {
+  appearance: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: $line-height--copy;
+  position: relative;
+  text-align: left;
+
+  &:active {
+    color: inherit;
   }
 
-  &__btn {
-    appearance: none;
-    background-color: transparent;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-    line-height: $line-height--copy;
-    position: relative;
-    text-align: left;
-
-    &:active {
-      color: inherit;
-    }
-
-    &[disabled],
-    &.disabled {
-      opacity: 0.3;
-      pointer-events: none;
-    }
+  &[disabled],
+  &.disabled {
+    opacity: 0.3;
+    pointer-events: none;
   }
+
+  &-tag {
+    border-left-width: 3px;
+    border-left-style: solid;
+    padding-left: 0.5em;
+  }
+}
+
+.btn-cnt {
+  color: $color--dem;
+  text-align: right;
 }

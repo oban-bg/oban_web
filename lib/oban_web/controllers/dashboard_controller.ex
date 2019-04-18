@@ -1,18 +1,19 @@
 defmodule ObanWeb.DashboardController do
   use ObanWeb, :controller
 
-  import Ecto.Query, only: [where: 2]
+  import Ecto.Query
 
   alias Oban.Config
+  alias ObanWeb.Query
 
   def index(conn, _params) do
-    %Config{repo: repo} = Oban.config()
+    %Config{queues: queues, repo: repo} = Oban.config()
 
-    executing =
-      Oban.Job
-      |> where(state: "executing")
-      |> repo.all()
-
-    render(conn, "index.html", jobs: executing)
+    render(conn,
+      "index.html",
+      jobs: Query.jobs(repo),
+      queues: Query.queue_counts(queues, repo),
+      states: Query.state_counts(repo)
+    )
   end
 end

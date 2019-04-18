@@ -29,3 +29,15 @@ main {
   margin: auto;
   padding: 2rem;
 }
+
+header {
+  padding: 2rem 2rem 0;
+}
+
+.logotype {
+  width: 8em;
+
+  path {
+    fill: $color--main;
+  }
+}
