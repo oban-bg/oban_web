@@ -1,3 +1,5 @@
-import { square } from './secondary'
+import "./phoenix_html"
+import LiveSocket from "./phoenix_live_view"
 
-console.log(square(4));
+let liveSocket = new LiveSocket("/live")
+liveSocket.connect()

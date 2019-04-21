@@ -1,10 +1,16 @@
 defmodule ObanWeb.Query do
   @moduledoc false
 
-  def jobs(repo) do
+  import Ecto.Query
+
+  def jobs(repo, opts \\ []) do
+    state = Keyword.get(opts, :state, "executing")
+    limit = Keyword.get(opts, :limit, 200)
+
     Oban.Job
-    |> where(state: "executing")
+    |> where(state: ^state)
     |> order_by([j], asc: j.attempted_at)
+    |> limit(^limit)
     |> repo.all()
   end
 

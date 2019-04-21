@@ -4,8 +4,8 @@
   <ul class="menu-list">
     <%= for {queue, {count, limit}} <- @queues do %>
       <li>
-        <div class="menu-item flex">
-          <button class="menu-btn menu-btn-tag <%= queue_class(queue) %>"><%= queue %></button>
+        <div class="menu-item menu-item--active flex">
+          <button class="menu-btn"><%= queue %></button>
           <span class="menu-cnt">(<%= count %>/<%= limit %>)</span>
         </div>
       </li>

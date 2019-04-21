@@ -7,8 +7,6 @@ defmodule ObanWeb do
 
       import Plug.Conn
       # import ObanWeb.Gettext
-
-      # alias ObanWeb.Router.Helpers, as: Routes
     end
   end
 
@@ -18,11 +16,10 @@ defmodule ObanWeb do
       use Phoenix.HTML
 
       import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
+      import Phoenix.LiveView, only: [live_render: 2, live_render: 3]
 
       # import ObanWeb.ErrorHelpers
       # import ObanWeb.Gettext
-
-      # alias ObanWeb.Router.Helpers, as: Routes
     end
   end
 

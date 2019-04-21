@@ -3,7 +3,7 @@
   <hr class="flat" />
   <ul class="menu-list">
     <%= for {state, count} <- @states do %>
-      <li>
+      <li phx-click="change_state" phx-value="<%= state %>">
         <div class="menu-item flex">
           <button class="menu-btn"><%= state %></button>
           <span class="menu-cnt">(<%= count %>)</span>
