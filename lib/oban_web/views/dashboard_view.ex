@@ -3,10 +3,6 @@ defmodule ObanWeb.DashboardView do
 
   use ObanWeb, :view
 
-  alias Oban.Job
-
-  def queue_class(%Job{queue: queue}), do: queue_class(queue)
-
   def queue_class(queue, steps \\ 12) when is_binary(queue) do
     key =
       queue
@@ -16,9 +12,7 @@ defmodule ObanWeb.DashboardView do
     "queue-tag--#{key}"
   end
 
-  def job_worker(%Job{worker: worker}), do: String.trim_leading(worker, "Elixir.")
-
-  def job_args(%Job{args: args}, range \\ 0..60) do
+  def job_args(args, range \\ 0..60) do
     inspected = inspect(args)
 
     if String.length(inspected) > Enum.max(range) do
@@ -28,8 +22,8 @@ defmodule ObanWeb.DashboardView do
     end
   end
 
-  @spec job_time(Job.t()) :: binary()
-  def job_time(%Job{attempted_at: then}), do: job_time(then)
+  def job_error([%{"error" => error} | _]), do: inspect(error)
+  def job_error(_errors), do: ""
 
   def job_time(then, now \\ NaiveDateTime.utc_now()) do
     ellapsed =
@@ -48,6 +42,8 @@ defmodule ObanWeb.DashboardView do
     |> Enum.map(&pad/1)
     |> Enum.join(":")
   end
+
+  def job_worker(worker), do: String.trim_leading(worker, "Elixir.")
 
   defp pad(time), do: time |> to_string() |> String.pad_leading(2, "0")
 end

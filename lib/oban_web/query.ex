@@ -8,10 +8,34 @@ defmodule ObanWeb.Query do
     limit = Keyword.get(opts, :limit, 200)
 
     Oban.Job
-    |> where(state: ^state)
-    |> order_by([j], asc: j.attempted_at)
+    |> filter_state(state)
+    |> order_state(state)
     |> limit(^limit)
     |> repo.all()
+  end
+
+  defp filter_state(query, "scheduled") do
+    query
+    |> where([j], j.state == "available")
+    |> where([j], j.attempt == 0 and j.scheduled_at > ^DateTime.utc_now())
+  end
+
+  defp filter_state(query, "retryable") do
+    query
+    |> where([j], j.state == "available")
+    |> where([j], j.attempt > 0 and j.scheduled_at > ^DateTime.utc_now())
+  end
+
+  defp filter_state(query, state) do
+    where(query, state: ^state)
+  end
+
+  defp order_state(query, state) when state in ~w(retryable scheduled) do
+    order_by(query, [j], desc: j.scheduled_at)
+  end
+
+  defp order_state(query, _state) do
+    order_by(query, [j], asc: j.attempted_at)
   end
 
   def queue_counts(queues, repo) do
@@ -42,8 +66,8 @@ defmodule ObanWeb.Query do
 
   select (select count(*) from oban_jobs where state = 'executing') as executing,
          (select count(*) from oban_jobs where state = 'available' and scheduled_at < (now() at time zone 'utc')) as available,
-         (select count(*) from oban_jobs where state = 'available' and scheduled_at > (now() at time zone 'utc')) as scheduled,
-         (select count(*) from oban_jobs where state = 'available' and attempt > 0) as retryable,
+         (select count(*) from oban_jobs where state = 'available' and attempt = 0 and scheduled_at > (now() at time zone 'utc')) as scheduled,
+         (select count(*) from oban_jobs where state = 'available' and attempt > 0 and scheduled_at > (now() at time zone 'utc')) as retryable,
          (select count(*) from oban_jobs where state = 'discarded') as discarded,
          (select (select total from estimate) - (select total from others)) as completed;
   """

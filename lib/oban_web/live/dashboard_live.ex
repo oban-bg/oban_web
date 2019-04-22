@@ -14,19 +14,21 @@ defmodule ObanWeb.DashboardLive do
     %Config{queues: queues, repo: repo} = Oban.config()
 
     assigns = [
-      jobs: Query.jobs(repo),
-      queues: Query.queue_counts(queues, repo),
-      states: Query.state_counts(repo)
+      jobs: Query.jobs(repo, state: "executing"),
+      node_counts: [],
+      queue_counts: Query.queue_counts(queues, repo),
+      state_counts: Query.state_counts(repo),
+      state: "executing"
     ]
 
     {:ok, assign(socket, assigns)}
   end
 
-  def handle_info(:tick, socket) do
+  def handle_info(:tick, %{assigns: assigns} = socket) do
     %Config{queues: queues, repo: repo} = Oban.config()
 
     assigns = [
-      jobs: Query.jobs(repo),
+      jobs: Query.jobs(repo, state: assigns.state),
       queues: Query.queue_counts(queues, repo),
       states: Query.state_counts(repo)
     ]
@@ -38,6 +40,6 @@ defmodule ObanWeb.DashboardLive do
   def handle_event("change_state", state, socket) do
     %Config{repo: repo} = Oban.config()
 
-    {:noreply, assign(socket, jobs: Query.jobs(repo, state: state))}
+    {:noreply, assign(socket, jobs: Query.jobs(repo, state: state), state: state)}
   end
 end

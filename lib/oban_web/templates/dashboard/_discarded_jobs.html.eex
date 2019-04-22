@@ -1,0 +1,32 @@
+<thead class="jobs-table__header">
+  <tr>
+    <th>Queue</th>
+    <th>Worker</th>
+    <th>Args</th>
+    <th>Attempts</th>
+    <th>Attempted At</th>
+    <th>Discarded At</th>
+  </tr>
+</thead>
+
+<tbody>
+  <%= for job <- @jobs do %>
+    <tr>
+      <td class="jobs-column--queue <%= queue_class(job.queue) %>"><%= job.queue %></td>
+      <td class="jobs-column--worker"><%= job_worker(job.worker) %></td>
+      <td class="jobs-column--args"><%= job_args(job.args) %></td>
+      <td class="jobs-column--attempts"><%= job.attempt %> attempts</td>
+      <td class="jobs-column--duration"><%= inspect(job.completed_at) %></td>
+      <td class="jobs-column--action">
+        <button class="btn--icon btn--destructive" name="delete" title="Delete Job">
+          <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
+            <g>
+            <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="8" x2="17" y1="17" y2="8"></line>
+            <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="17" x2="8" y1="17" y2="8"></line>
+            </g>
+          </svg>
+        </button>
+      </td>
+    </tr>
+  <% end %>
+</tbody>

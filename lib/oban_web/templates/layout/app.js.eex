@@ -62,7 +62,7 @@ with (function() {
   const __module1 = require._esModule("./phoenix_live_view")
   return Object.freeze(Object.create(null, {
     [Symbol.toStringTag]: {value: 'ModuleImports'},
-    LiveSocket: {get() {return __module1.default}, enumerable: true},
+    LiveSocket: {get() {return __module1.LiveSocket}, enumerable: true},
   }))
 }()) ~function() {
 'use strict';
