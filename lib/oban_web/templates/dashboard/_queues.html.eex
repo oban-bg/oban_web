@@ -2,12 +2,12 @@
   <header class="menu-title">Queues</header>
   <hr class="flat" />
   <ul class="menu-list">
-    <%= for {queue, {count, limit}} <- @queues do %>
-      <li>
-        <div class="menu-item menu-item--active flex">
-          <button class="menu-btn"><%= queue %></button>
-          <span class="menu-cnt">(<%= count %>/<%= limit %>)</span>
-        </div>
+    <%= for {queue, {count, limit}} <- @queue_counts do %>
+      <li class="menu-item <%= if queue == @queue do %>menu-item--active<% end %> flex"
+          phx-click="change_queue"
+          phx-value="<%= queue %>">
+        <button class="menu-btn"><%= queue %></button>
+        <span class="menu-cnt">(<%= count %>/<%= limit %>)</span>
       </li>
     <% end %>
   </ul>

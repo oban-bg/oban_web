@@ -4,6 +4,8 @@ defmodule ObanWeb.DashboardLive do
   alias Oban.Config
   alias ObanWeb.{DashboardView, Query}
 
+  @default_filters %{state: "executing", queue: "any"}
+
   def render(assigns) do
     DashboardView.render("index.html", assigns)
   end
@@ -14,32 +16,43 @@ defmodule ObanWeb.DashboardLive do
     %Config{queues: queues, repo: repo} = Oban.config()
 
     assigns = [
-      jobs: Query.jobs(repo, state: "executing"),
+      jobs: Query.jobs(repo, @default_filters),
       node_counts: [],
       queue_counts: Query.queue_counts(queues, repo),
       state_counts: Query.state_counts(repo),
-      state: "executing"
+      config: %{
+        queues: queues,
+        repo: repo
+      },
+      filters: @default_filters
     ]
 
     {:ok, assign(socket, assigns)}
   end
 
   def handle_info(:tick, %{assigns: assigns} = socket) do
-    %Config{queues: queues, repo: repo} = Oban.config()
+    %{queues: queues, repo: repo} = assigns.config
 
     assigns = [
-      jobs: Query.jobs(repo, state: assigns.state),
-      queues: Query.queue_counts(queues, repo),
-      states: Query.state_counts(repo)
+      jobs: Query.jobs(repo, assigns.filters),
+      queue_counts: Query.queue_counts(queues, repo),
+      state_counts: Query.state_counts(repo)
     ]
 
-    # Only change the jobs initially
     {:noreply, assign(socket, assigns)}
   end
 
-  def handle_event("change_state", state, socket) do
-    %Config{repo: repo} = Oban.config()
+  def handle_event("change_queue", queue, %{assigns: assigns} = socket) do
+    filters = Map.put(assigns.filters, :queue, queue)
+    jobs = Query.jobs(assigns.config.repo, filters)
 
-    {:noreply, assign(socket, jobs: Query.jobs(repo, state: state), state: state)}
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_event("change_state", state, %{assigns: assigns} = socket) do
+    filters = Map.put(assigns.filters, :state, state)
+    jobs = Query.jobs(assigns.config.repo, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 end

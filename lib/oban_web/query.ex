@@ -3,12 +3,16 @@ defmodule ObanWeb.Query do
 
   import Ecto.Query
 
-  def jobs(repo, opts \\ []) do
+  def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
+
+  def jobs(repo, opts) do
+    queue = Keyword.get(opts, :queue, "any")
     state = Keyword.get(opts, :state, "executing")
-    limit = Keyword.get(opts, :limit, 200)
+    limit = Keyword.get(opts, :limit, 50)
 
     Oban.Job
     |> filter_state(state)
+    |> filter_queue(queue)
     |> order_state(state)
     |> limit(^limit)
     |> repo.all()
@@ -29,6 +33,9 @@ defmodule ObanWeb.Query do
   defp filter_state(query, state) do
     where(query, state: ^state)
   end
+
+  defp filter_queue(query, "any"), do: query
+  defp filter_queue(query, queue), do: where(query, queue: ^queue)
 
   defp order_state(query, state) when state in ~w(retryable scheduled) do
     order_by(query, [j], desc: j.scheduled_at)
