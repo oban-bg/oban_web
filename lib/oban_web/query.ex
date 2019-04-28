@@ -3,6 +3,11 @@ defmodule ObanWeb.Query do
 
   import Ecto.Query
 
+  alias Oban.Job
+
+  @queues ~w(default)
+  @states ~w(executing available scheduled retryable discarded completed)
+
   def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
 
   def jobs(repo, opts) do
@@ -10,7 +15,7 @@ defmodule ObanWeb.Query do
     state = Keyword.get(opts, :state, "executing")
     limit = Keyword.get(opts, :limit, 50)
 
-    Oban.Job
+    Job
     |> filter_state(state)
     |> filter_queue(queue)
     |> order_state(state)
@@ -18,21 +23,7 @@ defmodule ObanWeb.Query do
     |> repo.all()
   end
 
-  defp filter_state(query, "scheduled") do
-    query
-    |> where([j], j.state == "available")
-    |> where([j], j.attempt == 0 and j.scheduled_at > ^DateTime.utc_now())
-  end
-
-  defp filter_state(query, "retryable") do
-    query
-    |> where([j], j.state == "available")
-    |> where([j], j.attempt > 0 and j.scheduled_at > ^DateTime.utc_now())
-  end
-
-  defp filter_state(query, state) do
-    where(query, state: ^state)
-  end
+  defp filter_state(query, state), do: where(query, state: ^state)
 
   defp filter_queue(query, "any"), do: query
   defp filter_queue(query, queue), do: where(query, queue: ^queue)
@@ -45,42 +36,26 @@ defmodule ObanWeb.Query do
     order_by(query, [j], asc: j.attempted_at)
   end
 
-  def queue_counts(queues, repo) do
+  def queue_counts(queues \\ @queues, repo) do
     counted =
-      Oban.Job
+      Job
       |> group_by([j], j.queue)
       |> select([j], {j.queue, count(j.id)})
       |> where(state: "available")
       |> repo.all()
       |> Map.new()
 
-    for {queue, limit} <- queues, into: %{} do
-      queue = to_string(queue)
-      count = Map.get(counted, queue, 0)
-
-      {queue, {count, limit}}
-    end
+    for queue <- queues, into: %{}, do: {queue, Map.get(counted, queue, 0)}
   end
 
-  @state_query """
-  with estimate as (
-    select reltuples::bigint as total from pg_class where relname = 'oban_jobs'
-  ), others as (
-    select (select count(*) from oban_jobs where state = 'executing') +
-           (select count(*) from oban_jobs where state = 'available') +
-           (select count(*) from oban_jobs where state = 'discarded') as total
-  )
+  def state_counts(states \\ @states, repo) do
+    counted =
+      Job
+      |> group_by([j], j.state)
+      |> select([j], {j.state, count(j.id)})
+      |> repo.all()
+      |> Map.new()
 
-  select (select count(*) from oban_jobs where state = 'executing') as executing,
-         (select count(*) from oban_jobs where state = 'available' and scheduled_at < (now() at time zone 'utc')) as available,
-         (select count(*) from oban_jobs where state = 'available' and attempt = 0 and scheduled_at > (now() at time zone 'utc')) as scheduled,
-         (select count(*) from oban_jobs where state = 'available' and attempt > 0 and scheduled_at > (now() at time zone 'utc')) as retryable,
-         (select count(*) from oban_jobs where state = 'discarded') as discarded,
-         (select (select total from estimate) - (select total from others)) as completed;
-  """
-  def state_counts(repo) do
-    {:ok, %{columns: states, rows: [counts]}} = repo.query(@state_query)
-
-    Enum.zip(states, counts)
+    for state <- states, into: %{}, do: {state, Map.get(counted, state, 0)}
   end
 end

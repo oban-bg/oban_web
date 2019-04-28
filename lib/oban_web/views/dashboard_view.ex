@@ -12,6 +12,15 @@ defmodule ObanWeb.DashboardView do
     "queue-tag--#{key}"
   end
 
+  def integer_to_delimited(integer) when is_integer(integer) do
+    integer
+    |> Integer.to_charlist()
+    |> Enum.reverse()
+    |> Enum.chunk_every(3, 3, [])
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+
   def job_args(args, range \\ 0..60) do
     inspected = inspect(args)
 

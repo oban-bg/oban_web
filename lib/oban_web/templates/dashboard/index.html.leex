@@ -1,6 +1,6 @@
 <section class="flex">
   <div class="sidebar sidebar--filters">
-    <%= render("_nodes.html", nodes: @node_counts) %>
+    <%= render("_nodes.html", node_counts: @node_counts) %>
     <%= render("_states.html", state: @filters.state, state_counts: @state_counts) %>
     <%= render("_queues.html", queue: @filters.queue, queue_counts: @queue_counts) %>
   </div>
@@ -9,7 +9,7 @@
     <div class="flex justify--between padding--s">
       <h2 class="font-size--l">
         <span class="font-weight--7"><%= String.capitalize(@filters.state) %> Jobs</span>
-        <span class="font-weight--3">(<%= length(@jobs) %>)</span>
+        <span class="font-weight--3">(<%= integer_to_delimited(length(@jobs)) %>)</span>
       </h2>
 
       <input class="width--20-pct" type="search" placeholder="Filter" />

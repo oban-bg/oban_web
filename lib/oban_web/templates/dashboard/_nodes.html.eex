@@ -2,9 +2,11 @@
   <header class="menu-title">Nodes</header>
   <hr class="flat" />
   <ul class="menu-list">
-    <li class="menu-item flex">
-      <button class="menu-btn">SorenBook</button>
-      <span class="menu-cnt">(42)</span>
-    </li>
+    <%= for {node, count} <- @node_counts do %>
+      <li class="menu-item flex">
+        <button class="menu-btn"><%= node %></button>
+        <span class="menu-cnt">(<%= integer_to_delimited(count) %>)</span>
+      </li>
+    <% end %>
   </ul>
 </div>

@@ -4,7 +4,15 @@ defmodule ObanWeb.DashboardLiveTest do
   import Phoenix.LiveViewTest
 
   alias Oban.Job
-  alias ObanWeb.{DashboardLive, Endpoint, Repo}
+  alias ObanWeb.{DashboardLive, Endpoint, Repo, Stats}
+
+  @stat_opts [queues: [alpha: 1, delta: 1, gamma: 1], repo: Repo]
+
+  setup do
+    start_supervised!({Stats, @stat_opts})
+
+    :ok
+  end
 
   describe "viewing jobs in different states" do
     test "viewing available jobs" do
@@ -19,7 +27,7 @@ defmodule ObanWeb.DashboardLiveTest do
       {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
 
       insert_job!([ref: 1], state: "available", worker: RealWorker)
-      insert_job!([ref: 2], scheduled_in: 5, state: "available", worker: NeueWorker)
+      insert_job!([ref: 2], state: "scheduled", worker: NeueWorker)
 
       html = render_click(view, :change_state, "scheduled")
 
@@ -31,9 +39,7 @@ defmodule ObanWeb.DashboardLiveTest do
       {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
 
       insert_job!([ref: 1],
-        scheduled_in: 5,
-        state: "available",
-        attempt: 1,
+        state: "retryable",
         worker: JankWorker,
         errors: [%{attempt: 1, at: DateTime.utc_now(), error: "Formatted RuntimeError"}]
       )

@@ -1,8 +1,7 @@
 defmodule ObanWeb.DashboardLive do
   use Phoenix.LiveView
 
-  alias Oban.Config
-  alias ObanWeb.{DashboardView, Query}
+  alias ObanWeb.{DashboardView, Query, Stats}
 
   @default_filters %{state: "executing", queue: "any"}
 
@@ -13,30 +12,26 @@ defmodule ObanWeb.DashboardLive do
   def mount(_session, socket) do
     if connected?(socket), do: :timer.send_interval(500, self(), :tick)
 
-    %Config{queues: queues, repo: repo} = Oban.config()
+    config = Oban.config()
+    filters = @default_filters
 
     assigns = [
-      jobs: Query.jobs(repo, @default_filters),
-      node_counts: [],
-      queue_counts: Query.queue_counts(queues, repo),
-      state_counts: Query.state_counts(repo),
-      config: %{
-        queues: queues,
-        repo: repo
-      },
-      filters: @default_filters
+      jobs: Query.jobs(config.repo, filters),
+      node_counts: [{config.node, 0}],
+      queue_counts: Stats.for_queues(),
+      state_counts: Stats.for_states(),
+      config: config,
+      filters: filters
     ]
 
     {:ok, assign(socket, assigns)}
   end
 
   def handle_info(:tick, %{assigns: assigns} = socket) do
-    %{queues: queues, repo: repo} = assigns.config
-
     assigns = [
-      jobs: Query.jobs(repo, assigns.filters),
-      queue_counts: Query.queue_counts(queues, repo),
-      state_counts: Query.state_counts(repo)
+      jobs: Query.jobs(assigns.config.repo, assigns.filters),
+      queue_counts: Stats.for_queues(),
+      state_counts: Stats.for_states()
     ]
 
     {:noreply, assign(socket, assigns)}
