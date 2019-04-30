@@ -5,9 +5,6 @@ defmodule ObanWeb.Query do
 
   alias Oban.Job
 
-  @queues ~w(default)
-  @states ~w(executing available scheduled retryable discarded completed)
-
   def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
 
   def jobs(repo, opts) do
@@ -36,26 +33,18 @@ defmodule ObanWeb.Query do
     order_by(query, [j], asc: j.attempted_at)
   end
 
-  def queue_counts(queues \\ @queues, repo) do
-    counted =
-      Job
-      |> group_by([j], j.queue)
-      |> select([j], {j.queue, count(j.id)})
-      |> where(state: "available")
-      |> repo.all()
-      |> Map.new()
-
-    for queue <- queues, into: %{}, do: {queue, Map.get(counted, queue, 0)}
+  def queue_counts(repo) do
+    Job
+    |> group_by([j], [j.queue, j.state])
+    |> select([j], {j.queue, j.state, count(j.id)})
+    |> where([j], j.state in ["available", "executing"])
+    |> repo.all()
   end
 
-  def state_counts(states \\ @states, repo) do
-    counted =
-      Job
-      |> group_by([j], j.state)
-      |> select([j], {j.state, count(j.id)})
-      |> repo.all()
-      |> Map.new()
-
-    for state <- states, into: %{}, do: {state, Map.get(counted, state, 0)}
+  def state_counts(repo) do
+    Job
+    |> group_by([j], j.state)
+    |> select([j], {j.state, count(j.id)})
+    |> repo.all()
   end
 end

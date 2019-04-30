@@ -5,12 +5,12 @@ defmodule ObanWeb.Router do
   import Phoenix.LiveView.Router
 
   pipeline :browser do
-    plug :accepts, ["html"]
+    plug(:accepts, ["html"])
   end
 
   scope "/" do
-    pipe_through :browser
+    pipe_through(:browser)
 
-    live "/oban", ObanWeb.DashboardLive
+    live("/oban", ObanWeb.DashboardLive)
   end
 end

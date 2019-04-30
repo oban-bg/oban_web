@@ -1,5 +1,8 @@
 <div class="menu menu--contained">
-  <header class="menu-title">States</header>
+  <header class="menu-title flex justify--between">
+    <span class="font-size--base font-weight--7">States</span>
+    <span class="menu-subtitle text-transform--u font-size--s font-weight--2">Count</span>
+  </header>
   <hr class="flat" />
   <ul class="menu-list">
     <%= for {state, count} <- @state_counts do %>
@@ -7,7 +10,7 @@
           phx-click="change_state"
           phx-value="<%= state %>">
         <button class="menu-btn"><%= state %></button>
-        <span class="menu-cnt">(<%= integer_to_delimited(count) %>)</span>
+        <span class="menu-cnt"><%= integer_to_delimited(count) %></span>
       </li>
     <% end %>
   </ul>

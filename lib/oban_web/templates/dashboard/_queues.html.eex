@@ -1,13 +1,25 @@
 <div class="menu menu--contained">
-  <header class="menu-title">Queues</header>
+  <header class="menu-title flex justify--between">
+    <span class="font-size--base font-weight--7">Queues</span>
+    <div>
+      <span class="menu-subtitle text-transform--u font-size--s font-weight--2">Running</span>
+      <span class="menu-subtitle text-transform--u font-size--s font-weight--2">Avail</span>
+    </div>
+  </header>
+
   <hr class="flat" />
   <ul class="menu-list">
-    <%= for {queue, count} <- @queue_counts do %>
+    <%= for {queue, {execu, avail, limit}} <- @queue_counts do %>
       <li class="menu-item <%= if queue == @queue do %>menu-item--active<% end %> flex"
           phx-click="change_queue"
           phx-value="<%= queue %>">
         <button class="menu-btn"><%= queue %></button>
-        <span class="menu-cnt">(<%= integer_to_delimited(count) %>)</span>
+        <div>
+          <span class="menu-cnt">
+            <%= integer_to_delimited(execu) %> / <%= integer_to_delimited(limit) %>
+          </span>
+          <span class="menu-cnt"><%= integer_to_delimited(avail) %></span>
+        </div>
       </li>
     <% end %>
   </ul>

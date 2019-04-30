@@ -17,7 +17,7 @@ defmodule ObanWeb.DashboardLive do
 
     assigns = [
       jobs: Query.jobs(config.repo, filters),
-      node_counts: [{config.node, 0}],
+      node_counts: Stats.for_nodes(),
       queue_counts: Stats.for_queues(),
       state_counts: Stats.for_states(),
       config: config,
@@ -30,6 +30,7 @@ defmodule ObanWeb.DashboardLive do
   def handle_info(:tick, %{assigns: assigns} = socket) do
     assigns = [
       jobs: Query.jobs(assigns.config.repo, assigns.filters),
+      node_counts: Stats.for_nodes(),
       queue_counts: Stats.for_queues(),
       state_counts: Stats.for_states()
     ]

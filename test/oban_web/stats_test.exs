@@ -1,11 +1,13 @@
 defmodule ObanWeb.StatsTest do
   use ObanWeb.DataCase
 
+  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0, update: 0]
+
   alias Oban.Job
   alias ObanWeb.Stats
 
   @name __MODULE__
-  @opts [name: @name, queues: [alpha: 1, gamma: 1, delta: 1], repo: ObanWeb.Repo]
+  @opts [name: @name, queues: [alpha: 2, gamma: 3, delta: 2], repo: ObanWeb.Repo]
 
   test "initializing with current state and queue counts" do
     insert_job!(queue: :alpha, state: "available")
@@ -16,18 +18,22 @@ defmodule ObanWeb.StatsTest do
 
     start_supervised!({Stats, @opts})
 
-    Process.sleep(20)
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {1, 1, 2},
+               "delta" => {0, 0, 2},
+               "gamma" => {0, 1, 3}
+             }
 
-    assert Stats.for_queues(@name) == %{"delta" => 0, "alpha" => 1, "gamma" => 1}
-
-    assert Stats.for_states(@name) == %{
-             "executing" => 1,
-             "available" => 2,
-             "scheduled" => 1,
-             "retryable" => 0,
-             "discarded" => 0,
-             "completed" => 1
-           }
+      assert Stats.for_states(@name) == %{
+               "executing" => 1,
+               "available" => 2,
+               "scheduled" => 1,
+               "retryable" => 0,
+               "discarded" => 0,
+               "completed" => 1
+             }
+    end)
 
     stop_supervised(Stats)
   end
@@ -35,22 +41,26 @@ defmodule ObanWeb.StatsTest do
   test "insert notifications modify the cached values" do
     {:ok, pid} = start_supervised({Stats, @opts})
 
-    notify(pid, :insert, queue: :alpha, state: "available")
-    notify(pid, :insert, queue: :gamma, state: "available")
-    notify(pid, :insert, queue: :delta, state: "scheduled")
+    notify(pid, insert(), queue: :alpha, state: "available")
+    notify(pid, insert(), queue: :gamma, state: "available")
+    notify(pid, insert(), queue: :delta, state: "scheduled")
 
-    Process.sleep(20)
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {0, 1, 2},
+               "delta" => {0, 0, 2},
+               "gamma" => {0, 1, 3}
+             }
 
-    assert Stats.for_queues(@name) == %{"alpha" => 1, "gamma" => 1, "delta" => 0}
-
-    assert Stats.for_states(@name) == %{
-             "executing" => 0,
-             "available" => 2,
-             "scheduled" => 1,
-             "retryable" => 0,
-             "discarded" => 0,
-             "completed" => 0
-           }
+      assert Stats.for_states(@name) == %{
+               "executing" => 0,
+               "available" => 2,
+               "scheduled" => 1,
+               "retryable" => 0,
+               "discarded" => 0,
+               "completed" => 0
+             }
+    end)
 
     stop_supervised(Stats)
   end
@@ -63,23 +73,55 @@ defmodule ObanWeb.StatsTest do
 
     {:ok, pid} = start_supervised({Stats, @opts})
 
-    notify(pid, :update, queue: :alpha, old_state: "available", new_state: "executing")
-    notify(pid, :update, queue: :gamma, old_state: "scheduled", new_state: "available")
-    notify(pid, :update, queue: :gamma, old_state: "available", new_state: "executing")
-    notify(pid, :update, queue: :delta, old_state: "executing", new_state: "completed")
+    notify(pid, update(), queue: :alpha, old_state: "available", new_state: "executing")
+    notify(pid, update(), queue: :gamma, old_state: "scheduled", new_state: "available")
+    notify(pid, update(), queue: :gamma, old_state: "available", new_state: "executing")
+    notify(pid, update(), queue: :delta, old_state: "executing", new_state: "completed")
 
-    Process.sleep(20)
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {1, 0, 2},
+               "delta" => {0, 0, 2},
+               "gamma" => {1, 1, 3}
+             }
 
-    assert Stats.for_queues(@name) == %{"alpha" => 0, "gamma" => 1, "delta" => 0}
+      assert Stats.for_states(@name) == %{
+               "executing" => 2,
+               "available" => 1,
+               "scheduled" => 0,
+               "retryable" => 0,
+               "discarded" => 0,
+               "completed" => 1
+             }
+    end)
 
-    assert Stats.for_states(@name) == %{
-             "executing" => 2,
-             "available" => 1,
-             "scheduled" => 0,
-             "retryable" => 0,
-             "discarded" => 0,
-             "completed" => 1
-           }
+    stop_supervised(Stats)
+  end
+
+  test "gossip notifications modify the cached values" do
+    {:ok, pid} = start_supervised({Stats, @opts})
+
+    notify(pid, gossip(), count: 2, limit: 5, node: "worker.1", paused: false, queue: :alpha)
+    notify(pid, gossip(), count: 1, limit: 5, node: "worker.2", paused: false, queue: :alpha)
+    notify(pid, gossip(), count: 3, limit: 5, node: "worker.1", paused: false, queue: :gamma)
+    notify(pid, gossip(), count: 1, limit: 5, node: "worker.2", paused: false, queue: :gamma)
+    notify(pid, gossip(), count: 1, limit: 5, node: "worker.1", paused: false, queue: :delta)
+    notify(pid, gossip(), count: 1, limit: 5, node: "worker.2", paused: false, queue: :delta)
+
+    with_backoff(fn ->
+      assert Stats.for_nodes(@name) == %{"worker.1" => 6, "worker.2" => 3}
+    end)
+
+    notify(pid, gossip(), count: 1, limit: 5, node: "worker.1", paused: false, queue: :alpha)
+    notify(pid, gossip(), count: 0, limit: 5, node: "worker.2", paused: false, queue: :alpha)
+    notify(pid, gossip(), count: 4, limit: 5, node: "worker.1", paused: false, queue: :gamma)
+    notify(pid, gossip(), count: 2, limit: 5, node: "worker.2", paused: false, queue: :gamma)
+    notify(pid, gossip(), count: 0, limit: 5, node: "worker.1", paused: false, queue: :delta)
+    notify(pid, gossip(), count: 2, limit: 5, node: "worker.2", paused: false, queue: :delta)
+
+    with_backoff(fn ->
+      assert Stats.for_nodes(@name) == %{"worker.1" => 5, "worker.2" => 4}
+    end)
 
     stop_supervised(Stats)
   end
@@ -92,13 +134,39 @@ defmodule ObanWeb.StatsTest do
 
     send(pid, :refresh)
 
-    Process.sleep(20)
-
-    assert Stats.for_queues(@name) == %{"alpha" => 0, "gamma" => 1, "delta" => 1}
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {0, 0, 2},
+               "delta" => {0, 1, 2},
+               "gamma" => {0, 1, 3}
+             }
+    end)
   end
 
-  # tracks execs/avail/limit for queues
-  # track nodes through gossip
+  test "signal notifications modify the tracked queue limits" do
+    {:ok, pid} = start_supervised({Stats, @opts})
+
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {0, 0, 2},
+               "delta" => {0, 0, 2},
+               "gamma" => {0, 0, 3}
+             }
+    end)
+
+    notify(pid, signal(), action: :scale, queue: :gamma, scale: 7)
+    notify(pid, signal(), action: :scale, queue: :delta, scale: 4)
+
+    with_backoff(fn ->
+      assert Stats.for_queues(@name) == %{
+               "alpha" => {0, 0, 2},
+               "delta" => {0, 0, 4},
+               "gamma" => {0, 0, 7}
+             }
+    end)
+
+    stop_supervised(Stats)
+  end
 
   defp insert_job!(opts) do
     opts =
@@ -114,12 +182,6 @@ defmodule ObanWeb.StatsTest do
   defp notify(pid, event, payload) do
     encoded = Jason.encode!(Map.new(payload))
 
-    full_event =
-      case event do
-        :insert -> "oban_insert"
-        :update -> "oban_update"
-      end
-
-    send(pid, {:notification, nil, nil, full_event, encoded})
+    send(pid, {:notification, nil, nil, event, encoded})
   end
 end

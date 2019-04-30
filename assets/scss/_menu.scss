@@ -18,10 +18,14 @@
 }
 
 .menu-title {
-  font-size: $font-size--base;
-  font-weight: $font-weight--7;
   margin: 0;
   padding: 0.75em 1em;
+}
+
+.menu-subtitle {
+  display: inline-block;
+  min-width: 3.5rem;
+  text-align: right;
 }
 
 .menu-divider {
@@ -87,7 +91,9 @@
   }
 }
 
-.btn-cnt {
-  color: $color--dem;
+.menu-cnt {
+  color: $color--main-light;
+  display: inline-block;
+  min-width: 3.5rem;
   text-align: right;
 }

@@ -26,7 +26,7 @@ defmodule ObanWeb.MixProject do
     [
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:oban, ">= 0.0.0", github: "sorentwo/oban"},
+      {:oban, ">= 0.0.0", path: "../oban"},
       {:phoenix, "~> 1.4.3"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_view, github: "phoenixframework/phoenix_live_view"},

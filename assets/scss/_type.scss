@@ -23,9 +23,6 @@ p {
 .font-size--xs { font-size: .750em; }
 .font-size--xxs { font-size: .563em; }
 
-.font-size--headline { font-size: 6em; }
-.font-size--subheadline { font-size: 5em; }
-
 .font-weight--normal { font-weight: normal; }
 .font-weight--b { font-weight: bold; }
 .font-weight--1 { font-weight: 100; }
@@ -37,3 +34,5 @@ p {
 .font-weight--7 { font-weight: 700; }
 .font-weight--8 { font-weight: 800; }
 .font-weight--9 { font-weight: 900; }
+
+.text-transform--u { text-transform: uppercase; }

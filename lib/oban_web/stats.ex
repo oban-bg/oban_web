@@ -1,13 +1,22 @@
 defmodule ObanWeb.Stats do
-  @moduledoc false
+  @moduledoc """
+  Cache for tracking queue, state and node counts for display.
+
+  Count operations are particularly expensive in Postgres, especially if there are a lot of jobs.
+  The `Stats` module uses ETS and PubSub to track changes efficiently, avoiding repeated slow
+  database operations.
+  """
 
   use GenServer
+
+  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0, update: 0]
 
   alias Oban.Notifier
   alias ObanWeb.Query
 
-  @insert "oban_insert"
-  @update "oban_update"
+  @type option :: {:name, atom()} | {:queues, Keyword.t()} | {:repo, module()}
+
+  @ordered_states ~w(executing available scheduled retryable discarded completed)
 
   defmodule State do
     @moduledoc false
@@ -15,22 +24,54 @@ defmodule ObanWeb.Stats do
     defstruct [:queues, :repo, :table, refresh_interval: :timer.seconds(60)]
   end
 
+  @spec start_link([option()]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :name, __MODULE__)
 
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
 
-  def for_queues(name \\ __MODULE__) do
-    count_stats = :ets.select(name, [{{{:queue, :"$1", :count}, :"$2"}, [], [:"$$"]}])
-
-    Map.new(count_stats, fn [key, val] -> {key, val} end)
+  @spec for_nodes(module()) :: %{optional(binary()) => non_neg_integer()}
+  def for_nodes(name \\ __MODULE__) do
+    name
+    |> :ets.select([{{{:node, :"$1", :_}, :"$2"}, [], [:"$$"]}])
+    |> Enum.sort_by(&hd/1)
+    |> Enum.reduce(%{}, fn [nname, count], acc ->
+      Map.update(acc, nname, count, &(&1 + count))
+    end)
   end
 
-  def for_states(name \\ __MODULE__) do
-    count_stats = :ets.select(name, [{{{:state, :"$1"}, :"$2"}, [], [:"$$"]}])
+  @spec for_queues(module()) :: %{optional(binary()) => {integer(), integer(), integer()}}
+  def for_queues(name \\ __MODULE__) do
+    counter = fn type ->
+      name
+      |> :ets.select([{{{:queue, :"$1", type}, :"$3"}, [], [:"$$"]}])
+      |> Map.new(fn [queue, count] -> {queue, count} end)
+    end
 
-    Map.new(count_stats, fn [key, val] -> {key, val} end)
+    avail_counts = counter.(:avail)
+    execu_counts = counter.(:execu)
+    limit_counts = counter.(:limit)
+
+    for {queue, _avail} <- limit_counts do
+      counts = {
+        Map.get(execu_counts, queue, 0),
+        Map.get(avail_counts, queue, 0),
+        Map.get(limit_counts, queue, 0)
+      }
+
+      {queue, counts}
+    end
+  end
+
+  @spec for_states(module()) :: %{optional(binary()) => non_neg_integer()}
+  def for_states(name \\ __MODULE__) do
+    for state <- @ordered_states do
+      case :ets.lookup(name, {:state, state}) do
+        [{_, count}] -> {state, count}
+        _ -> {state, 0}
+      end
+    end
   end
 
   @impl GenServer
@@ -43,13 +84,16 @@ defmodule ObanWeb.Stats do
 
   @impl GenServer
   def handle_continue(:start, state) do
+    fetch_queue_limits(state)
     fetch_queue_counts(state)
     fetch_state_counts(state)
 
     {:ok, _ref} = :timer.send_interval(state.refresh_interval, :refresh)
 
-    :ok = Notifier.listen(@insert)
-    :ok = Notifier.listen(@update)
+    :ok = Notifier.listen(:gossip)
+    :ok = Notifier.listen(:insert)
+    :ok = Notifier.listen(:update)
+    :ok = Notifier.listen(:signal)
 
     {:noreply, state}
   end
@@ -62,32 +106,45 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, @insert, payload}, %State{table: table} = state) do
+  def handle_info({:notification, _, _, insert(), payload}, %State{table: table} = state) do
     %{"state" => job_state, "queue" => job_queue} = Jason.decode!(payload)
 
-    :ets.update_counter(table, {:state, job_state}, 1)
+    :ets.update_counter(table, {:state, job_state}, 1, {1, 0})
 
     if job_state == "available" do
-      :ets.update_counter(table, {:queue, job_queue, :count}, 1)
+      :ets.update_counter(table, {:queue, job_queue, :avail}, 1, {1, 0})
     end
 
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, @update, payload}, %State{table: table} = state) do
+  def handle_info({:notification, _, _, update(), payload}, %State{table: table} = state) do
     %{"queue" => queue, "new_state" => new, "old_state" => old} = Jason.decode!(payload)
 
-    :ets.update_counter(table, {:state, old}, -1)
-    :ets.update_counter(table, {:state, new}, 1)
+    :ets.update_counter(table, {:state, old}, -1, {1, 1})
+    :ets.update_counter(table, {:state, new}, 1, {1, 0})
 
-    incr =
-      cond do
-        new == "available" -> 1
-        old == "available" -> -1
-        true -> 0
-      end
+    avail_incr = state_to_incr(new, old, "available")
+    execu_incr = state_to_incr(new, old, "executing")
 
-    :ets.update_counter(table, {:queue, queue, :count}, incr)
+    :ets.update_counter(table, {:queue, queue, :avail}, avail_incr, {1, 0})
+    :ets.update_counter(table, {:queue, queue, :execu}, execu_incr, {1, 0})
+
+    {:noreply, state}
+  end
+
+  def handle_info({:notification, _, _, gossip(), payload}, %State{table: table} = state) do
+    %{"count" => count, "queue" => queue, "node" => node} = Jason.decode!(payload)
+
+    true = :ets.insert(table, {{:node, node, queue}, count})
+
+    {:noreply, state}
+  end
+
+  def handle_info({:notification, _, _, signal(), payload}, %State{table: table} = state) do
+    with %{"action" => "scale", "queue" => queue, "scale" => scale} <- Jason.decode!(payload) do
+      true = :ets.insert(table, {{:queue, queue, :limit}, scale})
+    end
 
     {:noreply, state}
   end
@@ -96,11 +153,23 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  defp fetch_queue_counts(%State{queues: queues, repo: repo, table: table}) do
-    queue_names = for {queue, _limit} <- queues, do: to_string(queue)
+  # Helpers
 
-    for {queue, count} <- Query.queue_counts(queue_names, repo) do
-      true = :ets.insert(table, {{:queue, queue, :count}, count})
+  defp fetch_queue_limits(%State{queues: queues, table: table}) do
+    for {queue, limit} <- queues do
+      true = :ets.insert(table, {{:queue, to_string(queue), :limit}, limit})
+    end
+  end
+
+  defp fetch_queue_counts(%State{queues: queues, repo: repo, table: table}) do
+    for {queue, state, count} <- Query.queue_counts(repo) do
+      short =
+        case state do
+          "available" -> :avail
+          "executing" -> :execu
+        end
+
+      true = :ets.insert(table, {{:queue, queue, short}, count})
     end
   end
 
@@ -109,4 +178,8 @@ defmodule ObanWeb.Stats do
       true = :ets.insert(table, {{:state, state}, count})
     end
   end
+
+  defp state_to_incr(new, _ol, new), do: 1
+  defp state_to_incr(_ne, old, old), do: -1
+  defp state_to_incr(_ne, _ol, _an), do: 0
 end
