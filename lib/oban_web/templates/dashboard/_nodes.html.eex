@@ -8,7 +8,7 @@
     <%= for {node, count} <- @node_counts do %>
       <li class="menu-item flex">
         <button class="menu-btn"><%= node %></button>
-        <span class="menu-cnt">(<%= integer_to_delimited(count) %>)</span>
+        <span class="menu-cnt"><%= integer_to_delimited(count) %></span>
       </li>
     <% end %>
   </ul>

@@ -11,9 +11,105 @@
   </head>
   <body>
     <header class="flex">
-      <a href="/" class="logotype">
-        <svg viewBox="0 0 435 116" version="1.1" xmlns="http://www.w3.org/2000/svg">
-          <g id="oban-logo" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+      <a href="#" class="logo-group" title="OBAN">
+        <svg class="logo-group__logo" viewBox="0 0 85 85" version="1.1" xmlns="http://www.w3.org/2000/svg">
+          <g id="oban-logo">
+            <rect id="Rectangle-96" fill="#45B760" x="0" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="5" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="5" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="10" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="10" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="15" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="20" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="25" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="25" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="30" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="30" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="35" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="30" y="5" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="35" y="10" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="45" y="10" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="50" y="5" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="40" y="15" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="35" y="60" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="40" y="65" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="30" y="65" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="25" y="70" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="30" y="75" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="35" y="70" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="45" y="70" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="50" y="65" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="55" y="70" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="50" y="75" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="40" y="70" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="30" y="80" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="35" y="75" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="45" y="75" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="50" y="80" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="30" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="25" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="35" y="20" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="30" y="0" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="25" y="10" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="30" y="15" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="50" y="15" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="40" y="20" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="45" y="20" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="45" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="50" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="50" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="55" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="55" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="60" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="65" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="70" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="70" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="65" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="55" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="60" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="60" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-98" fill="#186328" x="65" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-98" fill="#2E8E45" x="70" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#2E8E45" x="75" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#45B760" x="75" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#45B760" x="80" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#45B760" x="80" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#45B760" x="75" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#2E8E45" x="75" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#2E8E45" x="70" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-99" fill="#2E8E45" x="70" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-97" fill="#186328" x="55" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="55" y="10" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="35" y="5" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="45" y="5" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="50" y="0" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="40" y="10" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="35" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="45" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="50" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="50" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#0B3F16" x="40" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#0B3F16" x="40" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#0B3F16" x="45" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#0B3F16" x="40" y="35" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#0B3F16" x="35" y="40" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="45" y="60" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="40" y="60" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="30" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="25" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="15" y="30" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="10" y="25" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="10" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="5" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="5" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="0" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#45B760" x="10" y="55" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#2E8E45" x="15" y="50" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="20" y="45" width="5" height="5"></rect>
+            <rect id="Rectangle-96" fill="#186328" x="20" y="40" width="5" height="5"></rect>
+          </g>
+        </svg><svg class="logo-group__type" viewBox="0 0 435 116" version="1.1" xmlns="http://www.w3.org/2000/svg">
+          <g id="oban-name" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
             <path d="M53.32,115.8 C21.8,115.64 0.2,87.32 0.2,58.2 C0.2,27.96 23.24,0.6 53.48,0.6 C85.16,0.6 106.6,29.88 106.6,58.2 C106.6,88.76 83.56,115.8 53.32,115.8 Z M8.36,58.2 C8.36,84.28 26.92,108.28 53.48,108.28 C80.68,108.28 98.28,82.84 98.28,58.2 C98.28,32.12 79.4,8.12 53.48,8.12 C26.28,8.12 8.36,33.4 8.36,58.2 Z M212.2,85.56 C212.2,102.2 198.44,115 181.64,115 L128.52,115 L128.52,1.4 L181.48,1.4 C197.48,1.4 207.4,16.12 207.4,30.36 C207.4,41.72 201.16,52.28 191.08,56.76 C204.04,60.6 212.2,72.12 212.2,85.56 Z M204.04,84.44 C204.04,72.28 194.92,61.08 182.76,61.08 L136.68,61.08 L136.68,107.64 L181.64,107.64 C194.28,107.64 204.04,96.28 204.04,84.44 Z M179.24,8.76 L136.68,8.76 L136.68,54.2 L178.28,54.2 C190.6,54.2 199.4,43.16 199.4,31.48 C199.4,19.16 191.08,8.76 179.24,8.76 Z M219.4,115 L267.72,1.4 L274.76,1.4 L322.76,115 L314.12,115 L298.28,77.56 L244.04,77.56 L228.2,115 L219.4,115 Z M245.96,70.84 L296.04,70.84 L271.24,11.32 L245.96,70.84 Z M426.6,115 L348.2,16.76 L348.2,115 L340.04,115 L340.04,1.4 L346.28,1.4 L425.96,101.4 L425.96,1.4 L434.12,1.4 L434.12,115 L426.6,115 Z" id="OBAN" fill="#000000" fill-rule="nonzero"></path>
           </g>
         </svg>

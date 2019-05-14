@@ -17,7 +17,7 @@
       <td class="jobs-column--args"><%= job_args(job.args) %></td>
       <td class="jobs-column--error"><%= job_error(job.errors) %></td>
       <td class="jobs-column--attempt"><%= job.attempt %> attempts</td>
-      <td class="jobs-column--duration"><%= job_time(job.scheduled_at) %> from now</td>
+      <td class="jobs-column--duration"><%= time_ago_in_words(job.relative_scheduled_at) %> from now</td>
       <td class="jobs-column--action">
         <button class="btn--icon btn--destructive" name="delete" title="Delete Job">
           <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">

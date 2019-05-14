@@ -18,6 +18,7 @@ defmodule ObanWeb.Query do
     |> order_state(state)
     |> limit(^limit)
     |> repo.all()
+    |> Enum.map(&relativize_timestamps/1)
   end
 
   defp filter_state(query, state), do: where(query, state: ^state)
@@ -31,6 +32,18 @@ defmodule ObanWeb.Query do
 
   defp order_state(query, _state) do
     order_by(query, [j], asc: j.attempted_at)
+  end
+
+  # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
+  # re-rendering the relative time, which makes it look like the view is broken. To work around
+  # this issue we inject relative values to trigger change tracking.
+  defp relativize_timestamps(%Job{} = job, now \\ NaiveDateTime.utc_now()) do
+    relative = %{
+      relative_attempted_at: NaiveDateTime.diff(now, job.attempted_at),
+      relative_scheduled_at: NaiveDateTime.diff(now, job.scheduled_at)
+    }
+
+    Map.merge(job, relative)
   end
 
   def queue_counts(repo) do

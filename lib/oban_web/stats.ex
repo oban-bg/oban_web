@@ -161,7 +161,7 @@ defmodule ObanWeb.Stats do
     end
   end
 
-  defp fetch_queue_counts(%State{queues: queues, repo: repo, table: table}) do
+  defp fetch_queue_counts(%State{repo: repo, table: table}) do
     for {queue, state, count} <- Query.queue_counts(repo) do
       short =
         case state do

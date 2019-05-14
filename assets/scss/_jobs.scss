@@ -1,17 +1,15 @@
 .jobs-column {
   &--queue {
-    border-left: 3px solid $color--faint;
+    text-align: center;
     width: 10%;
   }
 
-  &--worker {
-    width: 25%;
+  &--details {
+    width: 70%;
   }
 
-  &--args {
-    font-family: $font-ms;
-    font-size: 12px;
-    width: 50%;
+  &--attempts {
+    width: 7%;
   }
 
   &--duration {
@@ -19,8 +17,27 @@
   }
 
   &--action {
-    width: 4%;
+    width: 3%;
   }
+}
+
+.job-details--worker {
+  display: block;
+  font-size: $font-size--l;
+  margin-bottom: $space--xs;
+}
+
+.job-details--args {
+  display: block;
+  color: $color--main-light;
+  font-family: $font-ms;
+  font-size: $font-size--s;
+}
+
+.queue-tag {
+  border: 1px solid $color--faint;
+  border-radius: $radius--med;
+  padding: 0.5rem;
 }
 
 .queue-tag--0 { border-color: $color--queue-00; }

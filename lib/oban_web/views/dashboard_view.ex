@@ -21,7 +21,7 @@ defmodule ObanWeb.DashboardView do
     |> String.reverse()
   end
 
-  def job_args(args, range \\ 0..60) do
+  def job_args(args, range \\ 0..90) do
     inspected = inspect(args)
 
     if String.length(inspected) > Enum.max(range) do
@@ -34,12 +34,7 @@ defmodule ObanWeb.DashboardView do
   def job_error([%{"error" => error} | _]), do: inspect(error)
   def job_error(_errors), do: ""
 
-  def job_time(then, now \\ NaiveDateTime.utc_now()) do
-    ellapsed =
-      then
-      |> NaiveDateTime.diff(now)
-      |> abs()
-
+  def time_ago_in_words(ellapsed) do
     seconds = Integer.mod(ellapsed, 60)
     minutes = ellapsed |> Integer.mod(3_600) |> div(60)
     hours = div(ellapsed, 3_600)

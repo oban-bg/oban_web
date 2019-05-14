@@ -34,8 +34,21 @@ header {
   padding: 2rem 2rem 0;
 }
 
-.logotype {
-  width: 8em;
+.logo-group {
+  height: 85px;
+}
+
+.logo-group__logo {
+  display: inline-block;
+  height: 4rem;
+  margin-right: 1rem;
+  vertical-align: middle;
+}
+
+.logo-group__type {
+  height: 2rem;
+  display: inline-block;
+  vertical-align: middle;
 
   path {
     fill: $color--main;
