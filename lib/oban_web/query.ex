@@ -10,11 +10,13 @@ defmodule ObanWeb.Query do
   def jobs(repo, opts) do
     queue = Keyword.get(opts, :queue, "any")
     state = Keyword.get(opts, :state, "executing")
+    terms = Keyword.get(opts, :terms)
     limit = Keyword.get(opts, :limit, 50)
 
     Job
     |> filter_state(state)
     |> filter_queue(queue)
+    |> filter_terms(terms)
     |> order_state(state)
     |> limit(^limit)
     |> repo.all()
@@ -25,6 +27,20 @@ defmodule ObanWeb.Query do
 
   defp filter_queue(query, "any"), do: query
   defp filter_queue(query, queue), do: where(query, queue: ^queue)
+
+  defp filter_terms(query, nil), do: query
+
+  defp filter_terms(query, terms) do
+    ilike = terms <> "%"
+
+    where(
+      query,
+      [j],
+      fragment("? ~~* ?", j.worker, ^ilike) or
+        fragment("? % ?", j.worker, ^terms) or
+        fragment("to_tsvector('english', ?::text) @@ to_tsquery('english', ?)", j.args, ^terms)
+    )
+  end
 
   defp order_state(query, state) when state in ~w(retryable scheduled) do
     order_by(query, [j], desc: j.scheduled_at)
@@ -39,12 +55,16 @@ defmodule ObanWeb.Query do
   # this issue we inject relative values to trigger change tracking.
   defp relativize_timestamps(%Job{} = job, now \\ NaiveDateTime.utc_now()) do
     relative = %{
-      relative_attempted_at: NaiveDateTime.diff(now, job.attempted_at),
-      relative_scheduled_at: NaiveDateTime.diff(now, job.scheduled_at)
+      relative_attempted_at: maybe_diff(now, job.attempted_at),
+      relative_inserted_at: maybe_diff(now, job.inserted_at),
+      relative_scheduled_at: maybe_diff(now, job.scheduled_at)
     }
 
     Map.merge(job, relative)
   end
+
+  defp maybe_diff(_now, nil), do: nil
+  defp maybe_diff(now, then), do: NaiveDateTime.diff(now, then)
 
   def queue_counts(repo) do
     Job

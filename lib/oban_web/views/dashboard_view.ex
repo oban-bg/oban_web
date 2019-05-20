@@ -47,7 +47,5 @@ defmodule ObanWeb.DashboardView do
     |> Enum.join(":")
   end
 
-  def job_worker(worker), do: String.trim_leading(worker, "Elixir.")
-
   defp pad(time), do: time |> to_string() |> String.pad_leading(2, "0")
 end

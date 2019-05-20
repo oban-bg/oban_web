@@ -14,7 +14,7 @@
         <span class="queue-tag <%= queue_class(job.queue) %>"><%= job.queue %></span>
       </td>
       <td class="jobs-column--details">
-        <span class="job-details--worker"><%= job_worker(job.worker) %></span>
+        <span class="job-details--worker"><%= job.worker %></span>
         <span class="job-details--args"><%= job_args(job.args) %></span>
       </td>
       <td class="jobs-column--attempts"><%= job.attempt %> ⁄ <%= job.max_attempts %></td>

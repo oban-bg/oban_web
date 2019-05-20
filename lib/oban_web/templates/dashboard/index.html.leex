@@ -7,12 +7,14 @@
 
   <div class="container flex--1">
     <div class="flex justify--between padding--s">
-      <h2 class="font-size--l">
+      <h2 class="font-size--l margin--none align-self--center">
         <span class="font-weight--7"><%= String.capitalize(@filters.state) %> Jobs</span>
-        <span class="font-weight--3">(<%= integer_to_delimited(length(@jobs)) %>)</span>
+        <span class="font-weight--3 color--main-light">(<%= integer_to_delimited(length(@jobs)) %>)</span>
       </h2>
 
-      <input class="width--20-pct" type="search" placeholder="Filter" />
+      <form class="width--20-pct font-size--base" phx-submit="change_terms">
+        <input class="width--100-pct" name="terms" type="search" placeholder="Filter..." value="<%= @filters.terms %>" />
+      </form>
     </div>
 
     <table class="jobs-table">

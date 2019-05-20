@@ -13,7 +13,7 @@
   <%= for job <- @jobs do %>
     <tr>
       <td class="jobs-column--queue <%= queue_class(job.queue) %>"><%= job.queue %></td>
-      <td class="jobs-column--worker"><%= job_worker(job.worker) %></td>
+      <td class="jobs-column--worker"><%= job.worker %></td>
       <td class="jobs-column--args"><%= job_args(job.args) %></td>
       <td class="jobs-column--error"><%= job_error(job.errors) %></td>
       <td class="jobs-column--attempt"><%= job.attempt %> attempts</td>

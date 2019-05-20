@@ -34,6 +34,7 @@ input[type="search"] {
 input[type="search"] {
   appearance: textfield;
   border-radius: $radius--pill;
+  font-size: $font-size--base;
 }
 
 input[type="search"]::-webkit-search-decoration {

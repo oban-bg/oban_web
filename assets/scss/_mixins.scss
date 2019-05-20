@@ -282,24 +282,6 @@
   padding: $space--xs $space--s;
 }
 
-// == GRID == //
-
-@mixin gutter($gutter-size: $space--m) {
-  .row {
-    @media (min-width: 30em) {
-      margin-left: -$gutter-size;
-      margin-right: -$gutter-size;
-    }
-
-    [class^="column"] {
-      @media (min-width: 30em) {
-        padding-left: $gutter-size;
-        padding-right: $gutter-size;
-      }
-    }
-  }
-}
-
 // == HIDE == //
 
 @mixin visually-hidden {
@@ -348,34 +330,6 @@
 
 @mixin vert {
   vertical-align: middle;
-}
-
-// == LINKS == //
-
-@mixin a-border--none {
-  border-bottom-color: transparent;
-
-  &:hover {
-    border-bottom-color: transparent;
-  }
-}
-
-@mixin a--color ($color: $color--dscout) {
-  border-bottom-color: rgba($color, .3);
-  color: $color;
-
-  &:hover {
-    border-bottom-color: rgba(mix(black, $color, 20%), .6);
-    color: mix(black, $color, 20%);
-  }
-}
-
-@mixin a--no-style {
-  border-bottom: none;
-
-  &:hover {
-    border-bottom: none;
-  }
 }
 
 // == MAX WIDTH == //

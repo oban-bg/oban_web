@@ -57,14 +57,6 @@ $line-height--solid: 1;
 $line-height--title: 1.25;
 $line-height--loose: 2;
 
-// letter-spacings
-
-$tracked--loose: .03125em;
-$tracked--looser: .0625em;
-$tracked--tight: -.03125em;
-$tracked--tighter: -.0625em;
-$tracked--mega: .25em;
-
 // radii
 
 $radius--none: 0;
@@ -109,14 +101,14 @@ $font-weight--9: 900;
 
 // colors
 
-$color--main: #222;                    // text color
-$color--invert: #fff;                    // white
+$color--main: #222;                          // text color
+$color--invert: #fff;                        // white
 $color--main-light: rgba($color--main, .6);  // sibling to text, lighter version
-$color--dem: rgba($color--main, .3);  // de-emphasised elements
-$color--disabled: rgba($color--main, .15); // disabled elements
-$color--faint: rgba($color--main, .05); // use this to de-emphasise more
-$color--min: rgba($color--main, .02); // off-white. minimal visible bg
-$color--none: rgba(0,0,0, 0);          // transparent
+$color--dem: rgba($color--main, .3);         // de-emphasised elements
+$color--disabled: rgba($color--main, .15);   // disabled elements
+$color--faint: rgba($color--main, .05);      // use this to de-emphasise more
+$color--min: rgba($color--main, .02);        // off-white. minimal visible bg
+$color--none: rgba(0,0,0, 0);                // transparent
 
 // if you need any of the colors above without being affected by the
 // background, use these (or when using svg icons)

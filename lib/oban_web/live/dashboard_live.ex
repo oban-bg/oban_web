@@ -3,14 +3,15 @@ defmodule ObanWeb.DashboardLive do
 
   alias ObanWeb.{DashboardView, Query, Stats}
 
-  @default_filters %{state: "executing", queue: "any"}
+  @tick_timing 500
+  @default_filters %{state: "executing", queue: "any", terms: nil}
 
   def render(assigns) do
     DashboardView.render("index.html", assigns)
   end
 
   def mount(_session, socket) do
-    if connected?(socket), do: :timer.send_interval(500, self(), :tick)
+    if connected?(socket), do: Process.send_after(self(), :tick, @tick_timing)
 
     config = Oban.config()
     filters = @default_filters
@@ -35,6 +36,8 @@ defmodule ObanWeb.DashboardLive do
       state_counts: Stats.for_states()
     ]
 
+    Process.send_after(self(), :tick, @tick_timing)
+
     {:noreply, assign(socket, assigns)}
   end
 
@@ -47,6 +50,13 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_event("change_state", state, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :state, state)
+    jobs = Query.jobs(assigns.config.repo, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
+    filters = Map.put(assigns.filters, :terms, terms)
     jobs = Query.jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
