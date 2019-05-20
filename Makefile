@@ -16,6 +16,7 @@ watch_loop:
 	while true; do \
 		fswatch -1 --recursive assets; \
 		make all; \
+		sleep 1s; \
 	done
 
 prepare:

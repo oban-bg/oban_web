@@ -35,6 +35,14 @@
     transition-duration: $timing--click;
   }
 
+  &--destructive {
+    &.btn--active,
+    &.btn--selected,
+    &:hover {
+      color: $color--alert;
+    }
+  }
+
   &--icon {
     background-color: rgba($color--main, .0);
     border: none;
@@ -46,11 +54,18 @@
     transition-duration: $timing--hover;
   }
 
-  &--destructive {
-    &.btn--active,
-    &.btn--selected,
-    &:hover {
-      color: $color--alert;
+  &--link {
+    background: none;
+    color: inherit;
+    padding: 0;
+
+    &:not(:disabled) {
+      cursor: pointer;
+    }
+
+    &:hover,
+    &:active {
+      background: none;
     }
   }
 

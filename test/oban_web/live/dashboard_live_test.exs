@@ -116,6 +116,19 @@ defmodule ObanWeb.DashboardLiveTest do
     assert html =~ "GammaWorker"
   end
 
+  test "killing an executing job" do
+    {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+
+    html = render_click(view, :kill_job, "123")
+
+    assert html =~ ~S|<div class="blitz blitz--show">|
+    assert html =~ ~S|<span class="blitz__message">Job canceled and discarded.</span>|
+
+    html = render_click(view, :blitz_close, "")
+
+    assert html =~ ~S|<div class="blitz ">|
+  end
+
   defp insert_job!(args, opts) do
     opts =
       opts

@@ -3,7 +3,7 @@
     <th>Queue</th>
     <th>Worker</th>
     <th>Att.</th>
-    <th>Started At</th>
+    <th>Started</th>
   </tr>
 </thead>
 
@@ -20,7 +20,7 @@
       <td class="jobs-column--attempts"><%= job.attempt %> ⁄ <%= job.max_attempts %></td>
       <td class="jobs-column--duration"><%= time_ago_in_words(job.relative_attempted_at) %> ago</td>
       <td class="jobs-column--action">
-        <button class="btn--icon btn--destructive" name="kill" title="Kill Job">
+        <button class="btn--icon btn--destructive" phx-click="kill_job" value="<%= job.id %>" name="kill" title="Kill Job">
           <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
             <g>
             <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="8" x2="17" y1="17" y2="8"></line>
