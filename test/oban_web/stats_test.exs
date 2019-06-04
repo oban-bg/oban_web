@@ -9,6 +9,24 @@ defmodule ObanWeb.StatsTest do
   @name __MODULE__
   @opts [name: @name, queues: [alpha: 2, gamma: 3, delta: 2], repo: ObanWeb.Repo]
 
+  def for_queues do
+    @name
+    |> Stats.for_queues()
+    |> Map.new()
+  end
+
+  def for_states do
+    @name
+    |> Stats.for_states()
+    |> Map.new()
+  end
+
+  def for_nodes do
+    @name
+    |> Stats.for_nodes()
+    |> Map.new()
+  end
+
   test "initializing with current state and queue counts" do
     insert_job!(queue: :alpha, state: "available")
     insert_job!(queue: :alpha, state: "executing")
@@ -19,13 +37,13 @@ defmodule ObanWeb.StatsTest do
     start_supervised!({Stats, @opts})
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {1, 1, 2},
                "delta" => {0, 0, 2},
                "gamma" => {0, 1, 3}
              }
 
-      assert Stats.for_states(@name) == %{
+      assert for_states() == %{
                "executing" => 1,
                "available" => 2,
                "scheduled" => 1,
@@ -46,13 +64,13 @@ defmodule ObanWeb.StatsTest do
     notify(pid, insert(), queue: :delta, state: "scheduled")
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {0, 1, 2},
                "delta" => {0, 0, 2},
                "gamma" => {0, 1, 3}
              }
 
-      assert Stats.for_states(@name) == %{
+      assert for_states() == %{
                "executing" => 0,
                "available" => 2,
                "scheduled" => 1,
@@ -79,13 +97,13 @@ defmodule ObanWeb.StatsTest do
     notify(pid, update(), queue: :delta, old_state: "executing", new_state: "completed")
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {1, 0, 2},
                "delta" => {0, 0, 2},
                "gamma" => {1, 1, 3}
              }
 
-      assert Stats.for_states(@name) == %{
+      assert for_states() == %{
                "executing" => 2,
                "available" => 1,
                "scheduled" => 0,
@@ -109,7 +127,7 @@ defmodule ObanWeb.StatsTest do
     notify(pid, gossip(), count: 1, limit: 5, node: "worker.2", paused: false, queue: :delta)
 
     with_backoff(fn ->
-      assert Stats.for_nodes(@name) == %{"worker.1" => 6, "worker.2" => 3}
+      assert for_nodes() == %{"worker.1" => 6, "worker.2" => 3}
     end)
 
     notify(pid, gossip(), count: 1, limit: 5, node: "worker.1", paused: false, queue: :alpha)
@@ -120,7 +138,7 @@ defmodule ObanWeb.StatsTest do
     notify(pid, gossip(), count: 2, limit: 5, node: "worker.2", paused: false, queue: :delta)
 
     with_backoff(fn ->
-      assert Stats.for_nodes(@name) == %{"worker.1" => 5, "worker.2" => 4}
+      assert for_nodes() == %{"worker.1" => 5, "worker.2" => 4}
     end)
 
     stop_supervised(Stats)
@@ -135,7 +153,7 @@ defmodule ObanWeb.StatsTest do
     send(pid, :refresh)
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {0, 0, 2},
                "delta" => {0, 1, 2},
                "gamma" => {0, 1, 3}
@@ -147,7 +165,7 @@ defmodule ObanWeb.StatsTest do
     {:ok, pid} = start_supervised({Stats, @opts})
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {0, 0, 2},
                "delta" => {0, 0, 2},
                "gamma" => {0, 0, 3}
@@ -158,7 +176,7 @@ defmodule ObanWeb.StatsTest do
     notify(pid, signal(), action: :scale, queue: :delta, scale: 4)
 
     with_backoff(fn ->
-      assert Stats.for_queues(@name) == %{
+      assert for_queues() == %{
                "alpha" => {0, 0, 2},
                "delta" => {0, 0, 4},
                "gamma" => {0, 0, 7}
