@@ -1,24 +1,62 @@
+.jobs-table {
+  border-collapse: collapse;
+  border-color: $color--faint;
+  border-spacing: $space--s;
+  width: 100%;
+}
+
+.jobs-head {
+  border-bottom: 1px solid $color--line;
+}
+
+.jobs-head--column {
+  font-weight: $font-weight--normal;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.jobs-row {
+  border-bottom: 1px solid $color--faint;
+  transition: background $timing--hover;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: rgba($color--main, .03);
+  }
+}
+
+.jobs-title {
+  font-weight: $font-weight--normal;
+  padding: $space--s;
+}
+
 .jobs-column {
-  &--queue {
-    text-align: center;
-    width: 10%;
-  }
+  padding: 1.25rem 0.5rem;
+}
 
-  &--details {
-    width: 70%;
-  }
+.jobs-column--queue {
+  width: 6em;
+  text-align: center;
+}
 
-  &--attempts {
-    width: 7%;
-  }
+.jobs-column--details {
+  max-width: 30em;
+}
 
-  &--duration {
-    width: 10%;
-  }
+.jobs-column--attempts {
+  width: 4em;
+}
 
-  &--action {
-    width: 3%;
-  }
+.jobs-column--duration {
+  width: 9em;
+}
+
+.jobs-column--action {
+  text-align: center;
+  width: 2em;
 }
 
 .job-details--worker {
@@ -28,10 +66,14 @@
 }
 
 .job-details--args {
-  display: block;
   color: $color--main-light;
+  display: block;
   font-family: $font-ms;
   font-size: $font-size--s;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .queue-tag {

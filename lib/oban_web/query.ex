@@ -5,13 +5,17 @@ defmodule ObanWeb.Query do
 
   alias Oban.Job
 
+  @default_queue "any"
+  @default_state "executing"
+  @default_limit 30
+
   def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
 
   def jobs(repo, opts) do
-    queue = Keyword.get(opts, :queue, "any")
-    state = Keyword.get(opts, :state, "executing")
+    queue = Keyword.get(opts, :queue, @default_queue)
+    state = Keyword.get(opts, :state, @default_state)
+    limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
-    limit = Keyword.get(opts, :limit, 50)
 
     Job
     |> filter_state(state)
@@ -56,6 +60,7 @@ defmodule ObanWeb.Query do
   defp relativize_timestamps(%Job{} = job, now \\ NaiveDateTime.utc_now()) do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
+      relative_completed_at: maybe_diff(now, job.completed_at),
       relative_inserted_at: maybe_diff(now, job.inserted_at),
       relative_scheduled_at: maybe_diff(now, job.scheduled_at)
     }

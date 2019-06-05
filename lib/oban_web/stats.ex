@@ -26,7 +26,10 @@ defmodule ObanWeb.Stats do
 
   @spec start_link([option()]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    opts = Keyword.put_new(opts, :name, __MODULE__)
+    opts =
+      opts
+      |> Keyword.put_new(:name, __MODULE__)
+      |> Keyword.put(:queues, Keyword.get(opts, :queues) || [])
 
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end

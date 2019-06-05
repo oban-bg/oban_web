@@ -19,8 +19,6 @@
       </form>
     </div>
 
-    <table class="jobs-table">
-      <%= render("_" <> @filters.state <> "_jobs.html", jobs: @jobs) %>
-    </table>
+    <%= render("_table.html", jobs: @jobs, state: @filters.state) %>
   </div>
 </section>
