@@ -9,7 +9,10 @@ defmodule ObanWeb.MixProject do
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: package(),
+
+      description: "Oban Web Component"
     ]
   end
 
@@ -22,14 +25,22 @@ defmodule ObanWeb.MixProject do
     ]
   end
 
+  def package do
+    [
+      organization: "oban",
+      licenses: ["Commercial"],
+      links: []
+    ]
+  end
+
   defp deps do
     [
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:oban, ">= 0.0.0", path: "../oban"},
+      {:oban, "~> 0.4"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
-      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view"},
+      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", only: [:dev, :test]},
       {:phoenix_pubsub, "~> 1.1"}
     ]
   end

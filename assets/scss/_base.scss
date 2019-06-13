@@ -21,8 +21,6 @@ body {
   line-height: $line-height--copy;
   margin: 0;
   padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 main {
@@ -31,11 +29,12 @@ main {
 }
 
 header {
-  padding: 2rem 2rem 0;
+  padding: 1rem 1rem 2rem;
+  margin: 0;
 }
 
 .logo-group {
-  height: 85px;
+  height: 4rem;
 }
 
 .logo-group__logo {

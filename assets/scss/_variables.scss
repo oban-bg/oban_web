@@ -15,9 +15,6 @@ $space--base: grid-units(8);  // standard space
 $space--l: grid-units(12); // large space
 $space--xl: grid-units(16); // extra large space
 
-$space--icon-1x: 1.563em;
-$space--icon-2x: 3.125em;
-
 $space--1: $space--base;
 $space--2: grid-units(2, $space--base);
 $space--3: grid-units(3, $space--base);
@@ -35,20 +32,12 @@ $space--14: grid-units(14, $space--base);
 $space--15: grid-units(15, $space--base);
 $space--16: grid-units(16, $space--base);
 
-// media-queries
-
-$breakpoint--not-small: 'screen and (min-width: 30em)' !default;
-$breakpoint--medium: 'screen and (min-width: 30em) and (max-width: 60em)' !default;
-$breakpoint--large: 'screen and (min-width: 60em)' !default;
-
 // fonts
 
 $font-stack: -apple-system, BlinkMacSystemFont,
              'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
              'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 $font-ms: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
-$font-emoji: 'Apple Color Emoji', 'Segoe UI Emoji', 'NotoColorEmoji',
-             'Segoe UI Symbol', 'Android Emoji', 'EmojiSymbols';
 
 // line-heights
 
