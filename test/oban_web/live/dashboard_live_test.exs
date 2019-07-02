@@ -4,27 +4,27 @@ defmodule ObanWeb.DashboardLiveTest do
   import Phoenix.LiveViewTest
 
   alias Oban.Job
-  alias ObanWeb.{DashboardLive, Endpoint, Repo, Stats}
+  alias ObanWeb.{Repo, Stats}
 
   @stat_opts [queues: [alpha: 1, delta: 1, gamma: 1], repo: Repo]
 
   setup do
     start_supervised!({Stats, @stat_opts})
 
-    :ok
+    {:ok, conn: build_conn()}
   end
 
   describe "viewing jobs in different states" do
-    test "viewing available jobs" do
-      {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+    test "viewing available jobs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/oban")
 
       insert_job!([ref: 1], worker: FakeWorker)
 
       assert render_click(view, :change_state, "available") =~ "FakeWorker"
     end
 
-    test "viewing scheduled jobs" do
-      {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+    test "viewing scheduled jobs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/oban")
 
       insert_job!([ref: 1], state: "available", worker: RealWorker)
       insert_job!([ref: 2], state: "scheduled", worker: NeueWorker)
@@ -35,8 +35,8 @@ defmodule ObanWeb.DashboardLiveTest do
       refute html =~ "RealWorker"
     end
 
-    test "viewing retryable jobs" do
-      {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+    test "viewing retryable jobs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/oban")
 
       insert_job!([ref: 1],
         state: "retryable",
@@ -47,11 +47,10 @@ defmodule ObanWeb.DashboardLiveTest do
       html = render_click(view, :change_state, "retryable")
 
       assert html =~ "JankWorker"
-      assert html =~ "Formatted RuntimeError"
     end
 
-    test "viewing discarded jobs" do
-      {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+    test "viewing discarded jobs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/oban")
 
       insert_job!([ref: 1], state: "available", worker: RealWorker)
       insert_job!([ref: 2], state: "discarded", worker: DeadWorker)
@@ -63,8 +62,8 @@ defmodule ObanWeb.DashboardLiveTest do
     end
   end
 
-  test "filtering jobs by queue" do
-    {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+  test "filtering jobs by queue", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/oban")
 
     insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
     insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
@@ -84,8 +83,8 @@ defmodule ObanWeb.DashboardLiveTest do
     refute html =~ "GammaWorker"
   end
 
-  test "filtering jobs by search query" do
-    {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+  test "filtering jobs by search query", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/oban")
 
     insert_job!([callsign: "yankee"], queue: "alpha", worker: AlphaWorker)
     insert_job!([callsign: "hotel"], queue: "delta", worker: DeltaWorker)
@@ -116,8 +115,8 @@ defmodule ObanWeb.DashboardLiveTest do
     assert html =~ "GammaWorker"
   end
 
-  test "killing an executing job" do
-    {:ok, view, _html} = mount(Endpoint, DashboardLive, session: %{})
+  test "killing an executing job", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/oban")
 
     html = render_click(view, :kill_job, "123")
 

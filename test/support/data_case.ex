@@ -3,12 +3,16 @@ defmodule ObanWeb.DataCase do
 
   using do
     quote do
-      alias ObanWeb.Repo
+      use Phoenix.ConnTest
 
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
       import ObanWeb.DataCase
+
+      alias ObanWeb.Repo
+
+      @endpoint ObanWeb.Endpoint
 
       def with_backoff(opts \\ [], fun) do
         total = Keyword.get(opts, :total, 100)

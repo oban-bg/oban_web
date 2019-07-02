@@ -46,13 +46,13 @@ defmodule ObanWeb.MixProject do
 
   defp deps do
     [
-      {:gettext, "~> 0.11"},
+      {:gettext, "~> 0.17"},
       {:jason, "~> 1.0"},
-      {:oban, "~> 0.4"},
+      {:oban, "~> 0.5"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view", only: [:dev, :test]},
+      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view"},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end
