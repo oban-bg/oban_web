@@ -1,6 +1,7 @@
 defmodule ObanWeb.DashboardLive do
   use Phoenix.LiveView
 
+  alias Oban.Job
   alias ObanWeb.{DashboardView, Query, Stats}
 
   @tick_timing 500
@@ -62,6 +63,14 @@ defmodule ObanWeb.DashboardLive do
     jobs = Query.jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_event("delete_job", job_id, %{assigns: assigns} = socket) do
+    {:ok, _schema} = assigns.config.repo.delete(%Job{args: %{}, id: String.to_integer(job_id)})
+
+    flash = %{show: true, mode: :alert, message: "Job deleted."}
+
+    {:noreply, assign(socket, flash: flash)}
   end
 
   def handle_event("kill_job", job_id, socket) do

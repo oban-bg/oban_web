@@ -128,6 +128,17 @@ defmodule ObanWeb.DashboardLiveTest do
     assert html =~ ~S|<div class="blitz ">|
   end
 
+  test "deleting a job", %{conn: conn} do
+    %Job{id: jid} = insert_job!([ref: 1], worker: FakeWorker)
+
+    {:ok, view, _html} = live(conn, "/oban")
+
+    html = render_click(view, :delete_job, to_string(jid))
+
+    assert html =~ ~S|<div class="blitz blitz--show">|
+    assert html =~ ~S|<span class="blitz__message">Job deleted.</span>|
+  end
+
   defp insert_job!(args, opts) do
     opts =
       opts
