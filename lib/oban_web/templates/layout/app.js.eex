@@ -55,102 +55,21 @@
     return require
   }
 
-  Pax.files["/Users/parker/Work/Code/oban_web/assets/js/app.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.deps = {"./phoenix_live_view":file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs,"./phoenix_html":file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_html$2ejs}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/app.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
+  Pax.files["/Users/parker/Work/Code/oban_web/assets/js/app.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.deps = {"./phoenix_live_view":file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/app.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fapp$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
 Object.defineProperty(exports, '__esModule', {value: true})
 with (function() {
-  const __module0 = require._esModule("./phoenix_html")
-  const __module1 = require._esModule("./phoenix_live_view")
+  const __module0 = require._esModule("./phoenix_live_view")
   return Object.freeze(Object.create(null, {
     [Symbol.toStringTag]: {value: 'ModuleImports'},
-    LiveSocket: {get() {return __module1.LiveSocket}, enumerable: true},
+    LiveSocket: {get() {return __module0.LiveSocket}, enumerable: true},
   }))
 }()) ~function() {
 'use strict';
 
- 
    
 
 let liveSocket = new LiveSocket("/live")
 liveSocket.connect()
-}()}
-  Pax.files["/Users/parker/Work/Code/oban_web/assets/js/phoenix_html.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_html$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_html$2ejs.deps = {}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_html$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/phoenix_html.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_html$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
-~function() {
-"use strict";
-
-(function() {
-  var PolyfillEvent = eventConstructor();
-
-  function eventConstructor() {
-    if (typeof window.CustomEvent === "function") return window.CustomEvent;
-    // IE<=9 Support
-    function CustomEvent(event, params) {
-      params = params || {bubbles: false, cancelable: false, detail: undefined};
-      var evt = document.createEvent('CustomEvent');
-      evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-      return evt;
-    }
-    CustomEvent.prototype = window.Event.prototype;
-    return CustomEvent;
-  }
-
-  function buildHiddenInput(name, value) {
-    var input = document.createElement("input");
-    input.type = "hidden";
-    input.name = name;
-    input.value = value;
-    return input;
-  }
-
-  function handleClick(element) {
-    var to = element.getAttribute("data-to"),
-        method = buildHiddenInput("_method", element.getAttribute("data-method")),
-        csrf = buildHiddenInput("_csrf_token", element.getAttribute("data-csrf")),
-        form = document.createElement("form"),
-        target = element.getAttribute("target");
-
-    form.method = (element.getAttribute("data-method") === "get") ? "get" : "post";
-    form.action = to;
-    form.style.display = "hidden";
-
-    if (target) form.target = target;
-
-    form.appendChild(csrf);
-    form.appendChild(method);
-    document.body.appendChild(form);
-    form.submit();
-  }
-
-  window.addEventListener("click", function(e) {
-    var element = e.target;
-
-    while (element && element.getAttribute) {
-      var phoenixLinkEvent = new PolyfillEvent('phoenix.link.click', {
-        "bubbles": true, "cancelable": true
-      });
-
-      if (!element.dispatchEvent(phoenixLinkEvent)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        return false;
-      }
-
-      if (element.getAttribute("data-method")) {
-        handleClick(element);
-        e.preventDefault();
-        return false;
-      } else {
-        element = element.parentNode;
-      }
-    }
-  }, false);
-
-  window.addEventListener('phoenix.link.click', function (e) {
-    var message = e.target.getAttribute("data-confirm");
-    if(message && !window.confirm(message)) {
-      e.preventDefault();
-    }
-  }, false);
-})();
 }()}
   Pax.files["/Users/parker/Work/Code/oban_web/assets/js/phoenix_live_view.js"] = file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs.deps = {}; file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs.filename = "/Users/parker/Work/Code/oban_web/assets/js/phoenix_live_view.js"; function file_$2fUsers$2fparker$2fWork$2fCode$2foban_web$2fassets$2fjs$2fphoenix_live_view$2ejs(module, exports, require, __filename, __dirname, __import_meta) {
 ~function() {
