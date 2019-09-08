@@ -1,7 +1,8 @@
 defmodule ObanWeb.DashboardView do
   @moduledoc false
 
-  use ObanWeb, :view
+  use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
+  use Phoenix.HTML
 
   def queue_class(queue, steps \\ 12) when is_binary(queue) do
     key =

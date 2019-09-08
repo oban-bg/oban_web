@@ -1,37 +1,19 @@
 defmodule ObanWeb do
   @moduledoc false
 
-  def controller do
-    quote do
-      use Phoenix.Controller, namespace: ObanWeb
+  use Supervisor
 
-      import Plug.Conn
-      # import ObanWeb.Gettext
-    end
+  alias ObanWeb.Stats
+
+  @spec start_link([Oban.option()]) :: Supervisor.on_start()
+  def start_link(opts) when is_list(opts) do
+    Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def view do
-    quote do
-      use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
-      use Phoenix.HTML
+  @impl Supervisor
+  def init(opts) do
+    children = [{Stats, opts}]
 
-      import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
-      import Phoenix.LiveView, only: [live_render: 2, live_render: 3]
-
-      # import ObanWeb.ErrorHelpers
-      # import ObanWeb.Gettext
-    end
-  end
-
-  def channel do
-    quote do
-      use Phoenix.Channel
-
-      import ObanWeb.Gettext
-    end
-  end
-
-  defmacro __using__(which) when is_atom(which) do
-    apply(__MODULE__, which, [])
+    Supervisor.init(children, strategy: :one_for_one)
   end
 end
