@@ -90,13 +90,15 @@ defmodule ObanWeb.Stats do
     fetch_queue_limits(state)
     fetch_queue_counts(state)
     fetch_state_counts(state)
+    fetch_node_counts(state)
 
-    {:ok, _ref} = :timer.send_interval(state.refresh_interval, :refresh)
+    Process.send_after(self(), :refresh, state.refresh_interval)
 
-    :ok = Notifier.listen(:gossip)
-    :ok = Notifier.listen(:insert)
-    :ok = Notifier.listen(:update)
-    :ok = Notifier.listen(:signal)
+    # NOTE: This only works for a default cofiguration using the public schema
+    :ok = Notifier.listen(Oban.Notifier, "public", :gossip)
+    :ok = Notifier.listen(Oban.Notifier, "public", :insert)
+    :ok = Notifier.listen(Oban.Notifier, "public", :update)
+    :ok = Notifier.listen(Oban.Notifier, "public", :signal)
 
     {:noreply, state}
   end
@@ -105,11 +107,32 @@ defmodule ObanWeb.Stats do
   def handle_info(:refresh, state) do
     fetch_state_counts(state)
     fetch_queue_counts(state)
+    fetch_node_counts(state)
+
+    Process.send_after(self(), :refresh, state.refresh_interval)
 
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, insert(), payload}, %State{table: table} = state) do
+  def handle_info({:notification, _, _, prefixed_channel, payload}, state) do
+    [_prefix, channel] = String.split(prefixed_channel, ".")
+
+    handle_notification(channel, payload, state)
+  end
+
+  def handle_info(_message, state) do
+    {:noreply, state}
+  end
+
+  def handle_notification(gossip(), payload, %State{table: table} = state) do
+    %{"node" => node, "queue" => queue, "count" => count} = Jason.decode!(payload)
+
+    :ets.insert(table, {{:node, node, queue}, count})
+
+    {:noreply, state}
+  end
+
+  def handle_notification(insert(), payload, %State{table: table} = state) do
     %{"state" => job_state, "queue" => job_queue} = Jason.decode!(payload)
 
     :ets.update_counter(table, {:state, job_state}, 1, {1, 0})
@@ -121,7 +144,7 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, update(), payload}, %State{table: table} = state) do
+  def handle_notification(update(), payload, %State{table: table} = state) do
     %{"queue" => queue, "new_state" => new, "old_state" => old} = Jason.decode!(payload)
 
     :ets.update_counter(table, {:state, old}, -1, {1, 1})
@@ -136,23 +159,11 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, gossip(), payload}, %State{table: table} = state) do
-    %{"count" => count, "queue" => queue, "node" => node} = Jason.decode!(payload)
-
-    true = :ets.insert(table, {{:node, node, queue}, count})
-
-    {:noreply, state}
-  end
-
-  def handle_info({:notification, _, _, signal(), payload}, %State{table: table} = state) do
+  def handle_notification(signal(), payload, %State{table: table} = state) do
     with %{"action" => "scale", "queue" => queue, "scale" => scale} <- Jason.decode!(payload) do
       true = :ets.insert(table, {{:queue, queue, :limit}, scale})
     end
 
-    {:noreply, state}
-  end
-
-  def handle_info(_message, state) do
     {:noreply, state}
   end
 
@@ -179,6 +190,12 @@ defmodule ObanWeb.Stats do
   defp fetch_state_counts(%State{repo: repo, table: table}) do
     for {state, count} <- Query.state_counts(repo) do
       true = :ets.insert(table, {{:state, state}, count})
+    end
+  end
+
+  defp fetch_node_counts(%State{repo: repo, table: table}) do
+    for {node, queue, count} <- Query.node_counts(repo) do
+      true = :ets.insert(table, {{:node, node, queue}, count})
     end
   end
 

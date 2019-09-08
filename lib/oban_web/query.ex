@@ -3,7 +3,7 @@ defmodule ObanWeb.Query do
 
   import Ecto.Query
 
-  alias Oban.Job
+  alias Oban.{Beat, Job}
 
   @default_queue "any"
   @default_state "executing"
@@ -16,6 +16,7 @@ defmodule ObanWeb.Query do
     state = Keyword.get(opts, :state, @default_state)
     limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
+    offset = 1
 
     Job
     |> filter_state(state)
@@ -23,6 +24,7 @@ defmodule ObanWeb.Query do
     |> filter_terms(terms)
     |> order_state(state)
     |> limit(^limit)
+    |> offset(^offset)
     |> repo.all()
     |> Enum.map(&relativize_timestamps/1)
   end
@@ -71,6 +73,7 @@ defmodule ObanWeb.Query do
   defp maybe_diff(_now, nil), do: nil
   defp maybe_diff(now, then), do: NaiveDateTime.diff(now, then)
 
+  @doc false
   def queue_counts(repo) do
     Job
     |> group_by([j], [j.queue, j.state])
@@ -79,10 +82,26 @@ defmodule ObanWeb.Query do
     |> repo.all()
   end
 
+  @doc false
   def state_counts(repo) do
     Job
     |> group_by([j], j.state)
     |> select([j], {j.state, count(j.id)})
     |> repo.all()
+  end
+
+  @doc false
+  def node_counts(repo) do
+    subquery =
+      from b in Beat,
+        select: %{node: b.node, queue: b.queue, running: b.running, rank: over(rank(), :nq)},
+        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]]
+
+    query =
+      from x in subquery(subquery),
+        where: x.rank == 1,
+        select: {x.node, x.queue, fragment("coalesce(array_length(?, 1), 0)", x.running)}
+
+    repo.all(query)
   end
 end

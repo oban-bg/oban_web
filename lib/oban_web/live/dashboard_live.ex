@@ -5,7 +5,7 @@ defmodule ObanWeb.DashboardLive do
   alias ObanWeb.{DashboardView, Query, Stats}
 
   @tick_timing 500
-  @default_filters %{state: "executing", queue: "any", terms: nil}
+  @default_filters %{page: 1, limit: 30, queue: "any", state: "executing", terms: nil}
   @default_flash %{show: false, mode: :success, message: ""}
 
   def render(assigns) do
