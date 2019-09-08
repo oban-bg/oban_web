@@ -102,11 +102,7 @@ $color--none: rgba(0,0,0, 0);                // transparent
 // if you need any of the colors above without being affected by the
 // background, use these (or when using svg icons)
 
-$color--main-light-s: mix($color--invert, $color--main, 40%);
 $color--dem-s: mix($color--invert, $color--main, 70%);
-$color--disabled-s: mix($color--invert, $color--main, 85%);
-$color--faint-s: mix($color--invert, $color--main, 95%);
-$color--min-s: mix($color--invert, $color--main, 98%);
 
 // special purpose
 
@@ -135,14 +131,9 @@ $color--line-s: mix($color--invert, $color--main, 90%); // color for lines
 
 // accents
 
-$color--dscout: #1d83f6; // new dscout blue
-$color--close: #776fc7; // purple
+$color--oban: #3da957; // special green
 $color--success: #2ed491; // green
 $color--alert: #ff2d55; // signal-red
-$color--archive: #c69c6d; // brown
-$color--note: #ffe291; // faint yellow
-$color--marker: #fff480; // less faint yellow
-$color--test: #8bd9d0; // baby-ish blue
 
 // form fields
 
@@ -158,18 +149,14 @@ $color--field-bg-invalid: rgba($color--alert, .02);
 
 $color--field-b: rgba($color--main,   .1);
 $color--field-b-radio: rgba($color--main,   .2);
-$color--field-b-focus: rgba($color--dscout, .5);
+$color--field-b-focus: rgba($color--oban, .5);
 $color--field-b-filled: rgba($color--main,   .05);
 $color--field-b-invalid: rgba($color--alert,  .3);
 
-// code-highlight
-
-$color--code-highlight: $color--dscout;
-
 // box-shadows
 
-$shadow--s : 0 .22rem .5rem rgba($color--main, 0.03);
-$shadow--m : 0 .22rem .5rem rgba($color--main, 0.08);
-$shadow--l : 0 $space--m $space--base rgba($color--main, 0.1);
+$shadow--s: 0 .22rem .5rem rgba($color--main, 0.03);
+$shadow--m: 0 .22rem .5rem rgba($color--main, 0.08);
+$shadow--l: 0 $space--m $space--base rgba($color--main, 0.1);
 $shadow--xl: 0 $space--m $space--base rgba($color--main, 0.2);
-$shadow    : $shadow--s;
+$shadow: $shadow--s;

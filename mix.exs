@@ -48,11 +48,11 @@ defmodule ObanWeb.MixProject do
     [
       {:gettext, "~> 0.17"},
       {:jason, "~> 1.0"},
-      {:oban, "~> 0.5"},
+      {:oban, "~> 0.8", github: "sorentwo/oban"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:phoenix_live_view, github: "phoenixframework/phoenix_live_view"},
+      {:phoenix_live_view, "~> 0.1"},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false}
     ]
   end

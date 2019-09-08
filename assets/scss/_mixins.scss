@@ -46,15 +46,15 @@
 
 // == BUTTONS == //
 
-@mixin color--dscout {
-  background-color: $color--dscout;
+@mixin color--oban {
+  background-color: $color--oban;
 
   &:hover {
-    background-color: mix(black, $color--dscout, 10%);
+    background-color: mix(black, $color--oban, 10%);
   }
 
   &:active {
-    background-color: mix(black, $color--dscout, 20%);
+    background-color: mix(black, $color--oban, 20%);
   }
 }
 
