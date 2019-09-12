@@ -33,22 +33,16 @@
           <%= if @state == "executing" do %>
             <button class="btn--icon btn--destructive" phx-click="kill_job" value="<%= job.id %>" name="kill" title="Kill Job">
               <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-                <g>
-                  <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="8" x2="17" y1="17" y2="8" />
-                  <line fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" x1="17" x2="8" y1="17" y2="8" />
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 17l9-9M17 17L8 8"/>
                 </g>
               </svg>
             </button>
           <% else %>
             <button class="btn--icon btn--destructive" phx-click="delete_job" value="<%= job.id %>" name="delete" title="Delete Job">
               <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-                <g>
-                  <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" x1="12.5" x2="12.5" y1="11" y2="17" />
-                  <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" x1="9.5" x2="9.5" y1="11" y2="17" />
-                  <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" x1="15.5" x2="15.5" y1="11" y2="17" />
-                  <path d="M9.5,7.5V6A1.5,1.5,0,0,1,11,4.5h3A1.5,1.5,0,0,1,15.5,6V7.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" />
-                  <line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" x1="5" x2="20" y1="7.5" y2="7.5" />
-                  <path d="M18.5,7.5V19A1.5,1.5,0,0,1,17,20.5H8A1.5,1.5,0,0,1,6.5,19V7.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="miter" />
+                <g fill="none" stroke="currentColor">
+                  <path d="M12.5 11v6M9.5 11v6M15.5 11v6M9.5 7.5V6A1.5 1.5 0 0 1 11 4.5h3A1.5 1.5 0 0 1 15.5 6v1.5M5 7.5h15"/><path d="M18.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 19V7.5"/>
                 </g>
               </svg>
             </button>
