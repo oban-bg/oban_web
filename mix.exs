@@ -1,7 +1,7 @@
 defmodule ObanWeb.MixProject do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.2.2"
 
   def project do
     [
@@ -38,7 +38,7 @@ defmodule ObanWeb.MixProject do
   def package do
     [
       organization: "oban",
-      files: ~w(lib .formatter.exs mix.exs README* CHANGELOG*),
+      files: ~w(lib .formatter.exs mix.exs README*),
       licenses: ["Commercial"],
       links: []
     ]
