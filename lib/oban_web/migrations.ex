@@ -35,14 +35,14 @@ defmodule ObanWeb.Migrations do
       execute "CREATE EXTENSION IF NOT EXISTS pg_trgm"
 
       create_if_not_exists index(:oban_jobs, ["worker gist_trgm_ops"],
-               name: :oban_jobs_worker_gist,
-               using: "GIST"
-             )
+                             name: :oban_jobs_worker_gist,
+                             using: "GIST"
+                           )
 
       create_if_not_exists index(:oban_jobs, ["(to_tsvector('english'::regconfig, args::text))"],
-               name: :oban_jobs_args_vector,
-               using: "GIN"
-             )
+                             name: :oban_jobs_args_vector,
+                             using: "GIN"
+                           )
     end
 
     def down do

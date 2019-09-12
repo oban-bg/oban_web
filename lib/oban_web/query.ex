@@ -16,7 +16,6 @@ defmodule ObanWeb.Query do
     state = Keyword.get(opts, :state, @default_state)
     limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
-    offset = 1
 
     Job
     |> filter_state(state)
@@ -24,7 +23,6 @@ defmodule ObanWeb.Query do
     |> filter_terms(terms)
     |> order_state(state)
     |> limit(^limit)
-    |> offset(^offset)
     |> repo.all()
     |> Enum.map(&relativize_timestamps/1)
   end
