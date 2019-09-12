@@ -1,7 +1,7 @@
 defmodule ObanWeb.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
 
   def project do
     [
@@ -13,7 +13,6 @@ defmodule ObanWeb.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
-
       description: "Oban Web Component",
 
       # Docs
@@ -39,6 +38,7 @@ defmodule ObanWeb.MixProject do
   def package do
     [
       organization: "oban",
+      files: ~w(lib .formatter.exs mix.exs README* CHANGELOG*),
       licenses: ["Commercial"],
       links: []
     ]
@@ -48,7 +48,7 @@ defmodule ObanWeb.MixProject do
     [
       {:gettext, "~> 0.17"},
       {:jason, "~> 1.0"},
-      {:oban, "~> 0.8", github: "sorentwo/oban"},
+      {:oban, "~> 0.8"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
