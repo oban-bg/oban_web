@@ -176,6 +176,8 @@ defmodule ObanWeb.Stats do
   end
 
   defp fetch_queue_counts(%State{repo: repo, table: table}) do
+    reset_counts(table, {:queue, :_, :_})
+
     for {queue, state, count} <- Query.queue_counts(repo) do
       short =
         case state do
@@ -188,12 +190,16 @@ defmodule ObanWeb.Stats do
   end
 
   defp fetch_state_counts(%State{repo: repo, table: table}) do
+    reset_counts(table, {:state, :_})
+
     for {state, count} <- Query.state_counts(repo) do
       true = :ets.insert(table, {{:state, state}, count})
     end
   end
 
   defp fetch_node_counts(%State{repo: repo, table: table}) do
+    reset_counts(table, {:node, :_, :_})
+
     for {node, queue, count} <- Query.node_counts(repo) do
       true = :ets.insert(table, {{:node, node, queue}, count})
     end
@@ -202,4 +208,8 @@ defmodule ObanWeb.Stats do
   defp state_to_incr(new, _ol, new), do: 1
   defp state_to_incr(_ne, old, old), do: -1
   defp state_to_incr(_ne, _ol, _an), do: 0
+
+  defp reset_counts(table, match) do
+    :ets.select_delete(table, [{match, [], [true]}])
+  end
 end
