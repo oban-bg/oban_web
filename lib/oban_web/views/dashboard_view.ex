@@ -22,18 +22,13 @@ defmodule ObanWeb.DashboardView do
     |> String.reverse()
   end
 
-  def job_args(args, range \\ 0..90) do
-    inspected = inspect(args)
-
-    if String.length(inspected) > Enum.max(range) do
-      String.slice(inspected, range) <> "…"
+  def truncate(string, range \\ 0..90) do
+    if String.length(string) > Enum.max(range) do
+      String.slice(string, range) <> "…"
     else
-      inspected
+      string
     end
   end
-
-  def job_error([%{"error" => error} | _]), do: inspect(error)
-  def job_error(_errors), do: ""
 
   def time_ago_in_words(ellapsed) do
     seconds = Integer.mod(ellapsed, 60)
