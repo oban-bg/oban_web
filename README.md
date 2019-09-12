@@ -13,13 +13,13 @@ This project relies on a working install of Oban as well as Phoenix.
 
 3. Add `ObanWeb` as a dependency in your `mix.exs` file:
 
-  ```elixir
+  ```
   {:oban_web, "~> 0.2", organization: "oban"}
   ```
 4. Add `ObanWeb` as a child within your application module (note that it is passed the same
    options as `Oban`):
 
-  ```elixir
+  ```
   def start(_type, _args) do
     oban_opts = Application.get_env(:my_app, Oban)
 
@@ -37,7 +37,7 @@ This project relies on a working install of Oban as well as Phoenix.
   ```
 5. Mount the dashboard within your Phoenix router:
 
-  ```elixir
+  ```
   scope "/" do
     pipe_through :browser
 
@@ -46,6 +46,23 @@ This project relies on a working install of Oban as well as Phoenix.
   ```
 
   Here we're using `"/oban"` as the mount point, but it can be anywhere you like.
+6. Run `ObanWeb` migrations to create indexes and setup notifications:
+
+  ```
+  defmodule MyApp.Repo.Migrations.UpgradeObanWeb do
+    use Ecto.Migration
+
+    defdelegate up, to: ObanWeb.Migrations
+    defdelegate down, to: ObanWeb.Migrations
+  end
+  ```
+
+7. Optionally increase the search tolerance for full text queries by setting an
+   `after_connect` hook on your repo:
+
+  ```
+  after_connect: {Postgrex, :query!, ["SELECT set_limit($1)", [0.1]]}
+  ```
 
 [plv]: https://github.com/phoenixframework/phoenix_live_view#installation
 [hpm]: https://hex.pm/docs/private#authenticating-on-ci-and-build-servers

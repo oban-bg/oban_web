@@ -18,7 +18,7 @@ defmodule ObanWeb do
   @impl Supervisor
   def init(%Config{} = conf) do
     children = [
-      {Stats, name: Module.concat(conf.name, "Stats"), queues: conf.queues, repo: conf.repo}
+      {Stats, queues: conf.queues, repo: conf.repo}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
