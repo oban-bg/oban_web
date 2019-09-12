@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
-## [0.1.0] - 2019-03-10
+### Enhancements
+
+- Truncate node names to 30 characters or less to prevent sidebar expansion
+- Limit listed nodes to those that have been updated in the last thirty seconds
+
+## [0.2.0] - 2019-03-10
 
 - [ObanWeb] Initial release with base functionality.
 

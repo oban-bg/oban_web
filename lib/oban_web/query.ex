@@ -89,11 +89,14 @@ defmodule ObanWeb.Query do
   end
 
   @doc false
-  def node_counts(repo) do
+  def node_counts(repo, seconds \\ 60) do
+    since = DateTime.add(DateTime.utc_now(), -seconds)
+
     subquery =
       from b in Beat,
         select: %{node: b.node, queue: b.queue, running: b.running, rank: over(rank(), :nq)},
-        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]]
+        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]],
+        where: b.inserted_at > ^since
 
     query =
       from x in subquery(subquery),
