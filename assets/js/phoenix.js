@@ -188,7 +188,7 @@
 const globalSelf = typeof self !== "undefined" ? self : null
 const phxWindow = typeof window !== "undefined" ? window : null
 const global = globalSelf || phxWindow || this
-const VSN = "2.0.0"
+const DEFAULT_VSN = "2.0.0"
 const SOCKET_STATES = {connecting: 0, open: 1, closing: 2, closed: 3}
 const DEFAULT_TIMEOUT = 10000
 const WS_CLOSE_NORMAL = 1000
@@ -721,6 +721,9 @@ export let Serializer = {
  *
  * Defaults to "arraybuffer"
  *
+ * @param {vsn} [opts.vsn] - The serializer's protocol version to send on connect.
+ *
+ * Defaults to DEFAULT_VSN.
 */
 export class Socket {
   constructor(endPoint, opts = {}){
@@ -770,6 +773,7 @@ export class Socket {
     this.longpollerTimeout    = opts.longpollerTimeout || 20000
     this.params               = closure(opts.params || {})
     this.endPoint             = `${endPoint}/${TRANSPORTS.websocket}`
+    this.vsn                  = opts.vsn || DEFAULT_VSN
     this.heartbeatTimer       = null
     this.pendingHeartbeatRef  = null
     this.reconnectTimer       = new Timer(() => {
@@ -791,7 +795,7 @@ export class Socket {
    */
   endPointURL(){
     let uri = Ajax.appendParams(
-      Ajax.appendParams(this.endPoint, this.params()), {vsn: VSN})
+      Ajax.appendParams(this.endPoint, this.params()), {vsn: this.vsn})
     if(uri.charAt(0) !== "/"){ return uri }
     if(uri.charAt(1) === "/"){ return `${this.protocol()}:${uri}` }
 
@@ -799,9 +803,13 @@ export class Socket {
   }
 
   /**
-   * @param {Function} callback
-   * @param {integer} code
-   * @param {string} reason
+   * Disconnects the socket
+   *
+   * See https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent#Status_codes for valid status codes.
+   *
+   * @param {Function} callback - Optional callback which is called after socket is disconnected.
+   * @param {integer} code - A status code for disconnection (Optional).
+   * @param {string} reason - A textual description of the reason to disconnect. (Optional)
    */
   disconnect(callback, code, reason){
     this.closeWasClean = true
