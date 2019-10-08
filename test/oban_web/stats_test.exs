@@ -198,8 +198,12 @@ defmodule ObanWeb.StatsTest do
   end
 
   defp notify(pid, event, payload) do
-    encoded = Jason.encode!(Map.new(payload))
+    payload =
+      payload
+      |> Map.new()
+      |> Jason.encode!()
+      |> Jason.decode!()
 
-    send(pid, {:notification, nil, nil, "public.#{event}", encoded})
+    send(pid, {:notification, event, payload})
   end
 end

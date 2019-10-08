@@ -94,11 +94,7 @@ defmodule ObanWeb.Stats do
 
     Process.send_after(self(), :refresh, state.refresh_interval)
 
-    # NOTE: This only works for a default cofiguration using the public schema
-    :ok = Notifier.listen(Oban.Notifier, "public", :gossip)
-    :ok = Notifier.listen(Oban.Notifier, "public", :insert)
-    :ok = Notifier.listen(Oban.Notifier, "public", :update)
-    :ok = Notifier.listen(Oban.Notifier, "public", :signal)
+    :ok = Notifier.listen(Oban.Notifier)
 
     {:noreply, state}
   end
@@ -114,26 +110,16 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, _, _, prefixed_channel, payload}, state) do
-    [_prefix, channel] = String.split(prefixed_channel, ".")
-
-    handle_notification(channel, payload, state)
-  end
-
-  def handle_info(_message, state) do
-    {:noreply, state}
-  end
-
-  def handle_notification(gossip(), payload, %State{table: table} = state) do
-    %{"node" => node, "queue" => queue, "count" => count} = Jason.decode!(payload)
+  def handle_info({:notification, gossip(), payload}, %State{table: table} = state) do
+    %{"node" => node, "queue" => queue, "count" => count} = payload
 
     :ets.insert(table, {{:node, node, queue}, count})
 
     {:noreply, state}
   end
 
-  def handle_notification(insert(), payload, %State{table: table} = state) do
-    %{"state" => job_state, "queue" => job_queue} = Jason.decode!(payload)
+  def handle_info({:notification, insert(), payload}, %State{table: table} = state) do
+    %{"state" => job_state, "queue" => job_queue} = payload
 
     :ets.update_counter(table, {:state, job_state}, 1, {1, 0})
 
@@ -144,8 +130,8 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_notification(update(), payload, %State{table: table} = state) do
-    %{"queue" => queue, "new_state" => new, "old_state" => old} = Jason.decode!(payload)
+  def handle_info({:notification, update(), payload}, %State{table: table} = state) do
+    %{"queue" => queue, "new_state" => new, "old_state" => old} = payload
 
     :ets.update_counter(table, {:state, old}, -1, {1, 1})
     :ets.update_counter(table, {:state, new}, 1, {1, 0})
@@ -159,11 +145,15 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_notification(signal(), payload, %State{table: table} = state) do
-    with %{"action" => "scale", "queue" => queue, "scale" => scale} <- Jason.decode!(payload) do
+  def handle_info({:notification, signal(), payload}, %State{table: table} = state) do
+    with %{"action" => "scale", "queue" => queue, "scale" => scale} <- payload do
       true = :ets.insert(table, {{:queue, queue, :limit}, scale})
     end
 
+    {:noreply, state}
+  end
+
+  def handle_info(_message, state) do
     {:noreply, state}
   end
 
@@ -176,8 +166,6 @@ defmodule ObanWeb.Stats do
   end
 
   defp fetch_queue_counts(%State{repo: repo, table: table}) do
-    reset_counts(table, {:queue, :_, :_})
-
     for {queue, state, count} <- Query.queue_counts(repo) do
       short =
         case state do
@@ -190,16 +178,12 @@ defmodule ObanWeb.Stats do
   end
 
   defp fetch_state_counts(%State{repo: repo, table: table}) do
-    reset_counts(table, {:state, :_})
-
     for {state, count} <- Query.state_counts(repo) do
       true = :ets.insert(table, {{:state, state}, count})
     end
   end
 
   defp fetch_node_counts(%State{repo: repo, table: table}) do
-    reset_counts(table, {:node, :_, :_})
-
     for {node, queue, count} <- Query.node_counts(repo) do
       true = :ets.insert(table, {{:node, node, queue}, count})
     end
@@ -208,8 +192,4 @@ defmodule ObanWeb.Stats do
   defp state_to_incr(new, _ol, new), do: 1
   defp state_to_incr(_ne, old, old), do: -1
   defp state_to_incr(_ne, _ol, _an), do: 0
-
-  defp reset_counts(table, match) do
-    :ets.select_delete(table, [{{match, :_}, [], [true]}])
-  end
 end
