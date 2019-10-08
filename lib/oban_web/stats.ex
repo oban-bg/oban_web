@@ -210,6 +210,6 @@ defmodule ObanWeb.Stats do
   defp state_to_incr(_ne, _ol, _an), do: 0
 
   defp reset_counts(table, match) do
-    :ets.select_delete(table, [{match, [], [true]}])
+    :ets.select_delete(table, [{{match, :_}, [], [true]}])
   end
 end
