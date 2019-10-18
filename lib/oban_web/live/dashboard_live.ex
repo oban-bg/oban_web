@@ -5,6 +5,7 @@ defmodule ObanWeb.DashboardLive do
   alias ObanWeb.{DashboardView, Query, Stats}
 
   @tick_timing 500
+  @flash_timing 5_000
   @default_filters %{page: 1, limit: 30, queue: "any", state: "executing", terms: nil}
   @default_flash %{show: false, mode: :success, message: ""}
 
@@ -44,6 +45,10 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, assigns)}
   end
 
+  def handle_info(:clear_flash, %{assigns: assigns} = socket) do
+    {:noreply, assign(socket, flash: @default_flash)}
+  end
+
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :queue, queue)
     jobs = Query.jobs(assigns.config.repo, filters)
@@ -70,6 +75,8 @@ defmodule ObanWeb.DashboardLive do
 
     flash = %{show: true, mode: :alert, message: "Job deleted."}
 
+    Process.send_after(self(), :clear_flash, @flash_timing)
+
     {:noreply, assign(socket, flash: flash)}
   end
 
@@ -81,12 +88,12 @@ defmodule ObanWeb.DashboardLive do
 
     flash = %{show: true, mode: :alert, message: "Job canceled and discarded."}
 
+    Process.send_after(self(), :clear_flash, @flash_timing)
+
     {:noreply, assign(socket, flash: flash)}
   end
 
   def handle_event("blitz_close", _value, %{assigns: assigns} = socket) do
-    flash = Map.put(assigns.flash, :show, false)
-
-    {:noreply, assign(socket, flash: flash)}
+    handle_info(:clear_flash, assigns)
   end
 end
