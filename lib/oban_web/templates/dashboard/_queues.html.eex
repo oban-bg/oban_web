@@ -12,7 +12,7 @@
     <%= for {queue, {execu, avail, limit}} <- @queue_counts do %>
       <li class="menu-item <%= if queue == @queue do %>menu-item--active<% end %> flex"
           phx-click="change_queue"
-          phx-value="<%= queue %>">
+          phx-value-queue="<%= queue %>">
         <button class="menu-btn"><%= queue %></button>
         <div>
           <span class="menu-cnt">

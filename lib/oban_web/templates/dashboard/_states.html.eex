@@ -8,7 +8,7 @@
     <%= for {state, count} <- @state_counts do %>
       <li class="menu-item <%= if state == @state do %>menu-item--active<% end %> flex"
           phx-click="change_state"
-          phx-value="<%= state %>">
+          phx-value-state="<%= state %>">
         <button class="menu-btn"><%= state %></button>
         <span class="menu-cnt"><%= integer_to_delimited(count) %></span>
       </li>

@@ -20,7 +20,7 @@ defmodule ObanWeb.DashboardLiveTest do
 
       insert_job!([ref: 1], worker: FakeWorker)
 
-      assert render_click(view, :change_state, "available") =~ "FakeWorker"
+      assert render_click(view, :change_state, %{"state" => "available"}) =~ "FakeWorker"
     end
 
     test "viewing scheduled jobs", %{conn: conn} do
@@ -29,7 +29,7 @@ defmodule ObanWeb.DashboardLiveTest do
       insert_job!([ref: 1], state: "available", worker: RealWorker)
       insert_job!([ref: 2], state: "scheduled", worker: NeueWorker)
 
-      html = render_click(view, :change_state, "scheduled")
+      html = render_click(view, :change_state, %{"state" => "scheduled"})
 
       assert html =~ "NeueWorker"
       refute html =~ "RealWorker"
@@ -44,7 +44,7 @@ defmodule ObanWeb.DashboardLiveTest do
         errors: [%{attempt: 1, at: DateTime.utc_now(), error: "Formatted RuntimeError"}]
       )
 
-      html = render_click(view, :change_state, "retryable")
+      html = render_click(view, :change_state, %{"state" => "retryable"})
 
       assert html =~ "JankWorker"
     end
@@ -55,7 +55,7 @@ defmodule ObanWeb.DashboardLiveTest do
       insert_job!([ref: 1], state: "available", worker: RealWorker)
       insert_job!([ref: 2], state: "discarded", worker: DeadWorker)
 
-      html = render_click(view, :change_state, "discarded")
+      html = render_click(view, :change_state, %{"state" => "discarded"})
 
       assert html =~ "DeadWorker"
       refute html =~ "RealWorker"
@@ -66,7 +66,7 @@ defmodule ObanWeb.DashboardLiveTest do
 
       insert_job!([ref: 1], worker: FakeWorker)
 
-      assert render_click(view, :change_state, "available") =~ "FakeWorker"
+      assert render_click(view, :change_state, %{"state" => "available"}) =~ "FakeWorker"
     end
   end
 
@@ -78,13 +78,13 @@ defmodule ObanWeb.DashboardLiveTest do
     insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
 
     # None of these are in a running queue, switch to a view where they are visible
-    html = render_click(view, :change_state, "available")
+    html = render_click(view, :change_state, %{"state" => "available"})
 
     assert html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
     assert html =~ "GammaWorker"
 
-    html = render_click(view, :change_queue, "delta")
+    html = render_click(view, :change_queue, %{"queue" => "delta"})
 
     refute html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
@@ -99,7 +99,7 @@ defmodule ObanWeb.DashboardLiveTest do
     insert_job!([callsign: "foxtrot"], queue: "gamma", worker: GammaWorker)
 
     # None of these are in a running queue, switch to a view where they are visible
-    render_click(view, :change_state, "available")
+    render_click(view, :change_state, %{"state" => "available"})
 
     # Filter down by worker name prefix
     html = render_change(view, :change_terms, %{terms: "delta"})
@@ -126,7 +126,7 @@ defmodule ObanWeb.DashboardLiveTest do
   test "killing an executing job", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/oban")
 
-    html = render_click(view, :kill_job, "123")
+    html = render_click(view, :kill_job, %{"id" => "123"})
 
     assert html =~ ~S|<div class="blitz blitz--show">|
     assert html =~ ~S|<span class="blitz__message">Job canceled and discarded.</span>|
@@ -141,7 +141,7 @@ defmodule ObanWeb.DashboardLiveTest do
 
     {:ok, view, _html} = live(conn, "/oban")
 
-    html = render_click(view, :delete_job, to_string(jid))
+    html = render_click(view, :delete_job, %{"id" => to_string(jid)})
 
     assert html =~ ~S|<div class="blitz blitz--show">|
     assert html =~ ~S|<span class="blitz__message">Job deleted.</span>|
