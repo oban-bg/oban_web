@@ -46,7 +46,9 @@ defmodule ObanWeb.DashboardLive do
   end
 
   def handle_info(:clear_flash, %{assigns: assigns} = socket) do
-    {:noreply, assign(socket, flash: @default_flash)}
+    flash = Map.put(assigns.flash, :show, false)
+
+    {:noreply, assign(socket, flash: flash)}
   end
 
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
@@ -93,7 +95,7 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, flash: flash)}
   end
 
-  def handle_event("blitz_close", _value, %{assigns: assigns} = socket) do
-    handle_info(:clear_flash, assigns)
+  def handle_event("blitz_close", _value, socket) do
+    handle_info(:clear_flash, socket)
   end
 end
