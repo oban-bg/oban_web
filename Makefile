@@ -18,7 +18,7 @@ js: assets/js/app.js
 	px --no-map --es-syntax-everywhere assets/js/app.js lib/oban_web/templates/layout/app.js.eex
 
 .PHONY: watch
-watch: all watch_loop
+watch: update_js_deps all watch_loop
 
 .PHONY: watch_loop
 watch_loop:
@@ -30,4 +30,4 @@ watch_loop:
 
 .PHONY: prepare
 prepare:
-	brew install fswatch sassc && cargo install pax
+	brew install fswatch sassc && cargo install pax && mix deps.get

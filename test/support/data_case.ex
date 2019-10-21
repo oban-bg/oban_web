@@ -1,5 +1,9 @@
 defmodule ObanWeb.DataCase do
+  @moduledoc false
+
   use ExUnit.CaseTemplate
+
+  alias Ecto.Adapters.SQL.Sandbox
 
   using do
     quote do
@@ -37,10 +41,10 @@ defmodule ObanWeb.DataCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(ObanWeb.Repo)
+    :ok = Sandbox.checkout(ObanWeb.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(ObanWeb.Repo, {:shared, self()})
+      Sandbox.mode(ObanWeb.Repo, {:shared, self()})
     end
 
     :ok

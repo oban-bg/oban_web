@@ -12,6 +12,7 @@ defmodule ObanWeb.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
       package: package(),
       description: "Oban Web Component",
 
@@ -53,8 +54,17 @@ defmodule ObanWeb.MixProject do
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_live_view, "~> 0.1"},
+      {:credo, "~> 1.0", only: [:test, :dev], runtime: false},
       {:floki, ">= 0.0.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: [:dev, :test], runtime: false}
+    ]
+  end
+
+  defp aliases do
+    [
+      "ecto.setup": ["ecto.create --quiet", "ecto.migrate"],
+      "ecto.reset": ["ecto.drop", "ecto.setup"],
+      ci: ["format --check-formatted", "credo --strict", "test --raise"]
     ]
   end
 end

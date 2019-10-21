@@ -1,4 +1,6 @@
 defmodule ObanWeb.DashboardLive do
+  @moduledoc false
+
   use Phoenix.LiveView
 
   alias Oban.Job
