@@ -2,17 +2,46 @@
 
 A live dashboard for monitoring and operating Oban.
 
-- Installation (From a Package)
-- Installation (For Development)
-- Contributing
+## Installation (For Development)
 
-## Installation
+Using ObanWeb from another application in development mode requires a little
+maneuvering. While you can specify `oban_web` as a path dependency, that doesn't
+work with Phoenix's code reloading features. During development I suggest the
+following work-flow:
+
+Switching to Development
+
+1. In `mix.exs` comment out `oban_web`
+2. Create symlinks from `oban_web` into the `lib` directory of your primary app
+
+I recommend automating the steps with a make task, as this is something you'll
+do often. This command will automate linking local `oban_web`:
+
+```make
+relink-oban-web:
+	sed -i '' '/:oban_web/ s/\(.*\)\({.*\)/\1# \2/' mix.exs && \
+	cd lib && \
+	ln -fs ../../oban_web/lib/oban_web ./oban_web && \
+	ln -fs ../../oban_web/lib/oban_web.ex ./oban_web.ex
+```
+
+And this command to switch back to the published version:
+
+```make
+unlink-oban-web:
+	sed -i '' '/:oban_web/ s/\(.*\)# \(.*\)/\1\2/' mix.exs && \
+	rm lib/oban_web* && \
+	mix deps.update oban_web
+```
+
+## Installation (From a Package)
 
 This project relies on a working install of Oban as well as Phoenix.
 
 1. Install [Phoenix Live View][plv]
 
-2. Authenticate with the `oban` [organization on hex][hpm], this is required to pull down the `ObanWeb` package locally and in CI.
+2. Authenticate with the `oban` [organization on hex][hpm], this is required to
+   pull down the `ObanWeb` package locally and in CI.
 
 3. Add `ObanWeb` as a dependency in your `mix.exs` file:
 
@@ -20,7 +49,8 @@ This project relies on a working install of Oban as well as Phoenix.
   {:oban_web, "~> 0.4", organization: "oban"}
   ```
 
-4. Add `ObanWeb` as a child within your application module (note that it is passed the same options as `Oban`):
+4. Add `ObanWeb` as a child within your application module (note that it is
+   passed the same options as `Oban`):
 
   ```
   def start(_type, _args) do
@@ -62,7 +92,8 @@ This project relies on a working install of Oban as well as Phoenix.
   end
   ```
 
-7. Optionally increase the search tolerance for full text queries by setting an `after_connect` hook on your repo:
+7. Optionally increase the search tolerance for full text queries by setting an
+   `after_connect` hook on your repo:
 
   ```
   after_connect: {Postgrex, :query!, ["SELECT set_limit($1)", [0.1]]}
