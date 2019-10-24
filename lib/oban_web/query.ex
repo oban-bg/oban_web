@@ -5,6 +5,7 @@ defmodule ObanWeb.Query do
 
   alias Oban.{Beat, Job}
 
+  @default_node "any"
   @default_queue "any"
   @default_state "executing"
   @default_limit 30
@@ -12,14 +13,16 @@ defmodule ObanWeb.Query do
   def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
 
   def jobs(repo, opts) do
+    node = Keyword.get(opts, :node, @default_node)
     queue = Keyword.get(opts, :queue, @default_queue)
     state = Keyword.get(opts, :state, @default_state)
     limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
 
     Job
-    |> filter_state(state)
+    |> filter_node(node)
     |> filter_queue(queue)
+    |> filter_state(state)
     |> filter_terms(terms)
     |> order_state(state)
     |> limit(^limit)
@@ -27,10 +30,16 @@ defmodule ObanWeb.Query do
     |> Enum.map(&relativize_timestamps/1)
   end
 
-  defp filter_state(query, state), do: where(query, state: ^state)
+  defp filter_node(query, "any"), do: query
+
+  defp filter_node(query, node) do
+    where(query, [j], fragment("?[1] = ?", j.attempted_by, ^node))
+  end
 
   defp filter_queue(query, "any"), do: query
   defp filter_queue(query, queue), do: where(query, queue: ^queue)
+
+  defp filter_state(query, state), do: where(query, state: ^state)
 
   defp filter_terms(query, nil), do: query
 

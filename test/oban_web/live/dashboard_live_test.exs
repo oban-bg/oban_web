@@ -70,6 +70,29 @@ defmodule ObanWeb.DashboardLiveTest do
     end
   end
 
+  test "filtering jobs by node", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/oban")
+
+    web_1 = ["web.1", "alpha", "aaaaaaaa"]
+    web_2 = ["web.2", "alpha", "aaaaaaaa"]
+
+    insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker, attempted_by: web_1)
+    insert_job!([ref: 2], queue: "alpha", worker: DeltaWorker, attempted_by: web_2)
+    insert_job!([ref: 3], queue: "alpha", worker: GammaWorker, attempted_by: web_1)
+
+    html = render_click(view, :change_state, %{"state" => "available"})
+
+    assert html =~ "AlphaWorker"
+    assert html =~ "DeltaWorker"
+    assert html =~ "GammaWorker"
+
+    html = render_click(view, :change_node, %{"node" => "web.2"})
+
+    refute html =~ "AlphaWorker"
+    assert html =~ "DeltaWorker"
+    refute html =~ "GammaWorker"
+  end
+
   test "filtering jobs by queue", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/oban")
 
