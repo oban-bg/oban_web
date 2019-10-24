@@ -2,7 +2,7 @@
 
 <section class="flex">
   <div class="sidebar sidebar--filters">
-    <%= render("_nodes.html", node_counts: @node_counts) %>
+    <%= render("_nodes.html", node: @filters.node, node_counts: @node_counts) %>
     <%= render("_states.html", state: @filters.state, state_counts: @state_counts) %>
     <%= render("_queues.html", queue: @filters.queue, queue_counts: @queue_counts) %>
   </div>

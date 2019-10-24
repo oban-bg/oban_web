@@ -8,8 +8,15 @@ defmodule ObanWeb.DashboardLive do
 
   @tick_timing 500
   @flash_timing 5_000
-  @default_filters %{page: 1, limit: 30, queue: "any", state: "executing", terms: nil}
   @default_flash %{show: false, mode: :success, message: ""}
+  @default_filters %{
+    page: 1,
+    limit: 30,
+    node: "any",
+    queue: "any",
+    state: "executing",
+    terms: nil
+  }
 
   def render(assigns) do
     DashboardView.render("index.html", assigns)
@@ -51,6 +58,13 @@ defmodule ObanWeb.DashboardLive do
     flash = Map.put(assigns.flash, :show, false)
 
     {:noreply, assign(socket, flash: flash)}
+  end
+
+  def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
+    filters = Map.put(assigns.filters, :node, node)
+    jobs = Query.jobs(assigns.config.repo, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
