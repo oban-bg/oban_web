@@ -5,12 +5,14 @@
   </header>
   <hr class="flat" />
   <ul class="menu-list">
-    <%= for {node, count} <- @node_counts do %>
+    <%= for {node, %{count: count, limit: limit}} <- @node_stats do %>
       <li class="menu-item <%= if node == @node do %>menu-item--active<% end %> flex"
           phx-click="change_node"
           phx-value-node="<%= node %>">
         <button class="menu-btn"><%= truncate(node, 0..30) %></button>
-        <span class="menu-cnt"><%= integer_to_delimited(count) %></span>
+        <span class="menu-cnt">
+          <%= integer_to_delimited(count) %> / <%= integer_to_delimited(limit) %>
+        </span>
       </li>
     <% end %>
   </ul>

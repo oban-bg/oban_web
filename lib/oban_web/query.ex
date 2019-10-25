@@ -81,6 +81,37 @@ defmodule ObanWeb.Query do
   defp maybe_diff(now, then), do: NaiveDateTime.diff(now, then)
 
   @doc false
+  def node_counts(repo, seconds \\ 60) do
+    since = DateTime.add(DateTime.utc_now(), -seconds)
+
+    subquery =
+      from b in Beat,
+        select: %{
+          node: b.node,
+          queue: b.queue,
+          running: b.running,
+          limit: b.limit,
+          paused: b.paused,
+          rank: over(rank(), :nq)
+        },
+        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]],
+        where: b.inserted_at > ^since
+
+    query =
+      from x in subquery(subquery),
+        where: x.rank == 1,
+        select: {
+          x.node,
+          x.queue,
+          fragment("coalesce(array_length(?, 1), 0)", x.running),
+          x.limit,
+          x.paused
+        }
+
+    repo.all(query)
+  end
+
+  @doc false
   def queue_counts(repo) do
     Job
     |> group_by([j], [j.queue, j.state])
@@ -95,23 +126,5 @@ defmodule ObanWeb.Query do
     |> group_by([j], j.state)
     |> select([j], {j.state, count(j.id)})
     |> repo.all()
-  end
-
-  @doc false
-  def node_counts(repo, seconds \\ 60) do
-    since = DateTime.add(DateTime.utc_now(), -seconds)
-
-    subquery =
-      from b in Beat,
-        select: %{node: b.node, queue: b.queue, running: b.running, rank: over(rank(), :nq)},
-        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]],
-        where: b.inserted_at > ^since
-
-    query =
-      from x in subquery(subquery),
-        where: x.rank == 1,
-        select: {x.node, x.queue, fragment("coalesce(array_length(?, 1), 0)", x.running)}
-
-    repo.all(query)
   end
 end
