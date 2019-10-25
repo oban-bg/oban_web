@@ -9,7 +9,7 @@
 
   <hr class="flat" />
   <ul class="menu-list">
-    <%= for {queue, {execu, avail, limit}} <- @queue_counts do %>
+    <%= for {queue, %{avail: avail, execu: execu, limit: limit}} <- @queue_stats do %>
       <li class="menu-item <%= if queue == @queue do %>menu-item--active<% end %> flex"
           phx-click="change_queue"
           phx-value-queue="<%= queue %>">

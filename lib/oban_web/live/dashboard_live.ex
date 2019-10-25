@@ -33,9 +33,9 @@ defmodule ObanWeb.DashboardLive do
       filters: filters,
       flash: @default_flash,
       jobs: Query.jobs(config.repo, filters),
-      node_counts: Stats.for_nodes(),
-      queue_counts: Stats.for_queues(),
-      state_counts: Stats.for_states()
+      node_stats: Stats.for_nodes(),
+      queue_stats: Stats.for_queues(),
+      state_stats: Stats.for_states()
     ]
 
     {:ok, assign(socket, assigns)}
@@ -44,9 +44,9 @@ defmodule ObanWeb.DashboardLive do
   def handle_info(:tick, %{assigns: assigns} = socket) do
     assigns = [
       jobs: Query.jobs(assigns.config.repo, assigns.filters),
-      node_counts: Stats.for_nodes(),
-      queue_counts: Stats.for_queues(),
-      state_counts: Stats.for_states()
+      node_stats: Stats.for_nodes(),
+      queue_stats: Stats.for_queues(),
+      state_stats: Stats.for_states()
     ]
 
     Process.send_after(self(), :tick, @tick_timing)

@@ -5,7 +5,7 @@
   </header>
   <hr class="flat" />
   <ul class="menu-list">
-    <%= for {state, count} <- @state_counts do %>
+    <%= for {state, %{count: count}} <- @state_stats do %>
       <li class="menu-item <%= if state == @state do %>menu-item--active<% end %> flex"
           phx-click="change_state"
           phx-value-state="<%= state %>">
