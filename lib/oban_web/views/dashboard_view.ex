@@ -13,6 +13,12 @@ defmodule ObanWeb.DashboardView do
     "queue-tag--#{key}"
   end
 
+  def state_count(stats, state) do
+    state
+    |> :proplists.get_value(stats, %{count: 0})
+    |> Map.get(:count)
+  end
+
   def integer_to_delimited(integer) when is_integer(integer) do
     integer
     |> Integer.to_charlist()
