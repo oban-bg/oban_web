@@ -7,7 +7,7 @@ defmodule ObanWeb.StatsTest do
   alias ObanWeb.Stats
 
   @name __MODULE__
-  @opts [name: @name, repo: ObanWeb.Repo]
+  @opts [name: @name, repo: ObanWeb.Repo, update_threshold: 10]
 
   def for_queues do
     @name
@@ -93,36 +93,38 @@ defmodule ObanWeb.StatsTest do
   end
 
   test "update notifications modify the cached values" do
-    insert_job!(queue: :alpha, state: "available")
-    insert_job!(queue: :gamma, state: "available")
-    insert_job!(queue: :gamma, state: "scheduled")
-    insert_job!(queue: :delta, state: "executing")
-
     insert_beat!(node: "web.1", queue: "alpha", limit: 1)
     insert_beat!(node: "web.1", queue: "gamma", limit: 1)
     insert_beat!(node: "web.1", queue: "delta", limit: 1)
 
     {:ok, pid} = start_supervised({Stats, @opts})
 
+    insert_job!(queue: :alpha, state: "available")
+    insert_job!(queue: :alpha, state: "executing")
+    insert_job!(queue: :gamma, state: "available")
+    insert_job!(queue: :gamma, state: "scheduled")
+    insert_job!(queue: :delta, state: "executing")
+
+    # Sleep longer than the `update_threshold` to force a refresh
+    Process.sleep(15)
+
+    # A single update is enough to trigger a refresh, the queue and states don't matter.
     notify(pid, update(), queue: :alpha, old_state: "available", new_state: "executing")
-    notify(pid, update(), queue: :gamma, old_state: "scheduled", new_state: "available")
-    notify(pid, update(), queue: :gamma, old_state: "available", new_state: "executing")
-    notify(pid, update(), queue: :delta, old_state: "executing", new_state: "completed")
 
     with_backoff(fn ->
       assert for_queues() == %{
-               "alpha" => %{avail: 0, execu: 1, limit: 1},
-               "delta" => %{avail: 0, execu: 0, limit: 1},
-               "gamma" => %{avail: 1, execu: 1, limit: 1}
+               "alpha" => %{avail: 1, execu: 1, limit: 1},
+               "delta" => %{avail: 0, execu: 1, limit: 1},
+               "gamma" => %{avail: 1, execu: 0, limit: 1}
              }
 
       assert for_states() == %{
                "executing" => %{count: 2},
-               "available" => %{count: 1},
-               "scheduled" => %{count: 0},
+               "available" => %{count: 2},
+               "scheduled" => %{count: 1},
                "retryable" => %{count: 0},
                "discarded" => %{count: 0},
-               "completed" => %{count: 1}
+               "completed" => %{count: 0}
              }
     end)
 

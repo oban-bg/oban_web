@@ -29,21 +29,22 @@ defmodule ObanWeb.Stats do
   alias Oban.Notifier
   alias ObanWeb.Query
 
-  @type option :: {:name, atom()} | {:queues, Keyword.t()} | {:repo, module()}
-
   @ordered_states ~w(executing available scheduled retryable discarded completed)
 
   defmodule State do
     @moduledoc false
 
-    defstruct [:queues, :repo, :table, refresh_interval: :timer.seconds(60)]
+    defstruct [
+      :repo,
+      :table,
+      :latest_update,
+      update_threshold: :timer.seconds(3),
+      refresh_interval: :timer.seconds(60)
+    ]
   end
 
   def start_link(opts) when is_list(opts) do
-    opts =
-      opts
-      |> Keyword.put_new(:name, __MODULE__)
-      |> Keyword.put(:queues, Keyword.get(opts, :queues) || [])
+    opts = Keyword.put_new(opts, :name, __MODULE__)
 
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
@@ -101,7 +102,7 @@ defmodule ObanWeb.Stats do
   @impl GenServer
   def init(opts) do
     table = :ets.new(opts[:name], [:protected, :named_table, read_concurrency: true])
-    state = %State{repo: opts[:repo], table: table}
+    state = %State{repo: opts[:repo], table: table, update_threshold: opts[:update_threshold]}
 
     {:ok, state, {:continue, :start}}
   end
@@ -125,7 +126,7 @@ defmodule ObanWeb.Stats do
 
     Process.send_after(self(), :refresh, state.refresh_interval)
 
-    {:noreply, state}
+    {:noreply, %{state | latest_update: unix_now()}}
   end
 
   def handle_info({:notification, gossip(), payload}, %State{table: table} = state) do
@@ -149,19 +150,24 @@ defmodule ObanWeb.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, update(), payload}, %State{table: table} = state) do
-    %{"queue" => queue, "new_state" => new, "old_state" => old} = payload
+  # Update notifications are batched, which makes the counting innacurate. For example, if two
+  # jobs are moved from `scheduled` to `available` in a single transaction only one update event
+  # is emitted. Instead of relying on individual update events for state changes we use them to
+  # trigger a refresh with a small debounce.
+  def handle_info({:notification, update(), _payload}, state) do
+    %State{repo: repo, latest_update: latest, update_threshold: threshold} = state
 
-    :ets.update_counter(table, {:state, old}, -1, {1, 1})
-    :ets.update_counter(table, {:state, new}, 1, {1, 0})
+    if unix_now() > latest + threshold do
+      repo.checkout(fn ->
+        fetch_queue_counts(state)
+        fetch_state_counts(state)
+      end)
 
-    avail_incr = state_to_incr(new, old, "available")
-    execu_incr = state_to_incr(new, old, "executing")
-
-    :ets.update_counter(table, {:queue, queue, :avail}, avail_incr, {1, 0})
-    :ets.update_counter(table, {:queue, queue, :execu}, execu_incr, {1, 0})
-
-    {:noreply, state}
+      # Intentionally delay the latest_update until _after_ the refresh has completed.
+      {:noreply, %{state | latest_update: unix_now()}}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_info({:notification, signal(), payload}, %State{table: table} = state) do
@@ -207,7 +213,7 @@ defmodule ObanWeb.Stats do
   defp short_state("available"), do: :avail
   defp short_state("executing"), do: :execu
 
-  defp state_to_incr(new, _ol, new), do: 1
-  defp state_to_incr(_ne, old, old), do: -1
-  defp state_to_incr(_ne, _ol, _an), do: 0
+  defp unix_now do
+    DateTime.to_unix(DateTime.utc_now(), :millisecond)
+  end
 end
