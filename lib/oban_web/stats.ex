@@ -73,7 +73,9 @@ defmodule ObanWeb.Stats do
     limit_counts =
       table
       |> :ets.select([{{{:node, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
-      |> Map.new(fn [queue, count] -> {queue, count} end)
+      |> Enum.reduce(%{}, fn [queue, limit], acc ->
+        Map.update(acc, queue, limit, &(&1 + limit))
+      end)
 
     [avail_counts, execu_counts, limit_counts]
     |> Enum.flat_map(&Map.keys/1)
