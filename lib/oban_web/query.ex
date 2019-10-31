@@ -42,6 +42,7 @@ defmodule ObanWeb.Query do
   defp filter_state(query, state), do: where(query, state: ^state)
 
   defp filter_terms(query, nil), do: query
+  defp filter_terms(query, ""), do: query
 
   defp filter_terms(query, terms) do
     ilike = terms <> "%"
@@ -51,7 +52,7 @@ defmodule ObanWeb.Query do
       [j],
       fragment("? ~~* ?", j.worker, ^ilike) or
         fragment("? % ?", j.worker, ^terms) or
-        fragment("to_tsvector('english', ?::text) @@ to_tsquery('english', ?)", j.args, ^terms)
+        fragment("to_tsvector('simple', ?::text) @@ plainto_tsquery('simple', ?)", j.args, ^terms)
     )
   end
 

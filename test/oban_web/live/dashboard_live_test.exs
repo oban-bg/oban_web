@@ -123,7 +123,7 @@ defmodule ObanWeb.DashboardLiveTest do
 
     insert_job!([callsign: "yankee"], queue: "alpha", worker: AlphaWorker)
     insert_job!([callsign: "hotel"], queue: "delta", worker: DeltaWorker)
-    insert_job!([callsign: "foxtrot"], queue: "gamma", worker: GammaWorker)
+    insert_job!([callsign: "fox trot"], queue: "gamma", worker: GammaWorker)
 
     # None of these are in a running queue, switch to a view where they are visible
     render_click(view, :change_state, %{"state" => "available"})
@@ -143,7 +143,7 @@ defmodule ObanWeb.DashboardLiveTest do
     refute html =~ "GammaWorker"
 
     # Filter down by args
-    html = render_change(view, :change_terms, %{terms: "foxtrot"})
+    html = render_change(view, :change_terms, %{terms: "fox trot"})
 
     refute html =~ "AlphaWorker"
     refute html =~ "DeltaWorker"

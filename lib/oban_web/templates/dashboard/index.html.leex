@@ -16,8 +16,13 @@
         </span>
       </h2>
 
-      <form class="width--20-pct font-size--base" phx-submit="change_terms">
-        <input class="width--100-pct" name="terms" type="search" placeholder="Filter..." value="<%= @filters.terms %>" />
+      <form class="width--20-pct font-size--base" phx-change="change_terms">
+        <input class="width--100-pct"
+               name="terms"
+               type="search"
+               placeholder="Filter..."
+               value="<%= @filters.terms %>"
+               phx-debounce="250" />
       </form>
     </div>
 

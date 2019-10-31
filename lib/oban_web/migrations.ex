@@ -39,7 +39,7 @@ defmodule ObanWeb.Migrations do
                              using: "GIST"
                            )
 
-      create_if_not_exists index(:oban_jobs, ["(to_tsvector('english'::regconfig, args::text))"],
+      create_if_not_exists index(:oban_jobs, ["(to_tsvector('simple'::regconfig, args::text))"],
                              name: :oban_jobs_args_vector,
                              using: "GIN"
                            )
