@@ -104,9 +104,13 @@ defmodule ObanWeb.Stats do
   @impl GenServer
   def init(opts) do
     table = :ets.new(opts[:name], [:protected, :named_table, read_concurrency: true])
-    state = %State{repo: opts[:repo], table: table, update_threshold: opts[:update_threshold]}
 
-    {:ok, state, {:continue, :start}}
+    opts =
+      opts
+      |> Keyword.take([:repo, :update_threshold])
+      |> Keyword.put(:table, table)
+
+    {:ok, struct!(State, opts), {:continue, :start}}
   end
 
   @impl GenServer
