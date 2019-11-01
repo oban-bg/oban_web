@@ -18,11 +18,10 @@ defmodule ObanWeb.DashboardLiveTest do
     test "viewing available jobs", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/oban")
 
-      insert_job!([ref: 1], worker: FakeWorker)
+      insert_job!([ref: 1], worker: FakeWorker, state: "available")
 
       html = render_click(view, :change_state, %{"state" => "available"})
 
-      assert html =~ "Available Jobs"
       assert html =~ "FakeWorker"
     end
 
@@ -34,7 +33,6 @@ defmodule ObanWeb.DashboardLiveTest do
 
       html = render_click(view, :change_state, %{"state" => "scheduled"})
 
-      assert html =~ "Scheduled Jobs"
       assert html =~ "NeueWorker"
       refute html =~ "RealWorker"
     end
