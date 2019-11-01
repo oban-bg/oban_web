@@ -9,28 +9,11 @@ $grid-unit: .25em;  // Grid size
 $space--none: 0;
 $space--1px: 1px;
 $space--xs: $grid-unit;
-$space--s: grid-units(3);  // space below paragraphs and block elements
-$space--m: grid-units(4);  // small space
-$space--base: grid-units(8);  // standard space
+$space--s: grid-units(3); // space below paragraphs and block elements
+$space--m: grid-units(4); // small space
+$space--base: grid-units(8); // standard space
 $space--l: grid-units(12); // large space
 $space--xl: grid-units(16); // extra large space
-
-$space--1: $space--base;
-$space--2: grid-units(2, $space--base);
-$space--3: grid-units(3, $space--base);
-$space--4: grid-units(4, $space--base);
-$space--5: grid-units(5, $space--base);
-$space--6: grid-units(6, $space--base);
-$space--7: grid-units(7, $space--base);
-$space--8: grid-units(8, $space--base);
-$space--9: grid-units(9, $space--base);
-$space--10: grid-units(10, $space--base);
-$space--11: grid-units(11, $space--base);
-$space--12: grid-units(12, $space--base);
-$space--13: grid-units(13, $space--base);
-$space--14: grid-units(14, $space--base);
-$space--15: grid-units(15, $space--base);
-$space--16: grid-units(16, $space--base);
 
 // fonts
 
@@ -106,23 +89,8 @@ $color--dem-s: mix($color--invert, $color--main, 70%);
 
 // special purpose
 
-$color--edit-state: rgba($color--main, .03); // bg for edit questions
 $color--hover-bg: rgba($color--main, .03); // bg color for hovers in lists
-$color--edit-state-s: mix($color--invert, $color--main, 97%);
 $color--hover-bg-s: mix($color--invert, $color--main, 97%);
-
-$color--queue-00: #eff6e5;
-$color--queue-01: #e4f1d4;
-$color--queue-02: #cbebbd;
-$color--queue-03: #a3e6a6;
-$color--queue-04: #89e396;
-$color--queue-05: #5add7a;
-$color--queue-06: #45b760;
-$color--queue-07: #2e8e45;
-$color--queue-08: #186328;
-$color--queue-09: #0b3f16;
-$color--queue-10: #072b0f;
-$color--queue-11: #041908;
 
 // lines
 

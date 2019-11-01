@@ -4,7 +4,7 @@ input[type="search"] {
   border-radius: $radius--tiny;
   color: $color--field-text-filled;
   line-height: $line-height--copy;
-  padding: $space--s;
+  padding: $space--xs $space--s;
   transition: border $timing--hover, color $timing--hover;
 
   &:disabled,

@@ -79,22 +79,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.queue-tag {
-  border: 1px solid $color--faint;
-  border-radius: $radius--med;
-  padding: 0.5rem;
-}
-
-.queue-tag--0 { border-color: $color--queue-00; }
-.queue-tag--1 { border-color: $color--queue-01; }
-.queue-tag--2 { border-color: $color--queue-02; }
-.queue-tag--3 { border-color: $color--queue-03; }
-.queue-tag--4 { border-color: $color--queue-04; }
-.queue-tag--5 { border-color: $color--queue-05; }
-.queue-tag--6 { border-color: $color--queue-06; }
-.queue-tag--7 { border-color: $color--queue-07; }
-.queue-tag--8 { border-color: $color--queue-08; }
-.queue-tag--9 { border-color: $color--queue-09; }
-.queue-tag--10 { border-color: $color--queue-10; }
-.queue-tag--11 { border-color: $color--queue-11; }

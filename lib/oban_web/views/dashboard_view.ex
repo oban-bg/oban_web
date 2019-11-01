@@ -4,13 +4,10 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
-  def queue_class(queue, steps \\ 12) when is_binary(queue) do
-    key =
-      queue
-      |> :erlang.phash2()
-      |> Integer.mod(steps)
-
-    "queue-tag--#{key}"
+  def clearable_filters(filters) do
+    for {type, name} <- filters, type in [:node, :queue], name != "any" do
+      {to_string(type), name}
+    end
   end
 
   def state_count(stats, state) do

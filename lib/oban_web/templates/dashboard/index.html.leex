@@ -9,12 +9,30 @@
 
   <div class="container flex--1">
     <div class="flex justify--between padding--s">
-      <h2 class="font-size--l margin--none align-self--center">
-        <span class="font-weight--7"><%= String.capitalize(@filters.state) %> Jobs</span>
-        <span class="font-weight--3 color--main-light">
-          (<%= length(@jobs) %> of <%= integer_to_delimited(state_count(@state_stats, @filters.state)) %>)
-        </span>
-      </h2>
+      <div class="flex margin--none">
+        <h2 class="font-size--l margin--none margin-r--m align-self--center">
+          <span class="font-weight--7">
+            <%= String.capitalize(@filters.state) %>
+          </span><span class="font-weight--3 color--main-light">
+            (<%= length(@jobs) %>/<%= integer_to_delimited(state_count(@state_stats, @filters.state)) %> Jobs)
+          </span>
+        </h2>
+
+        <div class="align-self--center">
+          <%= for {type, name} <- clearable_filters(@filters) do %>
+            <div class="pill margin--none margin-r--m">
+              <button class="btn--icon btn--destructive" phx-click="clear_filter" phx-value-type="<%= type %>" title="Clear Filter">
+                <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 17l9-9M17 17L8 8"/>
+                  </g>
+                </svg>
+              </button>
+              <span><%= String.capitalize(type) %>: <%= name %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
 
       <form class="width--20-pct font-size--base" phx-change="change_terms">
         <input class="width--100-pct"

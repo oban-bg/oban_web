@@ -1,8 +1,8 @@
 <table class="jobs-table">
   <thead class="jobs-head">
     <tr>
-      <th class="jobs-head--column">Queue</th>
       <th class="jobs-head--column">ID</th>
+      <th class="jobs-head--column">Queue</th>
       <th class="jobs-head--column">Details</th>
       <th class="jobs-head--column">Tries</th>
       <th class="jobs-head--column">Time</th>
@@ -13,11 +13,11 @@
   <tbody class="jobs-body">
     <%= for job <- @jobs do %>
       <tr class="jobs-row">
-        <td class="jobs-column jobs-column--queue">
-          <span class="queue-tag <%= queue_class(job.queue) %>"><%= job.queue %></span>
-        </td>
         <td class="jobs-column jobs-column--id">
           <%= job.id %>
+        </td>
+        <td class="jobs-column jobs-column--queue">
+          <span class="queue-tag"><%= job.queue %></span>
         </td>
         <td class="jobs-column jobs-column--details">
           <span class="job-details--worker"><%= job.worker %></span>
