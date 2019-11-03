@@ -148,6 +148,27 @@ defmodule ObanWeb.DashboardLiveTest do
     assert html =~ "GammaWorker"
   end
 
+  test "filtering jobs by worker", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/oban")
+
+    insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
+    insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
+    insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
+
+    # None of these are in a running queue, switch to a view where they are visible
+    html = render_click(view, :change_state, %{"state" => "available"})
+
+    assert html =~ "AlphaWorker"
+    assert html =~ "DeltaWorker"
+    assert html =~ "GammaWorker"
+
+    html = render_click(view, :change_worker, %{"worker" => "AlphaWorker"})
+
+    assert html =~ "AlphaWorker"
+    refute html =~ "DeltaWorker"
+    refute html =~ "GammaWorker"
+  end
+
   test "clearing an active filter", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/oban")
 

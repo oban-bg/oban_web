@@ -13,7 +13,8 @@ defmodule ObanWeb.DashboardLive do
     node: "any",
     queue: "any",
     state: "executing",
-    terms: nil
+    terms: nil,
+    worker: "any"
   }
 
   def render(assigns) do
@@ -81,6 +82,13 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :terms, terms)
+    jobs = Query.jobs(assigns.config.repo, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
+    filters = Map.put(assigns.filters, :worker, worker)
     jobs = Query.jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}

@@ -20,7 +20,11 @@
           <span class="queue-tag"><%= job.queue %></span>
         </td>
         <td class="jobs-column jobs-column--details">
-          <span class="job-details--worker"><%= job.worker %></span>
+          <span class="job-details--worker"
+                phx-click="change_worker"
+                phx-value-worker="<%= job.worker %>">
+            <%= job.worker %>
+          </span>
           <span class="job-details--args"><%= inspect(job.args) %></span>
         </td>
         <td class="jobs-column jobs-column--attempts">

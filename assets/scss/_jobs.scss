@@ -67,6 +67,11 @@
   display: block;
   font-size: $font-size--l;
   margin-bottom: $space--xs;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .job-details--args {
