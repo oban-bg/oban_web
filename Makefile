@@ -5,7 +5,7 @@ all: css js
 
 .PHONY: update_js_deps
 update_js_deps:
-	cp deps/phoenix/assets/js/phoenix.js assets/js/phoenix.js && \
+	cp deps/phoenix/priv/static/phoenix.js assets/js/phoenix.js && \
 	cp deps/phoenix_html/priv/static/phoenix_html.js assets/js/phoenix_html.js && \
 	cp deps/phoenix_live_view/priv/static/phoenix_live_view.js assets/js/phoenix_live_view.js
 
