@@ -9,6 +9,7 @@ defmodule ObanWeb.Query do
   @default_queue "any"
   @default_state "executing"
   @default_limit 30
+  @default_worker "any"
 
   def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
 
@@ -18,12 +19,14 @@ defmodule ObanWeb.Query do
     state = Keyword.get(opts, :state, @default_state)
     limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
+    worker = Keyword.get(opts, :worker, @default_worker)
 
     Job
     |> filter_node(node)
     |> filter_queue(queue)
     |> filter_state(state)
     |> filter_terms(terms)
+    |> filter_worker(worker)
     |> order_state(state)
     |> limit(^limit)
     |> repo.all()
@@ -55,6 +58,9 @@ defmodule ObanWeb.Query do
         fragment("to_tsvector('simple', ?::text) @@ plainto_tsquery('simple', ?)", j.args, ^terms)
     )
   end
+
+  defp filter_worker(query, "any"), do: query
+  defp filter_worker(query, worker), do: where(query, worker: ^worker)
 
   defp order_state(query, state) when state in ~w(retryable scheduled) do
     order_by(query, [j], desc: j.scheduled_at)

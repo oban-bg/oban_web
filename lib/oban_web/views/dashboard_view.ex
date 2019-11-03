@@ -4,8 +4,9 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
+  @clearable_filter_types [:node, :queue, :worker]
   def clearable_filters(filters) do
-    for {type, name} <- filters, type in [:node, :queue], name != "any" do
+    for {type, name} <- filters, type in @clearable_filter_types, name != "any" do
       {to_string(type), name}
     end
   end
