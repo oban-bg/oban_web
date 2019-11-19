@@ -109,30 +109,26 @@ Working on ObanWeb has the following dependencies:
 1. Elixir 1.8+
 2. Erlang/OTP 21.0+
 3. Postgres 10+
-4. Rust (for [pax](https://pax.js.org/))
+4. Node (for [parcel](https://parceljs.org/))
 5. Brew (for fswatch and [sassc](https://github.com/sass/sassc))
 
-The only unusual development dependency is `rust`, which is used to bundle JS
-without using NodeJS at all. The build times are **instanely fast**.
-
 We'll assume you have Elixir/Erlang/PostgreSQL running already (because you
-wouldn't be reading this otherwise!). Follow these steps to install the
-necessary dependencies:
-
-1. Install [Rust](https://rustup.rs/) if you don't have it already
-2. Run `make prepare` to install `fswatch`, `sassc` and `pax` and fetch `mix deps`
+wouldn't be reading this otherwise!). To install the remaining dependencies run
+`make prepare`. That will install `fswatch`, `sassc`, `parcel` and fetch `mix
+deps`
 
 #### Update Assets
 
 Run `make watch` when you need to change js or css assets. That will take care
 of:
 
-1. `make update_js_deps` to bundle the latest phoenix and live view js
-2. `make all` to compile scss and bundle js
-3. `make watch_loop` to start the css and js compilation loop
+1. `make js` to bundle the latest phoenix and live view js
+2. `make css` to compile scss
+3. `make watch_loop` to start the css compilation loop
 
-The compilation loop ensures that the css and js assets are compiled and stay up
-to date.
+The compilation loop ensures that the css assets are compiled and stay up
+to date. The js asset(s) are only compiled once, when the loop starts. These
+don't change very often and are much slower to build.
 
 #### Tests & Code Quality
 
