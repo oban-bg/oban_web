@@ -38,8 +38,9 @@ defmodule ObanWeb.Stats do
       :repo,
       :table,
       :latest_update,
-      update_threshold: :timer.seconds(3),
-      refresh_interval: :timer.seconds(60)
+      :refresh_ref,
+      refresh_interval: :timer.seconds(60),
+      update_threshold: :timer.seconds(3)
     ]
   end
 
@@ -107,6 +108,8 @@ defmodule ObanWeb.Stats do
   end
 
   def init(opts) do
+    Process.flag(:trap_exit, true)
+
     table = :ets.new(opts[:name], [:protected, :named_table, read_concurrency: true])
 
     opts =
@@ -125,6 +128,13 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
+  def terminate(_reason, %State{refresh_ref: refresh_ref}) do
+    unless is_nil(refresh_ref), do: Process.cancel_timer(refresh_ref)
+
+    :ok
+  end
+
+  @impl GenServer
   def handle_info(:refresh, %State{repo: repo} = state) do
     clear_table(state)
 
@@ -134,9 +144,9 @@ defmodule ObanWeb.Stats do
       fetch_state_counts(state)
     end)
 
-    Process.send_after(self(), :refresh, state.refresh_interval)
+    ref = Process.send_after(self(), :refresh, state.refresh_interval)
 
-    {:noreply, %{state | latest_update: unix_now()}}
+    {:noreply, %{state | latest_update: unix_now(), refresh_ref: ref}}
   end
 
   def handle_info({:notification, gossip(), payload}, %State{table: table} = state) do
