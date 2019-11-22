@@ -46,7 +46,7 @@ defmodule ObanWeb.Stats do
   def start_link(opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :name, __MODULE__)
 
-    GenServer.start_link(__MODULE__, opts, name: opts[:name])
+    GenServer.start_link(__MODULE__, Map.new(opts), name: opts[:name])
   end
 
   def for_nodes(table \\ __MODULE__) do
@@ -102,13 +102,17 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
+  def init(%{queues: []}) do
+    :ignore
+  end
+
   def init(opts) do
     table = :ets.new(opts[:name], [:protected, :named_table, read_concurrency: true])
 
     opts =
       opts
-      |> Keyword.take([:repo, :update_threshold])
-      |> Keyword.put(:table, table)
+      |> Map.take([:repo, :update_threshold])
+      |> Map.put(:table, table)
 
     {:ok, struct!(State, opts), {:continue, :start}}
   end
