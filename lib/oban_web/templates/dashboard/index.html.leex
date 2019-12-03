@@ -1,4 +1,5 @@
 <%= render("_blitz.html", flash: @flash) %>
+<%= render("_details.html", job: @job) %>
 
 <section class="flex">
   <div class="sidebar sidebar--filters">
@@ -8,7 +9,7 @@
   </div>
 
   <div class="container flex--1">
-    <div class="flex justify--between padding--s">
+    <div class="flex justify-between padding--s">
       <div class="flex margin--none">
         <h2 class="font-size--l margin--none margin-r--m align-self--center">
           <span class="font-weight--7">

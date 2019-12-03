@@ -1,10 +1,6 @@
 .flex {
   display: flex;
   flex-flow: row wrap;
-
-  &.justify--between {
-    justify-content: space-between;
-  }
 }
 
 .flex--0 { flex: 0; }
@@ -23,3 +19,5 @@
 .flex-grow--3 { flex-grow: 3; }
 
 .align-self--center { align-self: center; }
+
+.justify-between { justify-content: space-between; }

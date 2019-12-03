@@ -86,6 +86,7 @@ $color--none: rgba(0,0,0, 0);                // transparent
 // background, use these (or when using svg icons)
 
 $color--dem-s: mix($color--invert, $color--main, 70%);
+$color--faint-s: mix($color--invert, $color--main, 95%);
 
 // special purpose
 

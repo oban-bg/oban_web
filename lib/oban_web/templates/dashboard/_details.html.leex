@@ -1,0 +1,74 @@
+<%= if @job do %>
+  <div class="modal-wrapper" role="dialog" tabindex="-1">
+    <div class="modal">
+      <div class="modal-header flex justify-between">
+        <div>
+          <span class="font-size--xl font-weight--b">Job <%= @job.id %></span>
+
+          <button class="btn-icon" phx-click="retry_job" phx-value-id="<%= @job.id %>">
+            Retry
+          </button>
+
+          Run Now
+          Discard
+        </div>
+
+        Close
+      </div>
+
+      <div class="modal-inner">
+        <div class="flex justify-between margin-b--m">
+          <div class="width--30-pct">
+            <p class="margin-b--m font-weight--5">Worker</p>
+            <p class="color--main-light"><%= @job.worker %></p>
+          </div>
+
+          <div class="width--30-pct">
+            <p class="margin-b--m font-weight--5">Queue</p>
+            <p class="color--main-light"><%= @job.queue %></p>
+          </div>
+
+          <div class="width--30-pct">
+            <p class="margin-b--m">State</p>
+            <p class="color--main-light"><%= @job.state %></p>
+          </div>
+        </div>
+
+        <div class="flex justify-between margin-b--m">
+          <div class="width--30-pct">
+            <p class="margin-b--m font-weight--5">Attempt</p>
+            <p class="color--main-light"><%= @job.attempt %></p>
+          </div>
+
+          <div class="width--30-pct">
+            <p class="margin-b--m font-weight--5">Max Attempts</p>
+            <p class="color--main-light"><%= @job.max_attempts %></p>
+          </div>
+
+          <div class="width--30-pct">
+            <p class="margin-b--m font-weight--5">Attempted By</p>
+            <p class="color--main-light"><%= List.first(@job.attempted_by) %></p>
+          </div>
+        </div>
+
+        <div class="margin-b--m">
+          <h4 class="margin-b--m font-weight--5">Args</h4>
+          <pre><code class="color--main-light"><%= inspect(@job.args) %></code></pre>
+        </div>
+
+        <div>
+          <h4 class="margin-b--m font-weight--5">Errors</h4>
+          <%= if Enum.empty?(@job.errors) do %>
+            <p class="color--main-light">No Errors</p>
+          <%= else %>
+            <%= for error <- Enum.reverse(@job.errors) do %>
+              <span><%= error["attempt"] %></span>
+              <span><%= error["at"] %></span>
+              <pre><code class="color--main-light"><%= error["error"] %></code></pre>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

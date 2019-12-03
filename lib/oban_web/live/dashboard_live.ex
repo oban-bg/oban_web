@@ -40,6 +40,7 @@ defmodule ObanWeb.DashboardLive do
       config: config,
       filters: @default_filters,
       flash: @default_flash,
+      job: nil,
       jobs: Query.jobs(config.repo, @default_filters),
       node_stats: Stats.for_nodes(),
       queue_stats: Stats.for_queues(),
@@ -47,6 +48,18 @@ defmodule ObanWeb.DashboardLive do
     }
 
     {:ok, assign(socket, with_render_defaults(assigns))}
+  end
+
+  def handle_params(params, _uri, %{assigns: assigns} = socket) do
+    case params["jid"] do
+      jid when is_binary(jid) ->
+        job = assigns.config.repo.get(Job, jid)
+
+        {:noreply, assign(socket, job: job)}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_info(:tick, %{assigns: assigns} = socket) do
