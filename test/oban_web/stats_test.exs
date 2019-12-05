@@ -27,8 +27,9 @@ defmodule ObanWeb.StatsTest do
     |> Map.new()
   end
 
-  test "starting without any queues simply exits" do
-    assert :ignore = Stats.start_link(name: @name, queues: [])
+  test "starting with queues set to false or nil simply exits" do
+    assert :ignore = Stats.start_link(name: @name, queues: false)
+    assert :ignore = Stats.start_link(name: @name, queues: nil)
   end
 
   test "initializing with current state and queue counts" do

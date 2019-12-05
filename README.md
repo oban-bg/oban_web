@@ -49,18 +49,18 @@ This project relies on a working install of Oban as well as Phoenix.
   {:oban_web, "~> 0.6", organization: "oban"}
   ```
 
-4. Add `ObanWeb` as a child within your application module (note that it is
-   passed the same options as `Oban`):
+4. Add `ObanWeb` as a child within your application module:
 
   ```
   def start(_type, _args) do
     oban_opts = Application.get_env(:my_app, Oban)
+    oban_web_opts = Application.get_env(:my_app, ObanWeb)
 
     children = [
       MyApp.Repo,
       MyApp.Endpoint,
       {Oban, oban_opts},
-      {ObanWeb, oban_opts}
+      {ObanWeb, oban_web_opts}
     ]
 
     opts = [strategy: :one_for_one, name: MyApp.Supervisor]

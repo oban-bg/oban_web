@@ -103,10 +103,6 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
-  def init(%{queues: []}) do
-    :ignore
-  end
-
   def init(opts) do
     Process.flag(:trap_exit, true)
 
@@ -121,17 +117,17 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
-  def handle_continue(:start, state) do
-    :ok = Notifier.listen(Oban.Notifier)
-
-    handle_info(:refresh, state)
-  end
-
-  @impl GenServer
   def terminate(_reason, %State{refresh_ref: refresh_ref}) do
     unless is_nil(refresh_ref), do: Process.cancel_timer(refresh_ref)
 
     :ok
+  end
+
+  @impl GenServer
+  def handle_continue(:start, state) do
+    :ok = Notifier.listen(Oban.Notifier)
+
+    handle_info(:refresh, state)
   end
 
   @impl GenServer

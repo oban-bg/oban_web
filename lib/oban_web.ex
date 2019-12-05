@@ -3,8 +3,7 @@ defmodule ObanWeb do
 
   use Supervisor
 
-  alias Oban.Config
-  alias ObanWeb.Stats
+  alias ObanWeb.{Config, Stats}
 
   @spec start_link([Oban.option()]) :: Supervisor.on_start()
   def start_link(opts) when is_list(opts) do
@@ -16,10 +15,12 @@ defmodule ObanWeb do
   end
 
   @impl Supervisor
+  def init(%{stats: false}) do
+    :ignore
+  end
+
   def init(%Config{} = conf) do
-    children = [
-      {Stats, queues: conf.queues, repo: conf.repo}
-    ]
+    children = [{Stats, repo: conf.repo}]
 
     Supervisor.init(children, strategy: :one_for_one)
   end
