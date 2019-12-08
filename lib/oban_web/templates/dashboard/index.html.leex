@@ -31,11 +31,13 @@
         </div>
       </div>
 
-      <form class="width--20-pct font-size--base" phx-change="change_terms">
+      <form class="search-wrapper" phx-change="change_terms">
+        <%= render(ObanWeb.IconView, "search.html") %>
+
         <input class="width--100-pct"
                name="terms"
                type="search"
-               placeholder="Filter..."
+               placeholder="Search"
                value="<%= @filters.terms %>"
                phx-debounce="250" />
       </form>
