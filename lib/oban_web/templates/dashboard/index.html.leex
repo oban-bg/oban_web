@@ -1,5 +1,5 @@
 <%= render("_blitz.html", flash: @flash) %>
-<%= render("_details.html", job: @job) %>
+<%= if @job, do: render("_details.html", job: @job) %>
 
 <section class="flex">
   <div class="sidebar sidebar--filters">

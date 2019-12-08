@@ -1,74 +1,82 @@
-<%= if @job do %>
-  <div class="modal-wrapper" role="dialog" tabindex="-1">
-    <div class="modal">
-      <div class="modal-header flex justify-between">
-        <div>
-          <span class="font-size--xl font-weight--b">Job <%= @job.id %></span>
+<div class="modal-wrapper" role="dialog" tabindex="-1">
+  <button class="modal-close">
+    <%= render(ObanWeb.IconView, "x.html") %>
+  </button>
 
-          <button class="btn-icon" phx-click="retry_job" phx-value-id="<%= @job.id %>">
-            Retry
-          </button>
-
-          Run Now
-          Discard
-        </div>
-
-        Close
+  <div class="modal">
+    <div class="modal-header flex justify-between">
+      <div class="margin--none">
+        <h2 class="modal-title"><%= @job.worker %></h2>
+        <h3 class="modal-status"><b><%= @job.state %></b> in <b><%= @job.queue %></b></h3>
       </div>
 
-      <div class="modal-inner">
-        <div class="flex justify-between margin-b--m">
-          <div class="width--30-pct">
-            <p class="margin-b--m font-weight--5">Worker</p>
-            <p class="color--main-light"><%= @job.worker %></p>
-          </div>
+      <nav class="modal-actions flex">
+        <%= if @job.state == "executing" do %>
+          <button class="btn btn--outline modal-action">Kill</button>
+        <% else %>
+          <button class="btn btn--outline modal-action">Run Now</button>
+          <button class="btn btn--outline modal-action">Discard</button>
+          <button class="btn btn--outline modal-action">Delete</button>
+        <% end %>
+      </nav>
+    </div>
 
-          <div class="width--30-pct">
-            <p class="margin-b--m font-weight--5">Queue</p>
-            <p class="color--main-light"><%= @job.queue %></p>
-          </div>
+    <div class="modal-timeline flex">
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state timeline-state--inserted"></span>
+        <span class="timeline-label"><b>Inserted</b> 12s ago (3s)</span>
+      </div>
 
-          <div class="width--30-pct">
-            <p class="margin-b--m">State</p>
-            <p class="color--main-light"><%= @job.state %></p>
-          </div>
-        </div>
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state timeline-state--scheduled"></span>
+        <span class="timeline-label"><b>Scheduled</b> 12s ago (3s)</span>
+      </div>
 
-        <div class="flex justify-between margin-b--m">
-          <div class="width--30-pct">
-            <p class="margin-b--m font-weight--5">Attempt</p>
-            <p class="color--main-light"><%= @job.attempt %></p>
-          </div>
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state timeline-state--available"></span>
+        <span class="timeline-label"><b>Available</b> 12s ago (3s)</span>
+      </div>
 
-          <div class="width--30-pct">
-            <p class="margin-b--m font-weight--5">Max Attempts</p>
-            <p class="color--main-light"><%= @job.max_attempts %></p>
-          </div>
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state timeline-state--completed"></span>
+        <span class="timeline-label"><b>Completed</b> 12s ago (3s)</span>
+      </div>
+    </div>
 
-          <div class="width--30-pct">
-            <p class="margin-b--m font-weight--5">Attempted By</p>
-            <p class="color--main-light"><%= List.first(@job.attempted_by) %></p>
-          </div>
-        </div>
+    <div class="modal-info flex">
+      <div class="info-main">
+        <h3 class="info-title">Arguments</h3>
+        <pre><code class="info-code"><%= inspect(@job.args, pretty: true) %></code></pre>
 
-        <div class="margin-b--m">
-          <h4 class="margin-b--m font-weight--5">Args</h4>
-          <pre><code class="color--main-light"><%= inspect(@job.args) %></code></pre>
-        </div>
+        <hr />
 
-        <div>
-          <h4 class="margin-b--m font-weight--5">Errors</h4>
-          <%= if Enum.empty?(@job.errors) do %>
-            <p class="color--main-light">No Errors</p>
-          <%= else %>
-            <%= for error <- Enum.reverse(@job.errors) do %>
-              <span><%= error["attempt"] %></span>
-              <span><%= error["at"] %></span>
-              <pre><code class="color--main-light"><%= error["error"] %></code></pre>
-            <% end %>
+        <h3 class="info-title">Errors</h3>
+        <%= if Enum.any?(@job.errors) do %>
+          <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
+            <div class="info-error-wrapper">
+              <h4 class="info-subtitle">Attempt <%= attempt %> <i class="vr">|</i> 36s ago</h4>
+              <pre><code class="info-code"><%= error %></code></pre>
+            </div>
           <% end %>
+        <% else %>
+          <code class="info-code">No Errors</code>
+        <% end %>
+      </div>
+
+      <div class="info-side">
+        <h3 class="info-title">Details</h3>
+        <div class="info-item">
+          <span class="text">ID</span> <%= @job.id %>
+        </div>
+
+        <div class="info-item">
+          <%= render(ObanWeb.IconView, "refresh.html") %> <%= @job.attempt %> ⁄ <%= @job.max_attempts %> attempts
+        </div>
+
+        <div class="info-item">
+          <%= render(ObanWeb.IconView, "computer-desktop.html") %> <%= List.first(@job.attempted_by) %>
         </div>
       </div>
     </div>
   </div>
-<% end %>
+</div>

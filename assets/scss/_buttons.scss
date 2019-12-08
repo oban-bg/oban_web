@@ -9,13 +9,13 @@
   display: inline-block;
   font-family: inherit;
   font-size: inherit;
-  line-height: $line-height--copy;
+  line-height: $line-height--solid;
   margin: 0;
-  padding: $space--s $space--base;
+  padding: $space--s $space--m;
   position: relative;
   text-decoration: inherit;
   transition-duration: $timing--hover;
-  transition-property: background, box-shadow, color, fill, top, filter;
+  transition-property: background, border-color, color, fill, top, filter;
   -webkit-appearance: none;
 
   &[disabled] {
@@ -52,6 +52,19 @@
     font-size: inherit;
     transition-property: background, color, height, width;
     transition-duration: $timing--hover;
+  }
+
+  &--outline {
+    border: 1px solid $color--dem;
+    background-color: $color--invert;
+    color: $color--main-light;
+    cursor: pointer;
+
+    &:hover {
+      border-color: $color--main;
+      background-color: $color--invert;
+      color: $color--main;
+    }
   }
 
   &--link {

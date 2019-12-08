@@ -27,22 +27,130 @@
   }
 }
 
+.modal-close {
+  background: none;
+  color: $color--invert;
+  cursor: pointer;
+  opacity: $opacity--75;
+  padding: $space--base;
+  position: fixed;
+  right: 0;
+  top: 0;
+  transition-duration: $timing--fade;
+  transition-property: opacity;
+
+  &:hover {
+    opacity: $opacity--100;
+  }
+
+  .icon {
+    color: inherit;
+    height: 3rem;
+    width: 3rem;
+  }
+}
+
 .modal {
   background-color: $color--invert;
   border-radius: $radius--med;
-  box-shadow: $shadow--xl;
-  margin-top: auto !important;
-  margin-bottom: auto !important;
-  max-width: 60em;
+  margin-top: auto;
+  margin-bottom: auto;
+  max-width: 65rem;
   width: 100%;
 }
 
 .modal-header {
   background: $color--faint;
-  padding: $space--m;
+  padding: $space--base;
 }
 
-.modal-inner {
-  padding: $space--m;
-  overflow-y: scroll;
+.modal-title {
+  font-size: $font-size--xl;
+  margin: 0;
+}
+
+.modal-status {
+  font-size: $font-size--base;
+  margin: 0;
+}
+
+.modal-actions {
+  align-items: center;
+}
+
+.modal-action {
+  margin-left: $space--s;
+}
+
+.modal-timeline {
+  padding: $space--s $space--base;
+}
+
+.timeline-state-wrapper {
+  flex: 1;
+  height: 2rem;
+  padding: 0 1px;
+}
+
+.timeline-state {
+  background: $color--faint;
+  display: block;
+  height: 0.5rem;
+  width: 100%;
+
+  &--inserted { background: $color--inserted; }
+  &--scheduled { background: $color--scheduled; }
+  &--available { background: $color--available; }
+  &--completed { background: $color--completed; }
+}
+
+.timeline-label {
+  display: block;
+  margin-top: $space--s;
+  text-align: center;
+}
+
+.modal-info {
+  padding: $space--s $space--base;
+}
+
+.info-main {
+  flex: 3;
+  padding-right: $space--base;
+}
+
+.info-side {
+  flex: 1;
+}
+
+.info-title {
+  font-size: $font-size--l;
+  margin-bottom: $space--s;
+}
+
+.info-subtitle {
+  margin-bottom: $space--s;
+}
+
+.info-code {
+  color: $color--main-light;
+  display: block;
+  font-family: $font-ms;
+  margin-bottom: $space--base;
+}
+
+.info-item .icon {
+  color: $color--main-light;
+  fill: $color--main-light;
+  height: 1rem;
+  width: 1rem;
+  margin-right: $space--xs;
+}
+
+.info-item .text {
+  color: $color--main-light;
+  height: 1rem;
+  width: 1rem;
+  margin-right: $space--xs;
+  vertical-align: baseline;
 }
