@@ -3,11 +3,7 @@
     <span class="blitz__message"><%= @flash[:message] %></span>
 
     <button phx-click="blitz_close" class="btn--link margin-l--m" name="close" title="Close" type="button">
-      <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-        <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 17l9-9M17 17L8 8"/>
-        </g>
-      </svg>
+      <%= render(ObanWeb.IconView, "x.html") %>
     </button>
   </div>
 </div>

@@ -38,19 +38,11 @@
         <td class="jobs-column jobs-column--action">
           <%= if @state == "executing" do %>
             <button class="btn--icon btn--destructive" phx-click="kill_job" phx-value-id="<%= job.id %>" name="kill" title="Kill Job">
-              <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 17l9-9M17 17L8 8"/>
-                </g>
-              </svg>
+              <%= render(ObanWeb.IconView, "x.html") %>
             </button>
           <% else %>
             <button class="btn--icon btn--destructive" phx-click="delete_job" phx-value-id="<%= job.id %>" name="delete" title="Delete Job">
-              <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-                <g fill="none" stroke="currentColor">
-                  <path d="M12.5 11v6M9.5 11v6M15.5 11v6M9.5 7.5V6A1.5 1.5 0 0 1 11 4.5h3A1.5 1.5 0 0 1 15.5 6v1.5M5 7.5h15"/><path d="M18.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 19V7.5"/>
-                </g>
-              </svg>
+              <%= render(ObanWeb.IconView, "trash.html") %>
             </button>
           <% end %>
         </td>

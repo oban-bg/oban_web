@@ -80,7 +80,6 @@ $color--dem: rgba($color--main, .3);         // de-emphasised elements
 $color--disabled: rgba($color--main, .15);   // disabled elements
 $color--faint: rgba($color--main, .05);      // use this to de-emphasise more
 $color--min: rgba($color--main, .02);        // off-white. minimal visible bg
-$color--none: rgba(0,0,0, 0);                // transparent
 
 // if you need any of the colors above without being affected by the
 // background, use these (or when using svg icons)
