@@ -4,7 +4,16 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
+  import Phoenix.LiveView, only: [live_component: 3]
+
+  alias Oban.Job
   alias ObanWeb.Timing
+
+  @doc """
+  Extract the name of the node that attempted a job.
+  """
+  def attempted_by(%Job{attempted_by: nil}), do: "Not Attempted"
+  def attempted_by(%Job{attempted_by: [node, _queue, _nonce]}), do: node
 
   @clearable_filter_types [:node, :queue, :worker]
   def clearable_filters(filters) do
@@ -41,12 +50,6 @@ defmodule ObanWeb.DashboardView do
     end
   end
 
-  def state_count(stats, state) do
-    state
-    |> :proplists.get_value(stats, %{count: 0})
-    |> Map.get(:count)
-  end
-
   def integer_to_delimited(integer) when is_integer(integer) do
     integer
     |> Integer.to_charlist()
@@ -54,6 +57,12 @@ defmodule ObanWeb.DashboardView do
     |> Enum.chunk_every(3, 3, [])
     |> Enum.join(",")
     |> String.reverse()
+  end
+
+  def state_count(stats, state) do
+    state
+    |> :proplists.get_value(stats, %{count: 0})
+    |> Map.get(:count)
   end
 
   def truncate(string, range \\ 0..90) do

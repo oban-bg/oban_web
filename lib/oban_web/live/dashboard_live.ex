@@ -27,10 +27,12 @@ defmodule ObanWeb.DashboardLive do
     state_stats: []
   }
 
+  @impl Phoenix.LiveView
   def render(assigns) do
     DashboardView.render("index.html", with_render_defaults(assigns))
   end
 
+  @impl Phoenix.LiveView
   def mount(_session, socket) do
     if connected?(socket), do: Process.send_after(self(), :tick, @tick_timing)
 
@@ -50,6 +52,7 @@ defmodule ObanWeb.DashboardLive do
     {:ok, assign(socket, with_render_defaults(assigns))}
   end
 
+  @impl Phoenix.LiveView
   def handle_params(params, _uri, %{assigns: assigns} = socket) do
     case params["jid"] do
       jid when is_binary(jid) ->
@@ -62,6 +65,7 @@ defmodule ObanWeb.DashboardLive do
     end
   end
 
+  @impl Phoenix.LiveView
   def handle_info(:tick, %{assigns: assigns} = socket) do
     assigns = [
       jobs: Query.jobs(assigns.config.repo, assigns.filters),
@@ -79,6 +83,15 @@ defmodule ObanWeb.DashboardLive do
     flash = Map.put(assigns.flash, :show, false)
 
     {:noreply, assign(socket, flash: flash)}
+  end
+
+  def handle_info(:close_modal, socket) do
+    {:noreply, assign(socket, job: nil)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("blitz_close", _value, socket) do
+    handle_info(:clear_flash, socket)
   end
 
   def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
@@ -148,8 +161,10 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, flash: flash)}
   end
 
-  def handle_event("blitz_close", _value, socket) do
-    handle_info(:clear_flash, socket)
+  def handle_event("open_modal", %{"id" => job_id}, %{assigns: assigns} = socket) do
+    job = assigns.config.repo.get(Job, job_id)
+
+    {:noreply, assign(socket, job: job)}
   end
 
   defp with_render_defaults(assigns) do

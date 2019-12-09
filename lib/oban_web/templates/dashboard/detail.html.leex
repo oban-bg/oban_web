@@ -1,5 +1,5 @@
-<div class="modal-wrapper" role="dialog" tabindex="-1">
-  <button class="modal-close">
+<div class="modal-wrapper" role="dialog" tabindex="-1" phx-keydown="close" phx-target="window" phx-click="close" phx-value-action="close">
+  <button class="modal-close" phx-click="close" phx-value-action="close" title="Close Modal">
     <%= render(ObanWeb.IconView, "x.html") %>
   </button>
 
@@ -74,7 +74,7 @@
         </div>
 
         <div class="info-item">
-          <%= render(ObanWeb.IconView, "computer-desktop.html") %> <%= List.first(@job.attempted_by) %>
+          <%= render(ObanWeb.IconView, "computer-desktop.html") %> <%= attempted_by(@job) %>
         </div>
       </div>
     </div>

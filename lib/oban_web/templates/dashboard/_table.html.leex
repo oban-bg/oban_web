@@ -12,7 +12,7 @@
 
   <tbody class="jobs-body">
     <%= for job <- @jobs do %>
-      <tr class="jobs-row">
+      <tr class="jobs-row" phx-click="open_modal" phx-value-id="<%= job.id %>">
         <td class="jobs-column jobs-column--id">
           <%= job.id %>
         </td>
