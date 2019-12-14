@@ -4,7 +4,7 @@ defmodule ObanWeb.DashboardLiveTest do
   import Phoenix.LiveViewTest
 
   alias Oban.Job
-  alias ObanWeb.{Repo, Stats}
+  alias ObanWeb.{DashboardLive, Repo, Stats}
 
   @stat_opts [queues: [alpha: 1, delta: 1, gamma: 1], repo: Repo]
 
@@ -12,6 +12,12 @@ defmodule ObanWeb.DashboardLiveTest do
     start_supervised!({Stats, @stat_opts})
 
     {:ok, conn: build_conn()}
+  end
+
+  describe "render/1" do
+    test "required assigns are set without mounting" do
+      assert %Phoenix.LiveView.Rendered{} = DashboardLive.render(%{})
+    end
   end
 
   describe "viewing jobs in different states" do

@@ -17,27 +17,36 @@ defmodule ObanWeb.DashboardLive do
     worker: "any"
   }
 
+  # When a client reconnects it may render the dashboard before the assigns are set by `mount`.
+  @render_defaults %{
+    filters: @default_filters,
+    flash: @default_flash,
+    jobs: [],
+    node_stats: [],
+    queue_stats: [],
+    state_stats: []
+  }
+
   def render(assigns) do
-    DashboardView.render("index.html", assigns)
+    DashboardView.render("index.html", with_render_defaults(assigns))
   end
 
   def mount(_session, socket) do
     if connected?(socket), do: Process.send_after(self(), :tick, @tick_timing)
 
     config = Oban.config()
-    filters = @default_filters
 
-    assigns = [
+    assigns = %{
       config: config,
-      filters: filters,
+      filters: @default_filters,
       flash: @default_flash,
-      jobs: Query.jobs(config.repo, filters),
+      jobs: Query.jobs(config.repo, @default_filters),
       node_stats: Stats.for_nodes(),
       queue_stats: Stats.for_queues(),
       state_stats: Stats.for_states()
-    ]
+    }
 
-    {:ok, assign(socket, assigns)}
+    {:ok, assign(socket, with_render_defaults(assigns))}
   end
 
   def handle_info(:tick, %{assigns: assigns} = socket) do
@@ -128,5 +137,9 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_event("blitz_close", _value, socket) do
     handle_info(:clear_flash, socket)
+  end
+
+  defp with_render_defaults(assigns) do
+    Map.merge(@render_defaults, assigns)
   end
 end
