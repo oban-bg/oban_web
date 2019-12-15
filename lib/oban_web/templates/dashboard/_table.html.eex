@@ -31,11 +31,9 @@
           <%= job.attempt %> ⁄ <%= job.max_attempts %>
         </td>
         <td class="jobs-column jobs-column--duration">
-          <%= if @state == "executing" do %>
-            <%= time_ago_in_words(job.relative_attempted_at) %> ago
-          <% else %>
-            <%= time_ago_in_words(job.relative_scheduled_at) %> from now
-          <% end %>
+          <span title="<%= absolute_time(@state, job) %>">
+            <%= relative_time(@state, job) %>
+          </span>
         </td>
         <td class="jobs-column jobs-column--action">
           <%= if @state == "executing" do %>

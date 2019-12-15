@@ -81,6 +81,7 @@ defmodule ObanWeb.Query do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
       relative_completed_at: maybe_diff(now, job.completed_at),
+      relative_inserted_at: maybe_diff(now, job.inserted_at),
       relative_scheduled_at: maybe_diff(now, job.scheduled_at)
     }
 

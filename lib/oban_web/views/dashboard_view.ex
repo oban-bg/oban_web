@@ -4,10 +4,40 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
+  alias ObanWeb.Timing
+
   @clearable_filter_types [:node, :queue, :worker]
   def clearable_filters(filters) do
     for {type, name} <- filters, type in @clearable_filter_types, name != "any" do
       {to_string(type), name}
+    end
+  end
+
+  @doc """
+  Select an absolute timestamp appropriate for the provided state and format it.
+  """
+  def absolute_time(state, job) do
+    case state do
+      "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
+      "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
+      "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
+      "available" -> "Available At: #{truncate_sec(job.scheduled_at)}"
+      "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
+      "discarded" -> "Discarded At: #{truncate_sec(job.attempted_at || job.inserted_at)}"
+    end
+  end
+
+  defp truncate_sec(datetime), do: NaiveDateTime.truncate(datetime, :second)
+
+  @doc """
+  Select a duration or distance in words based on the provided state.
+  """
+  def relative_time(state, job) do
+    case state do
+      "executing" -> Timing.to_duration(job.relative_attempted_at)
+      "completed" -> Timing.to_words(job.relative_completed_at)
+      "discarded" -> Timing.to_words(job.relative_attempted_at || job.relative_inserted_at)
+      _ -> Timing.to_words(job.relative_scheduled_at)
     end
   end
 
@@ -33,19 +63,4 @@ defmodule ObanWeb.DashboardView do
       string
     end
   end
-
-  def time_ago_in_words(ellapsed) do
-    seconds = Integer.mod(ellapsed, 60)
-    minutes = ellapsed |> Integer.mod(3_600) |> div(60)
-    hours = div(ellapsed, 3_600)
-
-    parts = [minutes, seconds]
-    parts = if hours > 0, do: [hours | parts], else: parts
-
-    parts
-    |> Enum.map(&pad/1)
-    |> Enum.join(":")
-  end
-
-  defp pad(time), do: time |> to_string() |> String.pad_leading(2, "0")
 end
