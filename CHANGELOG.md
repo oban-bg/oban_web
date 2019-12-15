@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.6.3] 2019-12-15
+
+## Changes
+
+- Display duration or distance in words depending on job state. This clarifies
+  timestamp information. Relative timestamps have an formatted absolute value as
+  the "title" attribute as well.
+
+- Improved ordering for various job states. Many states were reversed, making
+  the table view seem broken.
+
+## Fixes
+
+- Ensure all assigns are available on render when a disconnected node
+  reconnects. This fixes an issue when viewing the UI in development.
+
 ## [v0.6.2] 2019-12-05
 
 ## Changes
@@ -35,6 +51,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Ignore the stats server when queues is empty.
 
-[Unreleased]: https://github.com/sorentwo/oban_web/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/sorentwo/oban_web/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/sorentwo/oban_web/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/sorentwo/oban_web/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/sorentwo/oban_web/compare/v0.6.0...v0.6.1

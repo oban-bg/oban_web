@@ -1,7 +1,7 @@
 defmodule ObanWeb.MixProject do
   use Mix.Project
 
-  @version "0.6.2"
+  @version "0.6.3"
 
   def project do
     [
@@ -49,7 +49,7 @@ defmodule ObanWeb.MixProject do
     [
       {:gettext, "~> 0.17"},
       {:jason, "~> 1.0"},
-      {:oban, "~> 0.11"},
+      {:oban, "~> 0.12"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
