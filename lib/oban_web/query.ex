@@ -62,12 +62,16 @@ defmodule ObanWeb.Query do
   defp filter_worker(query, "any"), do: query
   defp filter_worker(query, worker), do: where(query, worker: ^worker)
 
-  defp order_state(query, state) when state in ~w(retryable scheduled) do
-    order_by(query, [j], desc: j.scheduled_at)
+  defp order_state(query, state) when state in ~w(available retryable scheduled) do
+    order_by(query, [j], asc: j.scheduled_at)
+  end
+
+  defp order_state(query, "executing") do
+    order_by(query, [j], asc: j.attempted_at)
   end
 
   defp order_state(query, _state) do
-    order_by(query, [j], asc: j.attempted_at)
+    order_by(query, [j], desc: j.attempted_at)
   end
 
   # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
@@ -77,7 +81,6 @@ defmodule ObanWeb.Query do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
       relative_completed_at: maybe_diff(now, job.completed_at),
-      relative_inserted_at: maybe_diff(now, job.inserted_at),
       relative_scheduled_at: maybe_diff(now, job.scheduled_at)
     }
 
@@ -85,7 +88,7 @@ defmodule ObanWeb.Query do
   end
 
   defp maybe_diff(_now, nil), do: nil
-  defp maybe_diff(now, then), do: NaiveDateTime.diff(now, then)
+  defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
 
   @doc false
   def node_counts(repo, seconds \\ 60) do
