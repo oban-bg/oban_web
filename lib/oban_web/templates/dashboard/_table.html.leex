@@ -38,11 +38,11 @@
         <td class="jobs-column jobs-column--action">
           <%= if @state == "executing" do %>
             <button class="btn--icon btn--destructive" phx-click="kill_job" phx-value-id="<%= job.id %>" name="kill" title="Kill Job">
-              <%= render(ObanWeb.IconView, "x.html") %>
+              <%= icon("x") %>
             </button>
           <% else %>
             <button class="btn--icon btn--destructive" phx-click="delete_job" phx-value-id="<%= job.id %>" name="delete" title="Delete Job">
-              <%= render(ObanWeb.IconView, "trash.html") %>
+              <%= icon("trash") %>
             </button>
           <% end %>
         </td>

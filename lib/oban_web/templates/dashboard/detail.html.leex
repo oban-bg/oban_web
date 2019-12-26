@@ -1,6 +1,6 @@
 <div class="modal-wrapper" role="dialog" tabindex="-1" phx-keydown="close" phx-target="window" phx-click="close" phx-value-action="close">
   <button class="modal-close" phx-click="close" phx-value-action="close" title="Close Modal">
-    <%= render(ObanWeb.IconView, "x.html") %>
+    <%= icon("x") %>
   </button>
 
   <div class="modal">
@@ -27,7 +27,7 @@
 
     <div class="modal-timeline flex">
       <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--finished"><%= render(ObanWeb.IconView, "checkmark.html") %></span>
+        <span class="timeline-state timeline-state--finished"><%= icon("checkmark") %></span>
         <span class="timeline-label">Inserted</span>
         <span class="timeline-timing"><%= relative_time("inserted", @job) %></span>
       </div>
@@ -53,7 +53,7 @@
       <div class="timeline-state-wrapper">
         <span class="timeline-state"></span>
         <span class="timeline-label">Executing</span>
-        <span class="timeline-timing">—</span>
+        <span class="timeline-timing"><%= relative_time("executing", @job) %></span>
       </div>
 
       <div class="timeline-edge"><hr /></div>

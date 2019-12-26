@@ -25,7 +25,7 @@
           <%= for {type, name} <- clearable_filters(@filters) do %>
             <div class="pill margin--none margin-r--m">
               <button class="btn--icon btn--destructive" phx-click="clear_filter" phx-value-type="<%= type %>" title="Clear Filter">
-                <%= render(ObanWeb.IconView, "x.html") %>
+                <%= icon("x") %>
               </button>
               <span><%= String.capitalize(type) %>: <%= name %></span>
             </div>
@@ -34,7 +34,7 @@
       </div>
 
       <form class="search-wrapper" phx-change="change_terms">
-        <%= render(ObanWeb.IconView, "search.html") %>
+        <%= icon("search") %>
 
         <input class="width--100-pct"
                name="terms"

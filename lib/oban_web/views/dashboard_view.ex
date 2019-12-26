@@ -7,7 +7,14 @@ defmodule ObanWeb.DashboardView do
   import Phoenix.LiveView, only: [live_component: 3]
 
   alias Oban.Job
-  alias ObanWeb.Timing
+  alias ObanWeb.{IconView, Timing}
+
+  @doc """
+  A helper for rendering icon templates from the IconView.
+  """
+  def icon(name) do
+    render(IconView, name <> ".html")
+  end
 
   @doc """
   Extract the name of the node that attempted a job.
@@ -43,9 +50,11 @@ defmodule ObanWeb.DashboardView do
   """
   def relative_time(state, job) do
     case state do
-      "executing" -> Timing.to_duration(job.relative_attempted_at)
+      "attempted" -> Timing.to_words(job.relative_attempted_at)
       "completed" -> Timing.to_words(job.relative_completed_at)
       "discarded" -> Timing.to_words(job.relative_attempted_at || job.relative_inserted_at)
+      "executing" -> Timing.to_duration(job.relative_attempted_at)
+      "inserted" -> Timing.to_words(job.relative_inserted_at)
       _ -> Timing.to_words(job.relative_scheduled_at)
     end
   end
