@@ -6,8 +6,12 @@
   <div class="modal">
     <div class="modal-header flex justify-between">
       <div class="margin--none">
-        <h2 class="modal-title"><%= @job.worker %></h2>
-        <h3 class="modal-status"><b><%= @job.state %></b> in <b><%= @job.queue %></b></h3>
+        <h2 class="modal-title"><span class="color--dem"><%= @job.id %></span> <%= @job.worker %></h2>
+        <ul class="modal-details">
+          <li><span class="modal-details__label">Queue</span> <%= @job.queue %></li>
+          <li><span class="modal-details__label">Attempt</span> <%= @job.attempt %> of <%= @job.max_attempts %></li>
+          <li><span class="modal-details__label">Node</span> <%= attempted_by(@job) %></li>
+        </ul>
       </div>
 
       <nav class="modal-actions flex">
@@ -23,60 +27,61 @@
 
     <div class="modal-timeline flex">
       <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--inserted"></span>
-        <span class="timeline-label"><b>Inserted</b> 12s ago (3s)</span>
+        <span class="timeline-state timeline-state--finished"><%= render(ObanWeb.IconView, "checkmark.html") %></span>
+        <span class="timeline-label">Inserted</span>
+        <span class="timeline-timing"><%= relative_time("inserted", @job) %></span>
       </div>
 
-      <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--scheduled"></span>
-        <span class="timeline-label"><b>Scheduled</b> 12s ago (3s)</span>
-      </div>
+      <div class="timeline-edge"><hr /></div>
 
       <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--available"></span>
-        <span class="timeline-label"><b>Available</b> 12s ago (3s)</span>
+        <span class="timeline-state"></span>
+        <span class="timeline-label">Scheduled</span>
+        <span class="timeline-timing"><%= relative_time("scheduled", @job) %></span>
       </div>
 
+      <div class="timeline-edge"><hr /></div>
+
       <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--completed"></span>
-        <span class="timeline-label"><b>Completed</b> 12s ago (3s)</span>
+        <span class="timeline-state"></span>
+        <span class="timeline-label">Attempted</span>
+        <span class="timeline-timing"><%= relative_time("attempted", @job) %></span>
+      </div>
+
+      <div class="timeline-edge"><hr /></div>
+
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state"></span>
+        <span class="timeline-label">Executing</span>
+        <span class="timeline-timing">—</span>
+      </div>
+
+      <div class="timeline-edge"><hr /></div>
+
+      <div class="timeline-state-wrapper">
+        <span class="timeline-state"></span>
+        <span class="timeline-label">Discarded</span>
+        <span class="timeline-timing">—</span>
       </div>
     </div>
 
-    <div class="modal-info flex">
-      <div class="info-main">
-        <h3 class="info-title">Arguments</h3>
-        <pre><code class="info-code"><%= inspect(@job.args, pretty: true) %></code></pre>
+    <div class="modal-info">
+      <h3 class="info-title">Arguments</h3>
+      <pre><code class="info-code"><%= inspect(@job.args, pretty: true) %></code></pre>
 
-        <hr />
+      <hr />
 
-        <h3 class="info-title">Errors</h3>
-        <%= if Enum.any?(@job.errors) do %>
-          <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
-            <div class="info-error-wrapper">
-              <h4 class="info-subtitle">Attempt <%= attempt %> <i class="vr">|</i> 36s ago</h4>
-              <pre><code class="info-code"><%= error %></code></pre>
-            </div>
-          <% end %>
-        <% else %>
-          <code class="info-code">No Errors</code>
+      <h3 class="info-title">Errors</h3>
+      <%= if Enum.any?(@job.errors) do %>
+        <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
+          <div class="info-error-wrapper">
+            <h4 class="info-subtitle">Attempt <%= attempt %> <i class="vr">|</i> 36s ago</h4>
+            <pre><code class="info-code"><%= error %></code></pre>
+          </div>
         <% end %>
-      </div>
-
-      <div class="info-side">
-        <h3 class="info-title">Details</h3>
-        <div class="info-item">
-          <span class="text">ID</span> <%= @job.id %>
-        </div>
-
-        <div class="info-item">
-          <%= render(ObanWeb.IconView, "refresh.html") %> <%= @job.attempt %> ⁄ <%= @job.max_attempts %> attempts
-        </div>
-
-        <div class="info-item">
-          <%= render(ObanWeb.IconView, "computer-desktop.html") %> <%= attempted_by(@job) %>
-        </div>
-      </div>
+      <% else %>
+        <code class="info-code">No Errors</code>
+      <% end %>
     </div>
   </div>
 </div>

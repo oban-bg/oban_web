@@ -43,7 +43,7 @@ defmodule ObanWeb.DashboardLive do
       filters: @default_filters,
       flash: @default_flash,
       job: nil,
-      jobs: Query.jobs(config.repo, @default_filters),
+      jobs: Query.get_jobs(config.repo, @default_filters),
       node_stats: Stats.for_nodes(),
       queue_stats: Stats.for_queues(),
       state_stats: Stats.for_states()
@@ -68,7 +68,7 @@ defmodule ObanWeb.DashboardLive do
   @impl Phoenix.LiveView
   def handle_info(:tick, %{assigns: assigns} = socket) do
     assigns = [
-      jobs: Query.jobs(assigns.config.repo, assigns.filters),
+      jobs: Query.get_jobs(assigns.config.repo, assigns.filters),
       node_stats: Stats.for_nodes(),
       queue_stats: Stats.for_queues(),
       state_stats: Stats.for_states()
@@ -96,35 +96,35 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :node, node)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :queue, queue)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_state", %{"state" => state}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :state, state)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :terms, terms)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :worker, worker)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
@@ -133,7 +133,7 @@ defmodule ObanWeb.DashboardLive do
     type = String.to_existing_atom(type)
     default = Map.get(@default_filters, type)
     filters = Map.put(assigns.filters, type, default)
-    jobs = Query.jobs(assigns.config.repo, filters)
+    jobs = Query.get_jobs(assigns.config.repo, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
@@ -162,7 +162,7 @@ defmodule ObanWeb.DashboardLive do
   end
 
   def handle_event("open_modal", %{"id" => job_id}, %{assigns: assigns} = socket) do
-    job = assigns.config.repo.get(Job, job_id)
+    {:ok, job} = Query.fetch_job(assigns.config.repo, job_id)
 
     {:noreply, assign(socket, job: job)}
   end
