@@ -27,33 +27,35 @@
 
     <div class="modal-timeline flex">
       <div class="timeline-state-wrapper">
-        <span class="timeline-state timeline-state--finished"><%= icon("checkmark") %></span>
+        <span class="timeline-state <%= timeline_state("inserted", @job) %>">
+          <%= timeline_icon("inserted", @job) %>
+        </span>
         <span class="timeline-label">Inserted</span>
-        <span class="timeline-timing"><%= relative_time("inserted", @job) %></span>
+        <span class="timeline-timing"><%= timeline_time("inserted", @job) %></span>
       </div>
 
       <div class="timeline-edge"><hr /></div>
 
       <div class="timeline-state-wrapper">
-        <span class="timeline-state"></span>
-        <span class="timeline-label">Scheduled</span>
-        <span class="timeline-timing"><%= relative_time("scheduled", @job) %></span>
+        <span class="timeline-state <%= timeline_state("scheduled", @job) %>"><%= timeline_icon("scheduled", @job) %></span>
+        <span class="timeline-label"><%= if @job.state == "retryable", do: "Retryable", else: "Scheduled" %></span>
+        <span class="timeline-timing"><%= timeline_time("scheduled", @job) %></span>
       </div>
 
       <div class="timeline-edge"><hr /></div>
 
       <div class="timeline-state-wrapper">
-        <span class="timeline-state"></span>
-        <span class="timeline-label">Attempted</span>
-        <span class="timeline-timing"><%= relative_time("attempted", @job) %></span>
+        <span class="timeline-state <%= timeline_state("executing", @job) %>"><%= timeline_icon("executing", @job) %></span>
+        <span class="timeline-label"><%= if @job.state == "executing", do: "Executing", else: "Attempted" %></span>
+        <span class="timeline-timing"><%= timeline_time("executing", @job) %></span>
       </div>
 
       <div class="timeline-edge"><hr /></div>
 
       <div class="timeline-state-wrapper">
-        <span class="timeline-state"></span>
-        <span class="timeline-label">Executing</span>
-        <span class="timeline-timing"><%= relative_time("executing", @job) %></span>
+        <span class="timeline-state <%= timeline_state("completed", @job) %>"><%= timeline_icon("completed", @job) %></span>
+        <span class="timeline-label">Completed</span>
+        <span class="timeline-timing"><%= timeline_time("completed", @job) %></span>
       </div>
 
       <div class="timeline-edge"><hr /></div>
@@ -75,7 +77,7 @@
       <%= if Enum.any?(@job.errors) do %>
         <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
           <div class="info-error-wrapper">
-            <h4 class="info-subtitle">Attempt <%= attempt %> <i class="vr">|</i> 36s ago</h4>
+            <h4 class="info-subtitle">Attempt <%= attempt %> <i class="vr">|</i> <%= iso8601_to_words(at) %></h4>
             <pre><code class="info-code"><%= error %></code></pre>
           </div>
         <% end %>

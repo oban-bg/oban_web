@@ -3,10 +3,10 @@ defmodule ObanWeb.DetailComponent do
 
   use Phoenix.LiveComponent
 
-  alias ObanWeb.DashboardView
+  alias ObanWeb.DetailView
 
   def render(assigns) do
-    DashboardView.render("detail.html", assigns)
+    DetailView.render("show.html", assigns)
   end
 
   def handle_event("close", %{"code" => "Escape"}, socket) do

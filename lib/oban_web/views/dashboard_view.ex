@@ -6,7 +6,6 @@ defmodule ObanWeb.DashboardView do
 
   import Phoenix.LiveView, only: [live_component: 3]
 
-  alias Oban.Job
   alias ObanWeb.{IconView, Timing}
 
   @doc """
@@ -15,12 +14,6 @@ defmodule ObanWeb.DashboardView do
   def icon(name) do
     render(IconView, name <> ".html")
   end
-
-  @doc """
-  Extract the name of the node that attempted a job.
-  """
-  def attempted_by(%Job{attempted_by: nil}), do: "Not Attempted"
-  def attempted_by(%Job{attempted_by: [node, _queue, _nonce]}), do: node
 
   @clearable_filter_types [:node, :queue, :worker]
   def clearable_filters(filters) do

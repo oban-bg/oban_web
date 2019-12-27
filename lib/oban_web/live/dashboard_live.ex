@@ -67,16 +67,18 @@ defmodule ObanWeb.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_info(:tick, %{assigns: assigns} = socket) do
-    assigns = [
+    updated = [
       jobs: Query.get_jobs(assigns.config.repo, assigns.filters),
       node_stats: Stats.for_nodes(),
       queue_stats: Stats.for_queues(),
       state_stats: Stats.for_states()
     ]
 
+    updated = maybe_refresh_job(updated, assigns)
+
     Process.send_after(self(), :tick, @tick_timing)
 
-    {:noreply, assign(socket, assigns)}
+    {:noreply, assign(socket, updated)}
   end
 
   def handle_info(:clear_flash, %{assigns: assigns} = socket) do
@@ -169,5 +171,19 @@ defmodule ObanWeb.DashboardLive do
 
   defp with_render_defaults(assigns) do
     Map.merge(@render_defaults, assigns)
+  end
+
+  defp maybe_refresh_job(updated, %{config: config, job: %Job{id: jid}}) do
+    case Query.fetch_job(config.repo, jid) do
+      {:ok, job} ->
+        Keyword.put(updated, :job, job)
+
+      {:error, :not_found} ->
+        updated
+    end
+  end
+
+  defp maybe_refresh_job(updated, _assigns) do
+    updated
   end
 end
