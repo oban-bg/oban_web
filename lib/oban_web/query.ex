@@ -23,10 +23,21 @@ defmodule ObanWeb.Query do
   end
 
   @doc false
+  def delete_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.delete_all()
+
+    :ok
+  end
+
+  @doc false
   def deschedule_job(repo, job_id) do
     Job
     |> where(id: ^job_id)
     |> repo.update_all(set: [state: "available"])
+
+    :ok
   end
 
   @doc false
@@ -34,6 +45,8 @@ defmodule ObanWeb.Query do
     Job
     |> where(id: ^job_id)
     |> repo.update_all(set: [state: "discarded"])
+
+    :ok
   end
 
   @doc false

@@ -34,11 +34,15 @@ defmodule ObanWeb.DetailViewTest do
 
       # Executing
       assert timeline_state("executing", %Job{state: "executing"}) =~ "--started"
-      assert timeline_state("executing", %Job{state: "completed", attempted_at: at}) =~ "--finished"
+
+      assert timeline_state("executing", %Job{state: "completed", attempted_at: at}) =~
+               "--finished"
 
       # Completed
       assert timeline_state("completed", %Job{state: "completed"}) =~ "--started"
-      assert timeline_state("completed", %Job{state: "completed", completed_at: at}) =~ "--finished"
+
+      assert timeline_state("completed", %Job{state: "completed", completed_at: at}) =~
+               "--finished"
 
       # Discarded
       refute timeline_state("discarded", %Job{state: "completed"})
@@ -49,7 +53,10 @@ defmodule ObanWeb.DetailViewTest do
       at = NaiveDateTime.utc_now()
 
       assert timeline_state("inserted", %Job{state: "retryable", inserted_at: at}) =~ "--finished"
-      assert timeline_state("scheduled", %Job{state: "retryable", scheduled_at: at}) =~ "--retrying"
+
+      assert timeline_state("scheduled", %Job{state: "retryable", scheduled_at: at}) =~
+               "--retrying"
+
       refute timeline_state("executing", %Job{state: "retryable"})
       refute timeline_state("completed", %Job{state: "retryable"})
       refute timeline_state("discarded", %Job{state: "retryable"})
@@ -64,7 +71,9 @@ defmodule ObanWeb.DetailViewTest do
       job = %Job{attempted_at: now, completed_at: now}
 
       assert timeline_time("completed", job) == "—"
-      assert timeline_time("completed", Map.put(job, :relative_completed_at, -1)) == "1s ago (00:00)"
+
+      assert timeline_time("completed", Map.put(job, :relative_completed_at, -1)) ==
+               "1s ago (00:00)"
     end
   end
 end

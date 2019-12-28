@@ -190,42 +190,32 @@ defmodule ObanWeb.DashboardLive do
   end
 
   defp delete_job(job_id, socket) do
-    {:ok, _schema} = socket.assigns.config.repo.delete(%Job{args: %{}, id: job_id})
+    :ok = Query.delete_job(socket.assigns.config.repo, job_id)
 
-    flash = %{show: true, mode: :alert, message: "Job deleted."}
-
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    assign(socket, flash: flash)
+    flash("Job deleted.", :alert, socket)
   end
 
   defp deschedule_job(job_id, socket) do
-    Query.deschedule_job(socket.assigns.config.repo, job_id)
+    :ok = Query.deschedule_job(socket.assigns.config.repo, job_id)
 
-    flash = %{show: true, mode: :success, message: "Job staged for execution."}
-
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    assign(socket, flash: flash)
+    flash("Job staged for execution.", :alert, socket)
   end
 
   defp discard_job(job_id, socket) do
-    Query.discard_job(socket.assigns.config.repo, job_id)
+    :ok = Query.discard_job(socket.assigns.config.repo, job_id)
 
-    flash = %{show: true, mode: :alert, message: "Job discarded."}
-
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    assign(socket, flash: flash)
+    flash("Job discarded.", :alert, socket)
   end
 
   defp kill_job(job_id, socket) do
     :ok = Oban.kill_job(job_id)
 
-    flash = %{show: true, mode: :alert, message: "Job canceled and discarded."}
+    flash("Job canceled and discarded.", :alert, socket)
+  end
 
+  defp flash(message, mode, socket) do
     Process.send_after(self(), :clear_flash, @flash_timing)
 
-    assign(socket, flash: flash)
+    assign(socket, flash: %{show: true, mode: mode, message: message})
   end
 end
