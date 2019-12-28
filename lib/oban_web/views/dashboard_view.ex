@@ -32,7 +32,7 @@ defmodule ObanWeb.DashboardView do
       "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
       "available" -> "Available At: #{truncate_sec(job.scheduled_at)}"
       "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
-      "discarded" -> "Discarded At: #{truncate_sec(job.attempted_at || job.inserted_at)}"
+      "discarded" -> "Discarded At: #{truncate_sec(job.completed_at || job.inserted_at)}"
     end
   end
 

@@ -23,6 +23,20 @@ defmodule ObanWeb.Query do
   end
 
   @doc false
+  def deschedule_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.update_all(set: [state: "available"])
+  end
+
+  @doc false
+  def discard_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.update_all(set: [state: "discarded"])
+  end
+
+  @doc false
   def get_jobs(repo, opts) when is_map(opts), do: get_jobs(repo, Keyword.new(opts))
 
   def get_jobs(repo, opts) do

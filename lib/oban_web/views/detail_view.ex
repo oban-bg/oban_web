@@ -7,6 +7,8 @@ defmodule ObanWeb.DetailView do
   alias Oban.Job
   alias ObanWeb.{IconView, Timing}
 
+  @empty_time "—"
+
   @state_to_timestamp %{
     "completed" => :completed_at,
     "executing" => :attempted_at,
@@ -35,8 +37,8 @@ defmodule ObanWeb.DetailView do
   @doc """
   Extract the name of the node that attempted a job.
   """
-  def attempted_by(%Job{attempted_by: nil}), do: "Not Attempted"
-  def attempted_by(%Job{attempted_by: [node, _queue, _nonce]}), do: node
+  def attempted_by(%Job{attempted_by: [node | _]}), do: node
+  def attempted_by(%Job{}), do: "Not Attempted"
 
   @doc """
   Determine the correct state modifier class: either `--finished` or `--active`, based on a job's
@@ -45,6 +47,7 @@ defmodule ObanWeb.DetailView do
   def timeline_state(state, %Job{} = job) do
     case absolute_state(state, job) do
       :finished -> "timeline-state--finished"
+      :retrying -> "timeline-state--retrying"
       :started -> "timeline-state--started"
       :unstarted -> nil
     end
@@ -57,6 +60,7 @@ defmodule ObanWeb.DetailView do
   def timeline_icon(state, %Job{} = job) do
     case absolute_state(state, job) do
       :finished -> icon("checkmark")
+      :retrying -> icon("spinner")
       :started -> icon("spinner")
       :unstarted -> nil
     end
@@ -71,7 +75,13 @@ defmodule ObanWeb.DetailView do
 
     case {state, job.state, timestamp} do
       {_, _, nil} ->
-        "-"
+        @empty_time
+
+      {state, "retryable", _} when state in ~w(completed executing discarded) ->
+        @empty_time
+
+      {"completed", "executing", _} ->
+        @empty_time
 
       {"executing", "executing", at} ->
         Timing.to_duration(at)
@@ -89,6 +99,19 @@ defmodule ObanWeb.DetailView do
     end
   end
 
+  @doc """
+  Format a title for the given state based on the timestamp.
+  """
+  def timestamp_title(state, %Job{} = job) do
+    case state do
+      "inserted" -> "Inserted At: #{truncate_sec(job.inserted_at)}"
+      "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
+      "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
+      "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
+      "discarded" -> "Discarded At: —"
+    end
+  end
+
   defp absolute_state(state, job) do
     for_state = Map.get(@state_to_timestamp, state)
     timestamp = Map.get(job, for_state)
@@ -97,9 +120,18 @@ defmodule ObanWeb.DetailView do
   end
 
   defp absolute_state("completed", "completed", at) when not is_nil(at), do: :finished
+  defp absolute_state("completed", "executing", _), do: :unstarted
+  defp absolute_state("completed", "retryable", _), do: :unstarted
+  defp absolute_state("discarded", "discarded", _), do: :finished
+  defp absolute_state("discarded", "retryable", _), do: :unstarted
+  defp absolute_state("executing", "retryable", _), do: :unstarted
+  defp absolute_state("scheduled", "retryable", _), do: :retrying
   defp absolute_state(state, state, _), do: :started
   defp absolute_state(_, _, at) when not is_nil(at), do: :finished
   defp absolute_state(_, _, _), do: :unstarted
 
   defp icon(name), do: render(IconView, name <> ".html")
+
+  defp truncate_sec(nil), do: @empty_time
+  defp truncate_sec(datetime), do: NaiveDateTime.truncate(datetime, :second)
 end

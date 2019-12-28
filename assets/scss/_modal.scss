@@ -160,11 +160,11 @@
 
   &--started {
     background: white;
-    box-shadow: inset 0 0 0 2px #2e8e45;
+    box-shadow: inset 0 0 0 2px #48bb78;
   }
 
   &--started .icon {
-    stroke: #2e8e45;
+    stroke: #48bb78;
     animation: 1s infinite spin;
     animation-timing-function: linear;
     height: 32px;
@@ -173,13 +173,27 @@
   }
 
   &--finished {
-    background: #2e8e45;
+    background: #48bb78;
     box-shadow: none;
   }
 
   &--finished .icon {
     fill: white;
     margin: 8px 0 0 8px;
+  }
+
+  &--retrying {
+    background: white;
+    box-shadow: inset 0 0 0 2px #f6ad55;
+  }
+
+  &--retrying .icon {
+    stroke: #f6ad55;
+    animation: 1s infinite spin;
+    animation-timing-function: linear;
+    height: 32px;
+    width: 32px;
+    margin: 4px 0 0 4px;
   }
 }
 
