@@ -1,4 +1,7 @@
 <%= render("_blitz.html", flash: @flash) %>
+<%= if @job do %>
+  <%= live_component @socket, ObanWeb.DetailComponent, id: @job.id, job: @job %>
+<% end %>
 
 <section class="flex">
   <div class="sidebar sidebar--filters">
@@ -8,7 +11,7 @@
   </div>
 
   <div class="container flex--1">
-    <div class="flex justify--between padding--s">
+    <div class="flex justify-between padding--s">
       <div class="flex margin--none">
         <h2 class="font-size--l margin--none margin-r--m align-self--center">
           <span class="font-weight--7">
@@ -22,11 +25,7 @@
           <%= for {type, name} <- clearable_filters(@filters) do %>
             <div class="pill margin--none margin-r--m">
               <button class="btn--icon btn--destructive" phx-click="clear_filter" phx-value-type="<%= type %>" title="Clear Filter">
-                <svg class="icon" viewBox="0 0 25 25" xmlns="http://www.w3.org/2000/svg">
-                  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 17l9-9M17 17L8 8"/>
-                  </g>
-                </svg>
+                <%= icon("x") %>
               </button>
               <span><%= String.capitalize(type) %>: <%= name %></span>
             </div>
@@ -34,11 +33,13 @@
         </div>
       </div>
 
-      <form class="width--20-pct font-size--base" phx-change="change_terms">
+      <form class="search-wrapper" phx-change="change_terms">
+        <%= icon("search") %>
+
         <input class="width--100-pct"
                name="terms"
                type="search"
-               placeholder="Filter..."
+               placeholder="Search"
                value="<%= @filters.terms %>"
                phx-debounce="250" />
       </form>

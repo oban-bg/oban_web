@@ -7,11 +7,16 @@ h6,
 p {
   font-size: $font-size--base;
   font-weight: normal;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
 
   &:last-child {
     margin-bottom: 0;
   }
+}
+
+.vr {
+  color: $color--dem;
+  font-style: normal;
 }
 
 .font-size--xxxl { font-size: 2.074em; }

@@ -80,12 +80,12 @@ $color--dem: rgba($color--main, .3);         // de-emphasised elements
 $color--disabled: rgba($color--main, .15);   // disabled elements
 $color--faint: rgba($color--main, .05);      // use this to de-emphasise more
 $color--min: rgba($color--main, .02);        // off-white. minimal visible bg
-$color--none: rgba(0,0,0, 0);                // transparent
 
 // if you need any of the colors above without being affected by the
 // background, use these (or when using svg icons)
 
 $color--dem-s: mix($color--invert, $color--main, 70%);
+$color--faint-s: mix($color--invert, $color--main, 95%);
 
 // special purpose
 
@@ -103,10 +103,17 @@ $color--oban: #3da957; // special green
 $color--success: #2ed491; // green
 $color--alert: #ff2d55; // signal-red
 
+// custom colors
+
+$color--inserted: #e4f1d4;
+$color--scheduled: #cbebbd;
+$color--available: #a3e6a6;
+$color--completed: #45b760;
+
 // form fields
 
-$color--field-text: rgba($color--main, .2); // placeholder text
-$color--field-text-focus: rgba($color--main, .2); // placeholder text on focus
+$color--field-text: rgba($color--main, .3); // placeholder text
+$color--field-text-focus: rgba($color--main, .3); // placeholder text on focus
 $color--field-text-filled: rgba($color--main, .8);
 $color--field-text-invalid: rgba($color--alert, 1);
 
@@ -128,3 +135,11 @@ $shadow--m: 0 .22rem .5rem rgba($color--main, 0.08);
 $shadow--l: 0 $space--m $space--base rgba($color--main, 0.1);
 $shadow--xl: 0 $space--m $space--base rgba($color--main, 0.2);
 $shadow: $shadow--s;
+
+// opacities
+
+$opacity--100: 1;
+$opacity--75: .75;
+$opacity--50: .5;
+$opacity--25: .25;
+$opacity--0: 0;

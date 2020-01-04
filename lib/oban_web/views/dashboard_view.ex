@@ -4,7 +4,16 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
-  alias ObanWeb.Timing
+  import Phoenix.LiveView, only: [live_component: 3]
+
+  alias ObanWeb.{IconView, Timing}
+
+  @doc """
+  A helper for rendering icon templates from the IconView.
+  """
+  def icon(name) do
+    render(IconView, name <> ".html")
+  end
 
   @clearable_filter_types [:node, :queue, :worker]
   def clearable_filters(filters) do
@@ -23,7 +32,7 @@ defmodule ObanWeb.DashboardView do
       "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
       "available" -> "Available At: #{truncate_sec(job.scheduled_at)}"
       "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
-      "discarded" -> "Discarded At: #{truncate_sec(job.attempted_at || job.inserted_at)}"
+      "discarded" -> "Discarded At: #{truncate_sec(job.completed_at || job.inserted_at)}"
     end
   end
 
@@ -34,17 +43,13 @@ defmodule ObanWeb.DashboardView do
   """
   def relative_time(state, job) do
     case state do
-      "executing" -> Timing.to_duration(job.relative_attempted_at)
+      "attempted" -> Timing.to_words(job.relative_attempted_at)
       "completed" -> Timing.to_words(job.relative_completed_at)
       "discarded" -> Timing.to_words(job.relative_attempted_at || job.relative_inserted_at)
+      "executing" -> Timing.to_duration(job.relative_attempted_at)
+      "inserted" -> Timing.to_words(job.relative_inserted_at)
       _ -> Timing.to_words(job.relative_scheduled_at)
     end
-  end
-
-  def state_count(stats, state) do
-    state
-    |> :proplists.get_value(stats, %{count: 0})
-    |> Map.get(:count)
   end
 
   def integer_to_delimited(integer) when is_integer(integer) do
@@ -54,6 +59,12 @@ defmodule ObanWeb.DashboardView do
     |> Enum.chunk_every(3, 3, [])
     |> Enum.join(",")
     |> String.reverse()
+  end
+
+  def state_count(stats, state) do
+    state
+    |> :proplists.get_value(stats, %{count: 0})
+    |> Map.get(:count)
   end
 
   def truncate(string, range \\ 0..90) do

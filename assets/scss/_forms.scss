@@ -1,10 +1,28 @@
+.search-wrapper {
+  font-size: $font-size--base;
+  position: relative;
+  width: 20%;
+}
+
+.search-wrapper .icon {
+  fill: $color--field-text;
+  height: 16px;
+  left: $space--xs * 2;
+  position: absolute;
+  top: $space--xs * 2;
+  width: 16px;
+}
+
 input[type="search"] {
+  appearance: textfield;
   background-color: $color--field-bg;
-  border: 1px solid $color--field-b;
+  border-radius: $radius--med;
   border-radius: $radius--tiny;
+  border: 1px solid $color--field-b;
   color: $color--field-text-filled;
+  font-size: $font-size--base;
   line-height: $line-height--copy;
-  padding: $space--xs $space--s;
+  padding: $space--xs $space--s $space--xs $space--base;
   transition: border $timing--hover, color $timing--hover;
 
   &:disabled,
@@ -31,13 +49,6 @@ input[type="search"] {
   }
 }
 
-input[type="search"] {
-  appearance: textfield;
-  border-radius: $radius--pill;
-  font-size: $font-size--base;
-}
-
 input[type="search"]::-webkit-search-decoration {
   appearance: none;
-
 }

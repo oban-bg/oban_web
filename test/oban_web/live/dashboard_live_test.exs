@@ -201,14 +201,19 @@ defmodule ObanWeb.DashboardLiveTest do
   test "killing an executing job", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/oban")
 
-    html = render_click(view, :kill_job, %{"id" => "123"})
+    flash =
+      view
+      |> render_click(:kill_job, %{"id" => "123"})
+      |> Floki.find(".blitz--show")
+      |> Floki.find(".blitz__message")
+      |> Floki.text()
 
-    assert html =~ ~S|<div class="blitz blitz--show">|
-    assert html =~ ~S|<span class="blitz__message">Job canceled and discarded.</span>|
+    assert flash =~ "Job canceled"
 
-    html = render_click(view, :blitz_close, "")
-
-    assert html =~ ~S|<div class="blitz ">|
+    assert view
+           |> render_click(:blitz_close, "")
+           |> Floki.find(".blitz--show")
+           |> Enum.empty?()
   end
 
   test "deleting a job", %{conn: conn} do
@@ -218,8 +223,31 @@ defmodule ObanWeb.DashboardLiveTest do
 
     html = render_click(view, :delete_job, %{"id" => to_string(jid)})
 
-    assert html =~ ~S|<div class="blitz blitz--show">|
-    assert html =~ ~S|<span class="blitz__message">Job deleted.</span>|
+    flash =
+      html
+      |> Floki.find(".blitz--show")
+      |> Floki.find(".blitz__message")
+      |> Floki.text()
+
+    assert flash =~ "Job deleted"
+  end
+
+  test "opening the details modal for a job", %{conn: conn} do
+    %Job{id: jid} = insert_job!([ref: 1], worker: FakeWorker)
+
+    {:ok, view, _html} = live(conn, "/oban")
+
+    html = render_click(view, :open_modal, %{"id" => to_string(jid)})
+
+    assert html |> Floki.find(".modal-wrapper") |> Enum.any?()
+
+    title =
+      html
+      |> Floki.find("h2.modal-title")
+      |> Floki.text()
+
+    assert title =~ to_string(jid)
+    assert title =~ "FakeWorker"
   end
 
   defp insert_job!(args, opts) do

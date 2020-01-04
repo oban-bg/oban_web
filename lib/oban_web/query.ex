@@ -11,9 +11,48 @@ defmodule ObanWeb.Query do
   @default_limit 30
   @default_worker "any"
 
-  def jobs(repo, opts) when is_map(opts), do: jobs(repo, Keyword.new(opts))
+  @doc false
+  def fetch_job(repo, job_id) do
+    case repo.get(Job, job_id) do
+      nil ->
+        {:error, :not_found}
 
-  def jobs(repo, opts) do
+      job ->
+        {:ok, relativize_timestamps(job)}
+    end
+  end
+
+  @doc false
+  def delete_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.delete_all()
+
+    :ok
+  end
+
+  @doc false
+  def deschedule_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.update_all(set: [state: "available"])
+
+    :ok
+  end
+
+  @doc false
+  def discard_job(repo, job_id) do
+    Job
+    |> where(id: ^job_id)
+    |> repo.update_all(set: [state: "discarded"])
+
+    :ok
+  end
+
+  @doc false
+  def get_jobs(repo, opts) when is_map(opts), do: get_jobs(repo, Keyword.new(opts))
+
+  def get_jobs(repo, opts) do
     node = Keyword.get(opts, :node, @default_node)
     queue = Keyword.get(opts, :queue, @default_queue)
     state = Keyword.get(opts, :state, @default_state)

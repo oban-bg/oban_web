@@ -1,7 +1,9 @@
 .margin--none { margin: 0; }
 
+.margin-b--m { margin-bottom: $space--m; }
 .margin-l--m { margin-left: $space--m; }
 .margin-r--m { margin-right: $space--m; }
+.margin-t--m { margin-top: $space--m; }
 
 .padding--none { padding: $space--none; }
 .padding--xs { padding: $space--xs; }
