@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## Additions
+
+- Add detail modal for inspecting job arguments, errors and state timings.
+
 ## [v0.6.3] 2019-12-15
 
 ## Changes
