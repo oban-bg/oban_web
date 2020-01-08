@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v0.7.0] 2020-01-08
+
 ## Additions
 
 - Add detail modal for inspecting job arguments, errors and state timings.
@@ -55,7 +57,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Ignore the stats server when queues is empty.
 
-[Unreleased]: https://github.com/sorentwo/oban_web/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/sorentwo/oban_web/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/sorentwo/oban_web/compare/v0.7.0...v0.6.3
 [0.6.3]: https://github.com/sorentwo/oban_web/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/sorentwo/oban_web/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/sorentwo/oban_web/compare/v0.6.0...v0.6.1
