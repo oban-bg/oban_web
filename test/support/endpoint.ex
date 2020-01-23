@@ -1,13 +1,18 @@
 defmodule ObanWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :oban_web
 
-  socket("/live", Phoenix.LiveView.Socket)
+  @session_options store: :cookie,
+                   key: "_oban_web_key",
+                   signing_salt: "cuxdCB1L"
 
-  plug(Plug.Parsers,
+  socket "/live", Phoenix.LiveView.Socket
+
+  plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
-  )
 
-  plug(ObanWeb.Router)
+  plug Plug.Session, @session_options
+
+  plug ObanWeb.Router
 end

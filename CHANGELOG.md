@@ -7,15 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changes
+
+- Upgrade to LiveView `~> 0.5` and test with `0.6`.
+
 ## [v0.7.0] 2020-01-08
 
-## Additions
+### Additions
 
 - Add detail modal for inspecting job arguments, errors and state timings.
 
 ## [v0.6.3] 2019-12-15
 
-## Changes
+### Changes
 
 - Display duration or distance in words depending on job state. This clarifies
   timestamp information. Relative timestamps have an formatted absolute value as
@@ -24,14 +28,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Improved ordering for various job states. Many states were reversed, making
   the table view seem broken.
 
-## Fixes
+### Fixes
 
 - Ensure all assigns are available on render when a disconnected node
   reconnects. This fixes an issue when viewing the UI in development.
 
 ## [v0.6.2] 2019-12-05
 
-## Changes
+### Changes
 
 - Add support for explicitly disabling stats rather than inferring based on
   queue configuration. This prevents issues in production environments where
@@ -53,7 +57,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [v0.6.1] 2019-11-22
 
-## Fixes
+### Fixes
 
 - Ignore the stats server when queues is empty.
 

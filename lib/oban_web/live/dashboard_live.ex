@@ -34,7 +34,7 @@ defmodule ObanWeb.DashboardLive do
   end
 
   @impl Phoenix.LiveView
-  def mount(_session, socket) do
+  def mount(_params, _session, socket) do
     if connected?(socket), do: Process.send_after(self(), :tick, @tick_timing)
 
     config = Oban.config()

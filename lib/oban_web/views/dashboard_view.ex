@@ -4,7 +4,7 @@ defmodule ObanWeb.DashboardView do
   use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
   use Phoenix.HTML
 
-  import Phoenix.LiveView, only: [live_component: 3]
+  import Phoenix.LiveView.Helpers
 
   alias ObanWeb.{IconView, Timing}
 

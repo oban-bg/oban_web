@@ -204,6 +204,7 @@ defmodule ObanWeb.DashboardLiveTest do
     flash =
       view
       |> render_click(:kill_job, %{"id" => "123"})
+      |> parse_html()
       |> Floki.find(".blitz--show")
       |> Floki.find(".blitz__message")
       |> Floki.text()
@@ -212,6 +213,7 @@ defmodule ObanWeb.DashboardLiveTest do
 
     assert view
            |> render_click(:blitz_close, "")
+           |> parse_html()
            |> Floki.find(".blitz--show")
            |> Enum.empty?()
   end
@@ -221,10 +223,10 @@ defmodule ObanWeb.DashboardLiveTest do
 
     {:ok, view, _html} = live(conn, "/oban")
 
-    html = render_click(view, :delete_job, %{"id" => to_string(jid)})
-
     flash =
-      html
+      view
+      |> render_click(:delete_job, %{"id" => to_string(jid)})
+      |> parse_html()
       |> Floki.find(".blitz--show")
       |> Floki.find(".blitz__message")
       |> Floki.text()
@@ -239,10 +241,14 @@ defmodule ObanWeb.DashboardLiveTest do
 
     html = render_click(view, :open_modal, %{"id" => to_string(jid)})
 
-    assert html |> Floki.find(".modal-wrapper") |> Enum.any?()
+    assert html
+           |> parse_html()
+           |> Floki.find(".modal-wrapper")
+           |> Enum.any?()
 
     title =
       html
+      |> parse_html()
       |> Floki.find("h2.modal-title")
       |> Floki.text()
 
@@ -260,5 +266,11 @@ defmodule ObanWeb.DashboardLiveTest do
     |> Map.new()
     |> Job.new(opts)
     |> Repo.insert!()
+  end
+
+  defp parse_html(html) do
+    html
+    |> Floki.parse_fragment()
+    |> elem(1)
   end
 end

@@ -1,5 +1,5 @@
-<div class="modal-wrapper" role="dialog" tabindex="-1" phx-keydown="close" phx-target="window">
-  <button class="modal-close" phx-click="close" phx-value-action="close" title="Close Modal">
+<div id="modal" class="modal-wrapper" role="dialog" tabindex="-1" phx-window-keydown="close" phx-target="#modal">
+  <button class="modal-close" phx-click="close" phx-value-action="close" phx-target="#modal" title="Close Modal">
     <%= icon("x") %>
   </button>
 
@@ -16,11 +16,11 @@
 
       <nav class="modal-actions flex">
         <%= if @job.state == "executing" do %>
-          <button class="btn btn--outline modal-action" phx-click="kill">Kill</button>
+          <button class="btn btn--outline modal-action" phx-click="kill" phx-target="#modal">Kill</button>
         <% else %>
-          <button class="btn btn--outline modal-action" phx-click="deschedule">Run Now</button>
-          <button class="btn btn--outline modal-action" phx-click="discard">Discard</button>
-          <button class="btn btn--outline modal-action" phx-click="delete">Delete</button>
+          <button class="btn btn--outline modal-action" phx-click="deschedule" phx-target="#modal">Run Now</button>
+          <button class="btn btn--outline modal-action" phx-click="discard" phx-target="#modal">Discard</button>
+          <button class="btn btn--outline modal-action" phx-click="delete" phx-target="#modal">Delete</button>
         <% end %>
       </nav>
     </div>
