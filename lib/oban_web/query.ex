@@ -120,6 +120,7 @@ defmodule ObanWeb.Query do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
       relative_completed_at: maybe_diff(now, job.completed_at),
+      relative_discarded_at: maybe_diff(now, job.discarded_at),
       relative_inserted_at: maybe_diff(now, job.inserted_at),
       relative_scheduled_at: maybe_diff(now, job.scheduled_at)
     }
@@ -166,15 +167,6 @@ defmodule ObanWeb.Query do
     Job
     |> group_by([j], [j.queue, j.state])
     |> select([j], {j.queue, j.state, count(j.id)})
-    |> where([j], j.state in ["available", "executing"])
-    |> repo.all()
-  end
-
-  @doc false
-  def state_counts(repo) do
-    Job
-    |> group_by([j], j.state)
-    |> select([j], {j.state, count(j.id)})
     |> repo.all()
   end
 end

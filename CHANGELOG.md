@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changes
 
 - Upgrade to LiveView `~> 0.5` and test with `0.6`.
+- Upgrade to Oban `>= 1.0.0-rc.2`.
+- Update stats and the queries that power stats to rely on more frequent
+  refreshes and fewer database calls. The average refresh time dropped from
+  `~310ms` to `~180ms`.
 
 ## [v0.7.0] 2020-01-08
 

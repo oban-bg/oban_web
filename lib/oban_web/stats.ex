@@ -17,14 +17,12 @@ defmodule ObanWeb.Stats do
   Stats are stored with the following structure:
 
   - `{{:node, node, queue}, count, limit, paused}`
-  - `{{:queue, queue, :avail}, count}`
-  - `{{:queue, queue, :execu}, count}`
-  - `{{:state, state}, count}`
+  - `{{:queue, queue, state}, count}`
   """
 
   use GenServer
 
-  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0, update: 0]
+  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0]
 
   alias Oban.Notifier
   alias ObanWeb.Query
@@ -37,10 +35,8 @@ defmodule ObanWeb.Stats do
     defstruct [
       :repo,
       :table,
-      :latest_update,
       :refresh_ref,
-      refresh_interval: :timer.seconds(60),
-      update_threshold: :timer.seconds(3)
+      refresh_interval: :timer.seconds(1)
     ]
   end
 
@@ -68,8 +64,8 @@ defmodule ObanWeb.Stats do
       |> Map.new(fn [queue, count] -> {queue, count} end)
     end
 
-    avail_counts = counter.(:avail)
-    execu_counts = counter.(:execu)
+    avail_counts = counter.("available")
+    execu_counts = counter.("executing")
 
     limit_counts =
       table
@@ -95,25 +91,28 @@ defmodule ObanWeb.Stats do
 
   def for_states(table \\ __MODULE__) do
     for state <- @ordered_states do
-      case :ets.lookup(table, {:state, state}) do
-        [{_, count}] -> {state, %{count: count}}
-        _ -> {state, %{count: 0}}
-      end
+      count =
+        case :ets.select(table, [{{{:queue, :_, state}, :"$1"}, [], [:"$$"]}]) do
+          [_ | _] = results ->
+            results
+            |> Enum.map(&hd/1)
+            |> Enum.sum()
+
+          _ ->
+            0
+        end
+
+      {state, %{count: count}}
     end
   end
 
   @impl GenServer
-  def init(opts) do
+  def init(%{name: name, repo: repo}) do
     Process.flag(:trap_exit, true)
 
-    table = :ets.new(opts[:name], [:protected, :named_table, read_concurrency: true])
+    table = :ets.new(name, [:protected, :named_table, read_concurrency: true])
 
-    opts =
-      opts
-      |> Map.take([:repo, :update_threshold])
-      |> Map.put(:table, table)
-
-    {:ok, struct!(State, opts), {:continue, :start}}
+    {:ok, struct!(State, repo: repo, table: table), {:continue, :start}}
   end
 
   @impl GenServer
@@ -132,17 +131,16 @@ defmodule ObanWeb.Stats do
 
   @impl GenServer
   def handle_info(:refresh, %State{repo: repo} = state) do
-    clear_table(state)
-
     repo.checkout(fn ->
+      clear_node_counts(state)
       fetch_node_counts(state)
+      clear_queue_counts(state)
       fetch_queue_counts(state)
-      fetch_state_counts(state)
     end)
 
     ref = Process.send_after(self(), :refresh, state.refresh_interval)
 
-    {:noreply, %{state | latest_update: unix_now(), refresh_ref: ref}}
+    {:noreply, %{state | refresh_ref: ref}}
   end
 
   def handle_info({:notification, gossip(), payload}, %State{table: table} = state) do
@@ -157,33 +155,9 @@ defmodule ObanWeb.Stats do
   def handle_info({:notification, insert(), payload}, %State{table: table} = state) do
     %{"state" => job_state, "queue" => queue} = payload
 
-    :ets.update_counter(table, {:state, job_state}, 1, {1, 0})
-
-    if job_state == "available" do
-      :ets.update_counter(table, {:queue, queue, :avail}, 1, {1, 0})
-    end
+    :ets.update_counter(table, {:queue, queue, job_state}, 1, {1, 0})
 
     {:noreply, state}
-  end
-
-  # Update notifications are batched, which makes the counting innacurate. For example, if two
-  # jobs are moved from `scheduled` to `available` in a single transaction only one update event
-  # is emitted. Instead of relying on individual update events for state changes we use them to
-  # trigger a refresh with a small debounce.
-  def handle_info({:notification, update(), _payload}, state) do
-    %State{repo: repo, latest_update: latest, update_threshold: threshold} = state
-
-    if unix_now() > latest + threshold do
-      repo.checkout(fn ->
-        fetch_queue_counts(state)
-        fetch_state_counts(state)
-      end)
-
-      # Intentionally delay the latest_update until _after_ the refresh has completed.
-      {:noreply, %{state | latest_update: unix_now()}}
-    else
-      {:noreply, state}
-    end
   end
 
   def handle_info({:notification, signal(), payload}, %State{table: table} = state) do
@@ -204,8 +178,12 @@ defmodule ObanWeb.Stats do
 
   # Helpers
 
-  defp clear_table(%State{table: table}) do
-    :ets.delete_all_objects(table)
+  defp clear_node_counts(%State{table: table}) do
+    :ets.select_delete(table, [{{{:node, :_, :_}, :_, :_, :_}, [], [true]}])
+  end
+
+  defp clear_queue_counts(%State{table: table}) do
+    :ets.select_delete(table, [{{{:queue, :_, :_}, :_}, [], [true]}])
   end
 
   defp fetch_node_counts(%State{repo: repo, table: table}) do
@@ -216,20 +194,7 @@ defmodule ObanWeb.Stats do
 
   defp fetch_queue_counts(%State{repo: repo, table: table}) do
     for {queue, state, count} <- Query.queue_counts(repo) do
-      :ets.insert(table, {{:queue, queue, short_state(state)}, count})
+      :ets.insert(table, {{:queue, queue, state}, count})
     end
-  end
-
-  defp fetch_state_counts(%State{repo: repo, table: table}) do
-    for {state, count} <- Query.state_counts(repo) do
-      :ets.insert(table, {{:state, state}, count})
-    end
-  end
-
-  defp short_state("available"), do: :avail
-  defp short_state("executing"), do: :execu
-
-  defp unix_now do
-    DateTime.to_unix(DateTime.utc_now(), :millisecond)
   end
 end

@@ -11,6 +11,7 @@ defmodule ObanWeb.DetailView do
 
   @state_to_timestamp %{
     "completed" => :completed_at,
+    "discarded" => :discarded_at,
     "executing" => :attempted_at,
     "inserted" => :inserted_at,
     "scheduled" => :scheduled_at
@@ -18,6 +19,7 @@ defmodule ObanWeb.DetailView do
 
   @state_to_relative %{
     "completed" => :relative_completed_at,
+    "discarded" => :relative_discarded_at,
     "executing" => :relative_attempted_at,
     "inserted" => :relative_inserted_at,
     "scheduled" => :relative_scheduled_at
@@ -108,7 +110,7 @@ defmodule ObanWeb.DetailView do
       "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
       "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
       "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
-      "discarded" -> "Discarded At: —"
+      "discarded" -> "Discarded At: #{truncate_sec(job.discarded_at)}"
     end
   end
 

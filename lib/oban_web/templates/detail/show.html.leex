@@ -15,11 +15,23 @@
       </div>
 
       <nav class="modal-actions flex">
-        <%= if @job.state == "executing" do %>
-          <button class="btn btn--outline modal-action" phx-click="kill" phx-target="#modal">Kill</button>
-        <% else %>
+        <%= if @job.state in ~w(inserted scheduled available) do %>
           <button class="btn btn--outline modal-action" phx-click="deschedule" phx-target="#modal">Run Now</button>
+          <button class="btn btn--outline modal-action" phx-click="delete" phx-target="#modal">Delete</button>
+        <% end %>
+
+        <%= if @job.state in ~w(executing) do %>
+          <button class="btn btn--outline modal-action" phx-click="kill" phx-target="#modal">Kill</button>
+        <% end %>
+
+        <%= if @job.state in ~w(completed retryable) do %>
+          <button class="btn btn--outline modal-action" phx-click="deschedule" phx-target="#modal">Retry</button>
           <button class="btn btn--outline modal-action" phx-click="discard" phx-target="#modal">Discard</button>
+          <button class="btn btn--outline modal-action" phx-click="delete" phx-target="#modal">Delete</button>
+        <% end %>
+
+        <%= if @job.state in ~w(discarded) do %>
+          <button class="btn btn--outline modal-action" phx-click="deschedule" phx-target="#modal">Retry</button>
           <button class="btn btn--outline modal-action" phx-click="delete" phx-target="#modal">Delete</button>
         <% end %>
       </nav>

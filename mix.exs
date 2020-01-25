@@ -54,7 +54,7 @@ defmodule ObanWeb.MixProject do
     [
       {:gettext, "~> 0.17"},
       {:jason, "~> 1.0"},
-      {:oban, "~> 0.12"},
+      {:oban, ">= 1.0.0-rc.2"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.13"},
       {:phoenix_pubsub, "~> 1.1"},
