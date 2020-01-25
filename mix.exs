@@ -15,6 +15,11 @@ defmodule ObanWeb.MixProject do
       aliases: aliases(),
       package: package(),
       description: "Oban Web Component",
+      preferred_cli_env: [
+        "test.ci": :test,
+        "test.reset": :test,
+        "test.setup": :test
+      ],
 
       # Docs
       name: "ObanWeb",
@@ -62,9 +67,9 @@ defmodule ObanWeb.MixProject do
 
   defp aliases do
     [
-      "ecto.setup": ["ecto.create --quiet", "ecto.migrate"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      ci: ["format --check-formatted", "credo --strict", "test --raise"]
+      "test.reset": ["ecto.drop -r ObanWeb.Repo", "test.setup"],
+      "test.setup": ["ecto.create -r ObanWeb.Repo --quiet", "ecto.migrate -r ObanWeb.Repo"],
+      "test.ci": ["format --check-formatted", "credo --strict", "test --raise"]
     ]
   end
 end
