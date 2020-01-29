@@ -130,13 +130,11 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
-  def handle_info(:refresh, %State{repo: repo} = state) do
-    repo.checkout(fn ->
-      clear_node_counts(state)
-      fetch_node_counts(state)
-      clear_queue_counts(state)
-      fetch_queue_counts(state)
-    end)
+  def handle_info(:refresh, %State{} = state) do
+    node_keys = fetch_node_counts(state)
+    queue_keys = fetch_queue_counts(state)
+
+    clear_unused_keys(node_keys ++ queue_keys, state)
 
     ref = Process.send_after(self(), :refresh, state.refresh_interval)
 
@@ -178,23 +176,30 @@ defmodule ObanWeb.Stats do
 
   # Helpers
 
-  defp clear_node_counts(%State{table: table}) do
-    :ets.select_delete(table, [{{{:node, :_, :_}, :_, :_, :_}, [], [true]}])
-  end
-
-  defp clear_queue_counts(%State{table: table}) do
-    :ets.select_delete(table, [{{{:queue, :_, :_}, :_}, [], [true]}])
+  defp clear_unused_keys(prior_keys, %State{table: table}) do
+    fn object, acc -> [elem(object, 0) | acc] end
+    |> :ets.foldl([], table)
+    |> Kernel.--(prior_keys)
+    |> Enum.each(&:ets.delete(table, &1))
   end
 
   defp fetch_node_counts(%State{repo: repo, table: table}) do
     for {node, queue, count, limit, paused} <- Query.node_counts(repo) do
-      :ets.insert(table, {{:node, node, queue}, count, limit, paused})
+      key = {:node, node, queue}
+
+      :ets.insert(table, {key, count, limit, paused})
+
+      key
     end
   end
 
   defp fetch_queue_counts(%State{repo: repo, table: table}) do
     for {queue, state, count} <- Query.queue_counts(repo) do
-      :ets.insert(table, {{:queue, queue, state}, count})
+      key = {:queue, queue, state}
+
+      :ets.insert(table, {key, count})
+
+      key
     end
   end
 end
