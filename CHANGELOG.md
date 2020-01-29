@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v1.0.1] 2020-01-29
+
+### Fixes
+
+- Display `discarded_at` time in detail timeline view.
+- Prevent jitter when clearing stats cache.
+
 ## [v1.0.0] 2020-01-29
 
 ### Changes
