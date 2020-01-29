@@ -46,7 +46,7 @@ This project relies on a working install of Oban as well as Phoenix.
 3. Add `ObanWeb` as a dependency in your `mix.exs` file:
 
   ```
-  {:oban_web, "~> 0.8", organization: "oban"}
+  {:oban_web, "~> 1.0", organization: "oban"}
   ```
 
 4. Add `ObanWeb` as a child within your application module:
