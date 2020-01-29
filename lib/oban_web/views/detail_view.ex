@@ -79,7 +79,7 @@ defmodule ObanWeb.DetailView do
       {_, _, nil} ->
         @empty_time
 
-      {state, "retryable", _} when state in ~w(completed executing discarded) ->
+      {state, "retryable", _} when state in ~w(completed executing) ->
         @empty_time
 
       {"completed", "executing", _} ->
