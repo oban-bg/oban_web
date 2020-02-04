@@ -112,6 +112,7 @@
   display: block;
   font-family: $font-ms;
   margin-bottom: $space--base;
+  overflow-x: auto;
 }
 
 .modal-timeline {
