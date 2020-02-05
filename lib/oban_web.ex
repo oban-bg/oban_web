@@ -14,13 +14,8 @@ defmodule ObanWeb do
     Supervisor.start_link(__MODULE__, conf, name: name)
   end
 
-  @impl Supervisor
-  def init(%{stats: false}) do
-    :ignore
-  end
-
   def init(%Config{} = conf) do
-    children = [{Stats, repo: conf.repo}]
+    children = [{Config, conf: conf, name: Config}, {Stats, conf: conf, name: Stats}]
 
     Supervisor.init(children, strategy: :one_for_one)
   end

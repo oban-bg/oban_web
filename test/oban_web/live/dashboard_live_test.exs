@@ -4,12 +4,10 @@ defmodule ObanWeb.DashboardLiveTest do
   import Phoenix.LiveViewTest
 
   alias Oban.Job
-  alias ObanWeb.{DashboardLive, Repo, Stats}
-
-  @stat_opts [queues: [alpha: 1, delta: 1, gamma: 1], repo: Repo]
+  alias ObanWeb.{DashboardLive, Repo}
 
   setup do
-    start_supervised!({Stats, @stat_opts})
+    start_supervised!({ObanWeb, repo: Repo})
 
     {:ok, conn: build_conn()}
   end

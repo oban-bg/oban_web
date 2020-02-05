@@ -4,10 +4,11 @@ defmodule ObanWeb.StatsTest do
   import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0]
 
   alias Oban.{Beat, Job}
-  alias ObanWeb.Stats
+  alias ObanWeb.{Config, Stats}
 
   @name __MODULE__
-  @opts [name: @name, repo: ObanWeb.Repo]
+  @conf Config.new(repo: ObanWeb.Repo)
+  @opts [name: @name, conf: @conf]
 
   def for_queues do
     @name

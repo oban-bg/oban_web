@@ -4,6 +4,7 @@ defmodule ObanWeb.Query do
   import Ecto.Query
 
   alias Oban.{Beat, Job}
+  alias ObanWeb.Config
 
   @default_node "any"
   @default_queue "any"
@@ -12,8 +13,8 @@ defmodule ObanWeb.Query do
   @default_worker "any"
 
   @doc false
-  def fetch_job(repo, job_id) do
-    case repo.get(Job, job_id) do
+  def fetch_job(%Config{repo: repo, verbose: verbose}, job_id) do
+    case repo.get(Job, job_id, log: verbose) do
       nil ->
         {:error, :not_found}
 
@@ -23,36 +24,36 @@ defmodule ObanWeb.Query do
   end
 
   @doc false
-  def delete_job(repo, job_id) do
+  def delete_job(%Config{repo: repo, verbose: verbose}, job_id) do
     Job
     |> where(id: ^job_id)
-    |> repo.delete_all()
+    |> repo.delete_all(log: verbose)
 
     :ok
   end
 
   @doc false
-  def deschedule_job(repo, job_id) do
+  def deschedule_job(%Config{repo: repo, verbose: verbose}, job_id) do
     Job
     |> where(id: ^job_id)
-    |> repo.update_all(set: [state: "available"])
+    |> repo.update_all(set: [state: "available"], log: verbose)
 
     :ok
   end
 
   @doc false
-  def discard_job(repo, job_id) do
+  def discard_job(%Config{repo: repo, verbose: verbose}, job_id) do
     Job
     |> where(id: ^job_id)
-    |> repo.update_all(set: [state: "discarded"])
+    |> repo.update_all(set: [state: "discarded"], log: verbose)
 
     :ok
   end
 
   @doc false
-  def get_jobs(repo, opts) when is_map(opts), do: get_jobs(repo, Keyword.new(opts))
+  def get_jobs(config, opts) when is_map(opts), do: get_jobs(config, Keyword.new(opts))
 
-  def get_jobs(repo, opts) do
+  def get_jobs(%Config{repo: repo, verbose: verbose}, opts) do
     node = Keyword.get(opts, :node, @default_node)
     queue = Keyword.get(opts, :queue, @default_queue)
     state = Keyword.get(opts, :state, @default_state)
@@ -68,7 +69,7 @@ defmodule ObanWeb.Query do
     |> filter_worker(worker)
     |> order_state(state)
     |> limit(^limit)
-    |> repo.all()
+    |> repo.all(log: verbose)
     |> Enum.map(&relativize_timestamps/1)
   end
 
