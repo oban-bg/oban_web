@@ -107,12 +107,12 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
-  def init(%{name: name, repo: repo}) do
+  def init(%{conf: conf, name: name}) do
     Process.flag(:trap_exit, true)
 
     table = :ets.new(name, [:protected, :named_table, read_concurrency: true])
 
-    {:ok, struct!(State, repo: repo, table: table), {:continue, :start}}
+    {:ok, struct!(State, repo: conf.repo, table: table), {:continue, :start}}
   end
 
   @impl GenServer
