@@ -5,7 +5,7 @@ defmodule ObanWeb.StatsTest do
   alias ObanWeb.{Config, Stats}
 
   @name __MODULE__
-  @conf Config.new(repo: ObanWeb.Repo)
+  @conf Config.new(repo: ObanWeb.Repo, stats_interval: 10)
   @opts [name: @name, conf: @conf]
 
   test "node and queue stats aren't tracked without an active connection" do
@@ -75,7 +75,7 @@ defmodule ObanWeb.StatsTest do
     insert_job!(queue: :alpha, state: "available")
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
-    (fn -> :ok = Stats.activate(@name) end)
+    fn -> :ok = Stats.activate(@name) end
     |> Task.async()
     |> Task.await()
 

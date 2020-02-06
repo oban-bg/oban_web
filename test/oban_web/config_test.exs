@@ -12,13 +12,24 @@ defmodule ObanWeb.ConfigTest do
       assert_valid(repo: Repo)
     end
 
-    test "validating :stats as a boolean" do
-      assert_invalid(stats: :what)
-      assert_invalid(stats: nil)
-      assert_invalid(stats: Repo)
+    test "validating :stats_interval as an interval" do
+      assert_invalid(stats_interval: -1)
+      assert_invalid(stats_interval: 0)
+      assert_invalid(stats_interval: 1.0)
+      assert_invalid(stats_interval: "1.0")
 
-      assert_valid(stats: true)
-      assert_valid(stats: false)
+      assert_valid(stats_interval: 10)
+      assert_valid(stats_interval: :timer.seconds(1))
+    end
+
+    test "validating :tick_interval as an interval" do
+      assert_invalid(tick_interval: -1)
+      assert_invalid(tick_interval: 0)
+      assert_invalid(tick_interval: 1.0)
+      assert_invalid(tick_interval: "1.0")
+
+      assert_valid(tick_interval: 10)
+      assert_valid(tick_interval: :timer.seconds(1))
     end
 
     test "validating :verbose as false or a log level" do

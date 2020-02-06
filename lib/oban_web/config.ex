@@ -4,15 +4,23 @@ defmodule ObanWeb.Config do
   use Agent
 
   @type t :: %__MODULE__{
+          tick_interval: pos_integer(),
           repo: module(),
           stats: boolean(),
+          stats_interval: pos_integer(),
           verbose: false | Logger.level()
         }
 
-  @type option :: {:name, module()} | {:conf, t()}
+  @type start_option :: {:name, module()} | {:conf, t()}
 
   @enforce_keys [:repo]
-  defstruct [:repo, :stats, verbose: false]
+  defstruct [
+    :repo,
+    :stats,
+    tick_interval: 500,
+    stats_interval: 1_000,
+    verbose: false
+  ]
 
   @spec new(Keyword.t()) :: t()
   def new(opts) when is_list(opts) do
@@ -21,7 +29,7 @@ defmodule ObanWeb.Config do
     struct!(__MODULE__, opts)
   end
 
-  @spec start_link([option()]) :: GenServer.on_start()
+  @spec start_link([start_option()]) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
     {conf, opts} = Keyword.pop(opts, :conf)
 
@@ -37,9 +45,19 @@ defmodule ObanWeb.Config do
     end
   end
 
-  defp validate_opt!({:stats, stats}) do
-    unless is_boolean(stats) do
-      raise ArgumentError, "expected :stats to be a boolean"
+  defp validate_opt!({:stats, _stats}) do
+    IO.warn("the :stats option is deprecated and no longer used")
+  end
+
+  defp validate_opt!({:stats_interval, interval}) do
+    unless is_integer(interval) and interval > 0 do
+      raise ArgumentError, "expected :stats_interval to be a positive integer"
+    end
+  end
+
+  defp validate_opt!({:tick_interval, interval}) do
+    unless is_integer(interval) and interval > 0 do
+      raise ArgumentError, "expected :tick_interval to be a positive integer"
     end
   end
 
