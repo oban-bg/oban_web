@@ -22,9 +22,6 @@ defmodule ObanWeb.Stats do
 
   use GenServer
 
-  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0]
-
-  alias Oban.Notifier
   alias ObanWeb.Query
 
   @ordered_states ~w(executing available scheduled retryable discarded completed)
@@ -36,16 +33,19 @@ defmodule ObanWeb.Stats do
       :repo,
       :table,
       :refresh_ref,
+      active: MapSet.new(),
       refresh_interval: :timer.seconds(1)
     ]
   end
 
+  @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :name, __MODULE__)
 
     GenServer.start_link(__MODULE__, Map.new(opts), name: opts[:name])
   end
 
+  @spec for_nodes(module()) :: list({binary(), map()})
   def for_nodes(table \\ __MODULE__) do
     table
     |> :ets.select([{{{:node, :"$1", :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
@@ -57,6 +57,7 @@ defmodule ObanWeb.Stats do
     end)
   end
 
+  @spec for_queues(module()) :: list({binary(), map()})
   def for_queues(table \\ __MODULE__) do
     counter = fn type ->
       table
@@ -89,6 +90,7 @@ defmodule ObanWeb.Stats do
     end)
   end
 
+  @spec for_states(module()) :: list({binary(), map()})
   def for_states(table \\ __MODULE__) do
     for state <- @ordered_states do
       count =
@@ -106,75 +108,79 @@ defmodule ObanWeb.Stats do
     end
   end
 
+  @spec activate(module()) :: :ok
+  def activate(name \\ __MODULE__) do
+    GenServer.call(name, :activate)
+  end
+
   @impl GenServer
   def init(%{conf: conf, name: name}) do
     Process.flag(:trap_exit, true)
 
     table = :ets.new(name, [:protected, :named_table, read_concurrency: true])
 
-    {:ok, struct!(State, repo: conf.repo, table: table), {:continue, :start}}
+    {:ok, struct!(State, repo: conf.repo, table: table)}
   end
 
   @impl GenServer
-  def terminate(_reason, %State{refresh_ref: refresh_ref}) do
-    unless is_nil(refresh_ref), do: Process.cancel_timer(refresh_ref)
+  def terminate(_reason, %State{} = state) do
+    cancel_refresh(state)
 
     :ok
   end
 
   @impl GenServer
-  def handle_continue(:start, state) do
-    :ok = Notifier.listen(Oban.Notifier)
+  def handle_call(:activate, {pid, _ref}, %State{active: active} = state) do
+    Process.monitor(pid)
 
-    handle_info(:refresh, state)
+    state =
+      state
+      |> maybe_start_refresh()
+      |> Map.replace!(:active, MapSet.put(active, pid))
+
+    {:reply, :ok, state}
   end
 
   @impl GenServer
+  def handle_info({:DOWN, _ref, :process, pid, _reason}, %State{active: active} = state) do
+    state =
+      state
+      |> Map.replace!(:active, MapSet.delete(active, pid))
+      |> maybe_cancel_refresh()
+
+    {:noreply, state}
+  end
+
   def handle_info(:refresh, %State{} = state) do
-    node_keys = fetch_node_counts(state)
-    queue_keys = fetch_queue_counts(state)
+    {:noreply, refresh(state)}
+  end
+
+  # Helpers
+
+  defp maybe_start_refresh(%State{active: active} = state) do
+    if Enum.empty?(active), do: refresh(state), else: state
+  end
+
+  defp maybe_cancel_refresh(%State{active: active} = state) do
+    if Enum.empty?(active), do: cancel_refresh(state), else: state
+  end
+
+  defp refresh(state) do
+    node_keys = update_node_counts(state)
+    queue_keys = update_queue_counts(state)
 
     clear_unused_keys(node_keys ++ queue_keys, state)
 
     ref = Process.send_after(self(), :refresh, state.refresh_interval)
 
-    {:noreply, %{state | refresh_ref: ref}}
+    %{state | refresh_ref: ref}
   end
 
-  def handle_info({:notification, gossip(), payload}, %State{table: table} = state) do
-    %{"node" => node, "queue" => queue, "count" => count} = payload
-    %{"limit" => limit, "paused" => paused} = payload
+  defp cancel_refresh(%State{refresh_ref: refresh_ref} = state) do
+    unless is_nil(refresh_ref), do: Process.cancel_timer(refresh_ref)
 
-    :ets.insert(table, {{:node, node, queue}, count, limit, paused})
-
-    {:noreply, state}
+    %{state | refresh_ref: nil}
   end
-
-  def handle_info({:notification, insert(), payload}, %State{table: table} = state) do
-    %{"state" => job_state, "queue" => queue} = payload
-
-    :ets.update_counter(table, {:queue, queue, job_state}, 1, {1, 0})
-
-    {:noreply, state}
-  end
-
-  def handle_info({:notification, signal(), payload}, %State{table: table} = state) do
-    with %{"action" => "scale", "queue" => queue, "scale" => scale} <- payload do
-      pattern = {{{:node, :_, queue}, :_, :_, :_}, [], [:"$_"]}
-
-      for match <- :ets.select(table, [pattern]) do
-        :ets.insert(table, put_elem(match, 2, scale))
-      end
-    end
-
-    {:noreply, state}
-  end
-
-  def handle_info(_message, state) do
-    {:noreply, state}
-  end
-
-  # Helpers
 
   defp clear_unused_keys(prior_keys, %State{table: table}) do
     fn object, acc -> [elem(object, 0) | acc] end
@@ -183,7 +189,7 @@ defmodule ObanWeb.Stats do
     |> Enum.each(&:ets.delete(table, &1))
   end
 
-  defp fetch_node_counts(%State{repo: repo, table: table}) do
+  defp update_node_counts(%State{repo: repo, table: table}) do
     for {node, queue, count, limit, paused} <- Query.node_counts(repo) do
       key = {:node, node, queue}
 
@@ -193,7 +199,7 @@ defmodule ObanWeb.Stats do
     end
   end
 
-  defp fetch_queue_counts(%State{repo: repo, table: table}) do
+  defp update_queue_counts(%State{repo: repo, table: table}) do
     for {queue, state, count} <- Query.queue_counts(repo) do
       key = {:queue, queue, state}
 

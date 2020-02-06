@@ -1,8 +1,6 @@
 defmodule ObanWeb.StatsTest do
   use ObanWeb.DataCase
 
-  import Oban.Notifier, only: [gossip: 0, insert: 0, signal: 0]
-
   alias Oban.{Beat, Job}
   alias ObanWeb.{Config, Stats}
 
@@ -10,25 +8,28 @@ defmodule ObanWeb.StatsTest do
   @conf Config.new(repo: ObanWeb.Repo)
   @opts [name: @name, conf: @conf]
 
-  def for_queues do
-    @name
-    |> Stats.for_queues()
-    |> Map.new()
+  test "node and queue stats aren't tracked without an active connection" do
+    insert_job!(queue: :alpha, state: "available")
+    insert_beat!(node: "web.1", queue: "alpha", limit: 4)
+
+    start_supervised!({Stats, @opts})
+
+    assert for_nodes() == %{}
+    assert for_queues() == %{}
+
+    assert for_states() == %{
+             "executing" => %{count: 0},
+             "available" => %{count: 0},
+             "scheduled" => %{count: 0},
+             "retryable" => %{count: 0},
+             "discarded" => %{count: 0},
+             "completed" => %{count: 0}
+           }
+
+    stop_supervised(Stats)
   end
 
-  def for_states do
-    @name
-    |> Stats.for_states()
-    |> Map.new()
-  end
-
-  def for_nodes do
-    @name
-    |> Stats.for_nodes()
-    |> Map.new()
-  end
-
-  test "initializing with current state and queue counts" do
+  test "updating node and queue stats after activation" do
     insert_job!(queue: :alpha, state: "available")
     insert_job!(queue: :alpha, state: "executing")
     insert_job!(queue: :gamma, state: "available")
@@ -43,134 +44,56 @@ defmodule ObanWeb.StatsTest do
 
     start_supervised!({Stats, @opts})
 
-    with_backoff(fn ->
-      assert for_queues() == %{
-               "alpha" => %{avail: 1, execu: 1, limit: 8},
-               "delta" => %{avail: 0, execu: 0, limit: 9},
-               "gamma" => %{avail: 1, execu: 0, limit: 10}
-             }
+    :ok = Stats.activate(@name)
 
-      assert for_states() == %{
-               "executing" => %{count: 1},
-               "available" => %{count: 2},
-               "scheduled" => %{count: 1},
-               "retryable" => %{count: 0},
-               "discarded" => %{count: 0},
-               "completed" => %{count: 1}
-             }
-    end)
+    assert for_nodes() == %{
+             "web.1" => %{count: 0, limit: 9},
+             "web.2" => %{count: 0, limit: 18}
+           }
 
-    stop_supervised(Stats)
-  end
+    assert for_queues() == %{
+             "alpha" => %{avail: 1, execu: 1, limit: 8},
+             "delta" => %{avail: 0, execu: 0, limit: 9},
+             "gamma" => %{avail: 1, execu: 0, limit: 10}
+           }
 
-  test "insert notifications modify the cached values" do
-    insert_beat!(node: "web.1", queue: "alpha", limit: 1)
-    insert_beat!(node: "web.1", queue: "gamma", limit: 1)
-    insert_beat!(node: "web.1", queue: "delta", limit: 1)
-
-    {:ok, pid} = start_supervised({Stats, @opts})
-
-    notify(pid, insert(), queue: :alpha, state: "available")
-    notify(pid, insert(), queue: :gamma, state: "available")
-    notify(pid, insert(), queue: :delta, state: "scheduled")
-
-    with_backoff(fn ->
-      assert for_states() == %{
-               "executing" => %{count: 0},
-               "available" => %{count: 2},
-               "scheduled" => %{count: 1},
-               "retryable" => %{count: 0},
-               "discarded" => %{count: 0},
-               "completed" => %{count: 0}
-             }
-    end)
-
-    with_backoff(fn ->
-      assert for_queues() == %{
-               "alpha" => %{avail: 1, execu: 0, limit: 1},
-               "delta" => %{avail: 0, execu: 0, limit: 1},
-               "gamma" => %{avail: 1, execu: 0, limit: 1}
-             }
-    end)
+    assert for_states() == %{
+             "executing" => %{count: 1},
+             "available" => %{count: 2},
+             "scheduled" => %{count: 1},
+             "retryable" => %{count: 0},
+             "discarded" => %{count: 0},
+             "completed" => %{count: 1}
+           }
 
     stop_supervised(Stats)
   end
 
-  test "gossip notifications modify the cached values" do
-    {:ok, pid} = start_supervised({Stats, @opts})
+  test "refreshing stops when all activated nodes disconnect" do
+    start_supervised!({Stats, @opts})
 
-    notify(pid, gossip(), count: 2, limit: 5, node: "worker.1", paused: false, queue: :alpha)
-    notify(pid, gossip(), count: 1, limit: 4, node: "worker.2", paused: false, queue: :alpha)
-    notify(pid, gossip(), count: 3, limit: 5, node: "worker.1", paused: false, queue: :gamma)
-    notify(pid, gossip(), count: 1, limit: 4, node: "worker.2", paused: false, queue: :gamma)
-    notify(pid, gossip(), count: 1, limit: 5, node: "worker.1", paused: false, queue: :delta)
-    notify(pid, gossip(), count: 1, limit: 4, node: "worker.2", paused: false, queue: :delta)
+    insert_job!(queue: :alpha, state: "available")
+    insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
-    with_backoff(fn ->
-      assert for_nodes() == %{
-               "worker.1" => %{count: 6, limit: 15},
-               "worker.2" => %{count: 3, limit: 12}
-             }
-    end)
+    (fn -> :ok = Stats.activate(@name) end)
+    |> Task.async()
+    |> Task.await()
 
-    notify(pid, gossip(), count: 1, limit: 5, node: "worker.1", paused: false, queue: :alpha)
-    notify(pid, gossip(), count: 0, limit: 5, node: "worker.2", paused: false, queue: :alpha)
-    notify(pid, gossip(), count: 4, limit: 5, node: "worker.1", paused: false, queue: :gamma)
-    notify(pid, gossip(), count: 2, limit: 5, node: "worker.2", paused: false, queue: :gamma)
-    notify(pid, gossip(), count: 0, limit: 5, node: "worker.1", paused: false, queue: :delta)
-    notify(pid, gossip(), count: 2, limit: 5, node: "worker.2", paused: false, queue: :delta)
+    insert_job!(queue: :alpha, state: "available")
+    insert_beat!(node: "web.2", queue: "alpha", limit: 4)
 
-    with_backoff(fn ->
-      assert for_nodes() == %{
-               "worker.1" => %{count: 5, limit: 15},
-               "worker.2" => %{count: 4, limit: 15}
-             }
-    end)
+    # The refresh rate is 10ms, after 20ms the values still should not have refreshed
+    Process.sleep(20)
+
+    assert for_nodes() == %{"web.1" => %{count: 0, limit: 4}}
+    assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4}}
 
     stop_supervised(Stats)
   end
 
-  test "counts are refreshed from the database to prevent drift" do
-    {:ok, pid} = start_supervised({Stats, @opts})
-
-    insert_beat!(node: "web.1", queue: "alpha", limit: 1)
-    insert_beat!(node: "web.1", queue: "gamma", limit: 1)
-    insert_beat!(node: "web.1", queue: "delta", limit: 1)
-
-    insert_job!(queue: :gamma, state: "available")
-    insert_job!(queue: :delta, state: "available")
-
-    send(pid, :refresh)
-
-    with_backoff(fn ->
-      assert for_queues() == %{
-               "alpha" => %{avail: 0, execu: 0, limit: 1},
-               "delta" => %{avail: 1, execu: 0, limit: 1},
-               "gamma" => %{avail: 1, execu: 0, limit: 1}
-             }
-    end)
-  end
-
-  test "signal notifications modify the tracked queue limits" do
-    insert_beat!(node: "web.1", queue: "alpha", limit: 1)
-    insert_beat!(node: "web.1", queue: "gamma", limit: 1)
-    insert_beat!(node: "web.1", queue: "delta", limit: 1)
-
-    {:ok, pid} = start_supervised({Stats, @opts})
-
-    notify(pid, signal(), action: :scale, queue: :gamma, scale: 7)
-    notify(pid, signal(), action: :scale, queue: :delta, scale: 4)
-
-    with_backoff(fn ->
-      assert for_queues() == %{
-               "alpha" => %{avail: 0, execu: 0, limit: 1},
-               "delta" => %{avail: 0, execu: 0, limit: 4},
-               "gamma" => %{avail: 0, execu: 0, limit: 7}
-             }
-    end)
-
-    stop_supervised(Stats)
-  end
+  defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()
+  defp for_queues, do: @name |> Stats.for_queues() |> Map.new()
+  defp for_states, do: @name |> Stats.for_states() |> Map.new()
 
   defp insert_job!(opts) do
     opts =
@@ -192,16 +115,6 @@ defmodule ObanWeb.StatsTest do
     |> Map.put_new(:started_at, seconds_ago(300))
     |> Beat.new()
     |> Repo.insert!()
-  end
-
-  defp notify(pid, event, payload) do
-    payload =
-      payload
-      |> Map.new()
-      |> Jason.encode!()
-      |> Jason.decode!()
-
-    send(pid, {:notification, event, payload})
   end
 
   defp seconds_ago(seconds) do
