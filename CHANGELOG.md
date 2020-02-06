@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [V1.1.1] 2020-02-06
+
+### Fixes
+
+- Fix job detail refreshing on `tick` events
+
 ## [v1.1.0] 2020—02—06
 
 ### Changes
