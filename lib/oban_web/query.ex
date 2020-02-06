@@ -133,7 +133,7 @@ defmodule ObanWeb.Query do
   defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
 
   @doc false
-  def node_counts(repo, seconds \\ 60) do
+  def node_counts(%Config{repo: repo, verbose: verbose}, seconds \\ 60) do
     since = DateTime.add(DateTime.utc_now(), -seconds)
 
     subquery =
@@ -160,14 +160,14 @@ defmodule ObanWeb.Query do
           x.paused
         }
 
-    repo.all(query)
+    repo.all(query, log: verbose)
   end
 
   @doc false
-  def queue_counts(repo) do
+  def queue_counts(%Config{repo: repo, verbose: verbose}) do
     Job
     |> group_by([j], [j.queue, j.state])
     |> select([j], {j.queue, j.state, count(j.id)})
-    |> repo.all()
+    |> repo.all(log: verbose)
   end
 end

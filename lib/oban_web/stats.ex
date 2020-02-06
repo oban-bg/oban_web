@@ -30,11 +30,10 @@ defmodule ObanWeb.Stats do
     @moduledoc false
 
     defstruct [
-      :repo,
+      :conf,
       :table,
       :refresh_ref,
-      active: MapSet.new(),
-      refresh_interval: :timer.seconds(1)
+      active: MapSet.new()
     ]
   end
 
@@ -119,7 +118,7 @@ defmodule ObanWeb.Stats do
 
     table = :ets.new(name, [:protected, :named_table, read_concurrency: true])
 
-    {:ok, struct!(State, repo: conf.repo, table: table)}
+    {:ok, struct!(State, conf: conf, table: table)}
   end
 
   @impl GenServer
@@ -165,13 +164,13 @@ defmodule ObanWeb.Stats do
     if Enum.empty?(active), do: cancel_refresh(state), else: state
   end
 
-  defp refresh(state) do
+  defp refresh(%State{conf: conf} = state) do
     node_keys = update_node_counts(state)
     queue_keys = update_queue_counts(state)
 
     clear_unused_keys(node_keys ++ queue_keys, state)
 
-    ref = Process.send_after(self(), :refresh, state.refresh_interval)
+    ref = Process.send_after(self(), :refresh, conf.stats_interval)
 
     %{state | refresh_ref: ref}
   end
@@ -189,8 +188,8 @@ defmodule ObanWeb.Stats do
     |> Enum.each(&:ets.delete(table, &1))
   end
 
-  defp update_node_counts(%State{repo: repo, table: table}) do
-    for {node, queue, count, limit, paused} <- Query.node_counts(repo) do
+  defp update_node_counts(%State{conf: conf, table: table}) do
+    for {node, queue, count, limit, paused} <- Query.node_counts(conf) do
       key = {:node, node, queue}
 
       :ets.insert(table, {key, count, limit, paused})
@@ -199,8 +198,8 @@ defmodule ObanWeb.Stats do
     end
   end
 
-  defp update_queue_counts(%State{repo: repo, table: table}) do
-    for {queue, state, count} <- Query.queue_counts(repo) do
+  defp update_queue_counts(%State{conf: conf, table: table}) do
+    for {queue, state, count} <- Query.queue_counts(conf) do
       key = {:queue, queue, state}
 
       :ets.insert(table, {key, count})

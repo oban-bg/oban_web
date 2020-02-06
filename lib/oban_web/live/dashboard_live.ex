@@ -6,7 +6,6 @@ defmodule ObanWeb.DashboardLive do
   alias Oban.Job
   alias ObanWeb.{Config, DashboardView, Query, Stats}
 
-  @tick_timing 500
   @flash_timing 5_000
   @default_flash %{show: false, mode: :success, message: ""}
   @default_filters %{
@@ -37,7 +36,7 @@ defmodule ObanWeb.DashboardLive do
   def mount(_params, _session, socket) do
     config = Config.get()
 
-    if connected?(socket), do: Process.send_after(self(), :tick, @tick_timing)
+    if connected?(socket), do: Process.send_after(self(), :tick, config.tick_interval)
 
     :ok = Stats.activate()
 
@@ -79,7 +78,7 @@ defmodule ObanWeb.DashboardLive do
 
     updated = maybe_refresh_job(updated, assigns)
 
-    Process.send_after(self(), :tick, @tick_timing)
+    Process.send_after(self(), :tick, assigns.config.tick_interval)
 
     {:noreply, assign(socket, updated)}
   end
