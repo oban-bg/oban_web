@@ -252,6 +252,11 @@ defmodule ObanWeb.DashboardLiveTest do
 
     assert title =~ to_string(jid)
     assert title =~ "FakeWorker"
+
+    # This is a crude way to ensure that refreshing the job detail is safe.
+    send(view.pid, :tick)
+
+    Process.sleep(10)
   end
 
   defp insert_job!(args, opts) do

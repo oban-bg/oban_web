@@ -177,7 +177,7 @@ defmodule ObanWeb.DashboardLive do
   end
 
   defp maybe_refresh_job(updated, %{config: config, job: %Job{id: jid}}) do
-    case Query.fetch_job(config.repo, jid) do
+    case Query.fetch_job(config, jid) do
       {:ok, job} ->
         Keyword.put(updated, :job, job)
 
