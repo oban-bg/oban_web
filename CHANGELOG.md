@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [v1.1.0] 2020—02—06
+
+### Changes
+
+- Add `verbose` setting to control log levels. This command mirrors the behavior
+  in Oban and is respected by all queries.
+- Deprecate `stats` configuration. The stats module is entirely overhauled so
+  that it only refreshes when one or more users are connected. That prevents it
+  from using any connections or performing any queries while testing, which
+  renders the `stats` option pointless.
+- Add `stats_interval` to control how often node and queue counts are refreshed.
+  The default value is every 1s.
+- Add `tick_interval` to control how often the jobs table and job details are
+  refreshed. The default value is every 500ms.
+
 ## [v1.0.1] 2020-01-29
 
 ### Fixes
@@ -79,7 +94,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Ignore the stats server when queues is empty.
 
-[Unreleased]: https://github.com/sorentwo/oban_web/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/sorentwo/oban_web/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/sorentwo/oban_web/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/sorentwo/oban_web/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/sorentwo/oban_web/compare/v0.8.0...v1.0.0
 [0.8.0]: https://github.com/sorentwo/oban_web/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/sorentwo/oban_web/compare/v0.6.3...v0.7.0
