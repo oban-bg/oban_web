@@ -36,16 +36,18 @@ defmodule ObanWeb.Query do
   def deschedule_job(%Config{repo: repo, verbose: verbose}, job_id) do
     Job
     |> where(id: ^job_id)
-    |> repo.update_all(set: [state: "available"], log: verbose)
+    |> repo.update_all([set: [state: "available"]], log: verbose)
 
     :ok
   end
 
   @doc false
   def discard_job(%Config{repo: repo, verbose: verbose}, job_id) do
+    updates = [state: "discarded", discarded_at: NaiveDateTime.utc_now()]
+
     Job
     |> where(id: ^job_id)
-    |> repo.update_all(set: [state: "discarded"], log: verbose)
+    |> repo.update_all([set: updates], log: verbose)
 
     :ok
   end

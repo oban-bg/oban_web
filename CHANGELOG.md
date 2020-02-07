@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixes
+
+- Correct syntax used for descheduling and discarding jobs
+- Set the `discarded_at` timestamp when discarding jobs
+
 ## [V1.1.1] 2020-02-06
 
 ### Fixes
