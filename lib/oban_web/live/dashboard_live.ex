@@ -34,21 +34,21 @@ defmodule ObanWeb.DashboardLive do
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
-    config = Config.get()
+    conf = Config.get()
 
-    if connected?(socket), do: Process.send_after(self(), :tick, config.tick_interval)
+    if connected?(socket), do: Process.send_after(self(), :tick, conf.tick_interval)
 
     :ok = Stats.activate()
 
     assigns = %{
-      config: config,
+      conf: conf,
       filters: @default_filters,
       flash: @default_flash,
       job: nil,
-      jobs: Query.get_jobs(config, @default_filters),
-      node_stats: Stats.for_nodes(),
-      queue_stats: Stats.for_queues(),
-      state_stats: Stats.for_states()
+      jobs: Query.get_jobs(conf, @default_filters),
+      node_stats: Stats.for_nodes(conf.name),
+      queue_stats: Stats.for_queues(conf.name),
+      state_stats: Stats.for_states(conf.name)
     }
 
     {:ok, assign(socket, with_render_defaults(assigns))}
@@ -58,7 +58,7 @@ defmodule ObanWeb.DashboardLive do
   def handle_params(params, _uri, %{assigns: assigns} = socket) do
     case params["jid"] do
       jid when is_binary(jid) ->
-        job = assigns.config.get(Job, jid)
+        job = assigns.conf.get(Job, jid)
 
         {:noreply, assign(socket, job: job)}
 
@@ -70,15 +70,15 @@ defmodule ObanWeb.DashboardLive do
   @impl Phoenix.LiveView
   def handle_info(:tick, %{assigns: assigns} = socket) do
     updated = [
-      jobs: Query.get_jobs(assigns.config, assigns.filters),
-      node_stats: Stats.for_nodes(),
-      queue_stats: Stats.for_queues(),
-      state_stats: Stats.for_states()
+      jobs: Query.get_jobs(assigns.conf, assigns.filters),
+      node_stats: Stats.for_nodes(assigns.conf.name),
+      queue_stats: Stats.for_queues(assigns.conf.name),
+      state_stats: Stats.for_states(assigns.conf.name)
     ]
 
     updated = maybe_refresh_job(updated, assigns)
 
-    Process.send_after(self(), :tick, assigns.config.tick_interval)
+    Process.send_after(self(), :tick, assigns.conf.tick_interval)
 
     {:noreply, assign(socket, updated)}
   end
@@ -116,35 +116,35 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :node, node)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :queue, queue)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_state", %{"state" => state}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :state, state)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :terms, terms)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :worker, worker)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
@@ -153,7 +153,7 @@ defmodule ObanWeb.DashboardLive do
     type = String.to_existing_atom(type)
     default = Map.get(@default_filters, type)
     filters = Map.put(assigns.filters, type, default)
-    jobs = Query.get_jobs(assigns.config, filters)
+    jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
@@ -167,7 +167,7 @@ defmodule ObanWeb.DashboardLive do
   end
 
   def handle_event("open_modal", %{"id" => job_id}, socket) do
-    {:ok, job} = Query.fetch_job(socket.assigns.config, job_id)
+    {:ok, job} = Query.fetch_job(socket.assigns.conf, job_id)
 
     {:noreply, assign(socket, job: job)}
   end
@@ -176,8 +176,8 @@ defmodule ObanWeb.DashboardLive do
     Map.merge(@render_defaults, assigns)
   end
 
-  defp maybe_refresh_job(updated, %{config: config, job: %Job{id: jid}}) do
-    case Query.fetch_job(config, jid) do
+  defp maybe_refresh_job(updated, %{conf: conf, job: %Job{id: jid}}) do
+    case Query.fetch_job(conf, jid) do
       {:ok, job} ->
         Keyword.put(updated, :job, job)
 
@@ -191,19 +191,19 @@ defmodule ObanWeb.DashboardLive do
   end
 
   defp delete_job(job_id, socket) do
-    :ok = Query.delete_job(socket.assigns.config, job_id)
+    :ok = Query.delete_job(socket.assigns.conf, job_id)
 
     flash("Job deleted.", :alert, socket)
   end
 
   defp deschedule_job(job_id, socket) do
-    :ok = Query.deschedule_job(socket.assigns.config, job_id)
+    :ok = Query.deschedule_job(socket.assigns.conf, job_id)
 
     flash("Job staged for execution.", :alert, socket)
   end
 
   defp discard_job(job_id, socket) do
-    :ok = Query.discard_job(socket.assigns.config, job_id)
+    :ok = Query.discard_job(socket.assigns.conf, job_id)
 
     flash("Job discarded.", :alert, socket)
   end

@@ -39,13 +39,13 @@ defmodule ObanWeb.Stats do
 
   @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    opts = Keyword.put_new(opts, :name, __MODULE__)
+    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
 
-    GenServer.start_link(__MODULE__, Map.new(opts), name: opts[:name])
+    GenServer.start_link(__MODULE__, Map.new(opts), name: name)
   end
 
   @spec for_nodes(module()) :: list({binary(), map()})
-  def for_nodes(table \\ __MODULE__) do
+  def for_nodes(table) do
     table
     |> :ets.select([{{{:node, :"$1", :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
     |> Enum.sort_by(&hd/1)
@@ -57,7 +57,7 @@ defmodule ObanWeb.Stats do
   end
 
   @spec for_queues(module()) :: list({binary(), map()})
-  def for_queues(table \\ __MODULE__) do
+  def for_queues(table) do
     counter = fn type ->
       table
       |> :ets.select([{{{:queue, :"$1", type}, :"$2"}, [], [:"$$"]}])
@@ -90,7 +90,7 @@ defmodule ObanWeb.Stats do
   end
 
   @spec for_states(module()) :: list({binary(), map()})
-  def for_states(table \\ __MODULE__) do
+  def for_states(table) do
     for state <- @ordered_states do
       count =
         case :ets.select(table, [{{{:queue, :_, state}, :"$1"}, [], [:"$$"]}]) do
@@ -113,10 +113,8 @@ defmodule ObanWeb.Stats do
   end
 
   @impl GenServer
-  def init(%{conf: conf, name: name}) do
+  def init(%{conf: conf, table: table}) do
     Process.flag(:trap_exit, true)
-
-    table = :ets.new(name, [:protected, :named_table, read_concurrency: true])
 
     {:ok, struct!(State, conf: conf, table: table)}
   end

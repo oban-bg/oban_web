@@ -6,7 +6,13 @@ defmodule ObanWeb.StatsTest do
 
   @name __MODULE__
   @conf Config.new(repo: ObanWeb.Repo, stats_interval: 10)
-  @opts [name: @name, conf: @conf]
+  @opts [name: @name, conf: @conf, table: @name]
+
+  setup do
+    :ets.new(@name, [:public, :named_table, read_concurrency: true])
+
+    :ok
+  end
 
   test "node and queue stats aren't tracked without an active connection" do
     insert_job!(queue: :alpha, state: "available")

@@ -7,15 +7,18 @@ defmodule ObanWeb do
 
   @spec start_link([Oban.option()]) :: Supervisor.on_start()
   def start_link(opts) when is_list(opts) do
-    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
-
     conf = Config.new(opts)
 
-    Supervisor.start_link(__MODULE__, conf, name: name)
+    Supervisor.start_link(__MODULE__, conf, name: conf.name)
   end
 
-  def init(%Config{} = conf) do
-    children = [{Config, conf: conf, name: Config}, {Stats, conf: conf, name: Stats}]
+  def init(%Config{name: name} = conf) do
+    table = :ets.new(name, [:public, :named_table, read_concurrency: true])
+
+    children = [
+      {Config, conf: conf, name: Module.concat(name, "Config")},
+      {Stats, conf: conf, name: Module.concat(name, "Stats"), table: table}
+    ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end

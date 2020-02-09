@@ -4,10 +4,11 @@ defmodule ObanWeb.Config do
   use Agent
 
   @type t :: %__MODULE__{
-          tick_interval: pos_integer(),
+          name: module(),
           repo: module(),
           stats: boolean(),
           stats_interval: pos_integer(),
+          tick_interval: pos_integer(),
           verbose: false | Logger.level()
         }
 
@@ -17,8 +18,9 @@ defmodule ObanWeb.Config do
   defstruct [
     :repo,
     :stats,
-    tick_interval: 500,
+    name: ObanWeb,
     stats_interval: 1_000,
+    tick_interval: 500,
     verbose: false
   ]
 
