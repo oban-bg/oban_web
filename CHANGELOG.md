@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Prevent flash map key issue on initial mount. The lack of a `show` key on the
   empty flash map caused runtime errors.
 
+- Prevent losing stats cache on restart by shifting table ownership into the
+  supervisor.
+
 ### Changes
 
 - Clear `completed_at` and `discarded_at` timestamps when descheduling jobs.
