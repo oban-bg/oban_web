@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Clear `completed_at` and `discarded_at` timestamps when descheduling jobs.
 
+- Upgrade to LiveView `~> 0.7`.
+
 ### Added
 
 - Display job `priority` value in the table and detail views.

@@ -55,7 +55,7 @@ defmodule ObanWeb.MixProject do
       {:jason, "~> 1.0"},
       {:oban, "~> 1.0"},
       {:phoenix, "~> 1.4"},
-      {:phoenix_html, "~> 2.13"},
+      {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_live_view, "~> 0.6"},
       {:credo, "~> 1.2", only: [:test, :dev], runtime: false},
