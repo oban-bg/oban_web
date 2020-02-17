@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.2.0] 2020-02-07
+
 ### Fixes
 
 - Prevent flash map key issue on initial mount. The lack of a `show` key on the
@@ -27,7 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Display job `tags` in the detail view.
 
-## [V1.1.2] 2020-02-07
+## [1.1.2] 2020-02-07
 
 ### Fixes
 
@@ -35,13 +37,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Set the `discarded_at` timestamp when discarding jobs
 
-## [V1.1.1] 2020-02-06
+## [1.1.1] 2020-02-06
 
 ### Fixes
 
 - Fix job detail refreshing on `tick` events
 
-## [v1.1.0] 2020—02—06
+## [1.1.0] 2020—02—06
 
 ### Changes
 
@@ -59,14 +61,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add `tick_interval` to control how often the jobs table and job details are
   refreshed. The default value is every 500ms.
 
-## [v1.0.1] 2020-01-29
+## [1.0.1] 2020-01-29
 
 ### Fixes
 
 - Display `discarded_at` time in detail timeline view.
 - Prevent jitter when clearing stats cache.
 
-## [v1.0.0] 2020-01-29
+## [1.0.0] 2020-01-29
 
 ### Changes
 
@@ -75,19 +77,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   refreshes and fewer database calls. The average refresh time dropped from
   `~310ms` to `~180ms`.
 
-## [v0.8.0] 2020-01-23
+## [0.8.0] 2020-01-23
 
 ### Changes
 
 - Upgrade to LiveView `~> 0.5` and test with `0.6`.
 
-## [v0.7.0] 2020-01-08
+## [0.7.0] 2020-01-08
 
 ### Added
 
 - Add detail modal for inspecting job arguments, errors and state timings.
 
-## [v0.6.3] 2019-12-15
+## [0.6.3] 2019-12-15
 
 ### Changes
 
@@ -103,7 +105,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Ensure all assigns are available on render when a disconnected node
   reconnects. This fixes an issue when viewing the UI in development.
 
-## [v0.6.2] 2019-12-05
+## [0.6.2] 2019-12-05
 
 ### Changes
 
@@ -125,13 +127,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   config :my_app, ObanWeb, stats: false
   ```
 
-## [v0.6.1] 2019-11-22
+## [0.6.1] 2019-11-22
 
 ### Fixes
 
 - Ignore the stats server when queues is empty.
 
-[Unreleased]: https://github.com/sorentwo/oban_web/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/sorentwo/oban_web/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/sorentwo/oban_web/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/sorentwo/oban_web/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/sorentwo/oban_web/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/sorentwo/oban_web/compare/v1.0.1...v1.1.0
