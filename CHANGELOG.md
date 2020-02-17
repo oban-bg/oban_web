@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixes
 
 - Correct syntax used for descheduling and discarding jobs
+
 - Set the `discarded_at` timestamp when discarding jobs
+
+- Prevent flash map key issue on initial mount. The lack of a `show` key on the
+  empty flash map caused runtime errors.
 
 ## [V1.1.1] 2020-02-06
 
@@ -26,12 +30,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Add `verbose` setting to control log levels. This command mirrors the behavior
   in Oban and is respected by all queries.
+
 - Deprecate `stats` configuration. The stats module is entirely overhauled so
   that it only refreshes when one or more users are connected. That prevents it
   from using any connections or performing any queries while testing, which
   renders the `stats` option pointless.
+
 - Add `stats_interval` to control how often node and queue counts are refreshed.
   The default value is every 1s.
+
 - Add `tick_interval` to control how often the jobs table and job details are
   refreshed. The default value is every 500ms.
 
