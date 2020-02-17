@@ -5,14 +5,7 @@
 
   <div class="modal">
     <div class="modal-header flex justify-between">
-      <div class="margin--none">
-        <h2 class="modal-title"><span class="color--dem"><%= @job.id %></span> <%= @job.worker %></h2>
-        <ul class="modal-details">
-          <li><span class="modal-details__label">Queue</span> <%= @job.queue %></li>
-          <li><span class="modal-details__label">Attempt</span> <%= @job.attempt %> of <%= @job.max_attempts %></li>
-          <li><span class="modal-details__label">Node</span> <%= attempted_by(@job) %></li>
-        </ul>
-      </div>
+      <h2 class="modal-title"><span class="color--dem"><%= @job.id %></span> <%= @job.worker %></h2>
 
       <nav class="modal-actions flex">
         <%= if @job.state in ~w(inserted scheduled available) do %>
@@ -35,6 +28,14 @@
           <button class="btn btn--outline modal-action" phx-click="delete" phx-target="#modal">Delete</button>
         <% end %>
       </nav>
+
+      <ul class="modal-details">
+        <li><span class="modal-details__label">Queue</span> <%= @job.queue %></li>
+        <li><span class="modal-details__label">Attempt</span> <%= @job.attempt %> of <%= @job.max_attempts %></li>
+        <li><span class="modal-details__label">Priority</span> <%= @job.priority %></li>
+        <li><span class="modal-details__label">Tags</span> <%= formatted_tags(@job) %></li>
+        <li><span class="modal-details__label">Node</span> <%= attempted_by(@job) %></li>
+      </ul>
     </div>
 
     <div class="modal-timeline flex">

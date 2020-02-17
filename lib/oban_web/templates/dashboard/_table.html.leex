@@ -4,6 +4,7 @@
       <th class="jobs-head--column">ID</th>
       <th class="jobs-head--column">Queue</th>
       <th class="jobs-head--column">Details</th>
+      <th class="jobs-head--column">Priority</th>
       <th class="jobs-head--column">Tries</th>
       <th class="jobs-head--column">Time</th>
       <th class="jobs-head--column"></th>
@@ -26,6 +27,9 @@
             <%= job.worker %>
           </span>
           <span class="job-details--args"><%= inspect(job.args) %></span>
+        </td>
+        <td class="jobs-column jobs-column--priority">
+          <%= job.priority %>
         </td>
         <td class="jobs-column jobs-column--attempts">
           <%= job.attempt %> ⁄ <%= job.max_attempts %>

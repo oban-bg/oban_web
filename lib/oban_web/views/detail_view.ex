@@ -43,6 +43,11 @@ defmodule ObanWeb.DetailView do
   def attempted_by(%Job{}), do: "Not Attempted"
 
   @doc """
+  Format job tags using a delimiter.
+  """
+  def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
+
+  @doc """
   Determine the correct state modifier class: either `--finished` or `--active`, based on a job's
   state and timestamp.
   """

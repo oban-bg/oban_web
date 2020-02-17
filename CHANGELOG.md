@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Fixes
+
+- Prevent flash map key issue on initial mount. The lack of a `show` key on the
+  empty flash map caused runtime errors.
+
+### Changes
+
+- Clear `completed_at` and `discarded_at` timestamps when descheduling jobs.
+
+### Added
+
+- Display job `priority` value in the table and detail views.
+
+- Display job `tags` in the detail view.
+
 ## [V1.1.2] 2020-02-07
 
 ### Fixes
@@ -14,9 +29,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Correct syntax used for descheduling and discarding jobs
 
 - Set the `discarded_at` timestamp when discarding jobs
-
-- Prevent flash map key issue on initial mount. The lack of a `show` key on the
-  empty flash map caused runtime errors.
 
 ## [V1.1.1] 2020-02-06
 
@@ -66,7 +78,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [v0.7.0] 2020-01-08
 
-### Additions
+### Added
 
 - Add detail modal for inspecting job arguments, errors and state timings.
 

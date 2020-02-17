@@ -37,17 +37,22 @@
   padding: 1.25rem 0.5rem;
 }
 
+.jobs-column--id {
+  width: 5em;
+}
+
 .jobs-column--queue {
   width: 6em;
   text-align: center;
 }
 
-.jobs-column--id {
-  width: 5em;
-}
-
 .jobs-column--details {
   max-width: 30em;
+}
+
+.jobs-column--priority {
+  text-align: center;
+  width: 2em;
 }
 
 .jobs-column--attempts {
