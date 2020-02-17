@@ -34,9 +34,11 @@ defmodule ObanWeb.Query do
 
   @doc false
   def deschedule_job(%Config{repo: repo, verbose: verbose}, job_id) do
+    updates = [state: "available", completed_at: nil, discarded_at: nil]
+
     Job
     |> where(id: ^job_id)
-    |> repo.update_all([set: [state: "available"]], log: verbose)
+    |> repo.update_all([set: updates], log: verbose)
 
     :ok
   end
