@@ -14,7 +14,6 @@
 }
 
 input[type="search"] {
-  appearance: textfield;
   background-color: $color--field-bg;
   border-radius: $radius--med;
   border-radius: $radius--tiny;
@@ -24,6 +23,9 @@ input[type="search"] {
   line-height: $line-height--copy;
   padding: $space--xs $space--s $space--xs $space--base;
   transition: border $timing--hover, color $timing--hover;
+
+  appearance: textfield;
+  -webkit-appearance: textfield;
 
   &:disabled,
   .disabled {
