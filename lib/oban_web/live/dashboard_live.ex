@@ -48,10 +48,18 @@ defmodule ObanWeb.DashboardLive do
       jobs: Query.get_jobs(conf, @default_filters),
       node_stats: Stats.for_nodes(conf.name),
       queue_stats: Stats.for_queues(conf.name),
-      state_stats: Stats.for_states(conf.name)
+      state_stats: Stats.for_states(conf.name),
+      tick_ref: nil
     }
 
     {:ok, assign(socket, with_render_defaults(assigns))}
+  end
+
+  @impl Phoenix.LiveView
+  def terminate(_reason, %{assigns: %{tick_ref: tick_ref}}) do
+    if is_reference(tick_ref), do: Process.cancel_timer(tick_ref)
+
+    :ok
   end
 
   @impl Phoenix.LiveView
@@ -76,9 +84,12 @@ defmodule ObanWeb.DashboardLive do
       state_stats: Stats.for_states(assigns.conf.name)
     ]
 
-    updated = maybe_refresh_job(updated, assigns)
+    tick_ref = Process.send_after(self(), :tick, assigns.conf.tick_interval)
 
-    Process.send_after(self(), :tick, assigns.conf.tick_interval)
+    updated =
+      updated
+      |> maybe_refresh_job(assigns)
+      |> Keyword.put(:tick_ref, tick_ref)
 
     {:noreply, assign(socket, updated)}
   end
