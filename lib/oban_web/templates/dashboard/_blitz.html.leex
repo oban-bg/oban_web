@@ -1,6 +1,6 @@
-<div class="blitz <%= if @flash[:show] do %>blitz--show<% end %>">
-  <div class="blitz__inner flex bg-color--<%= @flash.mode %>" role="dialog">
-    <span class="blitz__message"><%= @flash[:message] %></span>
+<div class="blitz <%= if live_flash(@flash, :info) do %>blitz--show<% end %>">
+  <div class="blitz__inner flex bg-color--success" role="dialog">
+    <span class="blitz__message"><%= live_flash(@flash, :info) %></span>
 
     <button phx-click="blitz_close" class="btn--link margin-l--m" name="close" title="Close" type="button">
       <%= icon("x") %>

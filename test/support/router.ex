@@ -8,6 +8,7 @@ defmodule ObanWeb.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_flash
+    plug :fetch_live_flash
   end
 
   scope "/" do

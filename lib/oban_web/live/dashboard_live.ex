@@ -7,7 +7,6 @@ defmodule ObanWeb.DashboardLive do
   alias ObanWeb.{Config, DashboardView, Query, Stats}
 
   @flash_timing 5_000
-  @default_flash %{show: false, mode: :success, message: ""}
   @default_filters %{
     node: "any",
     queue: "any",
@@ -19,7 +18,6 @@ defmodule ObanWeb.DashboardLive do
   # When a client reconnects it may render the dashboard before the assigns are set by `mount`.
   @render_defaults %{
     filters: @default_filters,
-    flash: @default_flash,
     job: nil,
     jobs: [],
     node_stats: [],
@@ -43,7 +41,6 @@ defmodule ObanWeb.DashboardLive do
     assigns = %{
       conf: conf,
       filters: @default_filters,
-      flash: @default_flash,
       job: nil,
       jobs: Query.get_jobs(conf, @default_filters),
       node_stats: Stats.for_nodes(conf.name),
@@ -94,10 +91,8 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, updated)}
   end
 
-  def handle_info(:clear_flash, %{assigns: assigns} = socket) do
-    flash = Map.put(assigns.flash, :show, false)
-
-    {:noreply, assign(socket, flash: flash)}
+  def handle_info(:clear_flash, socket) do
+    {:noreply, clear_flash(socket)}
   end
 
   def handle_info(:close_modal, socket) do
@@ -122,7 +117,7 @@ defmodule ObanWeb.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_event("blitz_close", _value, socket) do
-    handle_info(:clear_flash, socket)
+    {:noreply, clear_flash(socket)}
   end
 
   def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
@@ -204,30 +199,30 @@ defmodule ObanWeb.DashboardLive do
   defp delete_job(job_id, socket) do
     :ok = Query.delete_job(socket.assigns.conf, job_id)
 
-    flash("Job deleted.", :alert, socket)
+    flash("Job deleted.", :info, socket)
   end
 
   defp deschedule_job(job_id, socket) do
     :ok = Query.deschedule_job(socket.assigns.conf, job_id)
 
-    flash("Job staged for execution.", :alert, socket)
+    flash("Job staged for execution.", :info, socket)
   end
 
   defp discard_job(job_id, socket) do
     :ok = Query.discard_job(socket.assigns.conf, job_id)
 
-    flash("Job discarded.", :alert, socket)
+    flash("Job discarded.", :info, socket)
   end
 
   defp kill_job(job_id, socket) do
     :ok = Oban.kill_job(job_id)
 
-    flash("Job canceled and discarded.", :alert, socket)
+    flash("Job canceled and discarded.", :info, socket)
   end
 
   defp flash(message, mode, socket) do
     Process.send_after(self(), :clear_flash, @flash_timing)
 
-    assign(socket, flash: %{show: true, mode: mode, message: message})
+    put_flash(socket, mode, message)
   end
 end

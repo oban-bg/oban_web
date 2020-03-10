@@ -44,7 +44,7 @@ defmodule ObanWeb.MixProject do
   def package do
     [
       organization: "oban",
-      files: ~w(lib .formatter.exs mix.exs README*),
+      files: ~w(lib .formatter.exs mix.exs README* CHANGELOG*),
       licenses: ["Commercial"],
       links: []
     ]
@@ -52,12 +52,12 @@ defmodule ObanWeb.MixProject do
 
   defp deps do
     [
-      {:jason, "~> 1.0"},
-      {:oban, "~> 1.0"},
+      {:jason, "~> 1.1"},
+      {:oban, "~> 1.2"},
       {:phoenix, "~> 1.4"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:phoenix_live_view, "~> 0.6"},
+      {:phoenix_live_view, "~> 0.9"},
       {:credo, "~> 1.2", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.25", only: :test},
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false}
