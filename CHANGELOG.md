@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [1.3.0] 2020-03-10
+
+### Changes
+
+- Upgrade to LiveView `~> 0.9` along with the requisite changes to `flash`
+  handling. Note, this requires pipelines in the host app to use
+  `fetch_live_flash` instead of `fetch_flash`.
+
 ## [1.2.0] 2020-02-07
 
 ### Fixes
