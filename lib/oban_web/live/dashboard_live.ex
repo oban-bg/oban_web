@@ -59,6 +59,8 @@ defmodule ObanWeb.DashboardLive do
     :ok
   end
 
+  def terminate(_reason, _socket), do: :ok
+
   @impl Phoenix.LiveView
   def handle_params(params, _uri, %{assigns: assigns} = socket) do
     case params["jid"] do
