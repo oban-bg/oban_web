@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changes
+
+- Upgrade to LiveView `~> 0.10` along with requisite changes to use
+  `@inner_content` in the layout template. This prevents the view from hanging
+  with a blank screen on load.
+
 ## [1.3.1] 2020-03-18
 
 ### Fixed
