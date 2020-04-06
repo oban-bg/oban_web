@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changes
+
+- Introduce `ObanWeb.Router` for more convenient and flexible dashboard routing.
+  The new module provides an `oban_dashboard/2` macro, which prevents scoping
+  mistakes and provides the foundation of better route support.
+
+  Here is how to mount a dashboard at `/oban` with the new macro:
+
+      defmodule MyAppWeb.Router do
+        use Phoenix.Router
+
+        import ObanWeb.Router
+
+        scope "/", MyAppWeb do
+          pipe_through [:browser]
+
+          oban_dashboard "/oban"
+        end
+      end
+
 ## [1.5.0] 2020-04-27
+
+### Changes
 
 - Upgrade to Phoenix `~> 1.5`, LiveView `~> 0.12` and PubSub `~> 2.0`. None of
   these upgrades required changes to ObanWeb, they are meant to enable upgrades

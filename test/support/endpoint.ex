@@ -14,5 +14,5 @@ defmodule ObanWeb.Endpoint do
 
   plug Plug.Session, @session_options
 
-  plug ObanWeb.Router
+  plug ObanWeb.Support.Router
 end

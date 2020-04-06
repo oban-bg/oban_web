@@ -24,10 +24,10 @@ defmodule ObanWeb.MixProject do
       # Docs
       name: "ObanWeb",
       docs: [
-        main: "ObanWeb",
+        main: "Readme",
         source_ref: "v#{@version}",
         source_url: "https://github.com/sorentwo/oban_web",
-        extras: ["README.md"]
+        extras: ["README.md", "CHANGELOG.md"]
       ]
     ]
   end
