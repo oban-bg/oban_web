@@ -1,7 +1,5 @@
 defmodule ObanWeb.DetailComponent do
-  @moduledoc false
-
-  use Phoenix.LiveComponent
+  use ObanWeb.Web, :live_component
 
   alias ObanWeb.DetailView
 

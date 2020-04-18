@@ -1,9 +1,11 @@
 module.exports = {
   theme: {
     fontFamily: {
-      sans: ['Inter', 'sans-serif'],
+      sans: ["Inter", "sans-serif"],
     }
   },
   variants: {},
-  plugins: [],
+  plugins: [
+    require("@tailwindcss/ui")
+  ],
 }

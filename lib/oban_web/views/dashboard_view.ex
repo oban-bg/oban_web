@@ -1,10 +1,5 @@
 defmodule ObanWeb.DashboardView do
-  @moduledoc false
-
-  use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
-  use Phoenix.HTML
-
-  import Phoenix.LiveView.Helpers
+  use ObanWeb.Web, :view
 
   alias ObanWeb.{IconView, Timing}
 

@@ -1,8 +1,5 @@
 defmodule ObanWeb.DetailView do
-  @moduledoc false
-
-  use Phoenix.View, root: "lib/oban_web/templates", namespace: ObanWeb
-  use Phoenix.HTML
+  use ObanWeb.Web, :view
 
   alias Oban.Job
   alias ObanWeb.{IconView, Timing}

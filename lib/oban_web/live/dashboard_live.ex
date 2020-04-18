@@ -1,10 +1,8 @@
 defmodule ObanWeb.DashboardLive do
-  @moduledoc false
-
-  use Phoenix.LiveView
+  use ObanWeb.Web, :live_view
 
   alias Oban.Job
-  alias ObanWeb.{Config, DashboardView, Query, Stats}
+  alias ObanWeb.{Config, DashboardView, FlashComponent, Query, Stats}
 
   @flash_timing 5_000
   @default_filters %{
@@ -15,41 +13,49 @@ defmodule ObanWeb.DashboardLive do
     worker: "any"
   }
 
-  # When a client reconnects it may render the dashboard before the assigns are set by `mount`.
-  @render_defaults %{
-    filters: @default_filters,
-    job: nil,
-    jobs: [],
-    node_stats: [],
-    queue_stats: [],
-    state_stats: []
-  }
+  # TODO: Look into temporary_assigns for jobs
 
-  @impl Phoenix.LiveView
-  def render(assigns) do
-    DashboardView.render("index.html", with_render_defaults(assigns))
-  end
-
-  @impl Phoenix.LiveView
-  def mount(_params, _session, socket) do
+  defp assign_defaults(_params, _session, socket) do
     conf = Config.get()
 
-    if connected?(socket), do: Process.send_after(self(), :tick, conf.tick_interval)
-
-    :ok = Stats.activate()
-
-    assigns = %{
+    assign(socket,
       conf: conf,
       filters: @default_filters,
       job: nil,
-      jobs: Query.get_jobs(conf, @default_filters),
-      node_stats: Stats.for_nodes(conf.name),
-      queue_stats: Stats.for_queues(conf.name),
-      state_stats: Stats.for_states(conf.name),
+      jobs: [],
+      node_stats: [],
+      queue_stats: [],
+      state_stats: [],
       tick_ref: nil
-    }
+    )
+  end
 
-    {:ok, assign(socket, with_render_defaults(assigns))}
+  @impl Phoenix.LiveView
+  def mount(params, session, socket) do
+    socket = assign_defaults(params, session, socket)
+
+    if connected?(socket), do: Process.send_after(self(), :tick, socket.assigns.conf.tick_interval)
+
+    :ok = Stats.activate()
+
+    socket =
+      assign(socket,
+        jobs: Query.get_jobs(socket.assigns.conf, @default_filters),
+        node_stats: Stats.for_nodes(socket.assigns.conf.name),
+        queue_stats: Stats.for_queues(socket.assigns.conf.name),
+        state_stats: Stats.for_states(socket.assigns.conf.name)
+      )
+
+    {:ok, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def render(assigns) do
+    ~L"""
+    <main>
+      <%= live_component @socket, FlashComponent, id: :flash, flash: @flash %>
+    </main>
+    """
   end
 
   @impl Phoenix.LiveView
@@ -178,10 +184,6 @@ defmodule ObanWeb.DashboardLive do
     {:ok, job} = Query.fetch_job(socket.assigns.conf, job_id)
 
     {:noreply, assign(socket, job: job)}
-  end
-
-  defp with_render_defaults(assigns) do
-    Map.merge(@render_defaults, assigns)
   end
 
   defp maybe_refresh_job(updated, %{conf: conf, job: %Job{id: jid}}) do

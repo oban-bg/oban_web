@@ -1,9 +1,8 @@
-<%= render("_blitz.html", flash: @flash) %>
 <%= if @job do %>
   <%= live_component @socket, ObanWeb.DetailComponent, id: @job.id, job: @job %>
 <% end %>
 
-<section class="bg-green-200">
+<section>
   <div class="sidebar sidebar--filters">
     <%= render("_nodes.html", node: @filters.node, node_stats: @node_stats) %>
     <%= render("_states.html", state: @filters.state, state_stats: @state_stats) %>

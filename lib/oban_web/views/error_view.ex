@@ -1,5 +1,5 @@
 defmodule ObanWeb.ErrorView do
-  @moduledoc false
+  use ObanWeb.Web, :view
 
   def render(_template, _assigns) do
     "Internal Server Error"
