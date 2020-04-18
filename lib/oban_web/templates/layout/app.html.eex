@@ -4,10 +4,11 @@
     <meta charset="utf-8"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <%= csrf_meta_tag() %>
+
     <title>Oban • Jobs</title>
-    <style>
-      <%= raw render(ObanWeb.LayoutView, "app.css") %>
-    </style>
+
+    <style><%= raw(render("app.css")) %></style>
   </head>
   <body>
     <header class="flex">
@@ -36,10 +37,6 @@
       <%= @inner_content %>
     </main>
 
-    <%= csrf_meta_tag() %>
-
-    <script>
-      <%= raw render(ObanWeb.LayoutView, "app.js") %>
-    </script>
+    <script><%= raw(render("app.js")) %></script>
   </body>
 </html>

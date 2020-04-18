@@ -3,7 +3,7 @@
   <%= live_component @socket, ObanWeb.DetailComponent, id: @job.id, job: @job %>
 <% end %>
 
-<section class="flex">
+<section class="bg-green-200">
   <div class="sidebar sidebar--filters">
     <%= render("_nodes.html", node: @filters.node, node_stats: @node_stats) %>
     <%= render("_states.html", state: @filters.state, state_stats: @state_stats) %>
