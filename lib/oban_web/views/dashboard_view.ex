@@ -47,26 +47,9 @@ defmodule ObanWeb.DashboardView do
     end
   end
 
-  def integer_to_delimited(integer) when is_integer(integer) do
-    integer
-    |> Integer.to_charlist()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3, 3, [])
-    |> Enum.join(",")
-    |> String.reverse()
-  end
-
   def state_count(stats, state) do
     state
     |> :proplists.get_value(stats, %{count: 0})
     |> Map.get(:count)
-  end
-
-  def truncate(string, range \\ 0..90) do
-    if String.length(string) > Enum.max(range) do
-      String.slice(string, range) <> "…"
-    else
-      string
-    end
   end
 end

@@ -2,7 +2,7 @@ defmodule ObanWeb.DashboardLive do
   use ObanWeb.Web, :live_view
 
   alias Oban.Job
-  alias ObanWeb.{Config, DashboardView, NotificationComponent, Query, Stats}
+  alias ObanWeb.{Config, DashboardView, NodesComponent, NotificationComponent, Query, Stats}
 
   @flash_timing 5_000
   @default_filters %{
@@ -52,8 +52,14 @@ defmodule ObanWeb.DashboardLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~L"""
-    <main role="main">
+    <main role="main" class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
+
+      <div class="flex">
+        <div>
+          <%= live_component @socket, NodesComponent, id: :nodes, filters: @filters, stats: @node_stats %>
+        </div>
+      </div>
     </main>
     """
   end
@@ -123,16 +129,16 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, kill_job(job_id, socket)}
   end
 
+  def handle_info({:filter_node, node}, socket) do
+    filters = Map.put(socket.assigns.filters, :node, node)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
   @impl Phoenix.LiveView
   def handle_event("blitz_close", _value, socket) do
     {:noreply, clear_flash(socket)}
-  end
-
-  def handle_event("change_node", %{"node" => node}, %{assigns: assigns} = socket) do
-    filters = Map.put(assigns.filters, :node, node)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do

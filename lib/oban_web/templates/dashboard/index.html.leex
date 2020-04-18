@@ -4,7 +4,6 @@
 
 <section>
   <div class="sidebar sidebar--filters">
-    <%= render("_nodes.html", node: @filters.node, node_stats: @node_stats) %>
     <%= render("_states.html", state: @filters.state, state_stats: @state_stats) %>
     <%= render("_queues.html", queue: @filters.queue, queue_stats: @queue_stats) %>
   </div>
