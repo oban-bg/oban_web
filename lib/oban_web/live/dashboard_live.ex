@@ -2,7 +2,7 @@ defmodule ObanWeb.DashboardLive do
   use ObanWeb.Web, :live_view
 
   alias Oban.Job
-  alias ObanWeb.{Config, DashboardView, FlashComponent, Query, Stats}
+  alias ObanWeb.{Config, DashboardView, NotificationComponent, Query, Stats}
 
   @flash_timing 5_000
   @default_filters %{
@@ -52,8 +52,8 @@ defmodule ObanWeb.DashboardLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~L"""
-    <main>
-      <%= live_component @socket, FlashComponent, id: :flash, flash: @flash %>
+    <main role="main">
+      <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
     </main>
     """
   end
