@@ -10,7 +10,7 @@
 
     <style><%= raw(render("app.css")) %></style>
   </head>
-  <body class="min-h-screen bg-gray-200 flex flex-col font-mono antialiased text-gray-800">
+  <body class="min-h-screen flex flex-col antialiased bg-gray-200 text-gray-800">
     <header class="flex"></header>
 
     <%= @inner_content %>

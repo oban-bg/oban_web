@@ -3,11 +3,6 @@
 <% end %>
 
 <section>
-  <div class="sidebar sidebar--filters">
-    <%= render("_states.html", state: @filters.state, state_stats: @state_stats) %>
-    <%= render("_queues.html", queue: @filters.queue, queue_stats: @queue_stats) %>
-  </div>
-
   <div class="container flex--1">
     <div class="flex justify-between padding--s">
       <div class="flex margin--none">

@@ -2,7 +2,8 @@ defmodule ObanWeb.DashboardLive do
   use ObanWeb.Web, :live_view
 
   alias Oban.Job
-  alias ObanWeb.{Config, DashboardView, NodesComponent, NotificationComponent, Query, Stats}
+  alias ObanWeb.{Config, Query, Stats}
+  alias ObanWeb.{NodesComponent, NotificationComponent, QueuesComponent, StatesComponent}
 
   @flash_timing 5_000
   @default_filters %{
@@ -58,6 +59,8 @@ defmodule ObanWeb.DashboardLive do
       <div class="flex">
         <div>
           <%= live_component @socket, NodesComponent, id: :nodes, filters: @filters, stats: @node_stats %>
+          <%= live_component @socket, StatesComponent, id: :states, filters: @filters, stats: @state_stats %>
+          <%= live_component @socket, QueuesComponent, id: :queues, filters: @filters, stats: @queue_stats %>
         </div>
       </div>
     </main>
@@ -136,23 +139,23 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
+  def handle_info({:filter_state, state}, socket) do
+    filters = Map.put(socket.assigns.filters, :state, state)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_info({:filter_queue, queue}, socket) do
+    filters = Map.put(socket.assigns.filters, :queue, queue)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
   @impl Phoenix.LiveView
   def handle_event("blitz_close", _value, socket) do
     {:noreply, clear_flash(socket)}
-  end
-
-  def handle_event("change_queue", %{"queue" => queue}, %{assigns: assigns} = socket) do
-    filters = Map.put(assigns.filters, :queue, queue)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
-  end
-
-  def handle_event("change_state", %{"state" => state}, %{assigns: assigns} = socket) do
-    filters = Map.put(assigns.filters, :state, state)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
