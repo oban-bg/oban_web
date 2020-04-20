@@ -1,6 +1,7 @@
 const purgecss = require("@fullhuman/postcss-purgecss")({
   content: [
     "../lib/**/*.eex",
+    "../lib/**/*.ex",
     "../lib/**/*.leex"
   ],
 

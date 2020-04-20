@@ -3,9 +3,11 @@ defmodule ObanWeb.DashboardLive do
 
   alias Oban.Job
   alias ObanWeb.{Config, Query, Stats}
-  alias ObanWeb.{NodesComponent, NotificationComponent, QueuesComponent, StatesComponent}
+  alias ObanWeb.{NodesComponent, NotificationComponent, QueuesComponent}
+  alias ObanWeb.{RefreshComponent, StatesComponent}
 
   @flash_timing 5_000
+
   @default_filters %{
     node: "any",
     queue: "any",
@@ -14,40 +16,28 @@ defmodule ObanWeb.DashboardLive do
     worker: "any"
   }
 
-  # TODO: Look into temporary_assigns for jobs
-
-  defp assign_defaults(_params, _session, socket) do
-    conf = Config.get()
-
-    assign(socket,
-      conf: conf,
-      filters: @default_filters,
-      job: nil,
-      jobs: [],
-      node_stats: [],
-      queue_stats: [],
-      state_stats: [],
-      tick_ref: nil
-    )
-  end
+  @default_refresh 1
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
-    socket = assign_defaults(params, session, socket)
-
-    if connected?(socket), do: Process.send_after(self(), :tick, socket.assigns.conf.tick_interval)
-
     :ok = Stats.activate()
+
+    conf = Config.get()
 
     socket =
       assign(socket,
-        jobs: Query.get_jobs(socket.assigns.conf, @default_filters),
-        node_stats: Stats.for_nodes(socket.assigns.conf.name),
-        queue_stats: Stats.for_queues(socket.assigns.conf.name),
-        state_stats: Stats.for_states(socket.assigns.conf.name)
+        conf: conf,
+        filters: @default_filters,
+        job: nil,
+        jobs: Query.get_jobs(conf, @default_filters),
+        node_stats: Stats.for_nodes(conf.name),
+        queue_stats: Stats.for_queues(conf.name),
+        state_stats: Stats.for_states(conf.name),
+        refresh: @default_refresh,
+        timer: nil
       )
 
-    {:ok, socket}
+    {:ok, init_schedule_refresh(socket)}
   end
 
   @impl Phoenix.LiveView
@@ -56,7 +46,11 @@ defmodule ObanWeb.DashboardLive do
     <main role="main" class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
-      <div class="flex">
+      <div class="w-full flex justify-between">
+        <%= live_component @socket, RefreshComponent, id: :refresh, refresh: @refresh %>
+      </div>
+
+      <div class="flex mt-6">
         <div>
           <%= live_component @socket, NodesComponent, id: :nodes, filters: @filters, stats: @node_stats %>
           <%= live_component @socket, StatesComponent, id: :states, filters: @filters, stats: @state_stats %>
@@ -68,8 +62,8 @@ defmodule ObanWeb.DashboardLive do
   end
 
   @impl Phoenix.LiveView
-  def terminate(_reason, %{assigns: %{tick_ref: tick_ref}}) do
-    if is_reference(tick_ref), do: Process.cancel_timer(tick_ref)
+  def terminate(_reason, %{assigns: %{timer: timer}}) do
+    if is_reference(timer), do: Process.cancel_timer(timer)
 
     :ok
   end
@@ -90,22 +84,17 @@ defmodule ObanWeb.DashboardLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_info(:tick, %{assigns: assigns} = socket) do
-    updated = [
-      jobs: Query.get_jobs(assigns.conf, assigns.filters),
-      node_stats: Stats.for_nodes(assigns.conf.name),
-      queue_stats: Stats.for_queues(assigns.conf.name),
-      state_stats: Stats.for_states(assigns.conf.name)
-    ]
+  def handle_info(:refresh, socket) do
+    socket =
+      assign(socket,
+        job: refresh_job(socket.assigns.conf, socket.assigns.job),
+        jobs: Query.get_jobs(socket.assigns.conf, socket.assigns.filters),
+        node_stats: Stats.for_nodes(socket.assigns.conf.name),
+        queue_stats: Stats.for_queues(socket.assigns.conf.name),
+        state_stats: Stats.for_states(socket.assigns.conf.name)
+      )
 
-    tick_ref = Process.send_after(self(), :tick, assigns.conf.tick_interval)
-
-    updated =
-      updated
-      |> maybe_refresh_job(assigns)
-      |> Keyword.put(:tick_ref, tick_ref)
-
-    {:noreply, assign(socket, updated)}
+    {:noreply, schedule_refresh(socket)}
   end
 
   def handle_info(:clear_flash, socket) do
@@ -153,6 +142,17 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
+  def handle_info({:update_refresh, refresh}, socket) do
+    if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
+
+    socket =
+      socket
+      |> assign(refresh: refresh)
+      |> schedule_refresh()
+
+    {:noreply, socket}
+  end
+
   @impl Phoenix.LiveView
   def handle_event("blitz_close", _value, socket) do
     {:noreply, clear_flash(socket)}
@@ -195,19 +195,14 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, job: job)}
   end
 
-  defp maybe_refresh_job(updated, %{conf: conf, job: %Job{id: jid}}) do
+  defp refresh_job(conf, %Job{id: jid}) do
     case Query.fetch_job(conf, jid) do
-      {:ok, job} ->
-        Keyword.put(updated, :job, job)
-
-      {:error, :not_found} ->
-        Keyword.put(updated, :job, nil)
+      {:ok, job} -> job
+      {:error, :not_found} -> nil
     end
   end
 
-  defp maybe_refresh_job(updated, _assigns) do
-    updated
-  end
+  defp refresh_job(_conf, _job), do: nil
 
   defp delete_job(job_id, socket) do
     :ok = Query.delete_job(socket.assigns.conf, job_id)
@@ -237,5 +232,25 @@ defmodule ObanWeb.DashboardLive do
     Process.send_after(self(), :clear_flash, @flash_timing)
 
     put_flash(socket, mode, message)
+  end
+
+  ## Refresh Helpers
+
+  defp init_schedule_refresh(socket) do
+    if connected?(socket) do
+      schedule_refresh(socket)
+    else
+      assign(socket, timer: nil)
+    end
+  end
+
+  defp schedule_refresh(socket) do
+    if socket.assigns.refresh > 0 do
+      interval = :timer.seconds(socket.assigns.refresh) - 50
+
+      assign(socket, timer: Process.send_after(self(), :refresh, interval))
+    else
+      assign(socket, timer: nil)
+    end
   end
 end

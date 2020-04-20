@@ -11,6 +11,11 @@
   font-variant-numeric: slashed-zero tabular-nums;
 }
 
+select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 #000;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
