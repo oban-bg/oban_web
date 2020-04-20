@@ -7,8 +7,8 @@ defmodule ObanWeb.NodesComponent do
       <header class="flex justify-between items-center border-b border-gray-200 px-4 py-3">
         <span class="font-bold">Nodes</span>
         <div>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Limit</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Limit</span>
         </div>
       </header>
 
@@ -20,8 +20,8 @@ defmodule ObanWeb.NodesComponent do
               phx-value-node="<%= node %>">
             <span class="font-semibold"><%= truncate(node, 0..30) %></span>
             <div>
-              <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(execu) %></span>
-              <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(limit) %></span>
+              <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(execu) %></span>
+              <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(limit) %></span>
             </div>
           </li>
         <% end %>

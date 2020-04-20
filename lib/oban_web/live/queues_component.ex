@@ -7,9 +7,9 @@ defmodule ObanWeb.QueuesComponent do
       <header class="flex justify-between items-center border-b border-gray-200 px-4 py-3">
         <span class="font-bold">Queues</span>
         <div>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Limit</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Avail</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Limit</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Avail</span>
         </div>
       </header>
       <ul class="py-2">
@@ -20,9 +20,9 @@ defmodule ObanWeb.QueuesComponent do
               phx-value-queue="<%= queue %>">
             <span class="font-semibold"><%= queue %></span>
             <div>
-              <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(execu) %></span>
-              <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(limit) %></span>
-              <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(avail) %></span>
+              <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(execu) %></span>
+              <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(limit) %></span>
+              <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(avail) %></span>
             </div>
           </li>
         <% end %>

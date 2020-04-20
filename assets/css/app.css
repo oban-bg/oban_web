@@ -1,25 +1,14 @@
 @font-face {
   font-display: swap;
-  font-family: "Inter";
+  font-family: "Inter var";
   font-style: normal;
-  font-weight: 400;
-  src: url("../fonts/Inter-Regular.woff2") format("woff2");
+  font-weight: 100 900;
+  font-named-instance: "Regular";
+  src: url("../fonts/Inter.woff2") format("woff2");
 }
 
-@font-face {
-  font-display: swap;
-  font-family: "Inter";
-  font-style: normal;
-  font-weight: 600;
-  src: url("../fonts/Inter-SemiBold.woff2") format("woff2");
-}
-
-@font-face {
-  font-display: swap;
-  font-family: "Inter";
-  font-style: bold;
-  font-weight: 700;
-  src: url("../fonts/Inter-Bold.woff2") format("woff2");
+.tabular {
+  font-variant-numeric: slashed-zero tabular-nums;
 }
 
 @tailwind base;

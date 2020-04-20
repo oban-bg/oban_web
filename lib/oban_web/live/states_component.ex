@@ -16,7 +16,7 @@ defmodule ObanWeb.StatesComponent do
               phx-target="<%= @myself %>"
               phx-value-state="<%= state %>">
             <span class="font-semibold"><%= state %></span>
-            <span class="text-gray-500 inline-block text-right w-10"><%= integer_to_delimited(count) %></span>
+            <span class="text-gray-500 text-right tabular"><%= integer_to_delimited(count) %></span>
           </li>
         <% end %>
       </ul>
