@@ -3,8 +3,7 @@ defmodule ObanWeb.DashboardLive do
 
   alias Oban.Job
   alias ObanWeb.{Config, Query, Stats}
-  alias ObanWeb.{NodesComponent, NotificationComponent, QueuesComponent}
-  alias ObanWeb.{RefreshComponent, StatesComponent}
+  alias ObanWeb.{NotificationComponent, RefreshComponent, SidebarComponent}
 
   @flash_timing 5_000
 
@@ -19,7 +18,7 @@ defmodule ObanWeb.DashboardLive do
   @default_refresh 1
 
   @impl Phoenix.LiveView
-  def mount(params, session, socket) do
+  def mount(_params, _session, socket) do
     :ok = Stats.activate()
 
     conf = Config.get()
@@ -27,6 +26,7 @@ defmodule ObanWeb.DashboardLive do
     socket =
       assign(socket,
         conf: conf,
+        expanded_queue: nil,
         filters: @default_filters,
         job: nil,
         jobs: Query.get_jobs(conf, @default_filters),
@@ -50,12 +50,14 @@ defmodule ObanWeb.DashboardLive do
         <%= live_component @socket, RefreshComponent, id: :refresh, refresh: @refresh %>
       </div>
 
-      <div class="flex mt-6">
-        <div>
-          <%= live_component @socket, NodesComponent, id: :nodes, filters: @filters, stats: @node_stats %>
-          <%= live_component @socket, StatesComponent, id: :states, filters: @filters, stats: @state_stats %>
-          <%= live_component @socket, QueuesComponent, id: :queues, filters: @filters, stats: @queue_stats %>
-        </div>
+      <div class="mt-6">
+        <%= live_component @socket,
+            SidebarComponent,
+            id: :sidebar,
+            filters: @filters,
+            node_stats: @node_stats,
+            queue_stats: @queue_stats,
+            state_stats: @state_stats %>
       </div>
     </main>
     """
@@ -119,6 +121,26 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_info({:kill_job, job_id}, socket) do
     {:noreply, kill_job(job_id, socket)}
+  end
+
+  def handle_info({:scale_queue, queue, limit}, socket) do
+    :ok = Oban.scale_queue(queue, limit)
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:pause_queue, queue}, socket) do
+    # TODO: This requires an update regardless of whether we are actively refreshing
+    :ok = Oban.pause_queue(queue)
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:resume_queue, queue}, socket) do
+    # TODO: This requires an update regardless of whether we are actively refreshing
+    :ok = Oban.resume_queue(queue)
+
+    {:noreply, socket}
   end
 
   def handle_info({:filter_node, node}, socket) do

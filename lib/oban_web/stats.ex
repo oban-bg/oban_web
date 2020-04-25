@@ -74,18 +74,31 @@ defmodule ObanWeb.Stats do
         Map.update(acc, queue, limit, &(&1 + limit))
       end)
 
+    local_limits =
+      table
+      |> :ets.select([{{{:node, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
+      |> Map.new(fn [queue, limit] -> {queue, limit} end)
+
+    pause_states =
+      table
+      |> :ets.select([{{{:node, :_, :"$1"}, :_, :_, :"$2"}, [], [:"$$"]}])
+      |> Enum.reduce(%{}, fn [queue, paused], acc ->
+        Map.update(acc, queue, paused, &(&1 or paused))
+      end)
+
     [avail_counts, execu_counts, limit_counts]
     |> Enum.flat_map(&Map.keys/1)
     |> Enum.uniq()
     |> Enum.sort()
     |> Enum.map(fn queue ->
-      counts = %{
-        avail: Map.get(avail_counts, queue, 0),
-        execu: Map.get(execu_counts, queue, 0),
-        limit: Map.get(limit_counts, queue, 0)
-      }
-
-      {queue, counts}
+      {queue,
+       %{
+         avail: Map.get(avail_counts, queue, 0),
+         execu: Map.get(execu_counts, queue, 0),
+         limit: Map.get(limit_counts, queue, 0),
+         local: Map.get(local_limits, queue, 0),
+         pause: Map.get(pause_states, queue, true)
+       }}
     end)
   end
 

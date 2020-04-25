@@ -44,8 +44,8 @@ defmodule ObanWeb.StatsTest do
 
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
     insert_beat!(node: "web.2", queue: "alpha", limit: 4)
-    insert_beat!(node: "web.1", queue: "gamma", limit: 5)
-    insert_beat!(node: "web.2", queue: "gamma", limit: 5)
+    insert_beat!(node: "web.1", queue: "gamma", limit: 5, paused: true)
+    insert_beat!(node: "web.2", queue: "gamma", limit: 5, paused: false)
     insert_beat!(node: "web.2", queue: "delta", limit: 9)
 
     start_supervised!({Stats, @opts})
@@ -58,9 +58,9 @@ defmodule ObanWeb.StatsTest do
            }
 
     assert for_queues() == %{
-             "alpha" => %{avail: 1, execu: 1, limit: 8},
-             "delta" => %{avail: 0, execu: 0, limit: 9},
-             "gamma" => %{avail: 1, execu: 0, limit: 10}
+             "alpha" => %{avail: 1, execu: 1, limit: 8, local: 4, pause: false},
+             "delta" => %{avail: 0, execu: 0, limit: 9, local: 9, pause: false},
+             "gamma" => %{avail: 1, execu: 0, limit: 10, local: 5, pause: true}
            }
 
     assert for_states() == %{
@@ -92,7 +92,7 @@ defmodule ObanWeb.StatsTest do
     Process.sleep(20)
 
     assert for_nodes() == %{"web.1" => %{count: 0, limit: 4}}
-    assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4}}
+    assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4, local: 4, pause: false}}
 
     stop_supervised(Stats)
   end
