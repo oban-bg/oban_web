@@ -7,7 +7,6 @@ config :oban_web, ecto_repos: [ObanWeb.Repo]
 config :oban_web, ObanWeb.Endpoint,
   http: [port: 4002],
   live_view: [signing_salt: "eX7TFPY6Y/+XQ1o2pOUW3DjgAoXGTAdX"],
-  pubsub: [name: ObanWeb.PubSub, adapter: Phoenix.PubSub.PG2],
   secret_key_base: "jAu3udxm+8tIRDXLLKo+EupAlEvdLsnNG82O8e9nqylpBM9gP8AjUnZ4PWNttztU",
   server: false,
   url: [host: "localhost"]

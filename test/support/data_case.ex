@@ -7,7 +7,8 @@ defmodule ObanWeb.DataCase do
 
   using do
     quote do
-      use Phoenix.ConnTest
+      import Plug.Conn
+      import Phoenix.ConnTest
 
       import Ecto
       import Ecto.Changeset

@@ -210,7 +210,7 @@ defmodule ObanWeb.DashboardLiveTest do
     assert flash =~ "Job canceled"
 
     assert view
-           |> render_click(:blitz_close, "")
+           |> render_click(:blitz_close)
            |> parse_html()
            |> Floki.find(".blitz--show")
            |> Enum.empty?()
