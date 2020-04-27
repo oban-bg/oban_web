@@ -49,11 +49,11 @@ defmodule ObanWeb.QueueComponent do
         </div>
 
         <div class="pr-4 hidden group-hover:flex">
-          <button class="block w-5 h-5 text-gray-400 hover:text-gray-500" phx-click="expand" phx-target="<%= @myself %>">
+          <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Expand queue scaling" phx-click="expand" phx-target="<%= @myself %>">
             <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"></path></svg>
           </button>
 
-          <button class="ml-3 block w-5 h-5 text-gray-400 hover:text-gray-600" phx-click="play_pause" phx-target="<%= @myself %>" phx-throttle="500">
+          <button class="ml-3 block w-5 h-5 text-gray-400 hover:text-blue-500" title="Pause or resume queue" phx-click="play_pause" phx-target="<%= @myself %>" phx-throttle="500">
             <%= if @paused? do %>
               <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
             <% else %>

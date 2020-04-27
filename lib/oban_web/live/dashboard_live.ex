@@ -52,7 +52,7 @@ defmodule ObanWeb.DashboardLive do
       </div>
 
       <div class="w-full flex my-6">
-        <div class="mr-6">
+        <div class="mr-3">
           <%= live_component @socket,
               SidebarComponent,
               id: :sidebar,
