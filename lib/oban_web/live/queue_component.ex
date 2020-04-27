@@ -40,9 +40,9 @@ defmodule ObanWeb.QueueComponent do
     ~L"""
     <li class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="group flex justify-between cursor-pointer py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
-        <span class="pl-4 font-semibold <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
+        <span class="pl-3 font-semibold <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 
-        <div class="pr-4 group-hover:hidden">
+        <div class="pr-3 group-hover:hidden">
           <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@execu) %></span>
           <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@limit) %></span>
           <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@avail) %></span>
@@ -63,7 +63,7 @@ defmodule ObanWeb.QueueComponent do
         </div>
       </div>
 
-      <div class="w-full px-4 bg-white shadow-inner overflow-hidden transition-all duration-500 ease-in-out <%= if @expanded? do %>h-24 py-4 bg-gray-100<% else %>h-0<% end %>">
+      <div class="w-full px-3 bg-white shadow-inner overflow-hidden transition-all duration-500 ease-in-out <%= if @expanded? do %>h-24 py-4 bg-gray-100<% else %>h-0<% end %>">
         <form phx-change="scale" phx-target="<%= @myself %>">
           <label for="limit" class="block w-full text-xs font-bold text-gray-600">Queue Limit (Per Node)</label>
           <div class="flex justify-between items-center mt-2 w-full">

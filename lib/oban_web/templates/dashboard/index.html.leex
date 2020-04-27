@@ -6,14 +6,6 @@
   <div class="container flex--1">
     <div class="flex justify-between padding--s">
       <div class="flex margin--none">
-        <h2 class="font-size--l margin--none margin-r--m align-self--center">
-          <span class="font-weight--7">
-            <%= String.capitalize(@filters.state) %>
-          </span><span class="font-weight--3 color--main-light">
-            (<%= length(@jobs) %>/<%= integer_to_delimited(state_count(@state_stats, @filters.state)) %> Jobs)
-          </span>
-        </h2>
-
         <div class="align-self--center">
           <%= for {type, name} <- clearable_filters(@filters) do %>
             <div class="pill margin--none margin-r--m">
@@ -25,17 +17,6 @@
           <% end %>
         </div>
       </div>
-
-      <form class="search-wrapper" phx-change="change_terms">
-        <%= icon("search") %>
-
-        <input class="width--100-pct"
-               name="terms"
-               type="search"
-               placeholder="Search"
-               value="<%= @filters.terms %>"
-               phx-debounce="250" />
-      </form>
     </div>
 
     <%= render("_table.html", jobs: @jobs, state: @filters.state) %>

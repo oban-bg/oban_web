@@ -46,10 +46,4 @@ defmodule ObanWeb.DashboardView do
       _ -> Timing.to_words(job.relative_scheduled_at)
     end
   end
-
-  def state_count(stats, state) do
-    state
-    |> :proplists.get_value(stats, %{count: 0})
-    |> Map.get(:count)
-  end
 end

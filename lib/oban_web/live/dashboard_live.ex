@@ -3,7 +3,8 @@ defmodule ObanWeb.DashboardLive do
 
   alias Oban.Job
   alias ObanWeb.{Config, Query, Stats}
-  alias ObanWeb.{NotificationComponent, RefreshComponent, SidebarComponent}
+  alias ObanWeb.{HeaderComponent, NotificationComponent, RefreshComponent}
+  alias ObanWeb.{SearchComponent, SidebarComponent}
 
   @flash_timing 5_000
 
@@ -26,7 +27,6 @@ defmodule ObanWeb.DashboardLive do
     socket =
       assign(socket,
         conf: conf,
-        expanded_queue: nil,
         filters: @default_filters,
         job: nil,
         jobs: Query.get_jobs(conf, @default_filters),
@@ -46,18 +46,28 @@ defmodule ObanWeb.DashboardLive do
     <main role="main" class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
-      <div class="w-full flex justify-between">
+      <div class="flex justify-between">
+        <span>Oban</span>
         <%= live_component @socket, RefreshComponent, id: :refresh, refresh: @refresh %>
       </div>
 
-      <div class="mt-6">
-        <%= live_component @socket,
-            SidebarComponent,
-            id: :sidebar,
-            filters: @filters,
-            node_stats: @node_stats,
-            queue_stats: @queue_stats,
-            state_stats: @state_stats %>
+      <div class="w-full flex my-6">
+        <div class="mr-6">
+          <%= live_component @socket,
+              SidebarComponent,
+              id: :sidebar,
+              filters: @filters,
+              node_stats: @node_stats,
+              queue_stats: @queue_stats,
+              state_stats: @state_stats %>
+        </div>
+
+        <div class="flex-1 bg-white rounded-md shadow-md overflow-hidden">
+          <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
+            <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats %>
+            <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
+          </div>
+        </div>
       </div>
     </main>
     """
@@ -130,14 +140,12 @@ defmodule ObanWeb.DashboardLive do
   end
 
   def handle_info({:pause_queue, queue}, socket) do
-    # TODO: This requires an update regardless of whether we are actively refreshing
     :ok = Oban.pause_queue(queue)
 
     {:noreply, socket}
   end
 
   def handle_info({:resume_queue, queue}, socket) do
-    # TODO: This requires an update regardless of whether we are actively refreshing
     :ok = Oban.resume_queue(queue)
 
     {:noreply, socket}
@@ -164,6 +172,13 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
+  def handle_info({:filter_terms, terms}, socket) do
+    filters = Map.put(socket.assigns.filters, :terms, terms)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
   def handle_info({:update_refresh, refresh}, socket) do
     if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
 
@@ -176,17 +191,6 @@ defmodule ObanWeb.DashboardLive do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("blitz_close", _value, socket) do
-    {:noreply, clear_flash(socket)}
-  end
-
-  def handle_event("change_terms", %{"terms" => terms}, %{assigns: assigns} = socket) do
-    filters = Map.put(assigns.filters, :terms, terms)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
-  end
-
   def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :worker, worker)
     jobs = Query.get_jobs(assigns.conf, filters)

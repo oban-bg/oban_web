@@ -5,8 +5,8 @@ defmodule ObanWeb.SidebarComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="bg-white w-84 mb-6 rounded shadow-md overflow-hidden">
-      <header class="flex justify-between items-center border-b border-gray-200 px-4 py-3">
+    <div class="bg-white w-84 mb-6 rounded-md shadow-md overflow-hidden">
+      <header class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">Nodes</span>
         <div>
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
@@ -20,8 +20,8 @@ defmodule ObanWeb.SidebarComponent do
       </ul>
     </div>
 
-    <div class="bg-white w-84 mb-6 rounded shadow-md overflow-hidden">
-      <header class="flex justify-between items-center border-b border-gray-200 px-4 py-3">
+    <div class="bg-white w-84 mb-6 rounded-md shadow-md overflow-hidden">
+      <header class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">States</span>
         <div>
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Count</span>
@@ -34,8 +34,8 @@ defmodule ObanWeb.SidebarComponent do
       </ul>
     </div>
 
-    <div class="bg-white w-84 mb-6 rounded shadow-md overflow-hidden">
-      <header class="flex justify-between items-center border-b border-gray-200 px-4 py-3">
+    <div class="bg-white w-84 rounded-md shadow-md overflow-hidden">
+      <header class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">Queues</span>
         <div>
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
