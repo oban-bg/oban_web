@@ -28,7 +28,7 @@ defmodule ObanWeb.QueueComponent do
           limit: assigns.stat.limit,
           local: assigns.stat.local,
           paused?: assigns.stat.pause,
-          ratio: div(assigns.stat.limit, assigns.stat.local),
+          ratio: safe_div(assigns.stat.limit, assigns.stat.local),
           update_at: nil
         )
       end
@@ -48,7 +48,7 @@ defmodule ObanWeb.QueueComponent do
           <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@avail) %></span>
         </div>
 
-        <div class="pr-4 hidden group-hover:flex">
+        <div class="pr-3 hidden group-hover:flex">
           <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Expand queue scaling" phx-click="expand" phx-target="<%= @myself %>">
             <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"></path></svg>
           </button>
@@ -75,6 +75,9 @@ defmodule ObanWeb.QueueComponent do
     </li>
     """
   end
+
+  def safe_div(_, 0), do: 0
+  def safe_div(num, dem), do: div(num, dem)
 
   def handle_event("filter", _params, socket) do
     new_queue = if socket.assigns.active?, do: "any", else: socket.assigns.name

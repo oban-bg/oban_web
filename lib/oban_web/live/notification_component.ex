@@ -3,7 +3,7 @@ defmodule ObanWeb.NotificationComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="fixed inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end <%= if hidden?(@flash) do %>hidden<% end %>">
+    <div class="fixed z-40 inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end <%= if hidden?(@flash) do %>hidden<% end %>">
       <div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto">
         <div class="rounded-lg shadow-xs overflow-hidden">
           <div class="p-4">
