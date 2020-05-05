@@ -1,15 +1,11 @@
 use Mix.Config
 
-config :phoenix, :json_library, Jason
+config :logger, level: :warn
+config :logger, :console, format: "[$level] $message\n"
+
+config :phoenix, json_library: Jason, stacktrace_depth: 20
 
 config :oban_web, ecto_repos: [ObanWeb.Repo]
-
-config :oban_web, ObanWeb.Endpoint,
-  http: [port: 4002],
-  live_view: [signing_salt: "eX7TFPY6Y/+XQ1o2pOUW3DjgAoXGTAdX"],
-  secret_key_base: "jAu3udxm+8tIRDXLLKo+EupAlEvdLsnNG82O8e9nqylpBM9gP8AjUnZ4PWNttztU",
-  server: false,
-  url: [host: "localhost"]
 
 config :oban_web, ObanWeb.Repo,
   priv: "test/support/",

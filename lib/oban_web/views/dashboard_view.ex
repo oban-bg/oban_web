@@ -1,7 +1,7 @@
 defmodule ObanWeb.DashboardView do
   use ObanWeb.Web, :view
 
-  alias ObanWeb.{IconView, Timing}
+  alias ObanWeb.IconView
 
   @doc """
   A helper for rendering icon templates from the IconView.
