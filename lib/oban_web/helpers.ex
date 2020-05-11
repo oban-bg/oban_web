@@ -54,4 +54,36 @@ defmodule ObanWeb.Helpers do
       _ -> Timing.to_words(job.relative_scheduled_at)
     end
   end
+
+  @doc """
+  Whether the job can be cancelled in its current state.
+  """
+  @spec cancelable?(Job.t()) :: boolean()
+  def cancelable?(%Job{state: state}) do
+    state in ~w(inserted scheduled available executing retryable)
+  end
+
+  @doc """
+  Whether the job can be ran immediately in its current state.
+  """
+  @spec runnable?(Job.t()) :: boolean()
+  def runnable?(%Job{state: state}) do
+    state in ~w(inserted scheduled)
+  end
+
+  @doc """
+  Whether the job can be retried in its current state.
+  """
+  @spec retryable?(Job.t()) :: boolean()
+  def retryable?(%Job{state: state}) do
+    state in ~w(completed retryable)
+  end
+
+  @doc """
+  Whether the job can be deleted in its current state.
+  """
+  @spec deletable?(Job.t()) :: boolean()
+  def deletable?(%Job{state: state}) do
+    state in ~w(inserted scheduled available completed retryable discarded)
+  end
 end

@@ -24,20 +24,20 @@ defmodule ObanWeb.Query do
   end
 
   @doc false
-  def delete_job(%Config{repo: repo, verbose: verbose}, job_id) do
+  def delete_jobs(%Config{repo: repo, verbose: verbose}, [_ | _] = job_ids) do
     Job
-    |> where(id: ^job_id)
+    |> where([j], j.id in ^job_ids)
     |> repo.delete_all(log: verbose)
 
     :ok
   end
 
   @doc false
-  def deschedule_job(%Config{repo: repo, verbose: verbose}, job_id) do
+  def deschedule_jobs(%Config{repo: repo, verbose: verbose}, [_ | _] = job_ids) do
     updates = [state: "available", completed_at: nil, discarded_at: nil]
 
     Job
-    |> where(id: ^job_id)
+    |> where([j], j.id in ^job_ids)
     |> repo.update_all([set: updates], log: verbose)
 
     :ok

@@ -2,12 +2,21 @@ defmodule ObanWeb.ListingRowComponent do
   use ObanWeb.Web, :live_component
 
   def mount(socket) do
-    {:ok, assign(socket, selected?: false, show_menu?: false)}
+    {:ok, assign(socket, hidden?: false, selected?: false)}
+  end
+
+  def update(assigns, socket) do
+    {:ok,
+     assign(socket,
+       job: assigns.job,
+       selected?: MapSet.member?(assigns.selected, assigns.job.id),
+       hidden?: Map.get(assigns.job, :hidden?, false)
+     )}
   end
 
   def render(assigns) do
     ~L"""
-    <li class="flex justify-between border-b border-gray-100 hover:bg-green-50">
+    <li class="flex justify-between bg-white border-b border-gray-100 transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
       <div class="flex justify-start">
         <button class="flex-none block pl-3 py-3 " phx-target="<%= @myself %>" phx-click="toggle_select">
           <%= if @selected? do %>
@@ -19,7 +28,7 @@ defmodule ObanWeb.ListingRowComponent do
 
         <div class="flex-auto max-w-xl overflow-hidden pl-3 py-3">
           <span class="text-sm text-gray-500 tabular"><%= @job.id %></span>
-          <span class="font-semibold text-sm text-gray-700 cursor-pointer transition ease-in-out duration-100 border-b border-gray-200 hover:border-gray-400 ml-1"><%= @job.worker %></span>
+          <span class="font-semibold text-sm text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400 ml-1"><%= @job.worker %></span>
           <span class="block font-mono truncate text-xs text-gray-500 mt-2"><%= inspect(@job.args) %></span>
         </div>
       </div>
@@ -37,52 +46,6 @@ defmodule ObanWeb.ListingRowComponent do
           <%= relative_time(@job.state, @job) %>
         </div>
 
-        <div class="relative">
-          <button class="block z-auto pl-3 py-3 text-gray-400 hover:text-blue-500 focus:outline-none" phx-target="<%= @myself %>" phx-click="toggle_menu">
-            <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>
-          </button>
-
-          <div class="origin-top-right absolute z-10 right-0 -mt-1 w-48 rounded-md shadow-lg <%= if @show_menu? do %>block<% else %>hidden<% end %>">
-            <div class="rounded-md bg-white shadow-xs">
-              <%= if @job.state in ~w(inserted scheduled available executing retryable) do %>
-                <a href="#"
-                   class="group flex items-center px-3 py-2 text-sm leading-5 text-gray-600 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
-                   phx-target="<%= @myself %>" phx-click="cancel">
-                  <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-500 group-focus:text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-                  Cancel
-                </a>
-              <% end %>
-
-              <%= if @job.state in ~w(inserted scheduled) do %>
-                <a href="#"
-                   class="group flex items-center px-3 py-2 text-sm leading-5 text-gray-600 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
-                   phx-target="<%= @myself %>" phx-click="run_now">
-                  <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-500 group-focus:text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-                  Run Now
-                </a>
-              <% end %>
-
-              <%= if @job.state in ~w(completed retryable) do %>
-                <a href="#"
-                   class="group flex items-center px-3 py-2 text-sm leading-5 text-gray-600 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
-                   phx-target="<%= @myself %>" phx-click="retry">
-                  <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-500 group-focus:text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-                  Retry
-                </a>
-              <% end %>
-
-              <%= if @job.state in ~w(inserted scheduled available completed retryable discarded) do %>
-                <a href="#"
-                   class="group flex items-center px-3 py-2 text-sm leading-5 text-gray-600 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:bg-gray-100 focus:text-gray-900"
-                   phx-target="<%= @myself %>" phx-click="delete">
-                  <svg class="mr-2 h-5 w-5 text-gray-400 group-hover:text-gray-500 group-focus:text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-                  Delete
-                </a>
-              <% end %>
-            </div>
-          </div>
-        </div>
-
         <button class="block px-3 py-3 text-gray-400 hover:text-blue-500">
           <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path></svg>
         </button>
@@ -92,34 +55,12 @@ defmodule ObanWeb.ListingRowComponent do
   end
 
   def handle_event("toggle_select", _params, socket) do
+    if socket.assigns.selected? do
+      send(self(), {:deselect_job, socket.assigns.job})
+    else
+      send(self(), {:select_job, socket.assigns.job})
+    end
+
     {:noreply, assign(socket, :selected?, not socket.assigns.selected?)}
-  end
-
-  def handle_event("toggle_menu", _params, socket) do
-    {:noreply, assign(socket, show_menu?: not socket.assigns.show_menu?)}
-  end
-
-  def handle_event("cancel", _params, socket) do
-    send(self(), {:cancel_job, socket.assigns.job})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("run_now", _params, socket) do
-    send(self(), {:deschedule_job, socket.assigns.job})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("retry", _params, socket) do
-    send(self(), {:deschedule_job, socket.assigns.job})
-
-    {:noreply, socket}
-  end
-
-  def handle_event("delete", _params, socket) do
-    send(self(), {:delete_job, socket.assigns.job})
-
-    {:noreply, socket}
   end
 end

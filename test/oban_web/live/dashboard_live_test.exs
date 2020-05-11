@@ -66,14 +66,6 @@ defmodule ObanWeb.DashboardLiveTest do
       assert html =~ "DeadWorker"
       refute html =~ "RealWorker"
     end
-
-    test "paging through availble jobs", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/oban")
-
-      insert_job!([ref: 1], worker: FakeWorker)
-
-      assert render_click(view, :change_state, %{"state" => "available"}) =~ "FakeWorker"
-    end
   end
 
   test "filtering jobs by node", %{conn: conn} do

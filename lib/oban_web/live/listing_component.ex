@@ -12,12 +12,19 @@ defmodule ObanWeb.ListingComponent do
         <div class="flex justify-end">
           <span class="flex-none w-24 text-xs text-right text-gray-400 pl-3 uppercase">Queue</span>
           <span class="flex-none w-20 text-xs text-right text-gray-400 pl-3 uppercase">Atmpt</span>
-          <span class="flex-none w-20 text-xs text-right text-gray-400 pl-3 mr-16 uppercase">Time</span>
+          <span class="flex-none w-20 text-xs text-right text-gray-400 pl-3 mr-8 uppercase">Time</span>
         </div>
       </div>
+
+      <%= if Enum.empty?(@jobs) do %>
+        <div class="flex justify-center py-20">
+          <span class="text-lg text-gray-500 ml-3">No jobs match the current set of filters.</span>
+        </div>
+      <% end %>
+
       <ul>
         <%= for job <- @jobs do %>
-          <%= live_component @socket, ListingRowComponent, id: job.id, job: job %>
+          <%= live_component @socket, ListingRowComponent, id: job.id, job: job, selected: @selected %>
         <% end %>
       </ul>
     </div>

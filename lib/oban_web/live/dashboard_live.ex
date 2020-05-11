@@ -3,8 +3,8 @@ defmodule ObanWeb.DashboardLive do
 
   alias Oban.Job
   alias ObanWeb.{Config, Query, Stats}
-  alias ObanWeb.{HeaderComponent, ListingComponent, NotificationComponent, RefreshComponent}
-  alias ObanWeb.{SearchComponent, SidebarComponent}
+  alias ObanWeb.{BulkActionComponent, HeaderComponent, ListingComponent, NotificationComponent}
+  alias ObanWeb.{RefreshComponent, SearchComponent, SidebarComponent}
 
   @flash_timing 5_000
 
@@ -34,6 +34,7 @@ defmodule ObanWeb.DashboardLive do
         queue_stats: Stats.for_queues(conf.name),
         state_stats: Stats.for_states(conf.name),
         refresh: @default_refresh,
+        selected: MapSet.new(),
         timer: nil
       )
 
@@ -64,10 +65,12 @@ defmodule ObanWeb.DashboardLive do
 
         <div class="flex-1 bg-white rounded-md shadow-md">
           <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
-            <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats %>
+            <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats, selected: @selected %>
             <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
           </div>
-          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs %>
+
+          <%= live_component @socket, BulkActionComponent, id: :bulk_action, jobs: @jobs, selected: @selected %>
+          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, selected: @selected %>
         </div>
       </div>
     </main>
@@ -98,13 +101,21 @@ defmodule ObanWeb.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_info(:refresh, socket) do
+    jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.filters)
+
+    selected =
+      jobs
+      |> MapSet.new(& &1.id)
+      |> MapSet.intersection(socket.assigns.selected)
+
     socket =
       assign(socket,
         job: refresh_job(socket.assigns.conf, socket.assigns.job),
-        jobs: Query.get_jobs(socket.assigns.conf, socket.assigns.filters),
+        jobs: jobs,
         node_stats: Stats.for_nodes(socket.assigns.conf.name),
         queue_stats: Stats.for_queues(socket.assigns.conf.name),
-        state_stats: Stats.for_states(socket.assigns.conf.name)
+        state_stats: Stats.for_states(socket.assigns.conf.name),
+        selected: selected
       )
 
     {:noreply, schedule_refresh(socket)}
@@ -116,30 +127,6 @@ defmodule ObanWeb.DashboardLive do
 
   def handle_info(:close_modal, socket) do
     {:noreply, assign(socket, job: nil)}
-  end
-
-  def handle_info({:delete_job, job}, socket) do
-    :ok = Query.delete_job(socket.assigns.conf, job.id)
-
-    {:noreply, flash("Job deleted", :info, socket)}
-  end
-
-  def handle_info({:deschedule_job, job}, socket) do
-    :ok = Query.deschedule_job(socket.assigns.conf, job.id)
-
-    {:noreply, flash("Job staged for execution", :info, socket)}
-  end
-
-  def handle_info({:discard_job, job}, socket) do
-    :ok = Query.discard_job(socket.assigns.conf, job.id)
-
-    {:noreply, flash("Job discarded", :info, socket)}
-  end
-
-  def handle_info({:cancel_job, job}, socket) do
-    :ok = Oban.kill_job(job.id)
-
-    {:noreply, flash("Job canceled and discarded", :info, socket)}
   end
 
   def handle_info({:scale_queue, queue, limit}, socket) do
@@ -159,6 +146,8 @@ defmodule ObanWeb.DashboardLive do
 
     {:noreply, socket}
   end
+
+  # Filtering
 
   def handle_info({:filter_node, node}, socket) do
     filters = Map.put(socket.assigns.filters, :node, node)
@@ -189,8 +178,6 @@ defmodule ObanWeb.DashboardLive do
   end
 
   def handle_info({:update_refresh, refresh}, socket) do
-    if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
-
     socket =
       socket
       |> assign(refresh: refresh)
@@ -199,18 +186,66 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, socket}
   end
 
+  # Selection
+
+  def handle_info({:select_job, job}, socket) do
+    {:noreply, assign(socket, selected: MapSet.put(socket.assigns.selected, job.id))}
+  end
+
+  def handle_info({:deselect_job, job}, socket) do
+    {:noreply, assign(socket, selected: MapSet.delete(socket.assigns.selected, job.id))}
+  end
+
+  def handle_info(:select_all, socket) do
+    {:noreply, assign(socket, selected: MapSet.new(socket.assigns.jobs, & &1.id))}
+  end
+
+  def handle_info(:deselect_all, socket) do
+    {:noreply, assign(socket, selected: MapSet.new())}
+  end
+
+  # TODO: Use cancel and optimize this
+  def handle_info(:cancel_selected, socket) do
+    :ok = Enum.each(socket.assigns.selected, &Oban.kill_job/1)
+
+    socket =
+      socket
+      |> hide_and_clear_selected()
+      |> force_schedule_refresh()
+      |> flash(:info, "Selected jobs canceled and discarded")
+
+    {:noreply, socket}
+  end
+
+  def handle_info(:retry_selected, socket) do
+    Query.deschedule_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+
+    socket =
+      socket
+      |> hide_and_clear_selected()
+      |> force_schedule_refresh()
+      |> flash(:info, "Selected jobs scheduled to run immediately")
+
+    {:noreply, socket}
+  end
+
+  def handle_info(:delete_selected, socket) do
+    Query.delete_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+
+    socket =
+      socket
+      |> hide_and_clear_selected()
+      |> force_schedule_refresh()
+      |> flash(:info, "Selected jobs deleted")
+
+    {:noreply, socket}
+  end
+
+  # Events
+
   @impl Phoenix.LiveView
   def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
     filters = Map.put(assigns.filters, :worker, worker)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
-  end
-
-  def handle_event("clear_filter", %{"type" => type}, %{assigns: assigns} = socket) do
-    type = String.to_existing_atom(type)
-    default = Map.get(@default_filters, type)
-    filters = Map.put(assigns.filters, type, default)
     jobs = Query.get_jobs(assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
@@ -231,10 +266,20 @@ defmodule ObanWeb.DashboardLive do
 
   defp refresh_job(_conf, _job), do: nil
 
-  defp flash(message, mode, socket) do
+  ## Update Helpers
+
+  defp flash(socket, mode, message) do
     Process.send_after(self(), :clear_flash, @flash_timing)
 
     put_flash(socket, mode, message)
+  end
+
+  defp hide_and_clear_selected(socket) do
+    %{jobs: jobs, selected: selected} = socket.assigns
+
+    jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
+
+    assign(socket, jobs: jobs, selected: MapSet.new())
   end
 
   ## Refresh Helpers
@@ -248,6 +293,8 @@ defmodule ObanWeb.DashboardLive do
   end
 
   defp schedule_refresh(socket) do
+    if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
+
     if socket.assigns.refresh > 0 do
       interval = :timer.seconds(socket.assigns.refresh) - 50
 
@@ -255,5 +302,14 @@ defmodule ObanWeb.DashboardLive do
     else
       assign(socket, timer: nil)
     end
+  end
+
+  defp force_schedule_refresh(socket, override \\ 1) do
+    original = socket.assigns.refresh
+
+    socket
+    |> assign(refresh: override)
+    |> schedule_refresh()
+    |> assign(refresh: original)
   end
 end
