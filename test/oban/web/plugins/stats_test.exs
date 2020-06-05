@@ -5,9 +5,8 @@ defmodule Oban.Web.StatsTest do
   alias Oban.Pro.Beat
   alias Oban.Web.Plugins.Stats
 
-  @name __MODULE__
-  @conf Config.new(repo: Oban.Web.Repo)
-  @opts [name: @name, conf: @conf, interval: 10]
+  @conf Config.new(repo: Oban.Web.Repo, name: Oban.StatsTest)
+  @opts [conf: @conf, interval: 10]
 
   test "node and queue stats aren't tracked without an active connection" do
     insert_job!(queue: :alpha, state: "available")
@@ -43,7 +42,7 @@ defmodule Oban.Web.StatsTest do
 
     start_supervised!({Stats, @opts})
 
-    :ok = Stats.activate(@name)
+    :ok = Stats.activate(@conf)
 
     assert for_nodes() == %{
              "web.1" => %{count: 0, limit: 9},
@@ -72,7 +71,7 @@ defmodule Oban.Web.StatsTest do
     insert_job!(queue: :alpha, state: "available")
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
-    fn -> :ok = Stats.activate(@name) end
+    fn -> :ok = Stats.activate(@conf) end
     |> Task.async()
     |> Task.await()
 
@@ -86,9 +85,9 @@ defmodule Oban.Web.StatsTest do
     assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4, local: 4, pause: false}}
   end
 
-  defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()
-  defp for_queues, do: @name |> Stats.for_queues() |> Map.new()
-  defp for_states, do: @name |> Stats.for_states() |> Map.new()
+  defp for_nodes, do: @conf |> Stats.for_nodes() |> Map.new()
+  defp for_queues, do: @conf |> Stats.for_queues() |> Map.new()
+  defp for_states, do: @conf |> Stats.for_states() |> Map.new()
 
   defp insert_job!(opts) do
     opts =

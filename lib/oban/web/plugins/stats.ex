@@ -133,8 +133,10 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   @spec activate(GenServer.server()) :: :ok
-  def activate(server) do
-    GenServer.call(server, :activate)
+  def activate(conf) do
+    conf
+    |> name()
+    |> GenServer.call(:activate)
   end
 
   @impl GenServer

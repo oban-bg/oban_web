@@ -26,10 +26,7 @@ defmodule Oban.Web.DashboardLive do
       |> Map.fetch!("oban")
       |> Oban.config()
 
-    :ok =
-      conf
-      |> Stats.name()
-      |> Stats.activate()
+    :ok = Stats.activate(conf)
 
     socket =
       assign(socket,

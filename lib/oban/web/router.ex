@@ -47,7 +47,7 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, oban) do
+  def __session__(_conn, oban) do
     %{"oban" => oban}
   end
 end
