@@ -1,10 +1,10 @@
-# ObanWeb
+# Oban.Web
 
 A live dashboard for monitoring and operating Oban.
 
 ## Installation (For Development)
 
-Using ObanWeb from another application in development mode requires a little
+Using Oban.Web from another application in development mode requires a little
 maneuvering. While you can specify `oban_web` as a path dependency, that doesn't
 work with Phoenix's code reloading features. During development I suggest the
 following work-flow:
@@ -43,7 +43,7 @@ See the official installation docs at [https://oban.dev/docs/installation][].
 
 ## Contributing
 
-Working on ObanWeb has the following dependencies:
+Working on Oban.Web has the following dependencies:
 
 1. Elixir 1.8+
 2. Erlang/OTP 21.0+

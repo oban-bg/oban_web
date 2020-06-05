@@ -1,4 +1,4 @@
-defmodule ObanWeb.DataCase do
+defmodule Oban.Web.DataCase do
   @moduledoc false
 
   use ExUnit.CaseTemplate
@@ -13,11 +13,11 @@ defmodule ObanWeb.DataCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import ObanWeb.DataCase
+      import Oban.Web.DataCase
 
-      alias ObanWeb.Repo
+      alias Oban.Web.Repo
 
-      @endpoint ObanWeb.Endpoint
+      @endpoint Oban.Web.Endpoint
 
       def with_backoff(opts \\ [], fun) do
         total = Keyword.get(opts, :total, 100)
@@ -42,10 +42,10 @@ defmodule ObanWeb.DataCase do
   end
 
   setup tags do
-    :ok = Sandbox.checkout(ObanWeb.Repo)
+    :ok = Sandbox.checkout(Oban.Web.Repo)
 
     unless tags[:async] do
-      Sandbox.mode(ObanWeb.Repo, {:shared, self()})
+      Sandbox.mode(Oban.Web.Repo, {:shared, self()})
     end
 
     :ok

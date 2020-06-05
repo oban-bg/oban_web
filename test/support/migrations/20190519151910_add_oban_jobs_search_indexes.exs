@@ -1,11 +1,11 @@
-defmodule ObanWeb.Repo.Migrations.AddObanJobsSearchIndexes do
+defmodule Oban.Web.Repo.Migrations.AddObanJobsSearchIndexes do
   use Ecto.Migration
 
   def up do
-    ObanWeb.Migrations.up(version: 1)
+    Oban.Web.Migrations.up(version: 1)
   end
 
   def down do
-    ObanWeb.Migrations.down(version: 1)
+    Oban.Web.Migrations.down(version: 1)
   end
 end

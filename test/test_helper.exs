@@ -1,15 +1,15 @@
-Application.put_env(:oban_web, ObanWeb.Endpoint,
+Application.put_env(:oban_web, Oban.Web.Endpoint,
   http: [port: 4002],
   live_view: [signing_salt: "eX7TFPY6Y/+XQ1o2pOUW3DjgAoXGTAdX"],
   secret_key_base: "jAu3udxm+8tIRDXLLKo+EupAlEvdLsnNG82O8e9nqylpBM9gP8AjUnZ4PWNttztU",
   server: false,
-  render_errors: [view: ObanWeb.ErrorView],
+  render_errors: [view: Oban.Web.ErrorView],
   check_origin: false,
   url: [host: "localhost"]
 )
 
-defmodule ObanWeb.ErrorView do
-  use ObanWeb.Web, :view
+defmodule Oban.Web.ErrorView do
+  use Oban.Web.Web, :view
 
   def render(_template, _assigns) do
     "Internal Server Error"
@@ -20,10 +20,10 @@ defmodule ObanWeb.ErrorView do
   end
 end
 
-defmodule ObanWeb.Test.Router do
+defmodule Oban.Web.Test.Router do
   use Phoenix.Router
 
-  import ObanWeb.Router
+  import Oban.Web.Router
 
   pipeline :browser do
     plug :fetch_session
@@ -36,7 +36,7 @@ defmodule ObanWeb.Test.Router do
   end
 end
 
-defmodule ObanWeb.Endpoint do
+defmodule Oban.Web.Endpoint do
   use Phoenix.Endpoint, otp_app: :oban_web
 
   socket "/live", Phoenix.LiveView.Socket
@@ -46,11 +46,11 @@ defmodule ObanWeb.Endpoint do
     key: "_oban_web_key",
     signing_salt: "cuxdCB1L"
 
-  plug ObanWeb.Test.Router
+  plug Oban.Web.Test.Router
 end
 
-ObanWeb.Repo.start_link()
-ObanWeb.Endpoint.start_link()
-Oban.start_link(repo: ObanWeb.Repo, queues: [default: 1])
+Oban.Web.Repo.start_link()
+Oban.Web.Endpoint.start_link()
+Oban.start_link(repo: Oban.Web.Repo, queues: [default: 1])
 
 ExUnit.start()

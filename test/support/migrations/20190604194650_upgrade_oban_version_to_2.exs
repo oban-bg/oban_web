@@ -1,4 +1,4 @@
-defmodule ObanWeb.Repo.Migrations.UpgradeObanVersionTo2 do
+defmodule Oban.Web.Repo.Migrations.UpgradeObanVersionTo2 do
   use Ecto.Migration
 
   defdelegate up, to: Oban.Migrations

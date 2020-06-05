@@ -1,4 +1,4 @@
-defmodule ObanWeb.Repo.Migrations.AddObanJobsTable do
+defmodule Oban.Web.Repo.Migrations.AddObanJobsTable do
   use Ecto.Migration
 
   defdelegate up, to: Oban.Migrations

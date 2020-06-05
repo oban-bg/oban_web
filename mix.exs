@@ -1,4 +1,4 @@
-defmodule ObanWeb.MixProject do
+defmodule Oban.Web.MixProject do
   use Mix.Project
 
   @version "1.5.0"
@@ -67,8 +67,8 @@ defmodule ObanWeb.MixProject do
 
   defp aliases do
     [
-      "test.reset": ["ecto.drop -r ObanWeb.Repo", "test.setup"],
-      "test.setup": ["ecto.create -r ObanWeb.Repo --quiet", "ecto.migrate -r ObanWeb.Repo"],
+      "test.reset": ["ecto.drop -r Oban.Web.Repo", "test.setup"],
+      "test.setup": ["ecto.create -r Oban.Web.Repo --quiet", "ecto.migrate -r Oban.Web.Repo"],
       "test.ci": ["format --check-formatted", "credo --strict", "test --raise"]
     ]
   end
