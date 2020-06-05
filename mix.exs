@@ -53,11 +53,12 @@ defmodule ObanWeb.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 1.2"},
+      {:oban, "~> 2.0.0-rc.0"},
+      {:oban_pro, "~> 0.1", organization: "oban"},
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_live_view, "~> 0.12"},
+      {:phoenix_live_view, "~> 0.13"},
       {:credo, "~> 1.4", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.26", only: :test},
       {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false}

@@ -204,9 +204,8 @@ defmodule ObanWeb.DashboardLive do
     {:noreply, assign(socket, selected: MapSet.new())}
   end
 
-  # TODO: Use cancel and optimize this
   def handle_info(:cancel_selected, socket) do
-    :ok = Enum.each(socket.assigns.selected, &Oban.kill_job/1)
+    :ok = Enum.each(socket.assigns.selected, &Oban.cancel_job/1)
 
     socket =
       socket

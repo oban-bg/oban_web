@@ -1,7 +1,8 @@
 defmodule ObanWeb.StatsTest do
   use ObanWeb.DataCase
 
-  alias Oban.{Beat, Job}
+  alias Oban.Job
+  alias Oban.Pro.Beat
   alias ObanWeb.{Config, Stats}
 
   @name __MODULE__
