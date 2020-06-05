@@ -1,19 +1,13 @@
 defmodule Oban.Web.StatsTest do
   use Oban.Web.DataCase
 
-  alias Oban.Job
+  alias Oban.{Config, Job}
   alias Oban.Pro.Beat
-  alias Oban.Web.{Config, Stats}
+  alias Oban.Web.Plugins.Stats
 
   @name __MODULE__
-  @conf Config.new(repo: Oban.Web.Repo, stats_interval: 10)
-  @opts [name: @name, conf: @conf, table: @name]
-
-  setup do
-    :ets.new(@name, [:public, :named_table, read_concurrency: true])
-
-    :ok
-  end
+  @conf Config.new(repo: Oban.Web.Repo)
+  @opts [name: @name, conf: @conf, interval: 10]
 
   test "node and queue stats aren't tracked without an active connection" do
     insert_job!(queue: :alpha, state: "available")
@@ -32,8 +26,6 @@ defmodule Oban.Web.StatsTest do
              "discarded" => %{count: 0},
              "completed" => %{count: 0}
            }
-
-    stop_supervised(Stats)
   end
 
   test "updating node and queue stats after activation" do
@@ -72,8 +64,6 @@ defmodule Oban.Web.StatsTest do
              "discarded" => %{count: 0},
              "completed" => %{count: 1}
            }
-
-    stop_supervised(Stats)
   end
 
   test "refreshing stops when all activated nodes disconnect" do
@@ -94,8 +84,6 @@ defmodule Oban.Web.StatsTest do
 
     assert for_nodes() == %{"web.1" => %{count: 0, limit: 4}}
     assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4, local: 4, pause: false}}
-
-    stop_supervised(Stats)
   end
 
   defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()

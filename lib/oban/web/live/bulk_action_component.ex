@@ -1,5 +1,5 @@
 defmodule Oban.Web.BulkActionComponent do
-  use Oban.Web.Web, :live_component
+  use Oban.Web, :live_component
 
   def mount(socket) do
     {:ok,

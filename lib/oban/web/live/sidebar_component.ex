@@ -1,5 +1,5 @@
 defmodule Oban.Web.SidebarComponent do
-  use Oban.Web.Web, :live_component
+  use Oban.Web, :live_component
 
   alias Oban.Web.{NodeComponent, QueueComponent, StateComponent}
 

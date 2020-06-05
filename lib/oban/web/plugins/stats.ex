@@ -1,4 +1,4 @@
-defmodule Oban.Web.Stats do
+defmodule Oban.Web.Plugins.Stats do
   @moduledoc """
   Cache for tracking queue, state and node counts for display.
 
@@ -22,6 +22,7 @@ defmodule Oban.Web.Stats do
 
   use GenServer
 
+  alias Oban.Config
   alias Oban.Web.Query
 
   @ordered_states ~w(executing available scheduled retryable discarded completed)
@@ -31,22 +32,29 @@ defmodule Oban.Web.Stats do
 
     defstruct [
       :conf,
+      :name,
       :table,
       :refresh_ref,
-      active: MapSet.new()
+      active: MapSet.new(),
+      interval: :timer.seconds(1)
     ]
   end
 
   @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
+    name = name(opts[:conf])
+    opts = Keyword.put_new(opts, :name, name)
 
-    GenServer.start_link(__MODULE__, Map.new(opts), name: name)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @spec for_nodes(module()) :: list({binary(), map()})
-  def for_nodes(table) do
-    table
+  @spec name(Config.t()) :: module()
+  def name(conf), do: Module.concat([conf.name, "Plugins", "Stats"])
+
+  @spec for_nodes(Config.t()) :: list({binary(), map()})
+  def for_nodes(conf) do
+    conf
+    |> name()
     |> :ets.select([{{{:node, :"$1", :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
     |> Enum.sort_by(&hd/1)
     |> Enum.reduce(%{}, fn [node, count, limit], acc ->
@@ -56,8 +64,10 @@ defmodule Oban.Web.Stats do
     end)
   end
 
-  @spec for_queues(module()) :: list({binary(), map()})
-  def for_queues(table) do
+  @spec for_queues(Config.t()) :: list({binary(), map()})
+  def for_queues(conf) do
+    table = name(conf)
+
     counter = fn type ->
       table
       |> :ets.select([{{{:queue, :"$1", type}, :"$2"}, [], [:"$$"]}])
@@ -102,8 +112,10 @@ defmodule Oban.Web.Stats do
     end)
   end
 
-  @spec for_states(module()) :: list({binary(), map()})
-  def for_states(table) do
+  @spec for_states(Config.t()) :: list({binary(), map()})
+  def for_states(conf) do
+    table = name(conf)
+
     for state <- @ordered_states do
       count =
         case :ets.select(table, [{{{:queue, :_, state}, :"$1"}, [], [:"$$"]}]) do
@@ -120,16 +132,19 @@ defmodule Oban.Web.Stats do
     end
   end
 
-  @spec activate(module()) :: :ok
-  def activate(name \\ __MODULE__) do
-    GenServer.call(name, :activate)
+  @spec activate(GenServer.server()) :: :ok
+  def activate(server) do
+    GenServer.call(server, :activate)
   end
 
   @impl GenServer
-  def init(%{conf: conf, table: table}) do
+  def init(opts) do
     Process.flag(:trap_exit, true)
 
-    {:ok, struct!(State, conf: conf, table: table)}
+    table = :ets.new(opts[:name], [:public, :named_table, read_concurrency: true])
+    opts = Keyword.put(opts, :table, table)
+
+    {:ok, struct!(State, opts)}
   end
 
   @impl GenServer
@@ -175,19 +190,19 @@ defmodule Oban.Web.Stats do
     if Enum.empty?(active), do: cancel_refresh(state), else: state
   end
 
-  defp refresh(%State{conf: conf} = state) do
+  defp refresh(state) do
     node_keys = update_node_counts(state)
     queue_keys = update_queue_counts(state)
 
     clear_unused_keys(node_keys ++ queue_keys, state)
 
-    ref = Process.send_after(self(), :refresh, conf.stats_interval)
+    ref = Process.send_after(self(), :refresh, state.interval)
 
     %{state | refresh_ref: ref}
   end
 
   defp cancel_refresh(%State{refresh_ref: refresh_ref} = state) do
-    unless is_nil(refresh_ref), do: Process.cancel_timer(refresh_ref)
+    if is_reference(refresh_ref), do: Process.cancel_timer(refresh_ref)
 
     %{state | refresh_ref: nil}
   end

@@ -1,5 +1,5 @@
 defmodule Oban.Web.DetailView do
-  use Oban.Web.Web, :view
+  use Oban.Web, :view
 
   alias Oban.Job
   alias Oban.Web.{IconView, Timing}

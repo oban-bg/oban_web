@@ -1,8 +1,8 @@
 defmodule Oban.Web.QueryTest do
   use Oban.Web.DataCase, async: true
 
-  alias Oban.Job
-  alias Oban.Web.{Config, Query, Repo}
+  alias Oban.{Config, Job}
+  alias Oban.Web.{Query, Repo}
 
   @conf Config.new(repo: Repo)
 

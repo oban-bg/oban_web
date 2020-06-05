@@ -1,8 +1,9 @@
 defmodule Oban.Web.DashboardLive do
-  use Oban.Web.Web, :live_view
+  use Oban.Web, :live_view
 
   alias Oban.Job
-  alias Oban.Web.{Config, Query, Stats}
+  alias Oban.Web.Plugins.Stats
+  alias Oban.Web.Query
   alias Oban.Web.{BulkActionComponent, HeaderComponent, ListingComponent, NotificationComponent}
   alias Oban.Web.{RefreshComponent, SearchComponent, SidebarComponent}
 
@@ -19,10 +20,16 @@ defmodule Oban.Web.DashboardLive do
   @default_refresh 1
 
   @impl Phoenix.LiveView
-  def mount(_params, _session, socket) do
-    :ok = Stats.activate()
+  def mount(_params, session, socket) do
+    conf =
+      session
+      |> Map.fetch!("oban")
+      |> Oban.config()
 
-    conf = Config.get()
+    :ok =
+      conf
+      |> Stats.name()
+      |> Stats.activate()
 
     socket =
       assign(socket,
@@ -30,9 +37,9 @@ defmodule Oban.Web.DashboardLive do
         filters: @default_filters,
         job: nil,
         jobs: Query.get_jobs(conf, @default_filters),
-        node_stats: Stats.for_nodes(conf.name),
-        queue_stats: Stats.for_queues(conf.name),
-        state_stats: Stats.for_states(conf.name),
+        node_stats: Stats.for_nodes(conf),
+        queue_stats: Stats.for_queues(conf),
+        state_stats: Stats.for_states(conf),
         refresh: @default_refresh,
         selected: MapSet.new(),
         timer: nil
@@ -112,9 +119,9 @@ defmodule Oban.Web.DashboardLive do
       assign(socket,
         job: refresh_job(socket.assigns.conf, socket.assigns.job),
         jobs: jobs,
-        node_stats: Stats.for_nodes(socket.assigns.conf.name),
-        queue_stats: Stats.for_queues(socket.assigns.conf.name),
-        state_stats: Stats.for_states(socket.assigns.conf.name),
+        node_stats: Stats.for_nodes(socket.assigns.conf),
+        queue_stats: Stats.for_queues(socket.assigns.conf),
+        state_stats: Stats.for_states(socket.assigns.conf),
         selected: selected
       )
 

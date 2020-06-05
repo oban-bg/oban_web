@@ -1,5 +1,5 @@
 defmodule Oban.Web.QueueComponent do
-  use Oban.Web.Web, :live_component
+  use Oban.Web, :live_component
 
   @local_timeout 10
   @limit_min 1

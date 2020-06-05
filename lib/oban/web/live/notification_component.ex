@@ -1,5 +1,5 @@
 defmodule Oban.Web.NotificationComponent do
-  use Oban.Web.Web, :live_component
+  use Oban.Web, :live_component
 
   def render(assigns) do
     ~L"""

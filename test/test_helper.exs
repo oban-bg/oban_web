@@ -9,7 +9,7 @@ Application.put_env(:oban_web, Oban.Web.Endpoint,
 )
 
 defmodule Oban.Web.ErrorView do
-  use Oban.Web.Web, :view
+  use Oban.Web, :view
 
   def render(_template, _assigns) do
     "Internal Server Error"

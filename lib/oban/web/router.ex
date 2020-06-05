@@ -38,8 +38,16 @@ defmodule Oban.Web.Router do
 
   @doc false
   def __options__(opts) do
+    oban_name = Keyword.get(opts, :oban_name, Oban)
+
     opts
     |> Keyword.put_new(:as, :oban_dashboard)
+    |> Keyword.put_new(:session, {__MODULE__, :__session__, [oban_name]})
     |> Keyword.put_new(:layout, {Oban.Web.LayoutView, "app.html"})
+  end
+
+  @doc false
+  def __session__(conn, oban) do
+    %{"oban" => oban}
   end
 end

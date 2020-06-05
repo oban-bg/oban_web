@@ -1,25 +1,56 @@
 defmodule Oban.Web do
   @moduledoc false
 
-  use Supervisor
+  @doc false
+  def view do
+    quote do
+      @moduledoc false
 
-  alias Oban.Web.{Config, Stats}
+      use Phoenix.View,
+        namespace: Oban.Web,
+        root: "lib/oban/web/templates"
 
-  @spec start_link([Oban.option()]) :: Supervisor.on_start()
-  def start_link(opts) when is_list(opts) do
-    conf = Config.new(opts)
-
-    Supervisor.start_link(__MODULE__, conf, name: conf.name)
+      unquote(view_helpers())
+    end
   end
 
-  def init(%Config{name: name} = conf) do
-    table = :ets.new(name, [:public, :named_table, read_concurrency: true])
+  @doc false
+  def live_view do
+    quote do
+      @moduledoc false
 
-    children = [
-      {Config, conf: conf, name: Module.concat(name, "Config")},
-      {Stats, conf: conf, name: Module.concat(name, "Stats"), table: table}
-    ]
+      use Phoenix.LiveView
 
-    Supervisor.init(children, strategy: :one_for_one)
+      unquote(view_helpers())
+    end
+  end
+
+  @doc false
+  def live_component do
+    quote do
+      @moduledoc false
+
+      use Phoenix.LiveComponent
+
+      unquote(view_helpers())
+    end
+  end
+
+  defp view_helpers do
+    quote do
+      # Use all HTML functionality (forms, tags, etc)
+      use Phoenix.HTML
+
+      # Import convenience functions for LiveView rendering
+      import Phoenix.LiveView.Helpers
+
+      # Import dashboard built-in functions
+      import Oban.Web.Helpers
+    end
+  end
+
+  @doc false
+  defmacro __using__(which) when is_atom(which) do
+    apply(__MODULE__, which, [])
   end
 end

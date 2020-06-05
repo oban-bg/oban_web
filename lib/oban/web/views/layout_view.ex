@@ -1,5 +1,5 @@
 defmodule Oban.Web.LayoutView do
-  use Oban.Web.Web, :view
+  use Oban.Web, :view
 
   js_path = Path.join(__DIR__, "../../../../priv/static/js/app.js")
   css_path = Path.join(__DIR__, "../../../../priv/static/css/app.css")

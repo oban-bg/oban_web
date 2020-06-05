@@ -1,5 +1,5 @@
 defmodule Oban.Web.RefreshComponent do
-  use Oban.Web.Web, :live_component
+  use Oban.Web, :live_component
 
   @refresh_options [{"1s", 1}, {"2s", 2}, {"5s", 5}, {"15s", 15}, {"Off", -1}]
 

@@ -3,9 +3,8 @@ defmodule Oban.Web.Query do
 
   import Ecto.Query
 
-  alias Oban.Job
+  alias Oban.{Config, Job}
   alias Oban.Pro.Beat
-  alias Oban.Web.Config
 
   @default_node "any"
   @default_queue "any"

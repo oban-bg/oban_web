@@ -1,5 +1,5 @@
 defmodule Oban.Web.DashboardView do
-  use Oban.Web.Web, :view
+  use Oban.Web, :view
 
   alias Oban.Web.IconView
 

@@ -1,3 +1,3 @@
 defmodule Oban.Web.IconView do
-  use Oban.Web.Web, :view
+  use Oban.Web, :view
 end

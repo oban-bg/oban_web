@@ -3,11 +3,13 @@ defmodule Oban.Web.DashboardLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Job
+  alias Oban.{Config, Job}
   alias Oban.Web.{DashboardLive, Repo}
 
+  @conf Config.new(repo: Repo, name: Oban)
+
   setup do
-    start_supervised!({Oban.Web, repo: Repo})
+    start_supervised!({Oban.Web.Plugins.Stats, conf: @conf})
 
     {:ok, conn: build_conn()}
   end
