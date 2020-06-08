@@ -14,21 +14,13 @@ defmodule Oban.Web.MixProject do
       deps: deps(),
       aliases: aliases(),
       package: package(),
+      name: "ObanWeb",
       description: "Oban Web Component",
       preferred_cli_env: [
         "test.ci": :test,
         "test.reset": :test,
         "test.setup": :test
       ],
-
-      # Docs
-      name: "ObanWeb",
-      docs: [
-        main: "Readme",
-        source_ref: "v#{@version}",
-        source_url: "https://github.com/sorentwo/oban_web",
-        extras: ["README.md", "CHANGELOG.md"]
-      ]
     ]
   end
 
@@ -44,7 +36,7 @@ defmodule Oban.Web.MixProject do
   def package do
     [
       organization: "oban",
-      files: ~w(lib .formatter.exs mix.exs README* CHANGELOG*),
+      files: ~w(lib priv .formatter.exs mix.exs),
       licenses: ["Commercial"],
       links: []
     ]
@@ -60,8 +52,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_live_view, "~> 0.13"},
       {:credo, "~> 1.4", only: [:test, :dev], runtime: false},
-      {:floki, "~> 0.26", only: :test},
-      {:ex_doc, "~> 0.21", only: [:dev, :test], runtime: false}
+      {:floki, "~> 0.26", only: :test}
     ]
   end
 
