@@ -45,8 +45,8 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.0.0-rc.0"},
-      {:oban_pro, "~> 0.1", organization: "oban"},
+      {:oban, "~> 2.0.0-rc.0", path: "../oban"},
+      {:oban_pro, "~> 0.1", organization: "oban", path: "../oban_pro"},
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 2.0"},
