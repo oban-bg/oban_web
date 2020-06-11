@@ -2,7 +2,7 @@ defmodule Oban.Web.SearchComponent do
   use Oban.Web, :live_component
 
   def update(assigns, socket) do
-    {:ok, assign(socket, show_clear?: present?(assigns.terms))}
+    {:ok, assign(socket, terms: assigns.terms, show_clear?: present?(assigns.terms))}
   end
 
   def render(assigns) do

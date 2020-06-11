@@ -12,6 +12,30 @@ defmodule Oban.Web.Query do
   @default_limit 30
   @default_worker "any"
 
+  defmacrop args_search(column, terms) do
+    quote do
+      fragment(
+        """
+        jsonb_to_tsvector(?, '["key","string"]') @@ websearch_to_tsquery(?)
+        """,
+        unquote(column),
+        unquote(terms)
+      )
+    end
+  end
+
+  defmacro tags_search(column, terms) do
+    quote do
+      fragment(
+        """
+        to_tsvector(?::text) @@ websearch_to_tsquery(?)
+        """,
+        unquote(column),
+        unquote(terms)
+      )
+    end
+  end
+
   @doc false
   def fetch_job(%Config{repo: repo, log: log}, job_id) do
     case repo.get(Job, job_id, log: log) do
@@ -92,14 +116,12 @@ defmodule Oban.Web.Query do
   defp filter_terms(query, ""), do: query
 
   defp filter_terms(query, terms) do
-    ilike = terms <> "%"
+    ilike = "%" <> terms <> "%"
 
     where(
       query,
       [j],
-      fragment("? ~~* ?", j.worker, ^ilike) or
-        fragment("? % ?", j.worker, ^terms) or
-        fragment("to_tsvector('simple', ?::text) @@ plainto_tsquery('simple', ?)", j.args, ^terms)
+      ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
     )
   end
 
