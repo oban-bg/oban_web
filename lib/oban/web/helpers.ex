@@ -86,4 +86,27 @@ defmodule Oban.Web.Helpers do
   def deletable?(%Job{state: state}) do
     state in ~w(inserted scheduled available completed retryable discarded)
   end
+
+  @doc """
+  Convert a stringified timestamp (i.e. from an error) into a relative time.
+  """
+  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
+    {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
+
+    datetime
+    |> NaiveDateTime.diff(now)
+    |> Timing.to_words()
+  end
+
+  @doc """
+  Extract the name of the node that attempted a job.
+  """
+  def attempted_by(%Job{attempted_by: [node | _]}), do: node
+  def attempted_by(%Job{}), do: "Not Attempted"
+
+  @doc """
+  Format job tags using a delimiter.
+  """
+  def formatted_tags(%Job{tags: []}), do: "..."
+  def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
 end

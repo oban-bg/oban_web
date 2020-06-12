@@ -4,18 +4,6 @@ defmodule Oban.Web.DetailViewTest do
   alias Oban.Job
   alias Oban.Web.DetailView
 
-  describe "iso8601_to_words/2" do
-    test "converting an iso8601 string into time in words" do
-      words =
-        NaiveDateTime.utc_now()
-        |> NaiveDateTime.add(-1)
-        |> NaiveDateTime.to_iso8601()
-        |> DetailView.iso8601_to_words()
-
-      assert words =~ "1s ago"
-    end
-  end
-
   describe "attempted_by/1" do
     test "extracting the node that attempted a job" do
       job = %Job{attempted_by: nil}

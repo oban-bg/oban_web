@@ -13,4 +13,16 @@ defmodule Oban.Web.HelpersTest do
       assert integer_to_delimited(1_000_000) == "1,000,000"
     end
   end
+
+  describe "iso8601_to_words/2" do
+    test "converting an iso8601 string into time in words" do
+      words =
+        NaiveDateTime.utc_now()
+        |> NaiveDateTime.add(-1)
+        |> NaiveDateTime.to_iso8601()
+        |> DetailView.iso8601_to_words()
+
+      assert words =~ "1s ago"
+    end
+  end
 end

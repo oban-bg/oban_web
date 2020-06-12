@@ -23,28 +23,6 @@ defmodule Oban.Web.DetailView do
   }
 
   @doc """
-  Convert a stringified timestamp (i.e. from an error) into a relative time.
-  """
-  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
-    {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
-
-    datetime
-    |> NaiveDateTime.diff(now)
-    |> Timing.to_words()
-  end
-
-  @doc """
-  Extract the name of the node that attempted a job.
-  """
-  def attempted_by(%Job{attempted_by: [node | _]}), do: node
-  def attempted_by(%Job{}), do: "Not Attempted"
-
-  @doc """
-  Format job tags using a delimiter.
-  """
-  def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
-
-  @doc """
   Determine the correct state modifier class: either `--finished` or `--active`, based on a job's
   state and timestamp.
   """

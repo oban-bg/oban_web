@@ -1,11 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to `Oban.Web` will be documented in this file.
 
-The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
-and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
+## v2.0.0-rc.0 (Unreleased)
 
 ### Changes
 
@@ -27,7 +24,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
         end
       end
 
-## [1.5.0] 2020-04-27
+## v1.5.0 — 2020-04-27
 
 ### Changes
 
@@ -35,7 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   these upgrades required changes to ObanWeb, they are meant to enable upgrades
   for host applications.
 
-## [1.4.0] 2020-03-24
+## v1.4.0 — 2020-03-24
 
 ### Changes
 
@@ -43,14 +40,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   `@inner_content` in the layout template. This prevents the view from hanging
   with a blank screen on load.
 
-## [1.3.1] 2020-03-18
+## v1.3.1 — 2020-03-18
 
 ### Fixed
 
 - Prevent `FunctionClauseError` when closing the dashboard before it has
   finished mounting.
 
-## [1.3.0] 2020-03-10
+## v1.3.0 — 2020-03-10
 
 ### Changes
 
@@ -58,7 +55,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   handling. Note, this requires pipelines in the host app to use
   `fetch_live_flash` instead of `fetch_flash`.
 
-## [1.2.0] 2020-02-07
+## v1.2.0 — 2020-02-07
 
 ### Fixes
 
@@ -80,7 +77,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Display job `tags` in the detail view.
 
-## [1.1.2] 2020-02-07
+## v1.1.2 — 2020-02-07
 
 ### Fixes
 
@@ -88,13 +85,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Set the `discarded_at` timestamp when discarding jobs
 
-## [1.1.1] 2020-02-06
+## v1.1.1 — 2020-02-06
 
 ### Fixes
 
 - Fix job detail refreshing on `tick` events
 
-## [1.1.0] 2020—02—06
+## v1.1.0 — 2020—02—06
 
 ### Changes
 
@@ -112,14 +109,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add `tick_interval` to control how often the jobs table and job details are
   refreshed. The default value is every 500ms.
 
-## [1.0.1] 2020-01-29
+## v1.0.1 — 2020-01-29
 
 ### Fixes
 
 - Display `discarded_at` time in detail timeline view.
 - Prevent jitter when clearing stats cache.
 
-## [1.0.0] 2020-01-29
+## v1.0.0 — 2020-01-29
 
 ### Changes
 
@@ -128,19 +125,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   refreshes and fewer database calls. The average refresh time dropped from
   `~310ms` to `~180ms`.
 
-## [0.8.0] 2020-01-23
+## v0.8.0 — 2020-01-23
 
 ### Changes
 
 - Upgrade to LiveView `~> 0.5` and test with `0.6`.
 
-## [0.7.0] 2020-01-08
+## v0.7.0 — 2020-01-08
 
 ### Added
 
 - Add detail modal for inspecting job arguments, errors and state timings.
 
-## [0.6.3] 2019-12-15
+## v0.6.3 — 2019-12-15
 
 ### Changes
 
@@ -156,7 +153,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Ensure all assigns are available on render when a disconnected node
   reconnects. This fixes an issue when viewing the UI in development.
 
-## [0.6.2] 2019-12-05
+## v0.6.2 — 2019-12-05
 
 ### Changes
 
@@ -178,25 +175,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   config :my_app, ObanWeb, stats: false
   ```
 
-## [0.6.1] 2019-11-22
+## v0.6.1 — 2019-11-22
 
 ### Fixes
 
 - Ignore the stats server when queues is empty.
-
-[Unreleased]: https://github.com/sorentwo/oban_web/compare/v1.5.0...HEAD
-[1.5.0]: https://github.com/sorentwo/oban_web/compare/v1.4.0...v1.5.0
-[1.4.0]: https://github.com/sorentwo/oban_web/compare/v1.3.1...v1.4.0
-[1.3.1]: https://github.com/sorentwo/oban_web/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/sorentwo/oban_web/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/sorentwo/oban_web/compare/v1.1.2...v1.2.0
-[1.1.2]: https://github.com/sorentwo/oban_web/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/sorentwo/oban_web/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/sorentwo/oban_web/compare/v1.0.1...v1.1.0
-[1.0.1]: https://github.com/sorentwo/oban_web/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/sorentwo/oban_web/compare/v0.8.0...v1.0.0
-[0.8.0]: https://github.com/sorentwo/oban_web/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/sorentwo/oban_web/compare/v0.6.3...v0.7.0
-[0.6.3]: https://github.com/sorentwo/oban_web/compare/v0.6.2...v0.6.3
-[0.6.2]: https://github.com/sorentwo/oban_web/compare/v0.6.1...v0.6.2
-[0.6.1]: https://github.com/sorentwo/oban_web/compare/v0.6.0...v0.6.1
