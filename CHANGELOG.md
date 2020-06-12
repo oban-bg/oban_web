@@ -2,7 +2,7 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
-## v2.0.0-rc.0 (Unreleased)
+## v2.0.0-alpha.0
 
 ### Changes
 
