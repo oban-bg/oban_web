@@ -68,17 +68,6 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
-  def discard_job(%Config{repo: repo, log: log}, job_id) do
-    updates = [state: "discarded", discarded_at: NaiveDateTime.utc_now()]
-
-    Job
-    |> where(id: ^job_id)
-    |> repo.update_all([set: updates], log: log)
-
-    :ok
-  end
-
-  @doc false
   def get_jobs(config, opts) when is_map(opts), do: get_jobs(config, Keyword.new(opts))
 
   def get_jobs(%Config{repo: repo, log: log}, opts) do

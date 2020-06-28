@@ -221,6 +221,30 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, socket}
   end
 
+  # Single Actions
+
+  def handle_info({:cancel_job, job}, socket) do
+    :ok = Oban.cancel_job(job.id)
+
+    job = %{job | state: "discarded", discarded_at: DateTime.utc_now()}
+
+    {:noreply, assign(socket, job: job)}
+  end
+
+  def handle_info({:delete_job, job}, socket) do
+    :ok = Query.delete_jobs(socket.assigns.conf, [job.id])
+
+    {:noreply, assign(socket, job: nil)}
+  end
+
+  def handle_info({:retry_job, job}, socket) do
+    Query.deschedule_jobs(socket.assigns.conf, [job.id])
+
+    job = %{job | state: "available", completed_at: nil, discarded_at: nil}
+
+    {:noreply, assign(socket, job: job)}
+  end
+
   # Selection
 
   def handle_info({:select_job, job}, socket) do
@@ -285,6 +309,8 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
+  ## Update Helpers
+
   defp refresh_job(conf, %Job{id: jid}) do
     case Query.fetch_job(conf, jid) do
       {:ok, job} -> job
@@ -293,8 +319,6 @@ defmodule Oban.Web.DashboardLive do
   end
 
   defp refresh_job(_conf, _job), do: nil
-
-  ## Update Helpers
 
   defp flash(socket, mode, message) do
     Process.send_after(self(), :clear_flash, @flash_timing)
