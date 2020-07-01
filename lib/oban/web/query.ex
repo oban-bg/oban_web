@@ -37,8 +37,8 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
-  def fetch_job(%Config{repo: repo, log: log}, job_id) do
-    case repo.get(Job, job_id, log: log) do
+  def fetch_job(%Config{} = conf, job_id) do
+    case conf.repo.get(Job, job_id, log: conf.log, prefix: conf.prefix) do
       nil ->
         {:error, :not_found}
 
@@ -48,21 +48,21 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
-  def delete_jobs(%Config{repo: repo, log: log}, [_ | _] = job_ids) do
+  def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
     Job
     |> where([j], j.id in ^job_ids)
-    |> repo.delete_all(log: log)
+    |> conf.repo.delete_all(log: conf.log, prefix: conf.prefix)
 
     :ok
   end
 
   @doc false
-  def deschedule_jobs(%Config{repo: repo, log: log}, [_ | _] = job_ids) do
+  def deschedule_jobs(%Config{} = conf, [_ | _] = job_ids) do
     updates = [state: "available", completed_at: nil, discarded_at: nil]
 
     Job
     |> where([j], j.id in ^job_ids)
-    |> repo.update_all([set: updates], log: log)
+    |> conf.repo.update_all([set: updates], log: conf.log, prefix: conf.prefix)
 
     :ok
   end
@@ -70,7 +70,7 @@ defmodule Oban.Web.Query do
   @doc false
   def get_jobs(config, opts) when is_map(opts), do: get_jobs(config, Keyword.new(opts))
 
-  def get_jobs(%Config{repo: repo, log: log}, opts) do
+  def get_jobs(%Config{} = conf, opts) do
     node = Keyword.get(opts, :node, @default_node)
     queue = Keyword.get(opts, :queue, @default_queue)
     state = Keyword.get(opts, :state, @default_state)
@@ -86,7 +86,7 @@ defmodule Oban.Web.Query do
     |> filter_worker(worker)
     |> order_state(state)
     |> limit(^limit)
-    |> repo.all(log: log)
+    |> conf.repo.all(log: conf.log, prefix: conf.prefix)
     |> Enum.map(&relativize_timestamps/1)
   end
 
@@ -148,7 +148,7 @@ defmodule Oban.Web.Query do
   defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
 
   @doc false
-  def node_counts(%Config{repo: repo, log: log}, seconds \\ 60) do
+  def node_counts(%Config{} = conf, seconds \\ 60) do
     since = DateTime.add(DateTime.utc_now(), -seconds)
 
     subquery =
@@ -165,7 +165,7 @@ defmodule Oban.Web.Query do
         where: b.inserted_at > ^since
 
     query =
-      from x in subquery(subquery),
+      from x in subquery(subquery, prefix: conf.prefix),
         where: x.rank == 1,
         select: {
           x.node,
@@ -175,14 +175,14 @@ defmodule Oban.Web.Query do
           x.paused
         }
 
-    repo.all(query, log: log)
+    conf.repo.all(query, log: conf.log, prefix: conf.prefix)
   end
 
   @doc false
-  def queue_counts(%Config{repo: repo, log: log}) do
+  def queue_counts(%Config{} = conf) do
     Job
     |> group_by([j], [j.queue, j.state])
     |> select([j], {j.queue, j.state, count(j.id)})
-    |> repo.all(log: log)
+    |> conf.repo.all(log: conf.log, prefix: conf.prefix)
   end
 end
