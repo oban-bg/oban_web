@@ -155,19 +155,19 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info({:scale_queue, queue, limit}, socket) do
-    :ok = Oban.scale_queue(queue, limit)
+    :ok = Oban.scale_queue(queue: queue, limit: limit)
 
     {:noreply, socket}
   end
 
   def handle_info({:pause_queue, queue}, socket) do
-    :ok = Oban.pause_queue(queue)
+    :ok = Oban.pause_queue(queue: queue)
 
     {:noreply, socket}
   end
 
   def handle_info({:resume_queue, queue}, socket) do
-    :ok = Oban.resume_queue(queue)
+    :ok = Oban.resume_queue(queue: queue)
 
     {:noreply, socket}
   end

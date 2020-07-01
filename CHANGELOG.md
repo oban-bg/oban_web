@@ -6,7 +6,10 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ### Changes
 
-- Introduce `ObanWeb.Router` for more convenient and flexible dashboard routing.
+- Upgrade to Oban `2.0.0-rc.1`, LiveView `~> 0.13`, and add a dependency on Oban
+  Pro.
+
+- Introduce `Oban.Web.Router` for more convenient and flexible dashboard routing.
   The new module provides an `oban_dashboard/2` macro, which prevents scoping
   mistakes and provides the foundation of better route support.
 
@@ -15,7 +18,7 @@ All notable changes to `Oban.Web` will be documented in this file.
       defmodule MyAppWeb.Router do
         use Phoenix.Router
 
-        import ObanWeb.Router
+        import Oban.Web.Router
 
         scope "/", MyAppWeb do
           pipe_through [:browser]
@@ -23,6 +26,25 @@ All notable changes to `Oban.Web` will be documented in this file.
           oban_dashboard "/oban"
         end
       end
+
+- Add bulk actions for all jobs in table view. It's now possible to select one
+  or more jobs in the table and then cancel, run, retry or delete them all.
+
+- Add a dropdown that controls the refresh rate of jobs and stats in the
+  dashboard. Lowering the refresh rate can reduce query overhead, or pause
+  updates entirely.
+
+- Expose pause/resume controls and a slider for scaling in the queue side bar.
+
+- Eliminate migrations. Migrations are no longer necessary for updates or
+  full text searching. You may safely undo previous migrations.
+
+- Consider job `tags` along with `args` and worker name when searching.
+
+- More intelligent search using "and", "or" and respecting parenthesis.
+
+- Consistently toggle filters on and off from the sidebar, rather than matching
+  on a filter list in the header.
 
 ## v1.5.0 — 2020-04-27
 
