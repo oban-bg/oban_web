@@ -28,7 +28,7 @@ defmodule Oban.Web.ListingRowComponent do
 
         <div class="flex-auto max-w-xl overflow-hidden pl-3 py-3">
           <span class="text-sm text-gray-500 tabular"><%= @job.id %></span>
-          <span class="font-semibold text-sm text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400 ml-1"><%= @job.worker %></span>
+          <span class="font-semibold text-sm text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400 ml-1" phx-target="<%= @myself %>" phx-click="toggle_worker"><%= @job.worker %></span>
           <span class="block font-mono truncate text-xs text-gray-500 mt-2"><%= inspect(@job.args) %></span>
         </div>
       </div>
@@ -62,6 +62,12 @@ defmodule Oban.Web.ListingRowComponent do
     end
 
     {:noreply, assign(socket, :selected?, not socket.assigns.selected?)}
+  end
+
+  def handle_event("toggle_worker", _params, socket) do
+    send(self(), {:filter_worker, socket.assigns.job.worker})
+
+    {:noreply, socket}
   end
 
   def handle_event("show_details", _params, socket) do

@@ -13,8 +13,7 @@ defmodule Oban.Web.DashboardLive do
     node: "any",
     queue: "any",
     state: "executing",
-    terms: nil,
-    worker: "any"
+    terms: nil
   }
 
   @default_refresh 1
@@ -212,6 +211,13 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
+  def handle_info({:filter_worker, worker}, socket) do
+    filters = Map.put(socket.assigns.filters, :terms, worker)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
   def handle_info({:update_refresh, refresh}, socket) do
     socket =
       socket
@@ -297,16 +303,6 @@ defmodule Oban.Web.DashboardLive do
       |> flash(:info, "Selected jobs deleted")
 
     {:noreply, socket}
-  end
-
-  # Events
-
-  @impl Phoenix.LiveView
-  def handle_event("change_worker", %{"worker" => worker}, %{assigns: assigns} = socket) do
-    filters = Map.put(assigns.filters, :worker, worker)
-    jobs = Query.get_jobs(assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
   end
 
   ## Update Helpers

@@ -10,7 +10,6 @@ defmodule Oban.Web.Query do
   @default_queue "any"
   @default_state "executing"
   @default_limit 30
-  @default_worker "any"
 
   defmacrop args_search(column, terms) do
     quote do
@@ -76,14 +75,12 @@ defmodule Oban.Web.Query do
     state = Keyword.get(opts, :state, @default_state)
     limit = Keyword.get(opts, :limit, @default_limit)
     terms = Keyword.get(opts, :terms)
-    worker = Keyword.get(opts, :worker, @default_worker)
 
     Job
     |> filter_node(node)
     |> filter_queue(queue)
     |> filter_state(state)
     |> filter_terms(terms)
-    |> filter_worker(worker)
     |> order_state(state)
     |> limit(^limit)
     |> conf.repo.all(log: conf.log, prefix: conf.prefix)
@@ -113,9 +110,6 @@ defmodule Oban.Web.Query do
       ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
     )
   end
-
-  defp filter_worker(query, "any"), do: query
-  defp filter_worker(query, worker), do: where(query, worker: ^worker)
 
   defp order_state(query, state) when state in ~w(available retryable scheduled) do
     order_by(query, [j], asc: j.scheduled_at)
