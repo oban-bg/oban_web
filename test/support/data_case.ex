@@ -15,6 +15,8 @@ defmodule Oban.Web.DataCase do
       import Ecto.Query
       import Oban.Web.DataCase
 
+      alias Oban.Job
+      alias Oban.Pro.Beat
       alias Oban.Web.Repo
 
       @endpoint Oban.Web.Endpoint
@@ -37,6 +39,30 @@ defmodule Oban.Web.DataCase do
           else
             reraise(exception, System.stacktrace())
           end
+      end
+
+      def insert_beat!(opts) do
+        opts
+        |> Map.new()
+        |> Map.put_new(:node, "worker.1")
+        |> Map.put_new(:nonce, "aaaaaaaa")
+        |> Map.put_new(:limit, 1)
+        |> Map.put_new(:queue, "alpha")
+        |> Map.put_new(:started_at, DateTime.utc_now())
+        |> Beat.new()
+        |> Repo.insert!()
+      end
+
+      defp insert_job!(args, opts) do
+        opts =
+          opts
+          |> Keyword.put_new(:queue, :special)
+          |> Keyword.put_new(:worker, FakeWorker)
+
+        args
+        |> Map.new()
+        |> Job.new(opts)
+        |> Repo.insert!()
       end
     end
   end

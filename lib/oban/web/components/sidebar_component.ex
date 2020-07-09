@@ -9,7 +9,7 @@ defmodule Oban.Web.SidebarComponent do
 
   def render(assigns) do
     ~L"""
-    <div class="bg-white w-84 mb-3 rounded-md shadow-md overflow-hidden">
+    <div id="nodes" class="bg-white w-fill mb-3 rounded-md shadow-md overflow-hidden md:w-84">
       <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">Nodes</span>
 
@@ -36,7 +36,7 @@ defmodule Oban.Web.SidebarComponent do
       </ul>
     </div>
 
-    <div class="bg-white w-84 mb-3 rounded-md shadow-md overflow-hidden">
+    <div id="states" class="bg-white w-full mb-3 rounded-md shadow-md overflow-hidden md:w-84">
       <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">States</span>
 
@@ -62,7 +62,7 @@ defmodule Oban.Web.SidebarComponent do
       </ul>
     </div>
 
-    <div class="bg-white w-84 rounded-md shadow-md overflow-hidden">
+    <div id="queues" class="bg-white w-full rounded-md shadow-md overflow-hidden md:w-84">
       <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
         <span class="font-bold">Queues</span>
 

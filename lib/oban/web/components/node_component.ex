@@ -14,7 +14,7 @@ defmodule Oban.Web.NodeComponent do
 
   def render(assigns) do
     ~L"""
-    <li class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
+    <li id="node-<%= @name %>" class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="flex justify-between cursor-pointer px-3 py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
         <span class="font-semibold"><%= truncate(@name, 0..30) %></span>
         <div>

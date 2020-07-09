@@ -38,7 +38,7 @@ defmodule Oban.Web.QueueComponent do
 
   def render(assigns) do
     ~L"""
-    <li class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
+    <li id="queue-<%= @name %>" class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="group flex justify-between cursor-pointer py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
         <span class="pl-3 font-semibold <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 

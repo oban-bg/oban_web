@@ -13,7 +13,7 @@ defmodule Oban.Web.StateComponent do
 
   def render(assigns) do
     ~L"""
-    <li class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
+    <li id="state-<%= @name %>" class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="flex justify-between cursor-pointer px-3 py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
         <span class="font-semibold"><%= @name %></span>
         <span class="text-gray-500 text-right tabular"><%= integer_to_delimited(@count) %></span>

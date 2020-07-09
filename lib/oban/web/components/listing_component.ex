@@ -5,7 +5,7 @@ defmodule Oban.Web.ListingComponent do
 
   def render(assigns) do
     ~L"""
-    <div>
+    <div id="listing">
       <div class="flex justify-between border-b border-gray-200 px-3 py-3">
         <span class="text-xs text-gray-400 pl-8 uppercase">Worker</span>
 
