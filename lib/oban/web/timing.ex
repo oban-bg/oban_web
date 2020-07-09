@@ -38,6 +38,15 @@ defmodule Oban.Web.Timing do
     |> Enum.join(":")
   end
 
+  def to_duration(ellapsed, _time_unit) do
+    milliseconds = Integer.mod(ellapsed, 1000)
+
+    ellapsed
+    |> div(1000)
+    |> to_duration()
+    |> Kernel.<>(".#{milliseconds}")
+  end
+
   @doc """
   Format ellapsed seconds into a wordy format, based on "distance of time in words".
 

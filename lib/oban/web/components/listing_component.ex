@@ -4,7 +4,7 @@ defmodule Oban.Web.ListingComponent do
   alias Oban.Web.ListingRowComponent
 
   @inc_limit 20
-  @max_limit 120
+  @max_limit 200
   @min_limit 20
 
   def update(assigns, socket) do

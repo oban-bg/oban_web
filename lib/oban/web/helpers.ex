@@ -76,7 +76,7 @@ defmodule Oban.Web.Helpers do
   """
   @spec retryable?(Job.t()) :: boolean()
   def retryable?(%Job{state: state}) do
-    state in ~w(completed retryable)
+    state in ~w(completed retryable discarded)
   end
 
   @doc """

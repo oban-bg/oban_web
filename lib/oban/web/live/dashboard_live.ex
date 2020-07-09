@@ -32,7 +32,7 @@ defmodule Oban.Web.DashboardLive do
       assign(socket,
         conf: conf,
         filters: @default_filters,
-        job: nil,
+        detailed: nil,
         jobs: Query.get_jobs(conf, @default_filters),
         node_stats: Stats.for_nodes(conf),
         queue_stats: Stats.for_queues(conf),
@@ -50,7 +50,6 @@ defmodule Oban.Web.DashboardLive do
     ~L"""
     <main role="main" class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
-      <%= live_component @socket, DetailComponent, id: :detail, job: @job %>
 
       <header class="flex justify-between">
         <svg viewBox="0 0 127 48" class="h-12">
@@ -80,14 +79,18 @@ defmodule Oban.Web.DashboardLive do
               state_stats: @state_stats %>
         </div>
 
-        <div class="flex-1 bg-white rounded-md shadow-md">
-          <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
-            <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats, selected: @selected %>
-            <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
-          </div>
+        <div class="flex-1 bg-white rounded-md shadow-md overflow-hidden">
+          <%= if @detailed do %>
+            <%= live_component @socket, DetailComponent, id: :detail, job: @detailed %>
+          <% else %>
+            <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
+              <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats, selected: @selected %>
+              <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
+            </div>
 
-          <%= live_component @socket, BulkActionComponent, id: :bulk_action, jobs: @jobs, selected: @selected %>
-          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, filters: @filters, selected: @selected %>
+            <%= live_component @socket, BulkActionComponent, id: :bulk_action, jobs: @jobs, selected: @selected %>
+            <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, filters: @filters, selected: @selected %>
+          <% end %>
         </div>
       </div>
 
@@ -126,7 +129,7 @@ defmodule Oban.Web.DashboardLive do
 
     socket =
       assign(socket,
-        job: refresh_job(socket.assigns.conf, socket.assigns.job),
+        detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
         jobs: jobs,
         node_stats: Stats.for_nodes(socket.assigns.conf),
         queue_stats: Stats.for_queues(socket.assigns.conf),
@@ -164,11 +167,11 @@ defmodule Oban.Web.DashboardLive do
   # Details
 
   def handle_info({:show_details, job}, socket) do
-    {:noreply, assign(socket, job: job)}
+    {:noreply, assign(socket, detailed: job)}
   end
 
   def handle_info(:hide_details, socket) do
-    {:noreply, assign(socket, job: nil)}
+    {:noreply, assign(socket, detailed: nil)}
   end
 
   # Filtering
@@ -232,13 +235,13 @@ defmodule Oban.Web.DashboardLive do
 
     job = %{job | state: "discarded", discarded_at: DateTime.utc_now()}
 
-    {:noreply, assign(socket, job: job)}
+    {:noreply, assign(socket, detailed: job)}
   end
 
   def handle_info({:delete_job, job}, socket) do
     :ok = Query.delete_jobs(socket.assigns.conf, [job.id])
 
-    {:noreply, assign(socket, job: nil)}
+    {:noreply, assign(socket, detailed: nil)}
   end
 
   def handle_info({:retry_job, job}, socket) do
@@ -246,7 +249,7 @@ defmodule Oban.Web.DashboardLive do
 
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
 
-    {:noreply, assign(socket, job: job)}
+    {:noreply, assign(socket, detailed: job)}
   end
 
   # Selection
