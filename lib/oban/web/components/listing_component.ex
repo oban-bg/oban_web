@@ -3,6 +3,20 @@ defmodule Oban.Web.ListingComponent do
 
   alias Oban.Web.ListingRowComponent
 
+  @inc_limit 20
+  @max_limit 120
+  @min_limit 20
+
+  def update(assigns, socket) do
+    {:ok,
+     assign(socket,
+       jobs: assigns.jobs,
+       selected: assigns.selected,
+       show_less?: assigns.filters.limit > @min_limit,
+       show_more?: assigns.filters.limit < @max_limit
+     )}
+  end
+
   def render(assigns) do
     ~L"""
     <div id="listing">
@@ -20,14 +34,42 @@ defmodule Oban.Web.ListingComponent do
         <div class="flex justify-center py-20">
           <span class="text-lg text-gray-500 ml-3">No jobs match the current set of filters.</span>
         </div>
-      <% end %>
+      <% else %>
+        <ul>
+          <%= for job <- @jobs do %>
+            <%= live_component @socket, ListingRowComponent, id: job.id, job: job, selected: @selected %>
+          <% end %>
+        </ul>
 
-      <ul>
-        <%= for job <- @jobs do %>
-          <%= live_component @socket, ListingRowComponent, id: job.id, job: job, selected: @selected %>
-        <% end %>
-      </ul>
+        <div class="flex justify-center py-6">
+          <button type="button"
+            class="font-semibold text-sm mr-6 <%= if @show_less? do %>text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400<% else %>text-gray-400 cursor-not-allowed<% end %>"
+            phx-target="<%= @myself %>"
+            phx-click="load_less">Show Less</button>
+
+          <button type="button"
+            class="font-semibold text-sm <%= if @show_more? do %>text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400<% else %>text-gray-400 cursor-not-allowed<% end %>"
+            phx-target="<%= @myself %>"
+            phx-click="load_more">Show More</button>
+        </div>
+      <% end %>
     </div>
     """
+  end
+
+  def handle_event("load_less", _params, socket) do
+    if socket.assigns.show_less? do
+      send(self(), {:inc_limit, -@inc_limit})
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("load_more", _params, socket) do
+    if socket.assigns.show_more? do
+      send(self(), {:inc_limit, @inc_limit})
+    end
+
+    {:noreply, socket}
   end
 end

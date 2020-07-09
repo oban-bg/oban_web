@@ -13,7 +13,8 @@ defmodule Oban.Web.DashboardLive do
     node: "any",
     queue: "any",
     state: "executing",
-    terms: nil
+    terms: nil,
+    limit: 20
   }
 
   @default_refresh 1
@@ -86,7 +87,7 @@ defmodule Oban.Web.DashboardLive do
           </div>
 
           <%= live_component @socket, BulkActionComponent, id: :bulk_action, jobs: @jobs, selected: @selected %>
-          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, selected: @selected %>
+          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, filters: @filters, selected: @selected %>
         </div>
       </div>
 
@@ -139,6 +140,8 @@ defmodule Oban.Web.DashboardLive do
   def handle_info(:clear_flash, socket) do
     {:noreply, clear_flash(socket)}
   end
+
+  # Queues
 
   def handle_info({:scale_queue, queue, limit}, socket) do
     :ok = Oban.scale_queue(queue: queue, limit: limit)
@@ -200,6 +203,14 @@ defmodule Oban.Web.DashboardLive do
 
   def handle_info({:filter_worker, worker}, socket) do
     filters = Map.put(socket.assigns.filters, :terms, worker)
+    jobs = Query.get_jobs(socket.assigns.conf, filters)
+
+    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+  end
+
+  def handle_info({:inc_limit, inc}, socket) do
+    limit = socket.assigns.filters.limit + inc
+    filters = Map.put(socket.assigns.filters, :limit, limit)
     jobs = Query.get_jobs(socket.assigns.conf, filters)
 
     {:noreply, assign(socket, jobs: jobs, filters: filters)}
