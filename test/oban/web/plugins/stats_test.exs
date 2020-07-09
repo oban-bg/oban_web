@@ -28,11 +28,11 @@ defmodule Oban.Web.StatsTest do
   end
 
   test "updating node and queue stats after activation" do
-    insert_job!(queue: :alpha, state: "available")
-    insert_job!(queue: :alpha, state: "executing")
-    insert_job!(queue: :gamma, state: "available")
-    insert_job!(queue: :gamma, state: "scheduled")
-    insert_job!(queue: :gamma, state: "completed")
+    insert_job!(%{}, queue: :alpha, state: "available")
+    insert_job!(%{}, queue: :alpha, state: "executing")
+    insert_job!(%{}, queue: :gamma, state: "available")
+    insert_job!(%{}, queue: :gamma, state: "scheduled")
+    insert_job!(%{}, queue: :gamma, state: "completed")
 
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
     insert_beat!(node: "web.2", queue: "alpha", limit: 4)
@@ -68,7 +68,7 @@ defmodule Oban.Web.StatsTest do
   test "refreshing stops when all activated nodes disconnect" do
     start_supervised!({Stats, @opts})
 
-    insert_job!(queue: :alpha, state: "available")
+    insert_job!(%{}, queue: :alpha, state: "available")
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
     fn -> :ok = Stats.activate(@conf) end
@@ -88,30 +88,4 @@ defmodule Oban.Web.StatsTest do
   defp for_nodes, do: @conf |> Stats.for_nodes() |> Map.new()
   defp for_queues, do: @conf |> Stats.for_queues() |> Map.new()
   defp for_states, do: @conf |> Stats.for_states() |> Map.new()
-
-  defp insert_job!(opts) do
-    opts =
-      opts
-      |> Keyword.put_new(:queue, :default)
-      |> Keyword.put_new(:worker, FakeWorker)
-
-    %{}
-    |> Job.new(opts)
-    |> Repo.insert!()
-  end
-
-  defp insert_beat!(opts) do
-    opts
-    |> Map.new()
-    |> Map.put_new(:inserted_at, seconds_ago(1))
-    |> Map.put_new(:limit, 1)
-    |> Map.put_new(:nonce, "aaaaaaaa")
-    |> Map.put_new(:started_at, seconds_ago(300))
-    |> Beat.new()
-    |> Repo.insert!()
-  end
-
-  defp seconds_ago(seconds) do
-    DateTime.add(DateTime.utc_now(), -seconds)
-  end
 end

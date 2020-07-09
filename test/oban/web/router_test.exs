@@ -4,9 +4,9 @@ defmodule Oban.Web.RouterTest do
   alias Oban.Web.Router
 
   test "setting default options in the router module" do
-    assert Router.__options__([]) == [
-             layout: {Oban.Web.LayoutView, "app.html"},
-             as: :oban_dashboard
-           ]
+    options = Router.__options__([])
+
+    assert options[:layout] == {Oban.Web.LayoutView, "app.html"}
+    assert options[:as] == :oban_dashboard
   end
 end

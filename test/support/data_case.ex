@@ -48,15 +48,16 @@ defmodule Oban.Web.DataCase do
         |> Map.put_new(:nonce, "aaaaaaaa")
         |> Map.put_new(:limit, 1)
         |> Map.put_new(:queue, "alpha")
+        |> Map.put_new(:inserted_at, DateTime.utc_now())
         |> Map.put_new(:started_at, DateTime.utc_now())
         |> Beat.new()
         |> Repo.insert!()
       end
 
-      defp insert_job!(args, opts) do
+      defp insert_job!(args, opts \\ []) do
         opts =
           opts
-          |> Keyword.put_new(:queue, :special)
+          |> Keyword.put_new(:queue, :default)
           |> Keyword.put_new(:worker, FakeWorker)
 
         args
