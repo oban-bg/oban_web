@@ -24,7 +24,7 @@ Now that you're authenticated you're ready to add `oban_web` as a dependency for
 your application. Open `mix.exs` and add the following line:
 
 ```elixir
-{:oban_web, "~> 2.0.0-alpha.1", organization: "oban"}
+{:oban_web, "~> 2.0.0", organization: "oban"}
 ```
 
 Now fetch your dependencies:

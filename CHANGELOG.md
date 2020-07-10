@@ -2,6 +2,20 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.0.0
+
+### Changes
+
+- Upgrade Oban to `2.0.0`, LiveView `0.14` and ObanPro to `0.3.0`
+
+- Add simple load less/load more pagination for browsing through jobs
+
+- Move details view inline, eliminating modal sizing and scrolling issues
+
+- Display `queue_time` and `run_time` in the job details view
+
+- Restore worker filtering using auto-populated search terms
+
 ## v2.0.0-alpha.0
 
 ### Changes
