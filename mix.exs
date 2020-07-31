@@ -20,7 +20,7 @@ defmodule Oban.Web.MixProject do
         "test.ci": :test,
         "test.reset": :test,
         "test.setup": :test
-      ],
+      ]
     ]
   end
 

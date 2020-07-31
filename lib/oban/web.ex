@@ -1,7 +1,7 @@
 defmodule Oban.Web do
   @moduledoc false
 
-  @version Mix.Project.config[:version]
+  @version Mix.Project.config()[:version]
 
   @doc false
   def version, do: @version

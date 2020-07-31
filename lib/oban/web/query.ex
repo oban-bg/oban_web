@@ -11,6 +11,8 @@ defmodule Oban.Web.Query do
   @default_state "executing"
   @default_limit 30
 
+  @minimum_pg_for_search 110_000
+
   defmacrop args_search(column, terms) do
     quote do
       fragment(
@@ -80,7 +82,7 @@ defmodule Oban.Web.Query do
     |> filter_node(node)
     |> filter_queue(queue)
     |> filter_state(state)
-    |> filter_terms(terms)
+    |> filter_terms(terms, conf)
     |> order_state(state)
     |> limit(^limit)
     |> conf.repo.all(log: conf.log, prefix: conf.prefix)
@@ -98,17 +100,21 @@ defmodule Oban.Web.Query do
 
   defp filter_state(query, state), do: where(query, state: ^state)
 
-  defp filter_terms(query, nil), do: query
-  defp filter_terms(query, ""), do: query
+  defp filter_terms(query, nil, _), do: query
+  defp filter_terms(query, "", _), do: query
 
-  defp filter_terms(query, terms) do
+  defp filter_terms(query, terms, conf) do
     ilike = "%" <> terms <> "%"
 
-    where(
-      query,
-      [j],
-      ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
-    )
+    if pg_version(conf) >= @minimum_pg_for_search do
+      where(
+        query,
+        [j],
+        ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
+      )
+    else
+      where(query, [j], ilike(j.worker, ^ilike))
+    end
   end
 
   defp order_state(query, state) when state in ~w(available retryable scheduled) do
@@ -121,6 +127,24 @@ defmodule Oban.Web.Query do
 
   defp order_state(query, _state) do
     order_by(query, [j], desc: j.attempted_at)
+  end
+
+  # We need to know the PG server version to toggle full text search capabilities. Queries are
+  # usually performed within a persistent LiveView connection, so we can safely cache the pg
+  # version within that process.
+  defp pg_version(%Config{} = conf) do
+    case Process.get(:pg_version) do
+      version when is_integer(version) ->
+        version
+
+      nil ->
+        %{rows: [[version]]} =
+          conf.repo.query!("SELECT current_setting('server_version_num')::int", [])
+
+        Process.put(:pg_version, version)
+
+        version
+    end
   end
 
   # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
