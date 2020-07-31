@@ -1,9 +1,14 @@
 import css from "../css/app.css"
 
-import {Socket} from "../../deps/phoenix/priv/static/phoenix"
+import {Socket, LongPoll} from "../../deps/phoenix/priv/static/phoenix"
 import {LiveSocket} from "../../deps/phoenix_live_view/priv/static/phoenix_live_view"
 
-let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
-let liveSocket = new LiveSocket("/live", Socket, {params: {_csrf_token: csrfToken}});
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
+const transport = document.querySelector("meta[name='live-transport']").getAttribute("content");
 
-liveSocket.connect()
+const liveSocket = new LiveSocket("/live", Socket, {
+  transport: transport === "longpoll" ? LongPoll : WebSocket,
+  params: {_csrf_token: csrfToken}
+});
+
+liveSocket.connect();

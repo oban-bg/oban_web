@@ -75,6 +75,27 @@ restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 
+### Using LongPolling
+
+If you're application is hosted in an environment that doesn't support
+websockets you can use longpolling as an alternate transport. To start, make
+sure that your live socket is configured for longpolling:
+
+```elixir
+socket "/live", Phoenix.LiveView.Socket,
+  longpoll: [connect_info: [session: @session_options], log: false]
+```
+
+Then specify "longpoll" as your transport:
+
+```elixir
+scope "/" do
+  pipe_through :browser
+
+  oban_dashboard "/oban", transport: "longpoll"
+end
+```
+
 ### Trouble installing? Have questions?
 
 Take a look at the [troubleshooting][faq] guide to see if your issue is covered.

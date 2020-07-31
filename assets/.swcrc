@@ -1,7 +1,0 @@
-{
-  "module": {
-    "type": "umd",
-    "noInterop": true
-  },
-  "minify": true
-}

@@ -21,10 +21,9 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
-    conf =
-      session
-      |> Map.fetch!("oban")
-      |> Oban.config()
+    %{"oban" => oban, "transport" => transport} = session
+
+    conf = Oban.config(oban)
 
     :ok = Stats.activate(conf)
 
@@ -39,7 +38,8 @@ defmodule Oban.Web.DashboardLive do
         state_stats: Stats.for_states(conf),
         refresh: @default_refresh,
         selected: MapSet.new(),
-        timer: nil
+        timer: nil,
+        transport: transport
       )
 
     {:ok, init_schedule_refresh(socket)}
@@ -48,6 +48,8 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~L"""
+    <meta name="live-transport" content="<%= @transport %>" />
+
     <main role="main" class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
