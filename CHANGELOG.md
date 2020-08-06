@@ -2,9 +2,24 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.1.0
+
+### Added
+
+- Support alternate live socket transports, namely the "longpoll" transport.
+  Users can specify either "websocket" or "longpoll" directly from the
+  `oban_dashboard/2` call in their Phoenix router (which avoids global
+  configuration).
+
+### Fixed
+
+- Skip full text search for PostgreSQL versions `< 11.0`. Older PG versions
+  don't have proper support for JSONB vectorization or web style search
+  operations.
+
 ## v2.0.0
 
-### Changes
+### Changed
 
 - Upgrade Oban to `2.0.0`, LiveView `0.14` and ObanPro to `0.3.0`
 
@@ -18,7 +33,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v2.0.0-alpha.0
 
-### Changes
+### Changed
 
 - Upgrade to Oban `2.0.0-rc.1`, LiveView `~> 0.13`, and add a dependency on Oban
   Pro.
@@ -62,7 +77,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v1.5.0 — 2020-04-27
 
-### Changes
+### Changed
 
 - Upgrade to Phoenix `~> 1.5`, LiveView `~> 0.12` and PubSub `~> 2.0`. None of
   these upgrades required changes to ObanWeb, they are meant to enable upgrades
@@ -70,7 +85,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v1.4.0 — 2020-03-24
 
-### Changes
+### Changed
 
 - Upgrade to LiveView `~> 0.10` along with requisite changes to use
   `@inner_content` in the layout template. This prevents the view from hanging
@@ -85,7 +100,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v1.3.0 — 2020-03-10
 
-### Changes
+### Changed
 
 - Upgrade to LiveView `~> 0.9` along with the requisite changes to `flash`
   handling. Note, this requires pipelines in the host app to use
@@ -101,7 +116,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 - Prevent losing stats cache on restart by shifting table ownership into the
   supervisor.
 
-### Changes
+### Changed
 
 - Clear `completed_at` and `discarded_at` timestamps when descheduling jobs.
 
@@ -154,7 +169,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v1.0.0 — 2020-01-29
 
-### Changes
+### Changed
 
 - Upgrade Oban and set dependency to `~> 1.0.0`
 - Update stats and the queries that power stats to rely on more frequent
@@ -163,7 +178,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v0.8.0 — 2020-01-23
 
-### Changes
+### Changed
 
 - Upgrade to LiveView `~> 0.5` and test with `0.6`.
 
@@ -175,7 +190,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v0.6.3 — 2019-12-15
 
-### Changes
+### Changed
 
 - Display duration or distance in words depending on job state. This clarifies
   timestamp information. Relative timestamps have an formatted absolute value as
@@ -191,7 +206,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 ## v0.6.2 — 2019-12-05
 
-### Changes
+### Changed
 
 - Add support for explicitly disabling stats rather than inferring based on
   queue configuration. This prevents issues in production environments where
