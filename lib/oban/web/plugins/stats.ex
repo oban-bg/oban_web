@@ -42,14 +42,15 @@ defmodule Oban.Web.Plugins.Stats do
 
   @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    name = name(opts[:conf])
-    opts = Keyword.put_new(opts, :name, name)
+    conf = Keyword.fetch!(opts, :conf)
+    opts = Keyword.put_new(opts, :name, name(conf))
 
-    GenServer.start_link(__MODULE__, opts, name: name)
+    GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
 
-  @spec name(Config.t()) :: module()
-  def name(conf), do: Module.concat([conf.name, "Plugins", "Stats"])
+  # This produces a name like `Oban.Oban.Web.Plugins.Stats`, which is redundant but matches
+  # the namespacing strategy used in `Oban.init/1`.
+  def name(conf), do: Module.concat([conf.name, __MODULE__])
 
   @spec for_nodes(Config.t()) :: list({binary(), map()})
   def for_nodes(conf) do
@@ -133,10 +134,10 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   @spec activate(GenServer.server()) :: :ok
-  def activate(conf) do
+  def activate(conf, timeout \\ 15_000) do
     conf
     |> name()
-    |> GenServer.call(:activate)
+    |> GenServer.call(:activate, timeout)
   end
 
   @impl GenServer

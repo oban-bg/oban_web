@@ -11,6 +11,7 @@ defmodule Oban.Web.Query do
   @default_state "executing"
   @default_limit 30
 
+  @timeout :timer.seconds(20)
   @minimum_pg_for_search 110_000
 
   defmacrop args_search(column, terms) do
@@ -193,7 +194,7 @@ defmodule Oban.Web.Query do
           x.paused
         }
 
-    conf.repo.all(query, log: conf.log, prefix: conf.prefix)
+    conf.repo.all(query, log: conf.log, prefix: conf.prefix, timeout: @timeout)
   end
 
   @doc false
@@ -201,6 +202,6 @@ defmodule Oban.Web.Query do
     Job
     |> group_by([j], [j.queue, j.state])
     |> select([j], {j.queue, j.state, count(j.id)})
-    |> conf.repo.all(log: conf.log, prefix: conf.prefix)
+    |> conf.repo.all(log: conf.log, prefix: conf.prefix, timeout: @timeout)
   end
 end

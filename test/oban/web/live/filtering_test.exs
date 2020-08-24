@@ -5,6 +5,7 @@ defmodule Oban.Web.Live.FilteringTest do
 
   alias Oban.{Config, Job}
   alias Oban.Pro.Beat
+  alias Oban.Web.Plugins.Stats
 
   setup do
     conf = Config.new(repo: Repo, name: Oban)
@@ -164,7 +165,10 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   defp refresh(live) do
-    Oban.Plugins.Stats
+    conf = Config.new(name: Oban, repo: Repo)
+
+    conf
+    |> Stats.name()
     |> Process.whereis()
     |> send(:refresh)
 
