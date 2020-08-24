@@ -2,6 +2,15 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.1.1
+
+### Fixed
+
+- Correct expected plugin naming scheme for compatibility with Oban `>= 2.1`.
+
+- Increase stats collection and activation timeouts to compensate for spikes in
+  table size or additional load on the database pool from other processes.
+
 ## v2.1.0
 
 ### Added
