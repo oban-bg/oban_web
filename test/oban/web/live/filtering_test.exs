@@ -11,7 +11,7 @@ defmodule Oban.Web.Live.FilteringTest do
     conf = Config.new(repo: Repo, name: Oban)
     conn = build_conn()
 
-    start_supervised!({Oban.Web.Plugins.Stats, conf: conf})
+    start_supervised!({Stats, conf: conf})
 
     {:ok, live, _html} = live(conn, "/oban")
 
@@ -40,7 +40,7 @@ defmodule Oban.Web.Live.FilteringTest do
     assert click_state(live, "retryable") =~ "JankWorker"
   end
 
-  test "filtering jobs by node", %{live: live} do
+  test "filtering jobs by node", context do
     web_1 = ["web-1", "alpha", "aaaaaaaa"]
     web_2 = ["web-2", "alpha", "aaaaaaaa"]
 
@@ -51,37 +51,37 @@ defmodule Oban.Web.Live.FilteringTest do
     insert_job!([ref: 2], queue: "alpha", worker: DeltaWorker, attempted_by: web_2)
     insert_job!([ref: 3], queue: "alpha", worker: GammaWorker, attempted_by: web_1)
 
-    html = click_state(live, "available")
+    html = click_state(context.live, "available")
 
     assert html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
     assert html =~ "GammaWorker"
 
-    refresh(live)
+    refresh(context)
 
-    html = click_node(live, "web-2")
+    html = click_node(context.live, "web-2")
 
     refute html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
     refute html =~ "GammaWorker"
   end
 
-  test "filtering jobs by queue", %{live: live} do
+  test "filtering jobs by queue", context do
     insert_beat!(node: "web.1", queue: "delta")
 
     insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
     insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
     insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
 
-    html = click_state(live, "available")
+    html = click_state(context.live, "available")
 
     assert html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
     assert html =~ "GammaWorker"
 
-    refresh(live)
+    refresh(context)
 
-    html = click_queue(live, "delta")
+    html = click_queue(context.live, "delta")
 
     refute html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"
@@ -122,7 +122,7 @@ defmodule Oban.Web.Live.FilteringTest do
     assert html =~ "GammaWorker"
 
     live
-    |> element("#listing span[rel='worker']", "AlphaWorker")
+    |> element("#listing button[rel='worker-AlphaWorker']")
     |> render_click()
 
     html = render(live)
@@ -164,9 +164,7 @@ defmodule Oban.Web.Live.FilteringTest do
     render(live)
   end
 
-  defp refresh(live) do
-    conf = Config.new(name: Oban, repo: Repo)
-
+  defp refresh(%{conf: conf, live: live}) do
     conf
     |> Stats.name()
     |> Process.whereis()

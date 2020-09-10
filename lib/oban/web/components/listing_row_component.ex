@@ -16,7 +16,7 @@ defmodule Oban.Web.ListingRowComponent do
 
   def render(assigns) do
     ~L"""
-    <li class="flex justify-between bg-white border-b border-gray-100 transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
+    <li phx-target="<%= @myself %>" phx-click="show_details" class="flex justify-between bg-white border-b border-gray-100 cursor-pointer transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
       <div class="flex justify-start">
         <button class="flex-none block pl-3 py-3" phx-target="<%= @myself %>" phx-click="toggle_select">
           <%= if @selected? do %>
@@ -28,7 +28,7 @@ defmodule Oban.Web.ListingRowComponent do
 
         <div class="flex-auto max-w-xl overflow-hidden pl-3 py-3">
           <span rel="jid" class="text-sm text-gray-500 tabular"><%= @job.id %></span>
-          <span rel="worker" class="font-semibold text-sm text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400 ml-1" phx-target="<%= @myself %>" phx-click="toggle_worker"><%= @job.worker %></span>
+          <span rel="worker" class="font-semibold text-sm text-gray-700 ml-1"><%= @job.worker %></span>
           <span rel="args" class="block font-mono truncate text-xs text-gray-500 mt-2"><%= inspect(@job.args) %></span>
         </div>
       </div>
@@ -46,8 +46,8 @@ defmodule Oban.Web.ListingRowComponent do
           <%= relative_time(@job.state, @job) %>
         </div>
 
-        <button class="block px-3 py-3 text-gray-400 hover:text-blue-500" phx-target="<%= @myself %>" phx-click="show_details">
-          <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path></svg>
+        <button rel="worker-<%= @job.worker %>" class="block px-3 py-3 text-gray-400 hover:text-blue-500" title="Search for jobs with the same worker" phx-target="<%= @myself %>" phx-click="toggle_worker">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z"></path></svg>
         </button>
       </div>
     </li>
