@@ -40,12 +40,12 @@ defmodule Oban.Web.QueueComponent do
     ~L"""
     <li id="queue-<%= @name %>" class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="group flex justify-between cursor-pointer py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
-        <span class="pl-3 font-semibold <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
+        <span class="pl-3 flex-initial font-semibold truncate <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 
-        <div class="pr-3 group-hover:hidden">
-          <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@execu) %></span>
-          <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@limit) %></span>
-          <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@avail) %></span>
+        <div class="pr-3 flex-none group-hover:hidden">
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@execu) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@limit) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@avail) %></span>
         </div>
 
         <div class="pr-3 hidden group-hover:flex">

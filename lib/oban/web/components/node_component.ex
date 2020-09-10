@@ -16,10 +16,10 @@ defmodule Oban.Web.NodeComponent do
     ~L"""
     <li id="node-<%= @name %>" class="text-sm" phx-click="filter" phx-target="<%= @myself %>">
       <div class="flex justify-between cursor-pointer px-3 py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
-        <span class="font-semibold"><%= truncate(@name, 0..30) %></span>
-        <div>
-          <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@count) %></span>
-          <span class="text-gray-500 inline-block text-right w-12 tabular"><%= integer_to_delimited(@limit) %></span>
+        <span class="flex-initial font-semibold truncate"><%= @name %></span>
+        <div class="flex-none">
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@count) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@limit) %></span>
         </div>
       </div>
     </li>

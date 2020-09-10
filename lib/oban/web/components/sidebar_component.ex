@@ -14,8 +14,8 @@ defmodule Oban.Web.SidebarComponent do
         <span class="font-bold">Nodes</span>
 
         <div class="group-hover:hidden">
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Limit</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Limit</span>
         </div>
 
         <div class="hidden group-hover:block">
@@ -41,7 +41,7 @@ defmodule Oban.Web.SidebarComponent do
         <span class="font-bold">States</span>
 
         <div class="group-hover:hidden">
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Count</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Count</span>
         </div>
 
         <div class="hidden group-hover:block">
@@ -67,9 +67,9 @@ defmodule Oban.Web.SidebarComponent do
         <span class="font-bold">Queues</span>
 
         <div class="group-hover:hidden">
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Exec</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Limit</span>
-          <span class="text-xs text-gray-500 uppercase inline-block text-right w-12">Avail</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Limit</span>
+          <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Avail</span>
         </div>
 
         <div class="hidden group-hover:block">
