@@ -182,21 +182,21 @@ defmodule Oban.Web.DashboardLive do
     filters = Map.put(socket.assigns.filters, :node, node)
     jobs = Query.get_jobs(socket.assigns.conf, filters)
 
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
   end
 
   def handle_info({:filter_state, state}, socket) do
     filters = Map.put(socket.assigns.filters, :state, state)
     jobs = Query.get_jobs(socket.assigns.conf, filters)
 
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
   end
 
   def handle_info({:filter_queue, queue}, socket) do
     filters = Map.put(socket.assigns.filters, :queue, queue)
     jobs = Query.get_jobs(socket.assigns.conf, filters)
 
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
   end
 
   def handle_info({:filter_terms, terms}, socket) do
