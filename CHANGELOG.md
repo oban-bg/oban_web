@@ -2,6 +2,42 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.2.0
+
+### Added
+
+- Support multiple isolated dashboards by providing an `oban_name` option to
+  `oban_dashboard/2` calls in the Phoenix router.
+
+  For example, to mount dashboards for multiple Oban instances in an umbrella:
+
+      defmodule MyAppWeb.Router do
+        use Phoenix.Router
+
+        import Oban.Web.Router
+
+        scope "/", MyAppWeb do
+          pipe_through [:browser]
+
+          oban_dashboard "/oban/web", oban_name: MyWeb.Oban
+          oban_dashboard "/oban/ops", oban_name: MyOps.Oban
+          oban_dashboard "/oban/ingestion", oban_name: MyIngestion.Oban
+        end
+      end
+
+### Changed
+
+- Clicking anywhere on a job row now opens the details view. Previously only
+  clicking the rightmost "expand" icon opened details, and clicking on the
+  worker name would search for other jobs with the same worker. Now the
+  rightmost "document search" icon performs a related job search.
+
+- Close the job details view when a user clicks a node name, job state, or queue
+  name in the sidebar.
+
+- Prevent ugly overflow issues when there are long node or queue names in the
+  sidebar. Note that the full name is still visible on hover.
+
 ## v2.1.1
 
 ### Fixed
