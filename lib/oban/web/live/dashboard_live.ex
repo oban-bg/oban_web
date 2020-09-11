@@ -149,19 +149,19 @@ defmodule Oban.Web.DashboardLive do
   # Queues
 
   def handle_info({:scale_queue, queue, limit}, socket) do
-    :ok = Oban.scale_queue(queue: queue, limit: limit)
+    :ok = Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
 
     {:noreply, socket}
   end
 
   def handle_info({:pause_queue, queue}, socket) do
-    :ok = Oban.pause_queue(queue: queue)
+    :ok = Oban.pause_queue(socket.assigns.conf.name, queue: queue)
 
     {:noreply, socket}
   end
 
   def handle_info({:resume_queue, queue}, socket) do
-    :ok = Oban.resume_queue(queue: queue)
+    :ok = Oban.resume_queue(socket.assigns.conf.name, queue: queue)
 
     {:noreply, socket}
   end
@@ -233,7 +233,7 @@ defmodule Oban.Web.DashboardLive do
   # Single Actions
 
   def handle_info({:cancel_job, job}, socket) do
-    :ok = Oban.cancel_job(job.id)
+    :ok = Oban.cancel_job(socket.assigns.conf.name, job.id)
 
     job = %{job | state: "discarded", discarded_at: DateTime.utc_now()}
 
@@ -273,7 +273,9 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:cancel_selected, socket) do
-    :ok = Enum.each(socket.assigns.selected, &Oban.cancel_job/1)
+    oban = socket.assigns.conf.name
+
+    :ok = Enum.each(socket.assigns.selected, &Oban.cancel_job(oban, &1))
 
     socket =
       socket

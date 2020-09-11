@@ -9,13 +9,12 @@ defmodule Oban.Web.Live.FilteringTest do
 
   setup do
     conf = Config.new(repo: Repo, name: Oban)
-    conn = build_conn()
 
     start_supervised!({Stats, conf: conf})
 
-    {:ok, live, _html} = live(conn, "/oban")
+    {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, conf: conf, conn: conn, live: live}
+    {:ok, conf: conf, live: live}
   end
 
   test "viewing available jobs", %{live: live} do

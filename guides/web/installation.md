@@ -75,6 +75,39 @@ restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 
+### Running Multiple Dashboards
+
+Applications that run multiple Oban instances can mount a dashboard for each
+instance. Set the mounted dashboard's `:oban_name` to match the corresponding
+supervision tree's name. For example, given two configured Oban isntances,
+`Oban` and `MyAdmin.Oban`:
+
+```elixir
+config :my_app, Oban,
+  repo: MyApp.Repo,
+  name: Oban,
+  ...
+
+config :my_admin, Oban,
+  repo: MyAdmin.Repo,
+  name: MyAdmin.Oban,
+  ...
+```
+
+You can then mount both dashboards in your router:
+
+```elixir
+scope "/" do
+  pipe_through :browser
+
+  oban_dashboard "/oban", oban_name: Oban
+  oban_dashboard "/oban/admin", oban_name: MyAdmin.Oban
+end
+```
+
+Note that the default name is `Oban`, setting `oban_name: Oban` in the example
+above was purely for demonstration purposes.
+
 ### Using LongPolling
 
 If you're application is hosted in an environment that doesn't support

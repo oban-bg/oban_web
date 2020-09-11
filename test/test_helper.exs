@@ -33,6 +33,7 @@ defmodule Oban.Web.Test.Router do
     pipe_through :browser
 
     oban_dashboard("/oban")
+    oban_dashboard("/oban-private", oban_name: ObanPrivate)
   end
 end
 
