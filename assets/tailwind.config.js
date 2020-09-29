@@ -12,6 +12,11 @@ module.exports = {
       }
     }
   },
+  purge: [
+    "../lib/**/*.eex",
+    "../lib/**/*.ex",
+    "../lib/**/*.leex"
+  ],
   variants: {
     display: ["group-hover"]
   },
