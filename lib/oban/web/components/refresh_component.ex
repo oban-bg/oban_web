@@ -8,7 +8,7 @@ defmodule Oban.Web.RefreshComponent do
     <form class="flex items-center" phx-change="select_refresh" phx-target="<%= @myself %>">
       <label for="refresh" class="block text-gray-700 text-sm">Refresh</label>
       <div class="relative ml-2">
-        <select name="refresh" class="block appearance-none bg-gray-50 border text-gray-700 px-3 py-2 pr-6 rounded leading-tight focus:outline-none focus:bg-white">
+        <select id="refresh" name="refresh" class="block appearance-none bg-gray-50 border text-gray-700 px-3 py-2 pr-6 rounded leading-tight focus:outline-none focus:bg-white">
           <%= options_for_select(refresh_options(), @refresh) %>
         </select>
         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">

@@ -50,7 +50,7 @@ defmodule Oban.Web.DashboardLive do
     ~L"""
     <meta name="live-transport" content="<%= @transport %>" />
 
-    <main role="main" class="p-4">
+    <main class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
       <header class="flex justify-between">

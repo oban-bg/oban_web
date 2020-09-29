@@ -88,6 +88,7 @@ defmodule Oban.Web.SidebarComponent do
           <%= live_component @socket, QueueComponent, id: name, filters: @filters, name: name, stat: stat %>
         <% end %>
       </ul>
+    </div>
     """
   end
 

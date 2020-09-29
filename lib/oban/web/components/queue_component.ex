@@ -65,9 +65,9 @@ defmodule Oban.Web.QueueComponent do
 
       <div class="w-full px-3 bg-white shadow-inner overflow-hidden transition-all duration-300 ease-in-out <%= if @expanded? do %>h-24 py-4 bg-gray-100<% else %>h-0<% end %>">
         <form phx-change="scale" phx-target="<%= @myself %>">
-          <label for="limit" class="block w-full text-xs font-bold text-gray-600">Queue Limit (Per Node)</label>
+          <label for="queue-<%= @name %>-limit" class="block w-full text-xs font-bold text-gray-600">Queue Limit (Per Node)</label>
           <div class="flex justify-between items-center mt-2 w-full">
-            <input type="range" name="local" min="1" max="100" step="1" value="<%= @local %>" class="w-64 cursor-pointer" phx-debounce="100">
+            <input id="queue-<%= @name %>-limit" type="range" name="local" min="1" max="100" step="1" value="<%= @local %>" class="w-64 cursor-pointer" phx-debounce="100">
             <output for="local" class="tabular bg-white rounded px-2 py-2 w-10 text-center text-gray-700 select-none"><%= @local %></output>
           </div>
         </form>
