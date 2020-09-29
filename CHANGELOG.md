@@ -2,6 +2,19 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.2.1
+
+### Fixed
+
+- Prevent layout jumb between initial render and subsequent mount. This was
+  caused by the lack of a closing tag that was later injected on DOM update.
+
+- Prevent bleeding events between nested components. The lack of a closing tag
+  seemed to confuse event handling and allowed the wrong component to receive
+  events.
+
+- Correct touch event handling in the sidebar for mobile devices.
+
 ## v2.2.0
 
 ### Added
