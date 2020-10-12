@@ -3,7 +3,7 @@ defmodule Oban.Web.Query do
 
   import Ecto.Query
 
-  alias Oban.{Config, Job}
+  alias Oban.{Config, Job, Repo}
   alias Oban.Pro.Beat
 
   @default_node "any"
@@ -40,20 +40,18 @@ defmodule Oban.Web.Query do
 
   @doc false
   def fetch_job(%Config{} = conf, job_id) do
-    case conf.repo.get(Job, job_id, log: conf.log, prefix: conf.prefix) do
-      nil ->
+    case Repo.all(conf, where(Job, id: ^job_id)) do
+      [] ->
         {:error, :not_found}
 
-      job ->
+      [job] ->
         {:ok, relativize_timestamps(job)}
     end
   end
 
   @doc false
   def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
-    Job
-    |> where([j], j.id in ^job_ids)
-    |> conf.repo.delete_all(log: conf.log, prefix: conf.prefix)
+    Repo.delete_all(conf, where(Job, [j], j.id in ^job_ids))
 
     :ok
   end
@@ -62,9 +60,7 @@ defmodule Oban.Web.Query do
   def deschedule_jobs(%Config{} = conf, [_ | _] = job_ids) do
     updates = [state: "available", completed_at: nil, discarded_at: nil]
 
-    Job
-    |> where([j], j.id in ^job_ids)
-    |> conf.repo.update_all([set: updates], log: conf.log, prefix: conf.prefix)
+    Repo.update_all(conf, where(Job, [j], j.id in ^job_ids), [set: updates])
 
     :ok
   end
@@ -139,8 +135,8 @@ defmodule Oban.Web.Query do
         version
 
       nil ->
-        %{rows: [[version]]} =
-          conf.repo.query!("SELECT current_setting('server_version_num')::int", [])
+        {:ok, %{rows: [[version]]}} =
+          Repo.query(conf, "SELECT current_setting('server_version_num')::int", [])
 
         Process.put(:pg_version, version)
 
@@ -194,14 +190,16 @@ defmodule Oban.Web.Query do
           x.paused
         }
 
-    conf.repo.all(query, log: conf.log, prefix: conf.prefix, timeout: @timeout)
+    Repo.all(conf, query, timeout: @timeout)
   end
 
   @doc false
   def queue_counts(%Config{} = conf) do
-    Job
-    |> group_by([j], [j.queue, j.state])
-    |> select([j], {j.queue, j.state, count(j.id)})
-    |> conf.repo.all(log: conf.log, prefix: conf.prefix, timeout: @timeout)
+    query =
+      Job
+      |> group_by([j], [j.queue, j.state])
+      |> select([j], {j.queue, j.state, count(j.id)})
+
+    Repo.all(conf, query, timeout: @timeout)
   end
 end
