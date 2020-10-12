@@ -60,7 +60,7 @@ defmodule Oban.Web.Query do
   def deschedule_jobs(%Config{} = conf, [_ | _] = job_ids) do
     updates = [state: "available", completed_at: nil, discarded_at: nil]
 
-    Repo.update_all(conf, where(Job, [j], j.id in ^job_ids), [set: updates])
+    Repo.update_all(conf, where(Job, [j], j.id in ^job_ids), set: updates)
 
     :ok
   end
