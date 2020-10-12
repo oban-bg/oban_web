@@ -2,6 +2,13 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.2.2
+
+### Changed
+
+- Upgrade Oban dependency to `~> 2.2.0` along with fixes for the move to
+  `Oban.Registry` and `Oban.Repo`.
+
 ## v2.2.1
 
 ### Fixed
