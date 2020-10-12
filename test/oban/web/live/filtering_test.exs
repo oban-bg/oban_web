@@ -3,18 +3,16 @@ defmodule Oban.Web.Live.FilteringTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.{Config, Job}
-  alias Oban.Pro.Beat
   alias Oban.Web.Plugins.Stats
 
-  setup do
-    conf = Config.new(repo: Repo, name: Oban)
+  @name Oban
 
-    start_supervised!({Stats, conf: conf})
+  setup do
+    start_supervised_oban!(plugins: [Stats])
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, conf: conf, live: live}
+    {:ok, live: live}
   end
 
   test "viewing available jobs", %{live: live} do
@@ -163,10 +161,9 @@ defmodule Oban.Web.Live.FilteringTest do
     render(live)
   end
 
-  defp refresh(%{conf: conf, live: live}) do
-    conf
-    |> Stats.name()
-    |> Process.whereis()
+  defp refresh(%{live: live}) do
+    @name
+    |> Oban.Registry.whereis({:plugin, Stats})
     |> send(:refresh)
 
     Process.sleep(10)

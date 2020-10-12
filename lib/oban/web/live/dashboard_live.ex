@@ -25,7 +25,7 @@ defmodule Oban.Web.DashboardLive do
 
     conf = Oban.config(oban)
 
-    :ok = Stats.activate(conf)
+    :ok = Stats.activate(oban)
 
     socket =
       assign(socket,
@@ -33,9 +33,9 @@ defmodule Oban.Web.DashboardLive do
         filters: @default_filters,
         detailed: nil,
         jobs: Query.get_jobs(conf, @default_filters),
-        node_stats: Stats.for_nodes(conf),
-        queue_stats: Stats.for_queues(conf),
-        state_stats: Stats.for_states(conf),
+        node_stats: Stats.for_nodes(conf.name),
+        queue_stats: Stats.for_queues(conf.name),
+        state_stats: Stats.for_states(conf.name),
         refresh: @default_refresh,
         selected: MapSet.new(),
         timer: nil,
@@ -133,9 +133,9 @@ defmodule Oban.Web.DashboardLive do
       assign(socket,
         detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
         jobs: jobs,
-        node_stats: Stats.for_nodes(socket.assigns.conf),
-        queue_stats: Stats.for_queues(socket.assigns.conf),
-        state_stats: Stats.for_states(socket.assigns.conf),
+        node_stats: Stats.for_nodes(socket.assigns.conf.name),
+        queue_stats: Stats.for_queues(socket.assigns.conf.name),
+        state_stats: Stats.for_states(socket.assigns.conf.name),
         selected: selected
       )
 

@@ -3,17 +3,10 @@ defmodule Oban.Web.Live.IsolationTest do
 
   import Phoenix.LiveViewTest
 
-  @oban_opts [
-    repo: Repo,
-    name: ObanPrivate,
-    prefix: "private",
-    crontab: false,
-    queues: false,
-    plugins: [Oban.Web.Plugins.Stats]
-  ]
+  alias Oban.Web.Plugins.Stats
 
   setup do
-    start_supervised!({Oban, @oban_opts})
+    start_supervised_oban!(name: ObanPrivate, prefix: "private", plugins: [Stats])
 
     {:ok, live, _html} = live(build_conn(), "/oban-private")
 

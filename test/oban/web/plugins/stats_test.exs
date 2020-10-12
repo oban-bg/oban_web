@@ -1,18 +1,16 @@
-defmodule Oban.Web.StatsTest do
+defmodule Oban.Web.Plugins.StatsTest do
   use Oban.Web.DataCase
 
-  alias Oban.{Config, Job}
-  alias Oban.Pro.Beat
   alias Oban.Web.Plugins.Stats
 
-  @conf Config.new(repo: Oban.Web.Repo, name: Oban.StatsTest)
-  @opts [conf: @conf, interval: 10]
+  @name Oban.StatsTest
+  @opts [repo: Repo, name: @name, plugins: [{Stats, interval: 10}]]
 
   test "node and queue stats aren't tracked without an active connection" do
     insert_job!(queue: :alpha, state: "available")
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
-    start_supervised!({Stats, @opts})
+    start_supervised_oban!(@opts)
 
     assert for_nodes() == %{}
     assert for_queues() == %{}
@@ -40,9 +38,9 @@ defmodule Oban.Web.StatsTest do
     insert_beat!(node: "web.2", queue: "gamma", limit: 5, paused: false)
     insert_beat!(node: "web.2", queue: "delta", limit: 9)
 
-    start_supervised!({Stats, @opts})
+    start_supervised_oban!(@opts)
 
-    :ok = Stats.activate(@conf)
+    :ok = Stats.activate(@name)
 
     assert for_nodes() == %{
              "web.1" => %{count: 0, limit: 9},
@@ -66,12 +64,12 @@ defmodule Oban.Web.StatsTest do
   end
 
   test "refreshing stops when all activated nodes disconnect" do
-    start_supervised!({Stats, @opts})
+    start_supervised_oban!(@opts)
 
     insert_job!(%{}, queue: :alpha, state: "available")
     insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
-    fn -> :ok = Stats.activate(@conf) end
+    fn -> :ok = Stats.activate(@name) end
     |> Task.async()
     |> Task.await()
 
@@ -85,7 +83,7 @@ defmodule Oban.Web.StatsTest do
     assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4, local: 4, pause: false}}
   end
 
-  defp for_nodes, do: @conf |> Stats.for_nodes() |> Map.new()
-  defp for_queues, do: @conf |> Stats.for_queues() |> Map.new()
-  defp for_states, do: @conf |> Stats.for_states() |> Map.new()
+  defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()
+  defp for_queues, do: @name |> Stats.for_queues() |> Map.new()
+  defp for_states, do: @name |> Stats.for_states() |> Map.new()
 end

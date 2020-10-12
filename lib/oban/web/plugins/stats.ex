@@ -22,7 +22,6 @@ defmodule Oban.Web.Plugins.Stats do
 
   use GenServer
 
-  alias Oban.Config
   alias Oban.Web.Query
 
   @ordered_states ~w(executing available scheduled retryable discarded completed)
@@ -42,20 +41,13 @@ defmodule Oban.Web.Plugins.Stats do
 
   @spec start_link(Keyword.t()) :: GenServer.on_start()
   def start_link(opts) when is_list(opts) do
-    conf = Keyword.fetch!(opts, :conf)
-    opts = Keyword.put_new(opts, :name, name(conf))
-
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
 
-  # This produces a name like `Oban.Oban.Web.Plugins.Stats`, which is redundant but matches
-  # the namespacing strategy used in `Oban.init/1`.
-  def name(conf), do: Module.concat([conf.name, __MODULE__])
-
-  @spec for_nodes(Config.t()) :: list({binary(), map()})
-  def for_nodes(conf) do
-    conf
-    |> name()
+  @spec for_nodes(GenServer.name()) :: list({binary(), map()})
+  def for_nodes(oban_name \\ Oban) do
+    oban_name
+    |> table()
     |> :ets.select([{{{:node, :"$1", :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
     |> Enum.sort_by(&hd/1)
     |> Enum.reduce(%{}, fn [node, count, limit], acc ->
@@ -65,9 +57,9 @@ defmodule Oban.Web.Plugins.Stats do
     end)
   end
 
-  @spec for_queues(Config.t()) :: list({binary(), map()})
-  def for_queues(conf) do
-    table = name(conf)
+  @spec for_queues(GenServer.name()) :: list({binary(), map()})
+  def for_queues(oban_name \\ Oban) do
+    table = table(oban_name)
 
     counter = fn type ->
       table
@@ -113,9 +105,9 @@ defmodule Oban.Web.Plugins.Stats do
     end)
   end
 
-  @spec for_states(Config.t()) :: list({binary(), map()})
-  def for_states(conf) do
-    table = name(conf)
+  @spec for_states(GenServer.name()) :: list({binary(), map()})
+  def for_states(oban_name \\ Oban) do
+    table = table(oban_name)
 
     for state <- @ordered_states do
       count =
@@ -133,21 +125,34 @@ defmodule Oban.Web.Plugins.Stats do
     end
   end
 
-  @spec activate(GenServer.server()) :: :ok
-  def activate(conf, timeout \\ 15_000) do
-    conf
-    |> name()
+  def activate(oban_name, timeout \\ 15_000) do
+    oban_name
+    |> Oban.Registry.via({:plugin, __MODULE__})
     |> GenServer.call(:activate, timeout)
   end
+
+  def table(oban_name) do
+    {:ok, table} = Registry.meta(Oban.Registry, {oban_name, {:plugin, __MODULE__}})
+
+    table
+  end
+
+  # Callbacks
 
   @impl GenServer
   def init(opts) do
     Process.flag(:trap_exit, true)
 
-    table = :ets.new(opts[:name], [:public, :named_table, read_concurrency: true])
-    opts = Keyword.put(opts, :table, table)
+    table = :ets.new(:stats, [:public, read_concurrency: true])
+    state = struct!(State, Keyword.put(opts, :table, table))
 
-    {:ok, struct!(State, opts)}
+    Registry.put_meta(
+      Oban.Registry,
+      {state.conf.name, {:plugin, __MODULE__}},
+      table
+    )
+
+    {:ok, state}
   end
 
   @impl GenServer

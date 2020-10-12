@@ -52,6 +52,5 @@ end
 
 Oban.Web.Repo.start_link()
 Oban.Web.Endpoint.start_link()
-Oban.start_link(repo: Oban.Web.Repo, queues: [default: 1])
 
 ExUnit.start()

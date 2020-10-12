@@ -1,7 +1,7 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.2.1"
+  @version "2.2.0"
 
   def project do
     [
@@ -45,8 +45,8 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.1"},
-      {:oban_pro, "~> 0.3", organization: "oban"},
+      {:oban, "~> 2.2"},
+      {:oban_pro, "~> 0.4", organization: "oban"},
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 2.0"},
