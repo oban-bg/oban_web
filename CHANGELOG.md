@@ -2,6 +2,14 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.2.3
+
+### Changed
+
+- Replace the queue scale slider with a number input and a submit button. Aside
+  from how difficult it was to scale accurately with a slider, it would fire
+  erroneous `update` events due to DOM changes.
+
 ## v2.2.2
 
 ### Changed

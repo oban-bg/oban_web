@@ -38,8 +38,8 @@ defmodule Oban.Web.QueueComponent do
 
   def render(assigns) do
     ~L"""
-    <li id="queue-<%= @name %>" class="text-sm cursor-pointer outline-none" tabindex="0" phx-click="filter" phx-target="<%= @myself %>">
-      <div class="group flex justify-between py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @active? do %>border-blue-400<% end %>">
+    <li class="text-sm">
+      <div id="queue-<%= @name %>" tabindex="0" phx-click="filter" phx-target="<%= @myself %>" class="group flex outline-none cursor-pointer justify-between py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @expanded? do %>bg-gray-50<% end %> <%= if @active? do %>border-blue-400<% end %>">
         <span class="pl-3 flex-initial font-semibold truncate <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 
         <div class="pr-3 flex-none group-hover:hidden">
@@ -63,12 +63,12 @@ defmodule Oban.Web.QueueComponent do
         </div>
       </div>
 
-      <div class="w-full px-3 bg-white shadow-inner overflow-hidden transition-all duration-300 ease-in-out <%= if @expanded? do %>h-24 py-4 bg-gray-100<% else %>h-0<% end %>">
-        <form phx-change="scale" phx-target="<%= @myself %>">
-          <label for="queue-<%= @name %>-limit" class="block w-full text-xs font-bold text-gray-600">Queue Limit (Per Node)</label>
+      <div class="w-full px-3 bg-white shadow-inner overflow-hidden transition-all duration-300 ease-in-out <%= if @expanded? do %>h-16 py-2 bg-gray-100<% else %>h-0<% end %>">
+        <form phx-submit="scale" phx-target="<%= @myself %>">
           <div class="flex justify-between items-center mt-2 w-full">
-            <input id="queue-<%= @name %>-limit" type="range" name="local" min="1" max="100" step="1" value="<%= @local %>" class="w-64 cursor-pointer" phx-debounce="100">
-            <output for="local" class="tabular bg-white rounded px-2 py-2 w-10 text-center text-gray-700 select-none"><%= @local %></output>
+            <label for="queue-<%= @name %>-limit" class="block w-full text-xs font-bold text-gray-600">Per Node Limit</label>
+            <input phx-update="ignore" id="queue-<%= @name %>-limit" type="number" name="local" min="1" max="100" step="1" value="<%= @local %>" class="tabular bg-white rounded px-2 py-2 w-20 text-gray-700">
+            <button class="bg-gray-200 rounded ml-3 px-2 py-2 text-gray-700 hover:bg-blue-500 hover:text-white">Scale</button>
           </div>
         </form>
       </div>
@@ -99,6 +99,8 @@ defmodule Oban.Web.QueueComponent do
       |> max(@limit_min)
 
     limit = local * socket.assigns.ratio
+
+    IO.inspect({"EVENT", local, limit})
 
     send(self(), {:scale_queue, socket.assigns.name, local})
 
