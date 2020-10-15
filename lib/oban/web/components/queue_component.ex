@@ -100,8 +100,6 @@ defmodule Oban.Web.QueueComponent do
 
     limit = local * socket.assigns.ratio
 
-    IO.inspect({"EVENT", local, limit})
-
     send(self(), {:scale_queue, socket.assigns.name, local})
 
     {:noreply, assign(socket, local: local, limit: limit, update_at: DateTime.utc_now())}
