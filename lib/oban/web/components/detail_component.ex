@@ -71,8 +71,8 @@ defmodule Oban.Web.DetailComponent do
           <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Priority</span> <%= @job.priority %></div>
           <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Tags</span> <%= formatted_tags(@job) %></div>
           <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Node</span> <%= attempted_by(@job) %></div>
-          <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Queue Time</span> <%= queue_time(@job) %></div>
-          <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Run Time</span> <%= run_time(@job) %></div>
+          <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Queue Time</span> <%= Timing.queue_time(@job) %></div>
+          <div class="mr-6"><span class="uppercase font-semibold text-xs text-gray-500 mr-1">Run Time</span> <%= Timing.run_time(@job) %></div>
         </div>
       </div>
     </div>
@@ -130,29 +130,5 @@ defmodule Oban.Web.DetailComponent do
     send(self(), {:retry_job, socket.assigns.job})
 
     {:noreply, socket}
-  end
-
-  # Helpers
-
-  defp queue_time(job) do
-    if job.attempted_at do
-      job.attempted_at
-      |> DateTime.diff(job.scheduled_at, :millisecond)
-      |> Timing.to_duration(:millisecond)
-    else
-      "-"
-    end
-  end
-
-  defp run_time(job) do
-    finished_at = job.completed_at || job.discarded_at
-
-    if finished_at do
-      job.attempted_at
-      |> DateTime.diff(finished_at, :millisecond)
-      |> Timing.to_duration(:millisecond)
-    else
-      "-"
-    end
   end
 end

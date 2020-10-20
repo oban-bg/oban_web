@@ -3,6 +3,8 @@ defmodule Oban.Web.Timing do
   Utilitiy functions for formatting and converting times.
   """
 
+  @empty_time "-"
+
   @doc """
   Format ellapsed seconds into a timer format of "MM:SS" or "HH:MM:SS".
 
@@ -112,6 +114,63 @@ defmodule Oban.Web.Timing do
       ellapsed > 0 -> "in #{distance}"
       true -> distance
     end
+  end
+
+  @doc """
+  Calculate the amount of time a job waited between availability and execution.
+
+      iex> Oban.Web.Timing.queue_time(%{attempted_at: nil})
+      "-"
+
+      iex> at = DateTime.utc_now()
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at, scheduled_at: at})
+      "00:00.0"
+
+      iex> at_at = DateTime.utc_now()
+      ...> sc_at = DateTime.add(at_at, -60)
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, scheduled_at: sc_at})
+      "01:00.0"
+  """
+  def queue_time(%{attempted_at: nil}), do: @empty_time
+
+  def queue_time(job) do
+    job.attempted_at
+    |> DateTime.diff(job.scheduled_at, :millisecond)
+    |> to_duration(:millisecond)
+  end
+
+  @doc """
+  Calculate the amount of time a job executed before completing or discarded.
+
+      iex> Oban.Web.Timing.run_time(%{attempted_at: nil})
+      "-"
+
+      iex> Oban.Web.Timing.run_time(%{completed_at: nil, discarded_at: nil})
+      "-"
+
+      iex> at = DateTime.utc_now()
+      ...> Oban.Web.Timing.run_time(%{attempted_at: at, completed_at: at})
+      "00:00.0"
+
+      iex> at_at = DateTime.utc_now()
+      ...> co_at = DateTime.add(at_at, -60)
+      ...> Oban.Web.Timing.run_time(%{attempted_at: at_at, completed_at: co_at})
+      "01:00.0"
+
+      iex> at_at = DateTime.utc_now()
+      ...> di_at = DateTime.add(at_at, -60)
+      ...> Oban.Web.Timing.run_time(%{attempted_at: at_at, completed_at: nil, discarded_at: di_at})
+      "01:00.0"
+  """
+  def run_time(%{attempted_at: nil}), do: @empty_time
+  def run_time(%{completed_at: nil, discarded_at: nil}), do: @empty_time
+
+  def run_time(job) do
+    finished_at = job.completed_at || job.discarded_at
+
+    job.attempted_at
+    |> DateTime.diff(finished_at, :millisecond)
+    |> to_duration(:millisecond)
   end
 
   defp pad(time) do
