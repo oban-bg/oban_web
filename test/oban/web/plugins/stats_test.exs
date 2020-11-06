@@ -21,6 +21,7 @@ defmodule Oban.Web.Plugins.StatsTest do
              "scheduled" => %{count: 0},
              "retryable" => %{count: 0},
              "discarded" => %{count: 0},
+             "cancelled" => %{count: 0},
              "completed" => %{count: 0}
            }
   end
@@ -59,6 +60,7 @@ defmodule Oban.Web.Plugins.StatsTest do
              "scheduled" => %{count: 1},
              "retryable" => %{count: 0},
              "discarded" => %{count: 0},
+             "cancelled" => %{count: 0},
              "completed" => %{count: 1}
            }
   end
