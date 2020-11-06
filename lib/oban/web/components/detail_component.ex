@@ -86,7 +86,7 @@ defmodule Oban.Web.DetailComponent do
 
     <div class="px-3 py-6 border-t border-gray-200">
       <h3 class="font-semibold mb-3">Args</h3>
-      <pre><code class="font-mono text-sm text-gray-500 overflow-x-scroll"><%= inspect(@job.args, pretty: true) %></code></pre>
+      <pre><code class="font-mono text-sm text-gray-500 overflow-x-scroll"><%= inspect(@job.args, charlists: :as_lists, pretty: true) %></code></pre>
     </div>
 
     <div class="px-3 py-6 border-t border-gray-200">
