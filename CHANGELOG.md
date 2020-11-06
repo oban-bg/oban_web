@@ -2,6 +2,21 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.3.0
+
+### Added
+
+- Cancelling a job transitions the job to the `cancelled` state rather than
+  `discarded`. The `discarded` state is now reserved for jobs that exhaust retry
+  attempts or are purposefully discarded through a `{:discard, reason}` tuple.
+
+- Display `meta` in the job details view.
+
+### Changed
+
+- Upgrade Oban dependency to `~> 2.3.0` to support the new `cancelled` state,
+  and `meta` field.
+
 ## v2.2.3
 
 ### Changed
