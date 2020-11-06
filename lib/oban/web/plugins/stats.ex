@@ -8,11 +8,11 @@ defmodule Oban.Web.Plugins.Stats do
 
   There are three categories of stats:
 
-  1. `:node` — pulled from `oban_beats` and and various pubsub messages, contains details about
-     each queue running on a particular node.
-  2. `:queue` — pulled from `oban_jobs` and insert pubsub, contains the available and executing
-     counts for each queue _across_ all nodes.
-  3. `:state` — pulled from `oban_jobs` and updated by insert pubsub messages.
+  * `:node` — pulled from `oban_beats`, contains details about each queue running on a particular
+    node.
+  * `:queue` — pulled from `oban_jobs`, contains the available and executing counts for each
+    queue _across_ all nodes.
+  * `:state` — pulled from `oban_jobs` and updated by insert pubsub messages.
 
   Stats are stored with the following structure:
 
@@ -24,7 +24,7 @@ defmodule Oban.Web.Plugins.Stats do
 
   alias Oban.Web.Query
 
-  @ordered_states ~w(executing available scheduled retryable discarded completed)
+  @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   defmodule State do
     @moduledoc false

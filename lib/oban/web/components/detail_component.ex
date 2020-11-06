@@ -81,12 +81,18 @@ defmodule Oban.Web.DetailComponent do
       <%= live_component @socket, TimelineComponent, id: :inserted, job: @job, state: "inserted" %>
       <%= live_component @socket, TimelineComponent, id: :scheduled, job: @job, state: "scheduled" %>
       <%= live_component @socket, TimelineComponent, id: :executing, job: @job, state: "executing" %>
+      <%= live_component @socket, TimelineComponent, id: :cancelled, job: @job, state: "cancelled" %>
       <%= live_component @socket, TimelineComponent, id: :discarded, job: @job, state: "discarded" %>
     </div>
 
     <div class="px-3 py-6 border-t border-gray-200">
       <h3 class="font-semibold mb-3">Args</h3>
       <pre><code class="font-mono text-sm text-gray-500 overflow-x-scroll"><%= inspect(@job.args, charlists: :as_lists, pretty: true) %></code></pre>
+    </div>
+
+    <div class="px-3 py-6 border-t border-gray-200">
+      <h3 class="font-semibold mb-3">Meta</h3>
+      <pre><code class="font-mono text-sm text-gray-500 overflow-x-scroll"><%= inspect(@job.meta, charlists: :as_lists, pretty: true) %></code></pre>
     </div>
 
     <div class="px-3 py-6 border-t border-gray-200">

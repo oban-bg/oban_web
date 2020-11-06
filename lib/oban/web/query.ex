@@ -150,6 +150,7 @@ defmodule Oban.Web.Query do
   defp relativize_timestamps(%Job{} = job, now \\ NaiveDateTime.utc_now()) do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
+      relative_cancelled_at: maybe_diff(now, job.cancelled_at),
       relative_completed_at: maybe_diff(now, job.completed_at),
       relative_discarded_at: maybe_diff(now, job.discarded_at),
       relative_inserted_at: maybe_diff(now, job.inserted_at),

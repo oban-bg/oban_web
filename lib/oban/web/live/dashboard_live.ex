@@ -235,7 +235,7 @@ defmodule Oban.Web.DashboardLive do
   def handle_info({:cancel_job, job}, socket) do
     :ok = Oban.cancel_job(socket.assigns.conf.name, job.id)
 
-    job = %{job | state: "discarded", discarded_at: DateTime.utc_now()}
+    job = %{job | state: "cancelled", cancelled_at: DateTime.utc_now()}
 
     {:noreply, assign(socket, detailed: job)}
   end

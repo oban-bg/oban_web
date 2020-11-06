@@ -6,6 +6,7 @@ defmodule Oban.Web.TimelineComponent do
   @empty_time "—"
 
   @state_to_timestamp %{
+    "cancelled" => :cancelled_at,
     "completed" => :completed_at,
     "discarded" => :discarded_at,
     "executing" => :attempted_at,
@@ -14,6 +15,7 @@ defmodule Oban.Web.TimelineComponent do
   }
 
   @state_to_relative %{
+    "cancelled" => :relative_cancelled_at,
     "completed" => :relative_completed_at,
     "discarded" => :relative_discarded_at,
     "executing" => :relative_attempted_at,
@@ -46,6 +48,7 @@ defmodule Oban.Web.TimelineComponent do
       "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
       "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
       "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
+      "cancelled" -> "Cancelled At: #{truncate_sec(job.cancelled_at)}"
       "discarded" -> "Discarded At: #{truncate_sec(job.discarded_at)}"
     end
   end
@@ -118,6 +121,8 @@ defmodule Oban.Web.TimelineComponent do
   defp absolute_state("completed", "completed", at) when not is_nil(at), do: :finished
   defp absolute_state("completed", "executing", _), do: :unstarted
   defp absolute_state("completed", "retryable", _), do: :unstarted
+  defp absolute_state("cancelled", "cancelled", _), do: :finished
+  defp absolute_state("cancelled", "retryable", _), do: :unstarted
   defp absolute_state("discarded", "discarded", _), do: :finished
   defp absolute_state("discarded", "retryable", _), do: :unstarted
   defp absolute_state("executing", "retryable", _), do: :unstarted
