@@ -15,7 +15,7 @@ Next, add a small shell script to your application in `./bin/predeps`:
 ```bash
 #!/bin/bash
 
-mix hex.organization auth acme --key "$OBAN_WEB_LICENSE_KEY"
+mix hex.organization auth oban --key "$OBAN_WEB_LICENSE_KEY"
 ```
 
 Finally, set the `predeps` script within `elixir_buildpack.config`:
