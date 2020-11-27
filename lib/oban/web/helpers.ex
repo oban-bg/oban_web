@@ -29,12 +29,13 @@ defmodule Oban.Web.Helpers do
   @spec absolute_time(String.t(), Job.t()) :: String.t()
   def absolute_time(state, job) do
     case state do
-      "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
-      "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
-      "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
       "available" -> "Available At: #{truncate_sec(job.scheduled_at)}"
+      "cancelled" -> "Cancelled At: #{truncate_sec(job.cancelled_at)}"
+      "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
+      "discarded" -> "Discarded At: #{truncate_sec(job.discarded_at)}"
+      "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
+      "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
       "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
-      "discarded" -> "Discarded At: #{truncate_sec(job.completed_at || job.inserted_at)}"
     end
   end
 
@@ -46,11 +47,10 @@ defmodule Oban.Web.Helpers do
   @spec relative_time(String.t(), Job.t()) :: String.t()
   def relative_time(state, job) do
     case state do
-      "attempted" -> Timing.to_words(job.relative_attempted_at)
+      "cancelled" -> Timing.to_words(job.relative_cancelled_at)
       "completed" -> Timing.to_words(job.relative_completed_at)
-      "discarded" -> Timing.to_words(job.relative_attempted_at || job.relative_inserted_at)
+      "discarded" -> Timing.to_words(job.relative_discarded_at)
       "executing" -> Timing.to_duration(job.relative_attempted_at)
-      "inserted" -> Timing.to_words(job.relative_inserted_at)
       _ -> Timing.to_words(job.relative_scheduled_at)
     end
   end
@@ -76,16 +76,14 @@ defmodule Oban.Web.Helpers do
   """
   @spec retryable?(Job.t()) :: boolean()
   def retryable?(%Job{state: state}) do
-    state in ~w(completed retryable discarded)
+    state in ~w(completed retryable discarded cancelled)
   end
 
   @doc """
   Whether the job can be deleted in its current state.
   """
   @spec deletable?(Job.t()) :: boolean()
-  def deletable?(%Job{state: state}) do
-    state in ~w(inserted scheduled available completed retryable discarded)
-  end
+  def deletable?(%Job{state: state}), do: state != 'executing'
 
   @doc """
   Convert a stringified timestamp (i.e. from an error) into a relative time.
