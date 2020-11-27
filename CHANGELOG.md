@@ -2,6 +2,16 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.3.1
+
+### Changed
+
+- Upgrade minimum Phoenix Live View dependency to `0.15`.
+
+### Fixed
+
+- Allow retrying or deleting cancelled jobs when they were never attempted.
+
 ## v2.3.0
 
 ### Added
