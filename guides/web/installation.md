@@ -24,7 +24,7 @@ Now that you're authenticated you're ready to add `oban_web` as a dependency for
 your application. Open `mix.exs` and add the following line:
 
 ```elixir
-{:oban_web, "~> 2.1", organization: "oban"}
+{:oban_web, "~> 2.3", organization: "oban"}
 ```
 
 Now fetch your dependencies:
@@ -128,6 +128,27 @@ scope "/" do
   oban_dashboard "/oban", transport: "longpoll"
 end
 ```
+
+### Setting a Default Refresh Rate
+
+The refresh rate controls how frequently the server pulls statistics from the
+database, and when data is pushed from the server. The default refresh rate is 1
+second, but you can customize it when mounting your dashboard.
+
+For example, to set the default refresh to 5 seconds:
+
+```elixir
+scope "/" do
+  pipe_through :browser
+
+  oban_dashboard "/oban", default_refresh: 5
+end
+```
+
+Possible values are: `1`, `2`, `5`, `15` or `-1` to disable refreshing.
+
+Note that this only sets the default. Users may still choose a different
+refresh for themselves while viewing the dashboard.
 
 ### Trouble installing? Have questions?
 

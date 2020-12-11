@@ -40,19 +40,23 @@ defmodule Oban.Web.Router do
   def __options__(opts) do
     oban_name = Keyword.get(opts, :oban_name, Oban)
     transport = Keyword.get(opts, :transport, "websocket")
+    refresh = Keyword.get(opts, :default_refresh, 1)
 
     validate_oban_name!(oban_name)
     validate_transport!(transport)
+    validate_refresh!(refresh)
+
+    session_args = [oban_name, transport, refresh]
 
     opts
     |> Keyword.put_new(:as, :oban_dashboard)
-    |> Keyword.put_new(:session, {__MODULE__, :__session__, [oban_name, transport]})
+    |> Keyword.put_new(:session, {__MODULE__, :__session__, session_args})
     |> Keyword.put_new(:layout, {Oban.Web.LayoutView, "app.html"})
   end
 
   @doc false
-  def __session__(_conn, oban, transport) do
-    %{"oban" => oban, "transport" => transport}
+  def __session__(_conn, oban, transport, refresh) do
+    %{"oban" => oban, "refresh" => refresh, "transport" => transport}
   end
 
   defp validate_oban_name!(name) do
@@ -67,6 +71,15 @@ defmodule Oban.Web.Router do
     unless tran in ~w(longpoll websocket) do
       raise ArgumentError, """
       invalid :transport, expected either "longpoll" or "websocket", got #{inspect(tran)}
+      """
+    end
+  end
+
+  @refresh_values [1, 2, 5, 15, -1]
+  defp validate_refresh!(refresh) do
+    unless refresh in @refresh_values do
+      raise ArgumentError, """
+      invalid :default_refresh, expected one of #{inspect(@refresh_values)}, got #{refresh}
       """
     end
   end

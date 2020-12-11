@@ -17,11 +17,9 @@ defmodule Oban.Web.DashboardLive do
     limit: 20
   }
 
-  @default_refresh 1
-
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
-    %{"oban" => oban, "transport" => transport} = session
+    %{"oban" => oban, "refresh" => refresh, "transport" => transport} = session
 
     conf = Oban.config(oban)
 
@@ -36,7 +34,7 @@ defmodule Oban.Web.DashboardLive do
         node_stats: Stats.for_nodes(conf.name),
         queue_stats: Stats.for_queues(conf.name),
         state_stats: Stats.for_states(conf.name),
-        refresh: @default_refresh,
+        refresh: refresh,
         selected: MapSet.new(),
         timer: nil,
         transport: transport
