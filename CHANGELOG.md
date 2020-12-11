@@ -2,6 +2,29 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.4.0
+
+### Added
+
+- Allow `default_refresh` option when mounting a dashboard in a router.
+
+  The refresh rate controls how frequently the server pulls statistics from the
+  database, and when data is pushed from the server. The default refresh rate is
+  1 second, but you can now customize it when mounting a dashboard.
+
+  For example, to set the default refresh to 5 seconds:
+
+  ```elixir
+  scope "/" do
+    pipe_through :browser
+
+    oban_dashboard "/oban", default_refresh: 5
+  end
+  ```
+
+  This makes it easy to reduce the load on your database when a lot of users are
+  viewing Oban dashboards.
+
 ## v2.3.1
 
 ### Changed
