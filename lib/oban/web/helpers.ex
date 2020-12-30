@@ -91,7 +91,7 @@ defmodule Oban.Web.Helpers do
   Whether the job can be deleted in its current state.
   """
   @spec deletable?(Job.t()) :: boolean()
-  def deletable?(%Job{state: state}), do: state != 'executing'
+  def deletable?(%Job{state: state}), do: state != "executing"
 
   @doc """
   Convert a stringified timestamp (i.e. from an error) into a relative time.

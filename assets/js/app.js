@@ -1,5 +1,6 @@
 import css from "../css/app.css"
 
+import "../../deps/phoenix_html/priv/static/phoenix_html"
 import {Socket, LongPoll} from "../../deps/phoenix/priv/static/phoenix"
 import {LiveSocket} from "../../deps/phoenix_live_view/priv/static/phoenix_live_view"
 

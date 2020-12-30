@@ -22,4 +22,13 @@ defmodule Oban.Web.DetailComponentTest do
     html = render_component(Component, access: :all, id: job.id, job: job)
     assert html =~ ~s(phx-click="cancel")
   end
+
+  test "restricting actions based on job state" do
+    job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "executing"}
+
+    html = render_component(Component, access: :all, id: job.id, job: job)
+
+    assert html =~ ~s(phx-click="cancel")
+    refute html =~ ~s(phx-click="delete")
+  end
 end
