@@ -11,6 +11,7 @@ defmodule Oban.Web.Resolver do
           | {:cancel_jobs, boolean()}
           | {:delete_jobs, boolean()}
           | {:retry_jobs, boolean()}
+  @type refresh :: 1 | 2 | 5 | 15 | -1
 
   @doc """
   Lookup or extract a user from a `Plug.Conn`.
@@ -22,9 +23,17 @@ defmodule Oban.Web.Resolver do
   """
   @callback resolve_access(user()) :: access()
 
+  @doc """
+  Determine the initial refresh rate when the dashboard mounts.
+  """
+  @callback resolve_refresh() :: refresh()
+
   @doc false
   def resolve_user(_conn), do: nil
 
   @doc false
   def resolve_access(_user), do: :all
+
+  @doc false
+  def resolve_refresh, do: 1
 end

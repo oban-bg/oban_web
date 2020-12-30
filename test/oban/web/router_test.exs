@@ -22,6 +22,9 @@ defmodule Oban.Web.RouterTest do
         :read
       end
     end
+
+    @impl true
+    def resolve_refresh, do: 5
   end
 
   describe "__options__" do
@@ -36,28 +39,20 @@ defmodule Oban.Web.RouterTest do
       assert %{"transport" => "longpoll"} = options_to_session(transport: "longpoll")
     end
 
-    test "passing the default_refresh through to the session" do
-      assert %{"refresh" => 5} = options_to_session(default_refresh: 5)
-    end
-
     test "passing a resolver module through to the session" do
       conn =
         :get
         |> conn("/oban")
         |> Conn.put_private(:current_user, %{id: 1, admin?: false})
 
-      assert %{"access" => :read, "user" => %{id: 1}} = options_to_session(conn, resolver: Resolver)
+      session = options_to_session(conn, resolver: Resolver)
+
+      assert %{"access" => :read, "refresh" => 5, "user" => %{id: 1}} = session
     end
 
     test "validating oban name values" do
       assert_raise ArgumentError, ~r/invalid :oban_name/, fn ->
         Router.__options__(oban_name: "MyApp.Oban")
-      end
-    end
-
-    test "validating default_refresh values" do
-      assert_raise ArgumentError, ~r/invalid :default_refresh/, fn ->
-        Router.__options__(default_refresh: 3)
       end
     end
 

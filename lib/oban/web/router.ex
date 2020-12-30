@@ -8,11 +8,9 @@ defmodule Oban.Web.Router do
   @default_opts [
     oban_name: Oban,
     transport: "websocket",
-    default_refresh: 1,
     resolver: Resolver
   ]
 
-  @refresh_values [1, 2, 5, 15, -1]
   @transport_values ~w(longpoll websocket)
 
   @doc """
@@ -57,7 +55,6 @@ defmodule Oban.Web.Router do
     session_args = [
       opts[:oban_name],
       opts[:transport],
-      opts[:default_refresh],
       opts[:resolver]
     ]
 
@@ -68,9 +65,10 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, oban, transport, refresh, resolver) do
+  def __session__(conn, oban, transport, resolver) do
     user = resolver.resolve_user(conn)
     access = resolver.resolve_access(user)
+    refresh = resolver.resolve_refresh()
 
     %{
       "oban" => oban,
@@ -99,13 +97,8 @@ defmodule Oban.Web.Router do
     end
   end
 
-  defp validate_opt!({:default_refresh, refresh}) do
-    unless refresh in @refresh_values do
-      raise ArgumentError, """
-      invalid :default_refresh, expected one of #{inspect(@refresh_values)},
-      got #{refresh}
-      """
-    end
+  defp validate_opt!({:default_refresh, _refresh}) do
+    IO.warn("The :default_refresh option is deprecated, use a Resolver callback module instead")
   end
 
   defp validate_opt!({:resolver, resolver}) do
