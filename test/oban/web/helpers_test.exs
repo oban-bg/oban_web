@@ -3,6 +3,16 @@ defmodule Oban.Web.HelpersTest do
 
   alias Oban.Web.Helpers
 
+  describe "can?/2" do
+    test "checking actions against access control lists" do
+      assert Helpers.can?(:pause_queues, :all)
+      refute Helpers.can?(:pause_queues, :read)
+      assert Helpers.can?(:pause_queues, pause_queues: true)
+      refute Helpers.can?(:pause_queues, pause_queues: false)
+      refute Helpers.can?(:pause_queues, scale_queues: false)
+    end
+  end
+
   describe "integer_to_delimited/1" do
     test "integers larger than three digits have are comma delimited" do
       assert Helpers.integer_to_delimited(1) == "1"

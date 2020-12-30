@@ -4,11 +4,11 @@ defmodule Oban.Web.DetailComponent do
   alias Oban.Web.{TimelineComponent, Timing}
 
   def mount(socket) do
-    {:ok, assign(socket, job: nil)}
+    {:ok, assign(socket, access: :read, job: nil)}
   end
 
   def update(assigns, socket) do
-    {:ok, assign(socket, job: assigns.job)}
+    {:ok, assign(socket, access: assigns.access, job: assigns.job)}
   end
 
   def render(assigns) do
@@ -21,7 +21,7 @@ defmodule Oban.Web.DetailComponent do
         </a>
 
         <div class="flex">
-          <%= if cancelable?(@job) do %>
+          <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
             <a href="#"
                class="group flex items-center ml-4 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-yellow-600 hover:border-yellow-600"
                phx-target="<%= @myself %>" phx-click="cancel">
@@ -30,7 +30,7 @@ defmodule Oban.Web.DetailComponent do
             </a>
           <% end %>
 
-          <%= if runnable?(@job) do %>
+          <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
             <a href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-blue-600 hover:border-blue-600"
                phx-target="<%= @myself %>" phx-click="retry">
@@ -39,7 +39,7 @@ defmodule Oban.Web.DetailComponent do
             </a>
           <% end %>
 
-          <%= if retryable?(@job) do %>
+          <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
             <a href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-blue-600 hover:border-blue-600"
                phx-target="<%= @myself %>" phx-click="retry">
@@ -48,7 +48,7 @@ defmodule Oban.Web.DetailComponent do
             </a>
           <% end %>
 
-          <%= if deletable?(@job) do %>
+          <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
             <a href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-red-600 hover:border-red-600"
                phx-target="<%= @myself %>" phx-click="delete">

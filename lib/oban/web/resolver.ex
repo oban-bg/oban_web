@@ -6,11 +6,11 @@ defmodule Oban.Web.Resolver do
   @type user :: nil | map() | struct()
   @type access :: :all | :read | [access_option()]
   @type access_option ::
-          {:pause_queue, boolean()}
-          | {:scale_queue, boolean()}
-          | {:cancel_job, boolean()}
-          | {:delete_job, boolean()}
-          | {:retry_job, boolean()}
+          {:pause_queues, boolean()}
+          | {:scale_queues, boolean()}
+          | {:cancel_jobs, boolean()}
+          | {:delete_jobs, boolean()}
+          | {:retry_jobs, boolean()}
 
   @doc """
   Lookup or extract a user from a `Plug.Conn`.

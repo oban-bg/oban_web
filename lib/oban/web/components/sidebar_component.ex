@@ -85,7 +85,7 @@ defmodule Oban.Web.SidebarComponent do
 
       <ul class="<%= if @show_queues? do %>block<% else %>hidden<% end %>">
         <%= for {name, stat} <- @queue_stats do %>
-          <%= live_component @socket, QueueComponent, id: name, filters: @filters, name: name, stat: stat %>
+          <%= live_component @socket, QueueComponent, id: name, access: @access, filters: @filters, name: name, stat: stat %>
         <% end %>
       </ul>
     </div>

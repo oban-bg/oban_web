@@ -2,7 +2,15 @@ defmodule Oban.Web.Helpers do
   @moduledoc false
 
   alias Oban.Job
-  alias Oban.Web.Timing
+  alias Oban.Web.{Resolver, Timing}
+
+  @doc """
+  Check an action against the current access controls.
+  """
+  @spec can?(Resolver.access(), atom()) :: boolean()
+  def can?(_action, :all), do: true
+  def can?(_action, :read), do: false
+  def can?(action, [_ | _] = opts), do: Keyword.get(opts, action, false)
 
   @spec integer_to_delimited(integer()) :: String.t()
   def integer_to_delimited(integer) when is_integer(integer) do

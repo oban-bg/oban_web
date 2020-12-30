@@ -20,6 +20,7 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
     %{"oban" => oban, "refresh" => refresh, "transport" => transport} = session
+    %{"user" => user, "access" => access} = session
 
     conf = Oban.config(oban)
 
@@ -27,6 +28,7 @@ defmodule Oban.Web.DashboardLive do
 
     socket =
       assign(socket,
+        access: access,
         conf: conf,
         filters: @default_filters,
         detailed: nil,
@@ -37,7 +39,8 @@ defmodule Oban.Web.DashboardLive do
         refresh: refresh,
         selected: MapSet.new(),
         timer: nil,
-        transport: transport
+        transport: transport,
+        user: user
       )
 
     {:ok, init_schedule_refresh(socket)}
@@ -73,6 +76,7 @@ defmodule Oban.Web.DashboardLive do
           <%= live_component @socket,
               SidebarComponent,
               id: :sidebar,
+              access: @access,
               filters: @filters,
               node_stats: @node_stats,
               queue_stats: @queue_stats,
@@ -81,14 +85,14 @@ defmodule Oban.Web.DashboardLive do
 
         <div class="flex-1 bg-white rounded-md shadow-md overflow-hidden">
           <%= if @detailed do %>
-            <%= live_component @socket, DetailComponent, id: :detail, job: @detailed %>
+            <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
               <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats, selected: @selected %>
               <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
             </div>
 
-            <%= live_component @socket, BulkActionComponent, id: :bulk_action, jobs: @jobs, selected: @selected %>
+            <%= live_component @socket, BulkActionComponent, id: :bulk_action, access: @access, jobs: @jobs, selected: @selected %>
             <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, filters: @filters, selected: @selected %>
           <% end %>
         </div>
