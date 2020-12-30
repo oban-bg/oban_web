@@ -36,17 +36,28 @@ defmodule Oban.Web.Router do
     end
   end
 
+  @default_opts [
+    oban_name: Oban,
+    transport: "websocket",
+    default_refresh: 1,
+    resolve_user: &__MODULE__.__resolve_user__/1
+  ]
+
+  @refresh_values [1, 2, 5, 15, -1]
+  @transport_values ~w(longpoll websocket)
+
   @doc false
   def __options__(opts) do
-    oban_name = Keyword.get(opts, :oban_name, Oban)
-    transport = Keyword.get(opts, :transport, "websocket")
-    refresh = Keyword.get(opts, :default_refresh, 1)
+    opts = Keyword.merge(@default_opts, opts)
 
-    validate_oban_name!(oban_name)
-    validate_transport!(transport)
-    validate_refresh!(refresh)
+    Enum.each(opts, &validate_opt!/1)
 
-    session_args = [oban_name, transport, refresh]
+    session_args = [
+      opts[:oban_name],
+      opts[:transport],
+      opts[:default_refresh],
+      opts[:resolve_user]
+    ]
 
     opts
     |> Keyword.put_new(:as, :oban_dashboard)
@@ -55,11 +66,19 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(_conn, oban, transport, refresh) do
-    %{"oban" => oban, "refresh" => refresh, "transport" => transport}
+  def __session__(conn, oban, transport, refresh, resolve_user) do
+    %{
+      "oban" => oban,
+      "refresh" => refresh,
+      "transport" => transport,
+      "user" => resolve_user.(conn)
+    }
   end
 
-  defp validate_oban_name!(name) do
+  @doc false
+  def __resolve_user__(_conn), do: nil
+
+  defp validate_opt!({:oban_name, name}) do
     unless is_atom(name) do
       raise ArgumentError, """
       invalid :oban_name, expected a module or atom but got #{inspect(name)}
@@ -67,20 +86,29 @@ defmodule Oban.Web.Router do
     end
   end
 
-  defp validate_transport!(tran) do
-    unless tran in ~w(longpoll websocket) do
+  defp validate_opt!({:transport, transport}) do
+    unless transport in @transport_values do
       raise ArgumentError, """
-      invalid :transport, expected either "longpoll" or "websocket", got #{inspect(tran)}
+      invalid :transport, expected either "longpoll" or "websocket", got #{inspect(transport)}
       """
     end
   end
 
-  @refresh_values [1, 2, 5, 15, -1]
-  defp validate_refresh!(refresh) do
+  defp validate_opt!({:default_refresh, refresh}) do
     unless refresh in @refresh_values do
       raise ArgumentError, """
       invalid :default_refresh, expected one of #{inspect(@refresh_values)}, got #{refresh}
       """
     end
   end
+
+  defp validate_opt!({:resolve_user, fun}) do
+    unless is_function(fun, 1) do
+      raise ArgumentError, """
+      invalid :resolve_user, expected a function with an arity of 1, got: #{inspect(fun)}
+      """
+    end
+  end
+
+  defp validate_opt!(_option), do: :ok
 end
