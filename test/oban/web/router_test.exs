@@ -6,13 +6,30 @@ defmodule Oban.Web.RouterTest do
   alias Oban.Web.Router
   alias Plug.Conn
 
+  defmodule Resolver do
+    @behaviour Oban.Web.Resolver
+
+    @impl true
+    def resolve_user(conn) do
+      conn.private.current_user
+    end
+
+    @impl true
+    def resolve_access(user) do
+      if user.admin? do
+        :all
+      else
+        :read
+      end
+    end
+  end
+
   describe "__options__" do
     test "setting default options in the router module" do
       options = Router.__options__([])
 
       assert options[:as] == :oban_dashboard
       assert options[:layout] == {Oban.Web.LayoutView, "app.html"}
-      assert options[:session] == {Router, :__session__, [Oban, "websocket", 1, &Router.__resolve_user__/1]}
     end
 
     test "passing the transport through to the session" do
@@ -23,25 +40,13 @@ defmodule Oban.Web.RouterTest do
       assert %{"refresh" => 5} = options_to_session(default_refresh: 5)
     end
 
-    test "passing an anonymous resolve_user function through to the session" do
-      resolve_user = fn _conn -> %{id: 1} end
-
-      assert %{"user" => %{id: 1}} = options_to_session(resolve_user: resolve_user)
-    end
-
-    test "passing a resolve_user function capture through to the session" do
-      defmodule Resolver do
-        def call(conn) do
-          conn.private.current_user
-        end
-      end
-
+    test "passing a resolver module through to the session" do
       conn =
         :get
         |> conn("/oban")
-        |> Conn.put_private(:current_user, %{id: 1})
+        |> Conn.put_private(:current_user, %{id: 1, admin?: false})
 
-      assert %{"user" => %{id: 1}} = options_to_session(conn, resolve_user: &Resolver.call/1)
+      assert %{"access" => :read, "user" => %{id: 1}} = options_to_session(conn, resolver: Resolver)
     end
 
     test "validating oban name values" do
@@ -63,8 +68,8 @@ defmodule Oban.Web.RouterTest do
     end
 
     test "validating resolve_user values" do
-      assert_raise ArgumentError, ~r/invalid :resolve_user/, fn ->
-        Router.__options__(resolve_user: fn -> nil end)
+      assert_raise ArgumentError, ~r/invalid :resolver/, fn ->
+        Router.__options__(resolver: nil)
       end
     end
   end
