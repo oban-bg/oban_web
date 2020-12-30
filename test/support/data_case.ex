@@ -5,8 +5,7 @@ defmodule Oban.Web.DataCase do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.Job
-  alias Oban.Pro.Beat
-  alias Oban.Web.Repo
+  alias Oban.Web.{Beat, Repo}
 
   using do
     quote do
@@ -19,8 +18,7 @@ defmodule Oban.Web.DataCase do
       import Oban.Web.DataCase
 
       alias Oban.Job
-      alias Oban.Pro.Beat
-      alias Oban.Web.Repo
+      alias Oban.Web.{Beat, Repo}
 
       @endpoint Oban.Web.Endpoint
     end
@@ -43,15 +41,18 @@ defmodule Oban.Web.DataCase do
   end
 
   def insert_beat!(opts) do
-    opts
-    |> Map.new()
-    |> Map.put_new(:node, "worker.1")
-    |> Map.put_new(:nonce, "aaaaaaaa")
-    |> Map.put_new(:limit, 1)
-    |> Map.put_new(:queue, "alpha")
-    |> Map.put_new(:inserted_at, DateTime.utc_now())
-    |> Map.put_new(:started_at, DateTime.utc_now())
-    |> Beat.new()
+    params =
+      opts
+      |> Map.new()
+      |> Map.put_new(:node, "worker.1")
+      |> Map.put_new(:nonce, "aaaaaaaa")
+      |> Map.put_new(:limit, 1)
+      |> Map.put_new(:queue, "alpha")
+      |> Map.put_new(:inserted_at, DateTime.utc_now())
+      |> Map.put_new(:started_at, DateTime.utc_now())
+
+    Beat
+    |> struct!(params)
     |> Repo.insert!()
   end
 
