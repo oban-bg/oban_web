@@ -27,3 +27,9 @@ Get started with [installation](web_installation.html).
 
 * **Queue Controls** — Scale, pause, resume and stop queues across all running
   nodes with a couple of clicks.
+
+* **Access Controll** — Allow admins to control queues and interract with jobs
+  while restricting other users to read-only use of the dashboard.
+
+* **Action Logging** — Use telemetry events to instrument and report all of a
+  user's dashboard activity.

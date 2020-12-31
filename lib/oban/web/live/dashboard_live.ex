@@ -3,7 +3,7 @@ defmodule Oban.Web.DashboardLive do
 
   alias Oban.Job
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Query
+  alias Oban.Web.{Query, Telemetry}
   alias Oban.Web.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
   alias Oban.Web.{NotificationComponent, RefreshComponent, SearchComponent, SidebarComponent}
 
@@ -151,19 +151,25 @@ defmodule Oban.Web.DashboardLive do
   # Queues
 
   def handle_info({:scale_queue, queue, limit}, socket) do
-    :ok = Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
+    Telemetry.action(:scale_queue, socket, [queue: queue, limit: limit], fn ->
+      Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
+    end)
 
     {:noreply, socket}
   end
 
   def handle_info({:pause_queue, queue}, socket) do
-    :ok = Oban.pause_queue(socket.assigns.conf.name, queue: queue)
+    Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
+      Oban.pause_queue(socket.assigns.conf.name, queue: queue)
+    end)
 
     {:noreply, socket}
   end
 
   def handle_info({:resume_queue, queue}, socket) do
-    :ok = Oban.resume_queue(socket.assigns.conf.name, queue: queue)
+    Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
+      Oban.resume_queue(socket.assigns.conf.name, queue: queue)
+    end)
 
     {:noreply, socket}
   end
@@ -235,7 +241,9 @@ defmodule Oban.Web.DashboardLive do
   # Single Actions
 
   def handle_info({:cancel_job, job}, socket) do
-    :ok = Oban.cancel_job(socket.assigns.conf.name, job.id)
+    Telemetry.action(:cancel_jobs, socket, [job_ids: [job.id]], fn ->
+      Oban.cancel_job(socket.assigns.conf.name, job.id)
+    end)
 
     job = %{job | state: "cancelled", cancelled_at: DateTime.utc_now()}
 
@@ -243,13 +251,17 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info({:delete_job, job}, socket) do
-    :ok = Query.delete_jobs(socket.assigns.conf, [job.id])
+    Telemetry.action(:delete_jobs, socket, [job_ids: [job.id]], fn ->
+      Query.delete_jobs(socket.assigns.conf, [job.id])
+    end)
 
     {:noreply, assign(socket, detailed: nil)}
   end
 
   def handle_info({:retry_job, job}, socket) do
-    :ok = Query.deschedule_jobs(socket.assigns.conf, [job.id])
+    Telemetry.action(:retry_jobs, socket, [job_ids: [job.id]], fn ->
+      Query.deschedule_jobs(socket.assigns.conf, [job.id])
+    end)
 
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
 
@@ -275,7 +287,11 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:cancel_selected, socket) do
-    :ok = Query.cancel_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+    job_ids = MapSet.to_list(socket.assigns.selected)
+
+    Telemetry.action(:cancel_jobs, socket, [job_ids: job_ids], fn ->
+      Query.cancel_jobs(socket.assigns.conf, job_ids)
+    end)
 
     socket =
       socket
@@ -287,7 +303,11 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:retry_selected, socket) do
-    :ok = Query.deschedule_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+    job_ids = MapSet.to_list(socket.assigns.selected)
+
+    Telemetry.action(:retry_jobs, socket, [job_ids: job_ids], fn ->
+      Query.deschedule_jobs(socket.assigns.conf, job_ids)
+    end)
 
     socket =
       socket
@@ -299,7 +319,11 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:delete_selected, socket) do
-    :ok = Query.delete_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+    job_ids = MapSet.to_list(socket.assigns.selected)
+
+    Telemetry.action(:delete_jobs, socket, [job_ids: job_ids], fn ->
+      Query.delete_jobs(socket.assigns.conf, job_ids)
+    end)
 
     socket =
       socket

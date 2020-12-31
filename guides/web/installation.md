@@ -75,7 +75,7 @@ restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 
-### Running Multiple Dashboards
+## Running Multiple Dashboards
 
 Applications that run multiple Oban instances can mount a dashboard for each
 instance. Set the mounted dashboard's `:oban_name` to match the corresponding
@@ -108,7 +108,7 @@ end
 Note that the default name is `Oban`, setting `oban_name: Oban` in the example
 above was purely for demonstration purposes.
 
-### Using LongPolling
+## Using LongPolling
 
 If you're application is hosted in an environment that doesn't support
 websockets you can use longpolling as an alternate transport. To start, make
@@ -129,7 +129,7 @@ scope "/" do
 end
 ```
 
-### Customizing with a Resolver Callback Module
+## Customizing with a Resolver Callback Module
 
 Implementing a `Oban.Web.Resolver` callback module allows you to customize the
 dashboard per-user, i.e. setting access controls or the default refresh rate.
@@ -157,14 +157,21 @@ end
 
 See [Customizing the Dashboard][cus] for details on the `Resolver` behaviour.
 
+## Integrating with Telemetry
+
+Oban Web uses `Telemetry` to provide instrumentation and to power logging
+of dashboard activity. See the [Telemetry][tel] guide for a breakdown of emitted
+events and how to use the default logger.
+
 ### Trouble installing? Have questions?
 
 Take a look at the [troubleshooting][faq] guide to see if your issue is covered.
-If not, or if need any help, stop by the #oban channel in [Elixir Slack][sla].
+If not, or if you need any help, stop by the #oban channel in [Elixir Slack][sla].
 
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
 [faq]: web_troubleshooting.html
 [cus]: web_customizing.html
+[tel]: web_telemetry.html
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html

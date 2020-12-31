@@ -25,7 +25,7 @@ Jump to details for each of the callbacks:
 * [resolve_access/1](#action-controls)
 * [resolve_refresh/1](#default-refresh)
 
-### Current User
+## Current User
 
 With the `resolve_user/1` callback you can extract the current user from a
 `Plug.Conn` when the dashboard mounts. The extracted user is passed to all of
@@ -47,7 +47,7 @@ However, the resolved user is only passed to other functions in the `Resolver`
 and as part of the metadata for audit events, so you're free to use any data
 type you like.
 
-### Action Controls
+## Action Controls
 
 During normal operation users can modify running queues and interact with jobs
 through the dashboard. In some situations actions such as pausing a queue may be
@@ -101,7 +101,7 @@ The available fine grained access controls are:
 * `:delete_jobs`
 * `:retry_jobs`
 
-### Default Refresh
+## Default Refresh
 
 The refresh rate controls how frequently the server pulls statistics from the
 database, and when data is pushed from the server. The default refresh rate is 1

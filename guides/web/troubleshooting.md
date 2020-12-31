@@ -1,6 +1,6 @@
 # Troubleshooting
 
-### Authorizing with Heroku
+### Authorizing with Heroku or Gigalixir
 
 If your app runs on Heroku using the [Elixir Buildpack][ebp] (rather than Docker) you'll need to use compilation hook to authorize hex before fetching dependencies.
 
