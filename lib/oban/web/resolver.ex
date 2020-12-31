@@ -4,7 +4,7 @@ defmodule Oban.Web.Resolver do
   """
 
   @type user :: nil | map() | struct()
-  @type access :: :all | :read | [access_option()]
+  @type access :: :all | :read_only | [access_option()]
   @type access_option ::
           {:pause_queues, boolean()}
           | {:scale_queues, boolean()}
@@ -26,7 +26,9 @@ defmodule Oban.Web.Resolver do
   @doc """
   Determine the initial refresh rate when the dashboard mounts.
   """
-  @callback resolve_refresh() :: refresh()
+  @callback resolve_refresh(user()) :: refresh()
+
+  @optional_callbacks resolve_user: 1, resolve_access: 1, resolve_refresh: 1
 
   @doc false
   def resolve_user(_conn), do: nil
@@ -35,5 +37,5 @@ defmodule Oban.Web.Resolver do
   def resolve_access(_user), do: :all
 
   @doc false
-  def resolve_refresh, do: 1
+  def resolve_refresh(_user), do: 1
 end

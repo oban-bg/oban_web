@@ -249,7 +249,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info({:retry_job, job}, socket) do
-    Query.deschedule_jobs(socket.assigns.conf, [job.id])
+    :ok = Query.deschedule_jobs(socket.assigns.conf, [job.id])
 
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
 
@@ -275,9 +275,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:cancel_selected, socket) do
-    oban = socket.assigns.conf.name
-
-    :ok = Enum.each(socket.assigns.selected, &Oban.cancel_job(oban, &1))
+    :ok = Query.cancel_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
 
     socket =
       socket
@@ -289,7 +287,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:retry_selected, socket) do
-    Query.deschedule_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+    :ok = Query.deschedule_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
 
     socket =
       socket
@@ -301,7 +299,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:delete_selected, socket) do
-    Query.delete_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
+    :ok = Query.delete_jobs(socket.assigns.conf, MapSet.to_list(socket.assigns.selected))
 
     socket =
       socket

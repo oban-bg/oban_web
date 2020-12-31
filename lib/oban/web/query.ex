@@ -50,6 +50,13 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
+  def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
+    Enum.each(job_ids, &Oban.cancel_job(name, &1))
+
+    :ok
+  end
+
+  @doc false
   def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
     Repo.delete_all(conf, where(Job, [j], j.id in ^job_ids))
 

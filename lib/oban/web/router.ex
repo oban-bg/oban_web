@@ -66,17 +66,21 @@ defmodule Oban.Web.Router do
 
   @doc false
   def __session__(conn, oban, transport, resolver) do
-    user = resolver.resolve_user(conn)
-    access = resolver.resolve_access(user)
-    refresh = resolver.resolve_refresh()
+    user = resolve_with_fallback(resolver, :resolve_user, [conn])
 
     %{
       "oban" => oban,
-      "refresh" => refresh,
       "transport" => transport,
       "user" => user,
-      "access" => access
+      "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
+      "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user])
     }
+  end
+
+  defp resolve_with_fallback(resolver, function, args) do
+    resolver = if function_exported?(resolver, function, 1), do: resolver, else: Resolver
+
+    apply(resolver, function, args)
   end
 
   defp validate_opt!({:oban_name, name}) do

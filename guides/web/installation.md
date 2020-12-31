@@ -129,26 +129,33 @@ scope "/" do
 end
 ```
 
-### Setting a Default Refresh Rate
+### Customizing with a Resolver Callback Module
 
-The refresh rate controls how frequently the server pulls statistics from the
-database, and when data is pushed from the server. The default refresh rate is 1
-second, but you can customize it when mounting your dashboard.
+Implementing a `Oban.Web.Resolver` callback module allows you to customize the
+dashboard per-user, i.e. setting access controls or the default refresh rate.
 
-For example, to set the default refresh to 5 seconds:
+As a simple example, let's define a module that makes the dashboard read only:
+
+```elixir
+defmodule MyApp.Resolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl true
+  def resolve_access(_user), do: :read_only
+end
+```
+
+Then specify `MyApp.Resolver` as your resolver:
 
 ```elixir
 scope "/" do
   pipe_through :browser
 
-  oban_dashboard "/oban", default_refresh: 5
+  oban_dashboard "/oban", resolver: MyApp.resolver
 end
 ```
 
-Possible values are: `1`, `2`, `5`, `15` or `-1` to disable refreshing.
-
-Note that this only sets the default. Users may still choose a different
-refresh for themselves while viewing the dashboard.
+See [Customizing the Dashboard][cus] for details on the `Resolver` behaviour.
 
 ### Trouble installing? Have questions?
 
@@ -158,5 +165,6 @@ If not, or if need any help, stop by the #oban channel in [Elixir Slack][sla].
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
 [faq]: web_troubleshooting.html
+[cus]: web_customizing.html
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html

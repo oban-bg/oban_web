@@ -9,7 +9,7 @@ defmodule Oban.Web.Helpers do
   """
   @spec can?(Resolver.access(), atom()) :: boolean()
   def can?(_action, :all), do: true
-  def can?(_action, :read), do: false
+  def can?(_action, :read_only), do: false
   def can?(action, [_ | _] = opts), do: Keyword.get(opts, action, false)
 
   @spec integer_to_delimited(integer()) :: String.t()

@@ -19,12 +19,19 @@ defmodule Oban.Web.RouterTest do
       if user.admin? do
         :all
       else
-        :read
+        :read_only
       end
     end
 
     @impl true
-    def resolve_refresh, do: 5
+    def resolve_refresh(_user), do: 5
+  end
+
+  defmodule PartialResolver do
+    @behaviour Oban.Web.Resolver
+
+    @impl true
+    def resolve_refresh(_user), do: -1
   end
 
   describe "__options__" do
@@ -47,7 +54,18 @@ defmodule Oban.Web.RouterTest do
 
       session = options_to_session(conn, resolver: Resolver)
 
-      assert %{"access" => :read, "refresh" => 5, "user" => %{id: 1}} = session
+      assert %{"access" => :read_only, "refresh" => 5, "user" => %{id: 1}} = session
+    end
+
+    test "falling back to default values with a partial resolver implementation" do
+      conn =
+        :get
+        |> conn("/oban")
+        |> Conn.put_private(:current_user, %{id: 1, admin?: false})
+
+      session = options_to_session(conn, resolver: PartialResolver)
+
+      assert %{"access" => :all, "refresh" => -1, "user" => nil} = session
     end
 
     test "validating oban name values" do
