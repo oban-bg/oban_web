@@ -203,10 +203,19 @@ defmodule Oban.Web.Query do
 
   @doc false
   def queue_counts(%Config{} = conf) do
-    query =
+    per_queue_query =
       Job
+      |> where([j], j.state in ["available", "executing"])
       |> group_by([j], [j.queue, j.state])
       |> select([j], {j.queue, j.state, count(j.id)})
+
+    per_state_query =
+      Job
+      |> where([j], j.state not in ["available", "executing"])
+      |> group_by([j], [j.state])
+      |> select([j], {fragment("null"), j.state, count(j.id)})
+
+    query = union(per_queue_query, ^per_state_query)
 
     Repo.all(conf, query, timeout: @timeout)
   end
