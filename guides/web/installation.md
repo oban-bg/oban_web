@@ -8,7 +8,7 @@ installed, follow [these instructions][lvi] to get started.
 
 `Oban.Web` is delivered as a hex package named `oban_web`, which is published
 privately under the `oban` organization. The package is entirely self
-contained—it doesn’t hook into your asset pipeline at all.
+contained—it doesn't hook into your asset pipeline at all.
 
 Before you can pull the package into your application you need to authenticate
 with the `oban` organization.
@@ -79,7 +79,7 @@ your browser to where you mounted Oban and start monitoring your jobs.
 
 Applications that run multiple Oban instances can mount a dashboard for each
 instance. Set the mounted dashboard's `:oban_name` to match the corresponding
-supervision tree's name. For example, given two configured Oban isntances,
+supervision tree's name. For example, given two configured Oban instances,
 `Oban` and `MyAdmin.Oban`:
 
 ```elixir
