@@ -2,7 +2,90 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
-## v2.4.0
+## v2.5.0 — 2021-01-15
+
+### Web Resolver Behaviour
+
+A new `Oban.Web.Resolver` behaviour module allows users to resolve the current
+user when loading the dashboard, apply per-user access controls and set per-user
+refresh rates.
+
+    defmodule MyApp.Resolver do
+      @behaviour Oban.Web.Resolver
+
+      @impl true
+      def resolve_user(conn) do
+        conn.private.current_user
+      end
+
+      @impl true
+      def resolve_access(user) do
+        if user.admin? do
+          [cancel_jobs: true, delete_jobs: true, retry_jobs: true]
+        else
+          :read_only
+        end
+      end
+
+      @impl true
+      def resolve_refresh(_user), do: 1
+    end
+
+Pass your `Resolver` callback to `oban_dashboard` in your router:
+
+    scope "/" do
+      pipe_through :browser
+
+      oban_dashboard "/oban", resolver: MyApp.Resolver
+    end
+
+Viola, your dashboard now has per-user access controls! Now only admins can
+cancel, retry or delete jobs while other users can still monitor running jobs
+and check stats.
+
+See the new [Customization](web_customization.html) guide for more examples and
+a rundown of available access controls.
+
+### Telemetry Integration
+
+The `Oban.Web.Telemetry` module adds events for instrumentation, logging, error
+reporting and activity auditing.
+
+Action events are emitted whenever a user performs a write operation with the
+dashboard, e.g. pausing a queue, cancelling a job, etc. Web now ships with a log
+handler that you can attach to get full dashboard audit logging. Add this call
+at application start:
+
+    Oban.Web.Telemetry.attach_default_logger(:info)
+
+It will output structured JSON logs matching the format that Oban uses,
+including the user that performed the action:
+
+      {
+        "action":"cancel_jobs",
+        "duration":2544,
+        "event":"action:stop",
+        "job_ids":[290950],
+        "oban_name":"Oban",
+        "source":"oban_web",
+        "user":1818
+      }
+
+See the new [Telemetry](web_telemetry.html) guide for event details!
+
+### Other Improvements
+
+- Remove erroneous batch "Delete" action from states where it shouldn't apply,
+  e.g. `executing`.
+
+- Require confirmation before deleting jobs. Deleting is permanent and
+  irreversible, unlike cancelling or other possible actions.
+
+- Optimize the query that calculates queue and state counts in the sidebar. With
+  millions of jobs the query could take longer than the refresh rate, leading to
+  problems.
+
+## v2.4.0 — 2020-12-11
 
 ### Added
 
@@ -25,7 +108,7 @@ All notable changes to `Oban.Web` will be documented in this file.
   This makes it easy to reduce the load on your database when a lot of users are
   viewing Oban dashboards.
 
-## v2.3.1
+## v2.3.1 — 2020-11-27
 
 ### Changed
 
@@ -35,7 +118,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 - Allow retrying or deleting cancelled jobs when they were never attempted.
 
-## v2.3.0
+## v2.3.0 — 2020-11-06
 
 ### Added
 
@@ -50,7 +133,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 - Upgrade Oban dependency to `~> 2.3.0` to support the new `cancelled` state,
   and `meta` field.
 
-## v2.2.3
+## v2.2.3 — 2020-10-15
 
 ### Changed
 
@@ -58,14 +141,14 @@ All notable changes to `Oban.Web` will be documented in this file.
   from how difficult it was to scale accurately with a slider, it would fire
   erroneous `update` events due to DOM changes.
 
-## v2.2.2
+## v2.2.2 — 2020-10-11
 
 ### Changed
 
 - Upgrade Oban dependency to `~> 2.2.0` along with fixes for the move to
   `Oban.Registry` and `Oban.Repo`.
 
-## v2.2.1
+## v2.2.1 — 2020-09-29
 
 ### Fixed
 
@@ -78,7 +161,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 - Correct touch event handling in the sidebar for mobile devices.
 
-## v2.2.0
+## v2.2.0 — 2020-09-11
 
 ### Added
 
@@ -114,7 +197,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 - Prevent ugly overflow issues when there are long node or queue names in the
   sidebar. Note that the full name is still visible on hover.
 
-## v2.1.1
+## v2.1.1 — 2020-08-24
 
 ### Fixed
 
@@ -123,7 +206,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 - Increase stats collection and activation timeouts to compensate for spikes in
   table size or additional load on the database pool from other processes.
 
-## v2.1.0
+## v2.1.0 — 2020-08-06
 
 ### Added
 
@@ -138,11 +221,12 @@ All notable changes to `Oban.Web` will be documented in this file.
   don't have proper support for JSONB vectorization or web style search
   operations.
 
-## v2.0.0
+## v2.0.0 — 2020-07-10
 
 ### Changed
 
-- Upgrade Oban to `2.0.0`, LiveView `0.14` and ObanPro to `0.3.0`
+- Upgrade to Oban `2.0.0`, LiveView `~> 0.14`, and add a dependency on Oban
+  Pro `0.3.0`.
 
 - Add simple load less/load more pagination for browsing through jobs
 
@@ -151,13 +235,6 @@ All notable changes to `Oban.Web` will be documented in this file.
 - Display `queue_time` and `run_time` in the job details view
 
 - Restore worker filtering using auto-populated search terms
-
-## v2.0.0-alpha.0
-
-### Changed
-
-- Upgrade to Oban `2.0.0-rc.1`, LiveView `~> 0.13`, and add a dependency on Oban
-  Pro.
 
 - Introduce `Oban.Web.Router` for more convenient and flexible dashboard routing.
   The new module provides an `oban_dashboard/2` macro, which prevents scoping
@@ -263,7 +340,7 @@ All notable changes to `Oban.Web` will be documented in this file.
 
 - Fix job detail refreshing on `tick` events
 
-## v1.1.0 — 2020—02—06
+## v1.1.0 — 2020-02-06
 
 ### Changes
 

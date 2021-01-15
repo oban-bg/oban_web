@@ -17,6 +17,7 @@ defmodule MyApp.Resolver do
 
   @impl true
   def resolve_refresh(_user), do: 1
+end
 ```
 
 Jump to details for each of the callbacks:
@@ -62,7 +63,7 @@ all:
 
 ```elixir
 @impl true
-def resolve_access(_user), do: :read
+def resolve_access(_user), do: :read_only
 ```
 
 Alternatively, you can use the resolved `user` to allow admins write access and

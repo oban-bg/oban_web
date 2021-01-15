@@ -151,7 +151,7 @@ Then specify `MyApp.Resolver` as your resolver:
 scope "/" do
   pipe_through :browser
 
-  oban_dashboard "/oban", resolver: MyApp.resolver
+  oban_dashboard "/oban", resolver: MyApp.Resolver
 end
 ```
 
