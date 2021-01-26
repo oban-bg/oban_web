@@ -43,8 +43,8 @@ Viola, your dashboard now has per-user access controls! Now only admins can
 cancel, retry or delete jobs while other users can still monitor running jobs
 and check stats.
 
-See the new [Customization](web_customization.html) guide for more examples and
-a rundown of available access controls.
+See the new [Customization](web_customizing.html) guide for more examples and a
+rundown of available access controls.
 
 ### Telemetry Integration
 
@@ -74,6 +74,9 @@ including the user that performed the action:
 See the new [Telemetry](web_telemetry.html) guide for event details!
 
 ### Other Improvements
+
+- Remove a hard dependency on `oban_pro`. If you rely on any Pro plugins be sure
+  to specify an `oban_pro` dependency in your `mix.exs`.
 
 - Remove erroneous batch "Delete" action from states where it shouldn't apply,
   e.g. `executing`.
