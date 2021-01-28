@@ -65,9 +65,21 @@ defmodule Oban.Web.Query do
 
   @doc false
   def deschedule_jobs(%Config{} = conf, [_ | _] = job_ids) do
-    updates = [state: "available", completed_at: nil, discarded_at: nil]
+    query =
+      Job
+      |> where([j], j.id in ^job_ids)
+      |> update([j],
+        set: [
+          state: "available",
+          max_attempts: fragment("GREATEST(?, ? + 1)", j.max_attempts, j.attempt),
+          scheduled_at: ^DateTime.utc_now(),
+          completed_at: nil,
+          cancelled_at: nil,
+          discarded_at: nil
+        ]
+      )
 
-    Repo.update_all(conf, where(Job, [j], j.id in ^job_ids), set: updates)
+    Repo.update_all(conf, query, [])
 
     :ok
   end
