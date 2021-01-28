@@ -2,6 +2,12 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.5.1 — 2021-01-28
+
+- Increase `max_attempts` when bulk retrying jobs. The check constraint added by
+  Oban 2.4.0 exposed a bug which made it impossible to retry jobs that had
+  exhausted all available attempts.
+
 ## v2.5.0 — 2021-01-15
 
 ### Web Resolver Behaviour
