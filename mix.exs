@@ -1,13 +1,13 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.5.1"
+  @version "2.5.2"
 
   def project do
     [
       app: :oban_web,
       version: @version,
-      elixir: "~> 1.8",
+      elixir: "~> 1.9",
       compilers: [:phoenix] ++ Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -45,7 +45,8 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.3"},
+      {:oban, "~> 2.4"},
+      {:oban_pro, "~> 0.6", organization: "oban"},
       {:phoenix, "~> 1.5"},
       {:phoenix_html, "~> 2.14"},
       {:phoenix_pubsub, "~> 2.0"},

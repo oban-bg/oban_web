@@ -8,7 +8,6 @@ defmodule Oban.Web.Plugins.StatsTest do
 
   test "node and queue stats aren't tracked without an active connection" do
     insert_job!(queue: :alpha, state: "available")
-    insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
     start_supervised_oban!(@opts)
 

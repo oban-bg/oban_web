@@ -2,11 +2,22 @@
 
 All notable changes to `Oban.Web` will be documented in this file.
 
+## v2.5.2 — 2021-03-04
+
+- Restore a dependency on `oban_pro`, as removal broke the install flow for many
+  applications that had an implicit dependency.
+
+- Bump the minimum `oban` version from v2.3 to v2.4 to enhance compatibility
+  with `oban_pro`.
+
+- Bump the minimum Elixir version from v1.8 to v1.9, matching recent `oban` and
+  `oban_pro` releases.
+
 ## v2.5.1 — 2021-01-28
 
-- Increase `max_attempts` when bulk retrying jobs. The check constraint added by
-  Oban 2.4.0 exposed a bug which made it impossible to retry jobs that had
-  exhausted all available attempts.
+- Conditionally increase `max_attempts` when bulk retrying jobs. The check
+  constraint added by Oban 2.4.0 exposed a bug which made it impossible to retry
+  jobs that had exhausted all available attempts.
 
 ## v2.5.0 — 2021-01-15
 
