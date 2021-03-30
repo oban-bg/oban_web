@@ -22,7 +22,7 @@ defmodule Oban.Web.DashboardLive do
     %{"oban" => oban, "refresh" => refresh, "transport" => transport} = session
     %{"user" => user, "access" => access} = session
 
-    conf = Oban.config(oban)
+    conf = await_config(oban)
 
     :ok = Stats.activate(oban)
 
@@ -332,6 +332,28 @@ defmodule Oban.Web.DashboardLive do
       |> flash(:info, "Selected jobs deleted")
 
     {:noreply, socket}
+  end
+
+  ## Mount Helpers
+
+  defp await_config(oban_name, timeout \\ 5_000) do
+    Oban.config(oban_name)
+  rescue
+    exception in [RuntimeError] ->
+      handler = fn _event, _timing, %{conf: conf}, pid ->
+        send(pid, {:conf, conf})
+      end
+
+      :telemetry.attach("oban-await-config", [:oban, :supervisor, :init], handler, self())
+
+      receive do
+        {:conf, %{name: ^oban_name} = conf} ->
+          conf
+      after
+        timeout -> reraise(exception, __STACKTRACE__)
+      end
+  after
+    :telemetry.detach("oban-await-config")
   end
 
   ## Update Helpers
