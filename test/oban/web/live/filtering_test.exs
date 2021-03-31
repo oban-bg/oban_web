@@ -41,8 +41,8 @@ defmodule Oban.Web.Live.FilteringTest do
     web_1 = ["web-1", "alpha", "aaaaaaaa"]
     web_2 = ["web-2", "alpha", "aaaaaaaa"]
 
-    insert_beat!(node: "web-1")
-    insert_beat!(node: "web-2")
+    gossip(node: "web-1", queue: "alpha")
+    gossip(node: "web-2", queue: "alpha")
 
     insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker, attempted_by: web_1)
     insert_job!([ref: 2], queue: "alpha", worker: DeltaWorker, attempted_by: web_2)
@@ -64,8 +64,6 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   test "filtering jobs by queue", context do
-    insert_beat!(node: "web.1", queue: "delta")
-
     insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
     insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
     insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)

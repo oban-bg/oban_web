@@ -1,5 +1,5 @@
 defmodule Oban.Web.Live.RebootingTest do
-  use Oban.Web.DataCase, async: true
+  use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest
 

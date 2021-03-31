@@ -5,7 +5,7 @@ defmodule Oban.Web.DataCase do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.Job
-  alias Oban.Web.{Beat, Repo}
+  alias Oban.Web.Repo
 
   using do
     quote do
@@ -40,20 +40,24 @@ defmodule Oban.Web.DataCase do
     pid
   end
 
-  def insert_beat!(opts) do
-    params =
-      opts
-      |> Map.new()
-      |> Map.put_new(:node, "worker.1")
-      |> Map.put_new(:nonce, "aaaaaaaa")
-      |> Map.put_new(:limit, 1)
-      |> Map.put_new(:queue, "alpha")
-      |> Map.put_new(:inserted_at, DateTime.utc_now())
-      |> Map.put_new(:started_at, DateTime.utc_now())
+  def gossip(meta_opts) do
+    name = Keyword.get(meta_opts, :name, Oban)
 
-    Beat
-    |> struct!(params)
-    |> Repo.insert!()
+    meta_json =
+      meta_opts
+      |> Map.new()
+      |> Map.put_new(:limit, 1)
+      |> Map.put_new(:name, inspect(name))
+      |> Map.put_new(:paused, false)
+      |> Map.put_new(:running, [])
+      |> Jason.encode!()
+      |> Jason.decode!()
+
+    name
+    |> Oban.Registry.whereis({:plugin, Oban.Web.Plugins.Stats})
+    |> send({:notification, :gossip, meta_json})
+
+    Process.sleep(5)
   end
 
   def insert_job!(args, opts \\ []) do

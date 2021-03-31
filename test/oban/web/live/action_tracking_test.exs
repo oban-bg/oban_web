@@ -20,7 +20,7 @@ defmodule Oban.Web.Live.ActionTrackingTest do
 
     :telemetry.attach("web-test", [:oban_web, :action, :stop], handle_event, self())
 
-    insert_beat!(node: "web.1", queue: "alpha")
+    gossip(node: "web.1", queue: "alpha")
     insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
 
     refresh(context)

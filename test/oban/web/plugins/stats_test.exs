@@ -23,6 +23,8 @@ defmodule Oban.Web.Plugins.StatsTest do
              "cancelled" => %{count: 0},
              "completed" => %{count: 0}
            }
+
+    stop_supervised!(@name)
   end
 
   test "updating node and queue stats after activation" do
@@ -32,19 +34,19 @@ defmodule Oban.Web.Plugins.StatsTest do
     insert_job!(%{}, queue: :gamma, state: "scheduled")
     insert_job!(%{}, queue: :gamma, state: "completed")
 
-    insert_beat!(node: "web.1", queue: "alpha", limit: 4)
-    insert_beat!(node: "web.2", queue: "alpha", limit: 4)
-    insert_beat!(node: "web.1", queue: "gamma", limit: 5, paused: true)
-    insert_beat!(node: "web.2", queue: "gamma", limit: 5, paused: false)
-    insert_beat!(node: "web.2", queue: "delta", limit: 9)
-
     start_supervised_oban!(@opts)
 
     :ok = Stats.activate(@name)
 
+    gossip(name: @name, node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(name: @name, node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(name: @name, node: "web.1", queue: "gamma", limit: 5, paused: true, running: [])
+    gossip(name: @name, node: "web.2", queue: "gamma", limit: 5, paused: false, running: [1])
+    gossip(name: @name, node: "web.2", queue: "delta", limit: 9, paused: false, running: [])
+
     assert for_nodes() == %{
              "web.1" => %{count: 0, limit: 9},
-             "web.2" => %{count: 0, limit: 18}
+             "web.2" => %{count: 1, limit: 18}
            }
 
     assert for_queues() == %{
@@ -62,26 +64,27 @@ defmodule Oban.Web.Plugins.StatsTest do
              "cancelled" => %{count: 0},
              "completed" => %{count: 1}
            }
+
+    stop_supervised!(@name)
   end
 
   test "refreshing stops when all activated nodes disconnect" do
     start_supervised_oban!(@opts)
 
     insert_job!(%{}, queue: :alpha, state: "available")
-    insert_beat!(node: "web.1", queue: "alpha", limit: 4)
 
     fn -> :ok = Stats.activate(@name) end
     |> Task.async()
     |> Task.await()
 
     insert_job!(queue: :alpha, state: "available")
-    insert_beat!(node: "web.2", queue: "alpha", limit: 4)
 
     # The refresh rate is 10ms, after 20ms the values still should not have refreshed
     Process.sleep(20)
 
-    assert for_nodes() == %{"web.1" => %{count: 0, limit: 4}}
-    assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 4, local: 4, pause: false}}
+    assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 0, local: 0, pause: true}}
+
+    stop_supervised!(@name)
   end
 
   defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()

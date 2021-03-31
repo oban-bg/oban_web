@@ -6,14 +6,6 @@ defmodule Oban.Web.Plugins.Stats do
   The `Stats` module uses ETS and PubSub to track changes efficiently, avoiding repeated slow
   database operations.
 
-  There are three categories of stats:
-
-  * `:node` — pulled from `oban_beats`, contains details about each queue running on a particular
-    node.
-  * `:queue` — pulled from `oban_jobs`, contains the available and executing counts for each
-    queue _across_ all nodes.
-  * `:state` — pulled from `oban_jobs` and updated by insert pubsub messages.
-
   Stats are stored with the following structure:
 
   - `{{:node, node, queue}, count, limit, paused}`
@@ -22,6 +14,7 @@ defmodule Oban.Web.Plugins.Stats do
 
   use GenServer
 
+  alias Oban.Notifier
   alias Oban.Web.Query
 
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
@@ -33,7 +26,7 @@ defmodule Oban.Web.Plugins.Stats do
       :conf,
       :name,
       :table,
-      :refresh_ref,
+      :timer,
       active: MapSet.new(),
       interval: :timer.seconds(1)
     ]
@@ -48,7 +41,7 @@ defmodule Oban.Web.Plugins.Stats do
   def for_nodes(oban_name \\ Oban) do
     oban_name
     |> table()
-    |> :ets.select([{{{:node, :"$1", :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
+    |> :ets.select([{{{:node, :"$1", :_, :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
     |> Enum.sort_by(&hd/1)
     |> Enum.reduce(%{}, fn [node, count, limit], acc ->
       Map.update(acc, node, %{count: count, limit: limit}, fn map ->
@@ -72,19 +65,19 @@ defmodule Oban.Web.Plugins.Stats do
 
     limit_counts =
       table
-      |> :ets.select([{{{:node, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
       |> Enum.reduce(%{}, fn [queue, limit], acc ->
         Map.update(acc, queue, limit, &(&1 + limit))
       end)
 
     local_limits =
       table
-      |> :ets.select([{{{:node, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
       |> Map.new(fn [queue, limit] -> {queue, limit} end)
 
     pause_states =
       table
-      |> :ets.select([{{{:node, :_, :"$1"}, :_, :_, :"$2"}, [], [:"$$"]}])
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :_, :"$2"}, [], [:"$$"]}])
       |> Enum.reduce(%{}, fn [queue, paused], acc ->
         Map.update(acc, queue, paused, &(&1 or paused))
       end)
@@ -125,12 +118,14 @@ defmodule Oban.Web.Plugins.Stats do
     end
   end
 
+  @spec activate(GenServer.name(), timeout()) :: :ok
   def activate(oban_name, timeout \\ 15_000) do
     oban_name
     |> Oban.Registry.via({:plugin, __MODULE__})
     |> GenServer.call(:activate, timeout)
   end
 
+  @spec table(GenServer.name()) :: :ets.tab()
   def table(oban_name) do
     {:ok, table} = Registry.meta(Oban.Registry, {oban_name, {:plugin, __MODULE__}})
 
@@ -184,55 +179,70 @@ defmodule Oban.Web.Plugins.Stats do
     {:noreply, state}
   end
 
+  def handle_info({:notification, :gossip, payload}, %State{} = state) do
+    %{"node" => node, "name" => name, "queue" => queue} = payload
+    %{"paused" => paused, "running" => running} = payload
+
+    limit = payload["local_limit"] || payload["limit"] || 0
+
+    key = {:node, node, name, queue}
+
+    :ets.insert(state.table, {key, length(running), limit, paused})
+
+    {:noreply, state}
+  end
+
   def handle_info(:refresh, %State{} = state) do
     {:noreply, refresh(state)}
+  end
+
+  def handle_info(_message, state) do
+    {:noreply, state}
   end
 
   # Helpers
 
   defp maybe_start_refresh(%State{active: active} = state) do
-    if Enum.empty?(active), do: refresh(state), else: state
-  end
+    if Enum.empty?(active) do
+      :ok = Notifier.listen(state.conf.name, [:gossip])
 
-  defp maybe_cancel_refresh(%State{active: active} = state) do
-    if Enum.empty?(active), do: cancel_refresh(state), else: state
-  end
-
-  defp refresh(state) do
-    node_keys = update_node_counts(state)
-    queue_keys = update_queue_counts(state)
-
-    clear_unused_keys(node_keys ++ queue_keys, state)
-
-    ref = Process.send_after(self(), :refresh, state.interval)
-
-    %{state | refresh_ref: ref}
-  end
-
-  defp cancel_refresh(%State{refresh_ref: refresh_ref} = state) do
-    if is_reference(refresh_ref), do: Process.cancel_timer(refresh_ref)
-
-    %{state | refresh_ref: nil}
-  end
-
-  defp clear_unused_keys(prior_keys, %State{table: table}) do
-    fn object, acc -> [elem(object, 0) | acc] end
-    |> :ets.foldl([], table)
-    |> Kernel.--(prior_keys)
-    |> Enum.each(&:ets.delete(table, &1))
-  end
-
-  defp update_node_counts(%State{conf: conf, table: table}) do
-    for {node, queue, count, limit, paused} <- Query.node_counts(conf) do
-      key = {:node, node, queue}
-
-      :ets.insert(table, {key, count, limit, paused})
-
-      key
+      refresh(state)
+    else
+      state
     end
   end
 
-  defp update_queue_counts(%State{conf: conf, table: table}) do
+  defp maybe_cancel_refresh(%State{active: active} = state) do
+    if Enum.empty?(active) do
+      :ok = Notifier.unlisten(state.conf.name, [:gossip])
+
+      cancel_refresh(state)
+    else
+      state
+    end
+  end
+
+  defp refresh(state) do
+    state
+    |> expire_older_keys()
+    |> update_queue_counts()
+
+    timer = Process.send_after(self(), :refresh, state.interval)
+
+    %{state | timer: timer}
+  end
+
+  defp cancel_refresh(%State{timer: timer} = state) do
+    if is_reference(timer), do: Process.cancel_timer(timer)
+
+    %{state | timer: nil}
+  end
+
+  defp expire_older_keys(%State{} = state) do
+    state
+  end
+
+  defp update_queue_counts(%State{conf: conf, table: table} = state) do
     for {queue, state, count} <- Query.queue_counts(conf) do
       key = {:queue, queue, state}
 
@@ -240,5 +250,7 @@ defmodule Oban.Web.Plugins.Stats do
 
       key
     end
+
+    state
   end
 end

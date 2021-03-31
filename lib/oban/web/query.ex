@@ -4,7 +4,6 @@ defmodule Oban.Web.Query do
   import Ecto.Query
 
   alias Oban.{Config, Job, Repo}
-  alias Oban.Web.Beat
 
   @default_node "any"
   @default_queue "any"
@@ -181,37 +180,6 @@ defmodule Oban.Web.Query do
 
   defp maybe_diff(_now, nil), do: nil
   defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
-
-  @doc false
-  def node_counts(%Config{} = conf, seconds \\ 60) do
-    since = DateTime.add(DateTime.utc_now(), -seconds)
-
-    subquery =
-      from b in Beat,
-        select: %{
-          node: b.node,
-          queue: b.queue,
-          running: b.running,
-          limit: b.limit,
-          paused: b.paused,
-          rank: over(rank(), :nq)
-        },
-        windows: [nq: [partition_by: [b.node, b.queue], order_by: [desc: b.inserted_at]]],
-        where: b.inserted_at > ^since
-
-    query =
-      from x in subquery(subquery, prefix: conf.prefix),
-        where: x.rank == 1,
-        select: {
-          x.node,
-          x.queue,
-          fragment("coalesce(array_length(?, 1), 0)", x.running),
-          x.limit,
-          x.paused
-        }
-
-    Repo.all(conf, query, timeout: @timeout)
-  end
 
   @doc false
   def queue_counts(%Config{} = conf) do
