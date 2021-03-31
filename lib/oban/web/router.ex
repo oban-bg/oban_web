@@ -55,7 +55,8 @@ defmodule Oban.Web.Router do
     session_args = [
       opts[:oban_name],
       opts[:transport],
-      opts[:resolver]
+      opts[:resolver],
+      opts[:csp_nonce_assign_key]
     ]
 
     opts
@@ -65,17 +66,28 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, oban, transport, resolver) do
+  def __session__(conn, oban, transport, resolver, csp_nonce_assign_key) do
     user = resolve_with_fallback(resolver, :resolve_user, [conn])
+
+    csp_keys = expand_csp_nonce_keys(csp_nonce_assign_key)
 
     %{
       "oban" => oban,
       "transport" => transport,
       "user" => user,
       "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
-      "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user])
+      "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user]),
+      "csp_nonces" => %{
+        img: conn.assigns[csp_keys[:img]],
+        style: conn.assigns[csp_keys[:style]],
+        script: conn.assigns[csp_keys[:script]]
+      }
     }
   end
+
+  defp expand_csp_nonce_keys(nil), do: %{img: nil, style: nil, script: nil}
+  defp expand_csp_nonce_keys(key) when is_atom(key), do: %{img: key, style: key, script: key}
+  defp expand_csp_nonce_keys(map) when is_map(map), do: map
 
   defp resolve_with_fallback(resolver, function, args) do
     resolver = if function_exported?(resolver, function, 1), do: resolver, else: Resolver
@@ -83,20 +95,20 @@ defmodule Oban.Web.Router do
     apply(resolver, function, args)
   end
 
+  defp validate_opt!({:csp_nonce_assign_key, key}) do
+    unless is_nil(key) or is_atom(key) or is_map(key) do
+      raise ArgumentError, """
+      invalid :csp_nonce_assign_key, expected nil, an atom or a map with atom keys,
+      got #{inspect(key)}
+      """
+    end
+  end
+
   defp validate_opt!({:oban_name, name}) do
     unless is_atom(name) do
       raise ArgumentError, """
       invalid :oban_name, expected a module or atom,
       got #{inspect(name)}
-      """
-    end
-  end
-
-  defp validate_opt!({:transport, transport}) do
-    unless transport in @transport_values do
-      raise ArgumentError, """
-      invalid :transport, expected one of #{inspect(@transport_values)},
-      got #{inspect(transport)}
       """
     end
   end
@@ -110,6 +122,15 @@ defmodule Oban.Web.Router do
       raise ArgumentError, """
       invalid :resolver, expected a module that implements the Oban.Web.Resolver behaviour,
       got: #{inspect(resolver)}
+      """
+    end
+  end
+
+  defp validate_opt!({:transport, transport}) do
+    unless transport in @transport_values do
+      raise ArgumentError, """
+      invalid :transport, expected one of #{inspect(@transport_values)},
+      got #{inspect(transport)}
       """
     end
   end

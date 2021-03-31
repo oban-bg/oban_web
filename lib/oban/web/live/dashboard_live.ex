@@ -20,7 +20,7 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
     %{"oban" => oban, "refresh" => refresh, "transport" => transport} = session
-    %{"user" => user, "access" => access} = session
+    %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
     conf = await_config(oban)
 
@@ -30,6 +30,7 @@ defmodule Oban.Web.DashboardLive do
       assign(socket,
         access: access,
         conf: conf,
+        csp_nonces: csp_nonces,
         filters: @default_filters,
         detailed: nil,
         jobs: Query.get_jobs(conf, @default_filters),

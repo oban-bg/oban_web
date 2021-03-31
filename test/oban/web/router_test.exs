@@ -46,6 +46,18 @@ defmodule Oban.Web.RouterTest do
       assert %{"transport" => "longpoll"} = options_to_session(transport: "longpoll")
     end
 
+    test "passing csp nonce assign keys to the session" do
+      assert %{"csp_nonces" => nonces} = options_to_session(csp_nonce_assign_key: nil)
+
+      assert %{img: nil, style: nil, script: nil} = nonces
+
+      assert %{"csp_nonces" => %{img: "abc", style: "abc", script: "abc"}} =
+               :get
+               |> conn("/oban")
+               |> Plug.Conn.assign(:my_nonce, "abc")
+               |> options_to_session(csp_nonce_assign_key: :my_nonce)
+    end
+
     test "passing a resolver module through to the session" do
       conn =
         :get
