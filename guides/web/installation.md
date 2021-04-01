@@ -110,9 +110,9 @@ above was purely for demonstration purposes.
 
 ## Using LongPolling
 
-If you're application is hosted in an environment that doesn't support
-websockets you can use longpolling as an alternate transport. To start, make
-sure that your live socket is configured for longpolling:
+If your application is hosted in an environment that doesn't support websockets
+you can use longpolling as an alternate transport. To start, make sure that your
+live socket is configured for longpolling:
 
 ```elixir
 socket "/live", Phoenix.LiveView.Socket,
@@ -128,6 +128,35 @@ scope "/" do
   oban_dashboard "/oban", transport: "longpoll"
 end
 ```
+
+## Content Security Policy
+
+To secure the dashboard, or comply with an existing CSP within your application,
+you can specify nonce keys for images, scripts and styles.
+
+You'll configure the CSP nonce assign key in your router, where the dashboard is
+mounted. For example, to use a single nonce for all three asset types:
+
+```elixir
+oban_dashboard("/oban", csp_nonce_assign_key: :my_csp_nonce)
+```
+
+That instructs the dashboard to extract a generated nonce from the `assigns` map
+on the plug connection, at the `:my_csp_nonce` key.
+
+Instead, you can specify different keys for each asset type:
+
+```elixir
+oban_dashboard("/oban",
+  csp_nonce_assign_key: %{
+    img: :img_csp_nonce,
+    style: :style_csp_nonce,
+    script: :script_csp_nonce
+  }
+)
+```
+
+Note that using the CSP is entirely optional.
 
 ## Customizing with a Resolver Callback Module
 
