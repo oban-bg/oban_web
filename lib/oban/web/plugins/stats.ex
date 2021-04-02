@@ -42,7 +42,6 @@ defmodule Oban.Web.Plugins.Stats do
         [payload["name"], payload["node"]]
         |> Enum.join("/")
         |> String.trim_leading("Elixir.")
-        |> String.downcase()
 
       Map.update(acc, nname, %{count: count, limit: limit}, fn map ->
         %{map | count: map.count + count, limit: map.limit + limit}

@@ -106,7 +106,12 @@ defmodule Oban.Web.Query do
 
   defp filter_node(query, "any"), do: query
 
-  defp filter_node(query, node) do
+  defp filter_node(query, name_node) do
+    node =
+      name_node
+      |> String.split("/")
+      |> List.last()
+
     where(query, [j], fragment("?[1] = ?", j.attempted_by, ^node))
   end
 

@@ -56,7 +56,7 @@ defmodule Oban.Web.Live.FilteringTest do
 
     refresh(context)
 
-    html = click_node(context.live, "web-2")
+    html = click_node(context.live, "oban_web-2")
 
     refute html =~ "AlphaWorker"
     assert html =~ "DeltaWorker"

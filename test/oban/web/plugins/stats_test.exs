@@ -45,8 +45,8 @@ defmodule Oban.Web.Plugins.StatsTest do
     gossip(name: @name, node: "web.2", queue: "delta", limit: 9, paused: false, running: [])
 
     assert for_nodes() == %{
-             "oban.statstest/web.1" => %{count: 0, limit: 9},
-             "oban.statstest/web.2" => %{count: 1, limit: 18}
+             "Oban.StatsTest/web.1" => %{count: 0, limit: 9},
+             "Oban.StatsTest/web.2" => %{count: 1, limit: 18}
            }
 
     assert for_queues() == %{
