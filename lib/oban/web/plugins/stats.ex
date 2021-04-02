@@ -1,15 +1,6 @@
 defmodule Oban.Web.Plugins.Stats do
   @moduledoc """
   Cache for tracking queue, state and node counts for display.
-
-  Count operations are particularly expensive in Postgres, especially if there are a lot of jobs.
-  The `Stats` module uses ETS and PubSub to track changes efficiently, avoiding repeated slow
-  database operations.
-
-  Stats are stored with the following structure:
-
-  - `{{:node, node, queue}, count, limit, paused}`
-  - `{{:queue, queue, state}, count}`
   """
 
   use GenServer
@@ -28,7 +19,8 @@ defmodule Oban.Web.Plugins.Stats do
       :table,
       :timer,
       active: MapSet.new(),
-      interval: :timer.seconds(1)
+      interval: :timer.seconds(1),
+      ttl: :timer.seconds(15)
     ]
   end
 
@@ -41,10 +33,18 @@ defmodule Oban.Web.Plugins.Stats do
   def for_nodes(oban_name \\ Oban) do
     oban_name
     |> table()
-    |> :ets.select([{{{:node, :"$1", :_, :_}, :"$2", :"$3", :_}, [], [:"$$"]}])
-    |> Enum.sort_by(&hd/1)
-    |> Enum.reduce(%{}, fn [node, count, limit], acc ->
-      Map.update(acc, node, %{count: count, limit: limit}, fn map ->
+    |> :ets.select([{{{:node, :_, :_, :_}, :_, :"$1"}, [], [:"$1"]}])
+    |> Enum.reduce(%{}, fn payload, acc ->
+      limit = payload_limit(payload)
+      count = payload |> Map.get("running", []) |> length()
+
+      nname =
+        [payload["name"], payload["node"]]
+        |> Enum.join("/")
+        |> String.trim_leading("Elixir.")
+        |> String.downcase()
+
+      Map.update(acc, nname, %{count: count, limit: limit}, fn map ->
         %{map | count: map.count + count, limit: map.limit + limit}
       end)
     end)
@@ -65,20 +65,22 @@ defmodule Oban.Web.Plugins.Stats do
 
     limit_counts =
       table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
-      |> Enum.reduce(%{}, fn [queue, limit], acc ->
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
+      |> Enum.reduce(%{}, fn [queue, payload], acc ->
+        limit = payload_limit(payload)
+
         Map.update(acc, queue, limit, &(&1 + limit))
       end)
 
     local_limits =
       table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2", :_}, [], [:"$$"]}])
-      |> Map.new(fn [queue, limit] -> {queue, limit} end)
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
+      |> Map.new(fn [queue, payload] -> {queue, payload_limit(payload)} end)
 
     pause_states =
       table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :_, :"$2"}, [], [:"$$"]}])
-      |> Enum.reduce(%{}, fn [queue, paused], acc ->
+      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
+      |> Enum.reduce(%{}, fn [queue, %{"paused" => paused}], acc ->
         Map.update(acc, queue, paused, &(&1 or paused))
       end)
 
@@ -179,15 +181,12 @@ defmodule Oban.Web.Plugins.Stats do
     {:noreply, state}
   end
 
-  def handle_info({:notification, :gossip, payload}, %State{} = state) do
+  def handle_info({:notification, :gossip, %{"node" => _} = payload}, %State{} = state) do
     %{"node" => node, "name" => name, "queue" => queue} = payload
-    %{"paused" => paused, "running" => running} = payload
 
-    limit = payload["local_limit"] || payload["limit"] || 0
+    timestamp = System.system_time(:millisecond)
 
-    key = {:node, node, name, queue}
-
-    :ets.insert(state.table, {key, length(running), limit, paused})
+    :ets.insert(state.table, {{:node, node, name, queue}, timestamp, payload})
 
     {:noreply, state}
   end
@@ -223,13 +222,10 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   defp refresh(state) do
-    state
-    |> expire_older_keys()
-    |> update_queue_counts()
+    expire_older_keys(state)
+    update_queue_counts(state)
 
-    timer = Process.send_after(self(), :refresh, state.interval)
-
-    %{state | timer: timer}
+    %{state | timer: Process.send_after(self(), :refresh, state.interval)}
   end
 
   defp cancel_refresh(%State{timer: timer} = state) do
@@ -238,19 +234,21 @@ defmodule Oban.Web.Plugins.Stats do
     %{state | timer: nil}
   end
 
-  defp expire_older_keys(%State{} = state) do
-    state
+  defp expire_older_keys(%State{table: table, ttl: ttl}) do
+    expires = System.system_time(:millisecond) - ttl
+    pattern = [{{{:node, :_, :_, :_}, :"$1", :_}, [{:<, :"$1", expires}], [true]}]
+
+    :ets.select_delete(table, pattern)
   end
 
-  defp update_queue_counts(%State{conf: conf, table: table} = state) do
+  defp update_queue_counts(%State{conf: conf, table: table}) do
     for {queue, state, count} <- Query.queue_counts(conf) do
-      key = {:queue, queue, state}
-
-      :ets.insert(table, {key, count})
-
-      key
+      :ets.insert(table, {{:queue, queue, state}, count})
     end
-
-    state
   end
+
+  defp payload_limit(%{"global_limit" => limit}), do: limit
+  defp payload_limit(%{"local_limit" => limit}), do: limit
+  defp payload_limit(%{"limit" => limit}), do: limit
+  defp payload_limit(_payload), do: 0
 end
