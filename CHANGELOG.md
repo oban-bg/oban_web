@@ -1,8 +1,40 @@
 # Changelog
 
-All notable changes to `Oban.Web` will be documented in this file.
+All notable changes to `Oban.Web` are documented here.
+
+## v2.6.0 — 2021-04-02
+
+### Remove Reliance on Beats
+
+Previously, node and queue information on the dashboard was powered by heartbeat
+records stored in the `oban_beats` table. That is no longer the case and the
+dashboard is entirely independent from beats and from Pro.
+
+Check out the [Oban v2.6 upgrade guide](v2-6.html) for a walkthrough on using
+the Gossip plugin for realtime updates.
+
+### Content Security Policy
+
+To secure the dashboard, or comply with an existing CSP within your application,
+you can specify nonce keys for images, scripts and styles. For example, to pull
+the asset nonce from a single `:my_csp_nonce` assignment:
+
+```elixir
+oban_dashboard("/oban", csp_nonce_assign_key: :my_csp_nonce)
+```
+
+See [the CSP install guide](web_installation.html#content-security-policy) for details.
+
+### Changed
+
+- Remove dependency on `oban_pro` (again). The dashboard is driven by events and
+  data provided by Oban alone.
+
+- Bump the Oban dependency `~> v2.6`
 
 ## v2.5.2 — 2021-03-04
+
+### Changed
 
 - Restore a dependency on `oban_pro`, as removal broke the install flow for many
   applications that had an implicit dependency.
@@ -14,6 +46,8 @@ All notable changes to `Oban.Web` will be documented in this file.
   `oban_pro` releases.
 
 ## v2.5.1 — 2021-01-28
+
+### Fixed
 
 - Conditionally increase `max_attempts` when bulk retrying jobs. The check
   constraint added by Oban 2.4.0 exposed a bug which made it impossible to retry
