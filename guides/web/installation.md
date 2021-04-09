@@ -18,7 +18,8 @@ $ mix hex.organization auth oban --key YOUR_OBAN_LICENSE_KEY
 ```
 
 ⚠️ _You'll also need to authenticate on any other development machines, build
-servers and CI instances._
+servers and CI instances. There are also guides to help with authenticating on
+[Gigalixir][gi] and [Heroku][he]_.
 
 Now that you're authenticated you're ready to add `oban_web` as a dependency for
 your application. Open `mix.exs` and add the following line:
@@ -204,3 +205,5 @@ If not, or if you need any help, stop by the #oban channel in [Elixir Slack][sla
 [tel]: web_telemetry.html
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html
+[gi]: pro_installation.html#authorizing-on-gigalixir
+[he]: pro_installation.html#authorizing-on-heroku
