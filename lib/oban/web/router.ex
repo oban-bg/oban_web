@@ -41,7 +41,8 @@ defmodule Oban.Web.Router do
 
         opts = Oban.Web.Router.__options__(opts)
 
-        live "/", Oban.Web.DashboardLive, :index, opts
+        live "/", Oban.Web.DashboardLive, :home, opts
+        live "/jobs/:id", Oban.Web.DashboardLive, :jobs, opts
       end
     end
   end

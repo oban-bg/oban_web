@@ -115,6 +115,15 @@ defmodule Oban.Web.DashboardLive do
   end
 
   @impl Phoenix.LiveView
+  def handle_params(%{"id" => job_id}, _uri, socket) do
+    {:noreply, assign(socket, detailed: %Job{id: job_id})}
+  end
+
+  def handle_params(_params, _uri, socket) do
+    {:noreply, assign(socket, detailed: nil)}
+  end
+
+  @impl Phoenix.LiveView
   def terminate(_reason, %{assigns: %{timer: timer}}) do
     if is_reference(timer), do: Process.cancel_timer(timer)
 
@@ -173,16 +182,6 @@ defmodule Oban.Web.DashboardLive do
     end)
 
     {:noreply, socket}
-  end
-
-  # Details
-
-  def handle_info({:show_details, job}, socket) do
-    {:noreply, assign(socket, detailed: job)}
-  end
-
-  def handle_info(:hide_details, socket) do
-    {:noreply, assign(socket, detailed: nil)}
   end
 
   # Filtering

@@ -71,8 +71,8 @@ defmodule Oban.Web.ListingRowComponent do
   end
 
   def handle_event("show_details", _params, socket) do
-    send(self(), {:show_details, socket.assigns.job})
+    path = oban_path(socket, :jobs, %{id: socket.assigns.job.id})
 
-    {:noreply, socket}
+    {:noreply, push_patch(socket, to: path, replace: true)}
   end
 end

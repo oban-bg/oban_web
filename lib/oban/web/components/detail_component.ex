@@ -124,9 +124,7 @@ defmodule Oban.Web.DetailComponent do
   # Handlers
 
   def handle_event("close", _params, socket) do
-    send(self(), :hide_details)
-
-    {:noreply, socket}
+    {:noreply, push_patch(socket, to: oban_path(socket, :home), replace: true)}
   end
 
   def handle_event("cancel", _params, socket) do

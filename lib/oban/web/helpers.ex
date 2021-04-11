@@ -4,6 +4,18 @@ defmodule Oban.Web.Helpers do
   alias Oban.Job
   alias Oban.Web.{Resolver, Timing}
 
+  # Routing Helpers
+
+  def oban_path(socket, :home) do
+    apply(socket.router.__helpers__(), :oban_dashboard_path, [socket, :home])
+  end
+
+  def oban_path(socket, :jobs, %{id: id}) do
+    apply(socket.router.__helpers__(), :oban_dashboard_path, [socket, :jobs, id])
+  end
+
+  # Authorization Helpers
+
   @doc """
   Check an action against the current access controls.
   """
@@ -12,6 +24,11 @@ defmodule Oban.Web.Helpers do
   def can?(_action, :read_only), do: false
   def can?(action, [_ | _] = opts), do: Keyword.get(opts, action, false)
 
+  # Formatting Helpers
+
+  @doc """
+  Delimit large integers with a comma separator.
+  """
   @spec integer_to_delimited(integer()) :: String.t()
   def integer_to_delimited(integer) when is_integer(integer) do
     integer
@@ -22,6 +39,9 @@ defmodule Oban.Web.Helpers do
     |> String.reverse()
   end
 
+  @doc """
+  Truncate strings beyond a fixed limit and append an ellipsis.
+  """
   @spec truncate(String.t(), Range.t()) :: String.t()
   def truncate(string, range \\ 0..90) do
     if String.length(string) > Enum.max(range) do
@@ -64,6 +84,31 @@ defmodule Oban.Web.Helpers do
   end
 
   @doc """
+  Convert a stringified timestamp (i.e. from an error) into a relative time.
+  """
+  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
+    {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
+
+    datetime
+    |> NaiveDateTime.diff(now)
+    |> Timing.to_words()
+  end
+
+  @doc """
+  Extract the name of the node that attempted a job.
+  """
+  def attempted_by(%Job{attempted_by: [node | _]}), do: node
+  def attempted_by(%Job{}), do: "Not Attempted"
+
+  @doc """
+  Format job tags using a delimiter.
+  """
+  def formatted_tags(%Job{tags: []}), do: "..."
+  def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
+
+  # State Helpers
+
+  @doc """
   Whether the job can be cancelled in its current state.
   """
   @spec cancelable?(Job.t()) :: boolean()
@@ -92,27 +137,4 @@ defmodule Oban.Web.Helpers do
   """
   @spec deletable?(Job.t()) :: boolean()
   def deletable?(%Job{state: state}), do: state != "executing"
-
-  @doc """
-  Convert a stringified timestamp (i.e. from an error) into a relative time.
-  """
-  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
-    {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
-
-    datetime
-    |> NaiveDateTime.diff(now)
-    |> Timing.to_words()
-  end
-
-  @doc """
-  Extract the name of the node that attempted a job.
-  """
-  def attempted_by(%Job{attempted_by: [node | _]}), do: node
-  def attempted_by(%Job{}), do: "Not Attempted"
-
-  @doc """
-  Format job tags using a delimiter.
-  """
-  def formatted_tags(%Job{tags: []}), do: "..."
-  def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
 end
