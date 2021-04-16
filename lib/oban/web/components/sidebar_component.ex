@@ -31,7 +31,7 @@ defmodule Oban.Web.SidebarComponent do
 
       <ul class="<%= if @show_nodes? do %>block<% else %>hidden<% end %>">
         <%= for {name, stat} <- @node_stats do %>
-          <%= live_component @socket, NodeComponent, id: name, filters: @filters, name: name, stat: stat %>
+          <%= live_component @socket, NodeComponent, id: name, params: @params, name: name, stat: stat %>
         <% end %>
       </ul>
     </div>
@@ -57,7 +57,7 @@ defmodule Oban.Web.SidebarComponent do
 
       <ul class="<%= if @show_states? do %>block<% else %>hidden<% end %>">
         <%= for {name, stat} <- @state_stats do %>
-          <%= live_component @socket, StateComponent, id: name, filters: @filters, name: name, stat: stat %>
+          <%= live_component @socket, StateComponent, id: name, params: @params, name: name, stat: stat %>
         <% end %>
       </ul>
     </div>
@@ -85,7 +85,7 @@ defmodule Oban.Web.SidebarComponent do
 
       <ul class="<%= if @show_queues? do %>block<% else %>hidden<% end %>">
         <%= for {name, stat} <- @queue_stats do %>
-          <%= live_component @socket, QueueComponent, id: name, access: @access, filters: @filters, name: name, stat: stat %>
+          <%= live_component @socket, QueueComponent, id: name, access: @access, params: @params, name: name, stat: stat %>
         <% end %>
       </ul>
     </div>

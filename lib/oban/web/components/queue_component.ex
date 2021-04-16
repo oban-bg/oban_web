@@ -13,12 +13,12 @@ defmodule Oban.Web.QueueComponent do
     socket =
       assign(
         socket,
-        name: assigns.name,
         access: assigns.access,
-        active?: assigns.name == assigns.filters.queue,
-        controls?: can?(:scale_queues, assigns.access) or can?(:pause_queues, assigns.access),
+        active?: assigns.name == assigns.params[:queue],
         avail: assigns.stat.avail,
-        execu: assigns.stat.execu
+        controls?: can?(:scale_queues, assigns.access) or can?(:pause_queues, assigns.access),
+        execu: assigns.stat.execu,
+        name: assigns.name
       )
 
     socket =
@@ -88,9 +88,9 @@ defmodule Oban.Web.QueueComponent do
   def safe_div(num, dem), do: div(num, dem)
 
   def handle_event("filter", _params, socket) do
-    new_queue = if socket.assigns.active?, do: "any", else: socket.assigns.name
+    new_queue = if socket.assigns.active?, do: nil, else: socket.assigns.name
 
-    send(self(), {:filter_queue, new_queue})
+    send(self(), {:params, :queue, new_queue})
 
     {:noreply, socket}
   end

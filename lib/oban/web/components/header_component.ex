@@ -19,9 +19,9 @@ defmodule Oban.Web.HeaderComponent do
      assign(
        socket,
        numerator: Enum.count(jobs),
-       denominator: state_count(assigns.stats, assigns.filters.state),
+       denominator: state_count(assigns.stats, assigns.params.state),
        select_mode: select_mode,
-       state: assigns.filters.state
+       state: assigns.params.state
      )}
   end
 

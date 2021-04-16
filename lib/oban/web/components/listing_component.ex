@@ -12,8 +12,8 @@ defmodule Oban.Web.ListingComponent do
      assign(socket,
        jobs: assigns.jobs,
        selected: assigns.selected,
-       show_less?: assigns.filters.limit > @min_limit,
-       show_more?: assigns.filters.limit < @max_limit
+       show_less?: assigns.params.limit > @min_limit,
+       show_more?: assigns.params.limit < @max_limit
      )}
   end
 
@@ -59,7 +59,7 @@ defmodule Oban.Web.ListingComponent do
 
   def handle_event("load_less", _params, socket) do
     if socket.assigns.show_less? do
-      send(self(), {:inc_limit, -@inc_limit})
+      send(self(), {:params, :limit, -@inc_limit})
     end
 
     {:noreply, socket}
@@ -67,7 +67,7 @@ defmodule Oban.Web.ListingComponent do
 
   def handle_event("load_more", _params, socket) do
     if socket.assigns.show_more? do
-      send(self(), {:inc_limit, @inc_limit})
+      send(self(), {:params, :limit, @inc_limit})
     end
 
     {:noreply, socket}

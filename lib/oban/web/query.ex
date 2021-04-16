@@ -5,13 +5,10 @@ defmodule Oban.Web.Query do
 
   alias Oban.{Config, Job, Repo}
 
-  @default_node "any"
-  @default_queue "any"
   @default_state "executing"
   @default_limit 30
 
   @timeout :timer.seconds(20)
-  @minimum_pg_for_search 110_000
 
   defmacrop args_search(column, terms) do
     quote do
@@ -84,29 +81,24 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
-  def get_jobs(config, opts) when is_map(opts), do: get_jobs(config, Keyword.new(opts))
+  def get_jobs(%Config{} = conf, %{} = args) do
+    args =
+      args
+      |> Map.put_new(:limit, @default_limit)
+      |> Map.put_new(:state, @default_state)
 
-  def get_jobs(%Config{} = conf, opts) do
-    node = Keyword.get(opts, :node, @default_node)
-    queue = Keyword.get(opts, :queue, @default_queue)
-    state = Keyword.get(opts, :state, @default_state)
-    limit = Keyword.get(opts, :limit, @default_limit)
-    terms = Keyword.get(opts, :terms)
+    query =
+      args
+      |> Enum.reduce(Job, &filter/2)
+      |> order_state(args[:state])
+      |> limit(^args[:limit])
 
-    Job
-    |> filter_node(node)
-    |> filter_queue(queue)
-    |> filter_state(state)
-    |> filter_terms(terms, conf)
-    |> order_state(state)
-    |> limit(^limit)
-    |> conf.repo.all(log: conf.log, prefix: conf.prefix)
+    conf
+    |> Repo.all(query)
     |> Enum.map(&relativize_timestamps/1)
   end
 
-  defp filter_node(query, "any"), do: query
-
-  defp filter_node(query, name_node) do
+  defp filter({:node, name_node}, query) do
     node =
       name_node
       |> String.split("/")
@@ -115,27 +107,20 @@ defmodule Oban.Web.Query do
     where(query, [j], fragment("?[1] = ?", j.attempted_by, ^node))
   end
 
-  defp filter_queue(query, "any"), do: query
-  defp filter_queue(query, queue), do: where(query, queue: ^queue)
+  defp filter({:queue, queue}, query), do: where(query, queue: ^queue)
+  defp filter({:state, state}, query), do: where(query, state: ^state)
 
-  defp filter_state(query, state), do: where(query, state: ^state)
-
-  defp filter_terms(query, nil, _), do: query
-  defp filter_terms(query, "", _), do: query
-
-  defp filter_terms(query, terms, conf) do
+  defp filter({:terms, terms}, query) when byte_size(terms) > 0 do
     ilike = "%" <> terms <> "%"
 
-    if pg_version(conf) >= @minimum_pg_for_search do
-      where(
-        query,
-        [j],
-        ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
-      )
-    else
-      where(query, [j], ilike(j.worker, ^ilike))
-    end
+    where(
+      query,
+      [j],
+      ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
+    )
   end
+
+  defp filter(_, query), do: query
 
   defp order_state(query, state) when state in ~w(available retryable scheduled) do
     order_by(query, [j], asc: j.scheduled_at)
@@ -147,24 +132,6 @@ defmodule Oban.Web.Query do
 
   defp order_state(query, _state) do
     order_by(query, [j], desc: j.attempted_at)
-  end
-
-  # We need to know the PG server version to toggle full text search capabilities. Queries are
-  # usually performed within a persistent LiveView connection, so we can safely cache the pg
-  # version within that process.
-  defp pg_version(%Config{} = conf) do
-    case Process.get(:pg_version) do
-      version when is_integer(version) ->
-        version
-
-      nil ->
-        {:ok, %{rows: [[version]]}} =
-          Repo.query(conf, "SELECT current_setting('server_version_num')::int", [])
-
-        Process.put(:pg_version, version)
-
-        version
-    end
   end
 
   # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from

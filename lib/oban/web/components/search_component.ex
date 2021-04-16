@@ -2,7 +2,9 @@ defmodule Oban.Web.SearchComponent do
   use Oban.Web, :live_component
 
   def update(assigns, socket) do
-    {:ok, assign(socket, terms: assigns.terms, show_clear?: present?(assigns.terms))}
+    terms = assigns.params[:terms]
+
+    {:ok, assign(socket, params: assigns.params, show_clear?: present?(terms), terms: terms)}
   end
 
   def render(assigns) do
@@ -28,15 +30,15 @@ defmodule Oban.Web.SearchComponent do
   end
 
   def handle_event("search", %{"terms" => terms}, socket) do
-    send(self(), {:filter_terms, terms})
+    params = Map.put(socket.assigns.params, :terms, terms)
 
-    {:noreply, socket}
+    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
   end
 
   def handle_event("clear", _params, socket) do
-    send(self(), {:filter_terms, nil})
+    params = Map.delete(socket.assigns.params, :terms)
 
-    {:noreply, socket}
+    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
   end
 
   def present?(nil), do: false

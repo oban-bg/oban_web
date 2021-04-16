@@ -65,7 +65,7 @@ defmodule Oban.Web.ListingRowComponent do
   end
 
   def handle_event("toggle_worker", _params, socket) do
-    send(self(), {:filter_worker, socket.assigns.job.worker})
+    send(self(), {:params, :terms, socket.assigns.job.worker})
 
     {:noreply, socket}
   end

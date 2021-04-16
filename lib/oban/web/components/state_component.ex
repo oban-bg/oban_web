@@ -5,9 +5,9 @@ defmodule Oban.Web.StateComponent do
     {:ok,
      assign(
        socket,
-       name: assigns.name,
-       active?: assigns.name == assigns.filters.state,
-       count: assigns.stat.count
+       active?: assigns.name == assigns.params[:state],
+       count: assigns.stat.count,
+       name: assigns.name
      )}
   end
 
@@ -23,7 +23,9 @@ defmodule Oban.Web.StateComponent do
   end
 
   def handle_event("filter", _params, socket) do
-    send(self(), {:filter_state, socket.assigns.name})
+    new_state = if socket.assigns.active?, do: nil, else: socket.assigns.name
+
+    send(self(), {:params, :state, new_state})
 
     {:noreply, socket}
   end

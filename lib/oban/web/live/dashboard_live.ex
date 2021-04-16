@@ -8,14 +8,8 @@ defmodule Oban.Web.DashboardLive do
   alias Oban.Web.{NotificationComponent, RefreshComponent, SearchComponent, SidebarComponent}
 
   @flash_timing 5_000
-
-  @default_filters %{
-    node: "any",
-    queue: "any",
-    state: "executing",
-    terms: nil,
-    limit: 20
-  }
+  @default_limit 20
+  @default_state "executing"
 
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
@@ -31,9 +25,9 @@ defmodule Oban.Web.DashboardLive do
         access: access,
         conf: conf,
         csp_nonces: csp_nonces,
-        filters: @default_filters,
+        params: %{},
         detailed: nil,
-        jobs: Query.get_jobs(conf, @default_filters),
+        jobs: [],
         node_stats: Stats.for_nodes(conf.name),
         queue_stats: Stats.for_queues(conf.name),
         state_stats: Stats.for_states(conf.name),
@@ -78,7 +72,7 @@ defmodule Oban.Web.DashboardLive do
               SidebarComponent,
               id: :sidebar,
               access: @access,
-              filters: @filters,
+              params: @params,
               node_stats: @node_stats,
               queue_stats: @queue_stats,
               state_stats: @state_stats %>
@@ -89,12 +83,12 @@ defmodule Oban.Web.DashboardLive do
             <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 px-3 py-3">
-              <%= live_component @socket, HeaderComponent, id: :header, filters: @filters, jobs: @jobs, stats: @state_stats, selected: @selected %>
-              <%= live_component @socket, SearchComponent, id: :search, terms: @filters.terms %>
+              <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, stats: @state_stats, selected: @selected %>
+              <%= live_component @socket, SearchComponent, id: :search, params: @params %>
             </div>
 
             <%= live_component @socket, BulkActionComponent, id: :bulk_action, access: @access, jobs: @jobs, selected: @selected %>
-            <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, filters: @filters, selected: @selected %>
+            <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, params: @params, selected: @selected %>
           <% end %>
         </div>
       </div>
@@ -119,8 +113,22 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, assign(socket, detailed: %Job{id: job_id})}
   end
 
-  def handle_params(_params, _uri, socket) do
-    {:noreply, assign(socket, detailed: nil)}
+  def handle_params(params, _uri, socket) do
+    normalize = fn
+      {"limit", limit} -> {:limit, String.to_integer(limit)}
+      {key, val} -> {String.to_existing_atom(key), val}
+    end
+
+    params =
+      params
+      |> Map.take(["limit", "node", "queue", "state", "terms"])
+      |> Map.new(normalize)
+      |> Map.put_new(:state, @default_state)
+      |> Map.put_new(:limit, @default_limit)
+
+    jobs = Query.get_jobs(socket.assigns.conf, params)
+
+    {:noreply, assign(socket, detailed: nil, jobs: jobs, params: params)}
   end
 
   @impl Phoenix.LiveView
@@ -134,7 +142,7 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_info(:refresh, socket) do
-    jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.filters)
+    jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.params)
 
     selected =
       jobs
@@ -186,47 +194,21 @@ defmodule Oban.Web.DashboardLive do
 
   # Filtering
 
-  def handle_info({:filter_node, node}, socket) do
-    filters = Map.put(socket.assigns.filters, :node, node)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
+  def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
+    params = Map.update!(socket.assigns.params, :limit, &to_string(&1 + inc))
 
-    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
   end
 
-  def handle_info({:filter_state, state}, socket) do
-    filters = Map.put(socket.assigns.filters, :state, state)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
+  def handle_info({:params, key, value}, socket) do
+    params =
+      if is_nil(value) do
+        Map.delete(socket.assigns.params, key)
+      else
+        Map.put(socket.assigns.params, key, value)
+      end
 
-    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
-  end
-
-  def handle_info({:filter_queue, queue}, socket) do
-    filters = Map.put(socket.assigns.filters, :queue, queue)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
-
-    {:noreply, assign(socket, detailed: nil, jobs: jobs, filters: filters)}
-  end
-
-  def handle_info({:filter_terms, terms}, socket) do
-    filters = Map.put(socket.assigns.filters, :terms, terms)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
-  end
-
-  def handle_info({:filter_worker, worker}, socket) do
-    filters = Map.put(socket.assigns.filters, :terms, worker)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
-  end
-
-  def handle_info({:inc_limit, inc}, socket) do
-    limit = socket.assigns.filters.limit + inc
-    filters = Map.put(socket.assigns.filters, :limit, limit)
-    jobs = Query.get_jobs(socket.assigns.conf, filters)
-
-    {:noreply, assign(socket, jobs: jobs, filters: filters)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
   end
 
   def handle_info({:update_refresh, refresh}, socket) do

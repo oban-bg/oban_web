@@ -65,7 +65,7 @@ defmodule Oban.Web.QueryTest do
 
   defp search_ids(terms) do
     @conf
-    |> Query.get_jobs(terms: terms, state: "available")
+    |> Query.get_jobs(%{terms: terms, state: "available"})
     |> Enum.map(& &1.id)
     |> Enum.sort()
   end
