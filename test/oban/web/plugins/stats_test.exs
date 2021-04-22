@@ -68,6 +68,34 @@ defmodule Oban.Web.Plugins.StatsTest do
     stop_supervised!(@name)
   end
 
+  test "clearing older cached values on refresh" do
+    insert_job!(%{}, queue: :alpha, state: "executing")
+    insert_job!(%{}, queue: :gamma, state: "available")
+
+    start_supervised_oban!(@opts)
+
+    :ok = Stats.activate(@name)
+
+    gossip(name: @name, node: "web.1", queue: "alpha", running: [])
+    gossip(name: @name, node: "web.1", queue: "gamma", running: [])
+
+    assert for_queues() == %{
+             "alpha" => %{avail: 0, execu: 1, limit: 1, local: 1, pause: false},
+             "gamma" => %{avail: 1, execu: 0, limit: 1, local: 1, pause: false}
+           }
+
+    Repo.delete_all(Job)
+
+    wait_for_refresh()
+
+    assert for_queues() == %{
+             "alpha" => %{avail: 0, execu: 0, limit: 1, local: 1, pause: false},
+             "gamma" => %{avail: 0, execu: 0, limit: 1, local: 1, pause: false}
+           }
+
+    stop_supervised!(@name)
+  end
+
   test "refreshing stops when all activated nodes disconnect" do
     start_supervised_oban!(@opts)
 
@@ -79,8 +107,7 @@ defmodule Oban.Web.Plugins.StatsTest do
 
     insert_job!(queue: :alpha, state: "available")
 
-    # The refresh rate is 10ms, after 20ms the values still should not have refreshed
-    Process.sleep(20)
+    wait_for_refresh()
 
     assert for_queues() == %{"alpha" => %{avail: 1, execu: 0, limit: 0, local: 0, pause: true}}
 
@@ -90,4 +117,7 @@ defmodule Oban.Web.Plugins.StatsTest do
   defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()
   defp for_queues, do: @name |> Stats.for_queues() |> Map.new()
   defp for_states, do: @name |> Stats.for_states() |> Map.new()
+
+  # The refresh rate is 10ms, after 20ms the values still should not have refreshed
+  defp wait_for_refresh, do: Process.sleep(20)
 end

@@ -10,6 +10,8 @@ defmodule Oban.Web.Plugins.Stats do
 
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
+  @empty_queue_states Map.new(@ordered_states, &{&1, 0})
+
   defmodule State do
     @moduledoc false
 
@@ -55,7 +57,7 @@ defmodule Oban.Web.Plugins.Stats do
 
     counter = fn type ->
       table
-      |> :ets.select([{{{:queue, :"$1", type}, :"$2"}, [], [:"$$"]}])
+      |> :ets.select([{{{:queue, :"$1", type}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
       |> Map.new(fn [queue, count] -> {queue, count} end)
     end
 
@@ -198,7 +200,7 @@ defmodule Oban.Web.Plugins.Stats do
     {:noreply, state}
   end
 
-  # Helpers
+  ## Refresh Helpers
 
   defp maybe_start_refresh(%State{active: active} = state) do
     if Enum.empty?(active) do
@@ -221,7 +223,7 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   defp refresh(state) do
-    expire_older_keys(state)
+    expire_older_nodes(state)
     update_queue_counts(state)
 
     %{state | timer: Process.send_after(self(), :refresh, state.interval)}
@@ -233,7 +235,7 @@ defmodule Oban.Web.Plugins.Stats do
     %{state | timer: nil}
   end
 
-  defp expire_older_keys(%State{table: table, ttl: ttl}) do
+  defp expire_older_nodes(%State{table: table, ttl: ttl}) do
     expires = System.system_time(:millisecond) - ttl
     pattern = [{{{:node, :_, :_, :_}, :"$1", :_}, [{:<, :"$1", expires}], [true]}]
 
@@ -241,10 +243,33 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   defp update_queue_counts(%State{conf: conf, table: table}) do
-    for {queue, state, count} <- Query.queue_counts(conf) do
-      :ets.insert(table, {{:queue, queue, state}, count})
-    end
+    counts = Query.queue_counts(conf)
+
+    # Defer purging until after we've fetched the update
+    purge_older_queues(table)
+
+    counts
+    |> Enum.reduce(%{}, &put_count/2)
+    |> Enum.each(fn {queue, counts_by_state} ->
+      for {state, count} <- counts_by_state do
+        :ets.insert(table, {{:queue, queue, state}, count})
+      end
+    end)
   end
+
+  defp purge_older_queues(table) do
+    pattern = [{{{:queue, :_, :_}, :_}, [], [true]}]
+
+    :ets.select_delete(table, pattern)
+  end
+
+  defp put_count({queue, state, count}, acc) do
+    acc
+    |> Map.put_new(queue, @empty_queue_states)
+    |> put_in([queue, state], count)
+  end
+
+  ## Aggregate Helpers
 
   defp payload_limit(%{"global_limit" => limit}), do: limit
   defp payload_limit(%{"local_limit" => limit}), do: limit
