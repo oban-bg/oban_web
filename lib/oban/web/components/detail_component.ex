@@ -130,19 +130,25 @@ defmodule Oban.Web.DetailComponent do
   end
 
   def handle_event("cancel", _params, socket) do
-    send(self(), {:cancel_job, socket.assigns.job})
+    if can?(:cancel_jobs, socket.assigns.access) do
+      send(self(), {:cancel_job, socket.assigns.job})
+    end
 
     {:noreply, socket}
   end
 
   def handle_event("delete", _params, socket) do
-    send(self(), {:delete_job, socket.assigns.job})
+    if can?(:delete_jobs, socket.assigns.access) do
+      send(self(), {:delete_job, socket.assigns.job})
+    end
 
     {:noreply, socket}
   end
 
   def handle_event("retry", _params, socket) do
-    send(self(), {:retry_job, socket.assigns.job})
+    if can?(:retry_jobs, socket.assigns.access) do
+      send(self(), {:retry_job, socket.assigns.job})
+    end
 
     {:noreply, socket}
   end
