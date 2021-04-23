@@ -2,6 +2,21 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.6.1 — 2021-04-23
+
+### Fixed
+
+- Update stale sidebar state and queue counts when there aren't any jobs
+  matching the given state or queue.
+
+  When a queue/state combination had no values, the counts on the sidebar would
+  "stick" and only show the previous non-zero value. This was most noticeable
+  with the `executing` state as it worked through jobs quickly.
+
+- Apply access controls on the server side as well as the client. It is no
+  longer possible to use blocked actions by manually restoring button HTML in
+  the browser.
+
 ## v2.6.0 — 2021-04-02
 
 ### Remove Reliance on Beats
