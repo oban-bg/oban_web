@@ -44,7 +44,7 @@ defmodule Oban.Web.BulkActionComponent do
       <%= if can?(:retry_jobs, @access) and @runnable? do %>
         <a href="#"
            class="group flex items-center ml-4 text-sm text-gray-500 hover:bg-gray-100 hover:text-blue-500"
-           phx-target="<%= @myself %>" phx-click="run_now">
+           phx-target="<%= @myself %>" phx-click="retry">
           <svg class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
           Run Now
         </a>
@@ -72,25 +72,25 @@ defmodule Oban.Web.BulkActionComponent do
   end
 
   def handle_event("cancel", _params, socket) do
-    send(self(), :cancel_selected)
-
-    {:noreply, assign(socket, expanded?: false)}
-  end
-
-  def handle_event("run_now", _params, socket) do
-    send(self(), :retry_selected)
+    if can?(:cancel_jobs, socket.assigns.access) do
+      send(self(), :cancel_selected)
+    end
 
     {:noreply, assign(socket, expanded?: false)}
   end
 
   def handle_event("retry", _params, socket) do
-    send(self(), :retry_selected)
+    if can?(:retry_jobs, socket.assigns.access) do
+      send(self(), :retry_selected)
+    end
 
     {:noreply, assign(socket, expanded?: false)}
   end
 
   def handle_event("delete", _params, socket) do
-    send(self(), :delete_selected)
+    if can?(:delete_jobs, socket.assigns.access) do
+      send(self(), :delete_selected)
+    end
 
     {:noreply, assign(socket, expanded?: false)}
   end

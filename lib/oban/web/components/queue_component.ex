@@ -100,25 +100,33 @@ defmodule Oban.Web.QueueComponent do
   end
 
   def handle_event("scale", %{"local" => local}, socket) do
-    local =
-      local
-      |> String.to_integer()
-      |> min(@limit_max)
-      |> max(@limit_min)
+    if can?(:scale_queues, socket.assigns.access) do
+      local =
+        local
+        |> String.to_integer()
+        |> min(@limit_max)
+        |> max(@limit_min)
 
-    limit = local * socket.assigns.ratio
+      limit = local * socket.assigns.ratio
 
-    send(self(), {:scale_queue, socket.assigns.name, local})
+      send(self(), {:scale_queue, socket.assigns.name, local})
 
-    {:noreply, assign(socket, local: local, limit: limit, update_at: DateTime.utc_now())}
+      {:noreply, assign(socket, local: local, limit: limit, update_at: DateTime.utc_now())}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("play_pause", _params, socket) do
-    action = if socket.assigns.paused?, do: :resume_queue, else: :pause_queue
+    if can?(:pause_queues, socket.assigns.access) do
+      action = if socket.assigns.paused?, do: :resume_queue, else: :pause_queue
 
-    send(self(), {action, socket.assigns.name})
+      send(self(), {action, socket.assigns.name})
 
-    {:noreply, assign(socket, paused?: not socket.assigns.paused?, update_at: DateTime.utc_now())}
+      {:noreply, assign(socket, paused?: not socket.assigns.paused?, update_at: DateTime.utc_now())}
+    else
+      {:noreply, socket}
+    end
   end
 
   defp recent_local_update?(%{update_at: update_at}) do

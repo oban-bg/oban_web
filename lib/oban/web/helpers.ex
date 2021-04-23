@@ -7,7 +7,7 @@ defmodule Oban.Web.Helpers do
   @doc """
   Check an action against the current access controls.
   """
-  @spec can?(Resolver.access(), atom()) :: boolean()
+  @spec can?(Resolver.access(), atom() | keyword()) :: boolean()
   def can?(_action, :all), do: true
   def can?(_action, :read_only), do: false
   def can?(action, [_ | _] = opts), do: Keyword.get(opts, action, false)
