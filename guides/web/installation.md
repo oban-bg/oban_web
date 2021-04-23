@@ -7,14 +7,17 @@ installation of it in your application. If you don't have Live View
 installed, follow [these instructions][lvi] to get started.
 
 `Oban.Web` is delivered as a hex package named `oban_web`, which is published
-privately under the `oban` organization. The package is entirely self
+privately to our self-hosted package repository. The package is entirely self
 contained—it doesn't hook into your asset pipeline at all.
 
-Before you can pull the package into your application you need to authenticate
-with the `oban` organization.
+Before you can pull the package into your application you need to add a new
+`oban` hex repo. First, grab the `OBAN_KEY_FINGERPRINT` and `OBAN_LICENSE_KEY`
+from your account page. Then, run the following `mix hex.repo` command:
 
 ```console
-$ mix hex.organization auth oban --key YOUR_OBAN_LICENSE_KEY
+mix hex.repo add oban https://getoban.pro/repo \
+  --fetch-public-key $OBAN_KEY_FINGERPRINT \
+  --auth-key $OBAN_LICENSE_KEY
 ```
 
 ⚠️ _You'll also need to authenticate on any other development machines, build
@@ -25,7 +28,7 @@ Now that you're authenticated you're ready to add `oban_web` as a dependency for
 your application. Open `mix.exs` and add the following line:
 
 ```elixir
-{:oban_web, "~> 2.6.0", organization: "oban"}
+{:oban_web, "~> 2.6.0", repo: "oban"}
 ```
 
 Now fetch your dependencies:
@@ -37,16 +40,15 @@ $ mix deps.get
 This will fetch both `oban_web` and `oban_pro`, if you haven't already installed
 `oban_pro`.
 
-Both the pro `Lifeline` plugin and the web `Stats` plugins are necessary for the
-dashboard to function properly. Add them to your Oban configuration in
-`config.exs`:
+The `Gossip` plugin and the `Stats` plugin are necessary for the dashboard to
+function properly. Add them to your Oban configuration in `config.exs`:
 
 ```elixir
 config :my_app, Oban,
   repo: MyApp.Repo,
   queues: [alpha: 10, gamma: 10, delta: 10],
   plugins: [
-    Oban.Pro.Plugins.Lifeline,
+    Gossip,
     Oban.Web.Plugins.Stats
   ]
 ```
