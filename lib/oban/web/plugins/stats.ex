@@ -31,10 +31,9 @@ defmodule Oban.Web.Plugins.Stats do
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
 
-  @spec for_nodes(GenServer.name()) :: list({binary(), map()})
-  def for_nodes(oban_name \\ Oban) do
-    oban_name
-    |> table()
+  @spec for_nodes(GenServer.name() | reference()) :: list({binary(), map()})
+  def for_nodes(table) when is_reference(table) do
+    table
     |> :ets.select([{{{:node, :_, :_, :_}, :_, :"$1"}, [], [:"$1"]}])
     |> Enum.reduce(%{}, fn payload, acc ->
       limit = payload_limit(payload)
@@ -51,18 +50,24 @@ defmodule Oban.Web.Plugins.Stats do
     end)
   end
 
-  @spec for_queues(GenServer.name()) :: list({binary(), map()})
-  def for_queues(oban_name \\ Oban) do
-    table = table(oban_name)
-
-    counter = fn type ->
-      table
-      |> :ets.select([{{{:queue, :"$1", type}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
-      |> Map.new(fn [queue, count] -> {queue, count} end)
+  def for_nodes(oban_name) do
+    case fetch_table(oban_name) do
+      {:ok, table} -> for_nodes(table)
+      {:error, _} -> []
     end
+  end
 
-    avail_counts = counter.("available")
-    execu_counts = counter.("executing")
+  @spec for_queues(GenServer.name()) :: list({binary(), map()})
+  def for_queues(table) when is_reference(table) do
+    avail_counts =
+      table
+      |> :ets.select([{{{:queue, :"$1", "available"}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
+      |> Map.new(fn [queue, count] -> {queue, count} end)
+
+    execu_counts =
+      table
+      |> :ets.select([{{{:queue, :"$1", "executing"}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
+      |> Map.new(fn [queue, count] -> {queue, count} end)
 
     limit_counts =
       table
@@ -101,10 +106,15 @@ defmodule Oban.Web.Plugins.Stats do
     end)
   end
 
-  @spec for_states(GenServer.name()) :: list({binary(), map()})
-  def for_states(oban_name \\ Oban) do
-    table = table(oban_name)
+  def for_queues(oban_name) do
+    case fetch_table(oban_name) do
+      {:ok, table} -> for_queues(table)
+      {:error, _} -> []
+    end
+  end
 
+  @spec for_states(GenServer.name()) :: list({binary(), map()})
+  def for_states(table) when is_reference(table) do
     for state <- @ordered_states do
       count =
         case :ets.select(table, [{{{:queue, :_, state}, :"$1"}, [], [:"$$"]}]) do
@@ -121,6 +131,13 @@ defmodule Oban.Web.Plugins.Stats do
     end
   end
 
+  def for_states(oban_name) do
+    case fetch_table(oban_name) do
+      {:ok, table} -> for_states(table)
+      {:error, _} -> for state <- @ordered_states, do: {state, %{count: 0}}
+    end
+  end
+
   @spec activate(GenServer.name(), timeout()) :: :ok
   def activate(oban_name, timeout \\ 15_000) do
     oban_name
@@ -128,11 +145,19 @@ defmodule Oban.Web.Plugins.Stats do
     |> GenServer.call(:activate, timeout)
   end
 
-  @spec table(GenServer.name()) :: :ets.tab()
-  def table(oban_name) do
-    {:ok, table} = Registry.meta(Oban.Registry, {oban_name, {:plugin, __MODULE__}})
+  @spec fetch_table(GenServer.name()) :: {:ok, :ets.tab()} | {:error, term()}
+  def fetch_table(oban_name) do
+    case Registry.meta(Oban.Registry, {oban_name, {:plugin, __MODULE__}}) do
+      {:ok, table} when is_reference(table) ->
+        if :ets.info(table) != :undefined do
+          {:ok, table}
+        else
+          {:error, :bad_table_reference}
+        end
 
-    table
+      result ->
+        {:error, result}
+    end
   end
 
   # Callbacks
