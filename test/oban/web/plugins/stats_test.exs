@@ -114,6 +114,23 @@ defmodule Oban.Web.Plugins.StatsTest do
     stop_supervised!(@name)
   end
 
+  test "empty results are returned when an ets table isn't available" do
+    assert for_nodes() == %{}
+    assert for_queues() == %{}
+
+    Registry.put_meta(Oban.Registry, {@name, {:plugin, Stats}}, make_ref())
+
+    assert for_states() == %{
+             "executing" => %{count: 0},
+             "available" => %{count: 0},
+             "scheduled" => %{count: 0},
+             "retryable" => %{count: 0},
+             "discarded" => %{count: 0},
+             "cancelled" => %{count: 0},
+             "completed" => %{count: 0}
+           }
+  end
+
   defp for_nodes, do: @name |> Stats.for_nodes() |> Map.new()
   defp for_queues, do: @name |> Stats.for_queues() |> Map.new()
   defp for_states, do: @name |> Stats.for_states() |> Map.new()
