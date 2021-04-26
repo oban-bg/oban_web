@@ -318,7 +318,7 @@ defmodule Oban.Web.DashboardLive do
 
   ## Mount Helpers
 
-  defp await_config(oban_name, timeout \\ 5_000) do
+  defp await_config(oban_name, timeout \\ 15_000) do
     Oban.config(oban_name)
   rescue
     exception in [RuntimeError] ->
