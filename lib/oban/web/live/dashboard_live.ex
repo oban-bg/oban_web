@@ -279,7 +279,7 @@ defmodule Oban.Web.DashboardLive do
       socket
       |> hide_and_clear_selected()
       |> force_schedule_refresh()
-      |> flash(:info, "Selected jobs canceled and discarded")
+      |> flash(:info, "Selected jobs canceled")
 
     {:noreply, socket}
   end
