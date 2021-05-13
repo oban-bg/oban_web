@@ -48,7 +48,7 @@ config :my_app, Oban,
   repo: MyApp.Repo,
   queues: [alpha: 10, gamma: 10, delta: 10],
   plugins: [
-    Gossip,
+    Oban.Plugins.Gossip,
     Oban.Web.Plugins.Stats
   ]
 ```
