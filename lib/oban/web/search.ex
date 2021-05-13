@@ -9,7 +9,7 @@ defmodule Oban.Web.Search do
 
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-  @ignored_chars ~W(. ; / \ ` " ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
+  @ignored_chars ~W(. ; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
   @empty {[:args, :meta, :tags, :worker], []}
 
@@ -47,25 +47,22 @@ defmodule Oban.Web.Search do
     where(query, ^conditions)
   end
 
-  # '"fat rat" or cat dog' → 'fat' <-> 'rat' | 'cat' & 'dog'
-
   defp compose({:priority, priorities}, condition) do
     dynamic([j], ^condition and j.priority in ^priorities)
   end
 
   defp compose({fields, terms}, condition) do
-    terms = Enum.join(terms, " ")
-    ilike = "%#{terms}%"
+    loose = "%#{terms}%"
 
     grouped =
       Enum.reduce(fields, false, fn
         :args, subcon -> dynamic([j], ^subcon or json_search(j.args, ^terms))
         :meta, subcon -> dynamic([j], ^subcon or json_search(j.meta, ^terms))
         :tags, subcon -> dynamic([j], ^subcon or tags_search(j.tags, ^terms))
-        :worker, subcon -> dynamic([j], ^subcon or ilike(j.worker, ^ilike))
+        :worker, subcon -> dynamic([j], ^subcon or ilike(j.worker, ^loose))
       end)
 
-    dynamic([j], ^condition and (^grouped))
+    dynamic([j], ^condition and ^grouped)
   end
 
   defp parse(terms) when is_binary(terms) do
@@ -80,6 +77,7 @@ defmodule Oban.Web.Search do
     [ctx | acc]
     |> List.flatten()
     |> Enum.reject(&(elem(&1, 1) == []))
+    |> Enum.map(&prep_terms/1)
   end
 
   defp parse(["priority:" <> priorities | tail], ctx, acc) do
@@ -103,4 +101,12 @@ defmodule Oban.Web.Search do
   defp parse([term | tail], {fields, terms}, acc) do
     parse(tail, {fields, [term] ++ terms}, acc)
   end
+
+  defp prep_terms({[_ | _] = fields, terms}), do: {fields, prep_terms(terms, [])}
+  defp prep_terms(tuple), do: tuple
+
+  defp prep_terms([], acc), do: acc |> IO.iodata_to_binary() |> String.trim_trailing()
+  defp prep_terms(["not", term | tail], acc), do: prep_terms(tail, ["-", term, " " | acc])
+  defp prep_terms([term, "not" | tail], acc), do: prep_terms(tail, ["-", term, " " | acc])
+  defp prep_terms([term | tail], acc), do: prep_terms(tail, [term, " " | acc])
 end

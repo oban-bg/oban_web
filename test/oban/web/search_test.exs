@@ -30,6 +30,21 @@ defmodule Oban.Web.SearchTest do
     assert_matches([1, 2, 4], "video in:args,meta,tags,worker")
   end
 
+  test "negating terms" do
+    insert_job!(%{ref: 1}, worker: Video)
+    insert_job!(%{ref: 2, mode: "video"})
+    insert_job!(%{ref: 3}, tags: ["video"])
+    insert_job!(%{ref: 4}, meta: %{mode: "video"})
+
+    assert_matches([1, 3, 4], "-video in:args")
+    assert_matches([1, 2, 3], "-video in:meta")
+    assert_matches([1, 2, 4], "-video in:tags")
+
+    assert_matches([1, 2, 4], "not video in:tags")
+
+    assert_matches([1, 2, 4], "video not in:tags")
+  end
+
   test "searching by priority" do
     insert_job!(%{ref: 0}, worker: MyApp.Video, priority: 0)
     insert_job!(%{ref: 1}, worker: MyApp.Video, priority: 1)
@@ -43,7 +58,8 @@ defmodule Oban.Web.SearchTest do
     assert_matches([2], "video priority:2")
   end
 
-  # removing illegal characters
+  # dates
+  # field sub-access
 
   defp assert_matches(expected_refs, query) do
     actual_refs =
