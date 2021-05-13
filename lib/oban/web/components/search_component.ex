@@ -17,7 +17,7 @@ defmodule Oban.Web.SearchComponent do
         <input
           type="search"
           name="terms"
-          class="appearance-none text-sm bg-gray-100 block rounded w-full pr-3 py-3 pl-10 placeholder-gray-600 focus:shadow-outline"
+          class="appearance-none text-sm bg-gray-100 block rounded w-full pr-3 py-3 pl-10 placeholder-gray-600 focus:ring"
           placeholder="Search jobs by worker, tags and args"
           value="<%= @terms %>"
           phx-debounce="250" />

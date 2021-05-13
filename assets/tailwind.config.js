@@ -19,14 +19,5 @@ module.exports = {
   ],
   variants: {
     display: ["group-hover"]
-  },
-  plugins: [
-    require("@tailwindcss/ui")
-  ],
-  future: {
-    purgeLayersByDefault: true,
-  },
-  experimental: {
-    uniformColorPalette: true,
   }
 }
