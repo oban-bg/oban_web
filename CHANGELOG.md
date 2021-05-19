@@ -2,6 +2,21 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.6.2 — 2021-05-19
+
+### Fixed
+
+
+- Strictly guard against missing stats ETS table
+
+  During a restart it was possible for the dashboard to receive a refresh signal
+  before the stats plugin had finished mounting. This introduces a stricter set
+  of conditionals that will safely degrade stats results back to an empty state
+  when the ets table isn't available.
+
+- Increase the timeout while waiting for config on dashboard mount. The restart
+  period for some apps exceeds 5s and mounting would still cause an error.
+
 ## v2.6.1 — 2021-04-23
 
 ### Fixed
