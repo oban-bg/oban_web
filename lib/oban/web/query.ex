@@ -3,36 +3,12 @@ defmodule Oban.Web.Query do
 
   import Ecto.Query
 
-  alias Oban.{Config, Job, Repo}
+  alias Oban.{Config, Job, Repo, Web.Search}
 
   @default_state "executing"
   @default_limit 30
 
   @timeout :timer.seconds(20)
-
-  defmacrop args_search(column, terms) do
-    quote do
-      fragment(
-        """
-        jsonb_to_tsvector(?, '["key","string"]') @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(terms)
-      )
-    end
-  end
-
-  defmacro tags_search(column, terms) do
-    quote do
-      fragment(
-        """
-        to_tsvector(?::text) @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(terms)
-      )
-    end
-  end
 
   @doc false
   def fetch_job(%Config{} = conf, job_id) do
@@ -109,17 +85,7 @@ defmodule Oban.Web.Query do
 
   defp filter({:queue, queue}, query), do: where(query, queue: ^queue)
   defp filter({:state, state}, query), do: where(query, state: ^state)
-
-  defp filter({:terms, terms}, query) when byte_size(terms) > 0 do
-    ilike = "%" <> terms <> "%"
-
-    where(
-      query,
-      [j],
-      ilike(j.worker, ^ilike) or args_search(j.args, ^terms) or tags_search(j.tags, ^terms)
-    )
-  end
-
+  defp filter({:terms, terms}, query), do: Search.build(query, terms)
   defp filter(_, query), do: query
 
   defp order_state(query, state) when state in ~w(available retryable scheduled) do

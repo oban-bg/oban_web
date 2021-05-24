@@ -58,8 +58,27 @@ defmodule Oban.Web.SearchTest do
     assert_matches([2], "video priority:2")
   end
 
-  # dates
-  # field sub-access
+  test "searching within args sub-fields" do
+    insert_job!(%{ref: 0, foo: 1, bar: %{baz: 1}})
+    insert_job!(%{ref: 1, foo: 2, bar: %{baz: 2}})
+    insert_job!(%{ref: 2, foo: 3, bar: %{bat: 3}})
+
+    assert_matches([0], "1 in:args.foo")
+    assert_matches([0], "1 in:args.bar.baz")
+    assert_matches([0, 1], "baz in:args.bar")
+    assert_matches([2], "3 in:args.bar.bat")
+  end
+
+  test "searching within meta sub-fields" do
+    insert_job!(%{ref: 0}, meta: %{foo: 1, bar: %{baz: 1}})
+    insert_job!(%{ref: 1}, meta: %{foo: 2, bar: %{baz: 2}})
+    insert_job!(%{ref: 2}, meta: %{foo: 3, bar: %{bat: 3}})
+
+    assert_matches([0], "1 in:meta.foo")
+    assert_matches([0], "1 in:meta.bar.baz")
+    assert_matches([0, 1], "baz in:meta.bar")
+    assert_matches([2], "3 in:meta.bar.bat")
+  end
 
   defp assert_matches(expected_refs, query) do
     actual_refs =

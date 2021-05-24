@@ -9,17 +9,30 @@ defmodule Oban.Web.Search do
 
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-  @ignored_chars ~W(. ; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
+  @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
-  @empty {[:args, :meta, :tags, :worker], []}
+  @empty {[{:args, []}, {:meta, []}, {:tags, []}, {:worker, []}], []}
 
   defmacrop json_search(column, terms) do
     quote do
       fragment(
         """
-        jsonb_to_tsvector(?, '["key","string"]') @@ websearch_to_tsquery(?)
+        jsonb_to_tsvector(?, '["all"]') @@ websearch_to_tsquery(?)
         """,
         unquote(column),
+        unquote(terms)
+      )
+    end
+  end
+
+  defmacrop json_path_search(column, path, terms) do
+    quote do
+      fragment(
+        """
+        jsonb_to_tsvector(? #> ?, '["all"]') @@ websearch_to_tsquery(?)
+        """,
+        unquote(column),
+        unquote(path),
         unquote(terms)
       )
     end
@@ -56,10 +69,12 @@ defmodule Oban.Web.Search do
 
     grouped =
       Enum.reduce(fields, false, fn
-        :args, subcon -> dynamic([j], ^subcon or json_search(j.args, ^terms))
-        :meta, subcon -> dynamic([j], ^subcon or json_search(j.meta, ^terms))
-        :tags, subcon -> dynamic([j], ^subcon or tags_search(j.tags, ^terms))
-        :worker, subcon -> dynamic([j], ^subcon or ilike(j.worker, ^loose))
+        {:args, []}, subcon -> dynamic([j], ^subcon or json_search(j.args, ^terms))
+        {:meta, []}, subcon -> dynamic([j], ^subcon or json_search(j.meta, ^terms))
+        {:args, path}, subcon -> dynamic([j], ^subcon or json_path_search(j.args, ^path, ^terms))
+        {:meta, path}, subcon -> dynamic([j], ^subcon or json_path_search(j.meta, ^path, ^terms))
+        {:tags, []}, subcon -> dynamic([j], ^subcon or tags_search(j.tags, ^terms))
+        {:worker, []}, subcon -> dynamic([j], ^subcon or ilike(j.worker, ^loose))
       end)
 
     dynamic([j], ^condition and ^grouped)
@@ -93,7 +108,11 @@ defmodule Oban.Web.Search do
     fields =
       fields
       |> String.split(",")
-      |> Enum.map(&String.to_existing_atom/1)
+      |> Enum.map(fn field ->
+        [head | tail] = String.split(field, ".")
+
+        {String.to_existing_atom(head), tail}
+      end)
 
     parse(tail, @empty, [{fields, terms} | acc])
   end
