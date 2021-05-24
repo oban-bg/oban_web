@@ -41,7 +41,6 @@ defmodule Oban.Web.SearchTest do
     assert_matches([1, 2, 4], "-video in:tags")
 
     assert_matches([1, 2, 4], "not video in:tags")
-
     assert_matches([1, 2, 4], "video not in:tags")
   end
 
@@ -67,6 +66,7 @@ defmodule Oban.Web.SearchTest do
     assert_matches([0], "1 in:args.bar.baz")
     assert_matches([0, 1], "baz in:args.bar")
     assert_matches([2], "3 in:args.bar.bat")
+    assert_matches([2], "3 in:args.bar.bat,meta.bar")
   end
 
   test "searching within meta sub-fields" do
@@ -78,6 +78,12 @@ defmodule Oban.Web.SearchTest do
     assert_matches([0], "1 in:meta.bar.baz")
     assert_matches([0, 1], "baz in:meta.bar")
     assert_matches([2], "3 in:meta.bar.bat")
+    assert_matches([2], "3 in:args,meta.bar.bat,worker")
+  end
+
+  test "ignoring invalid fields or syntax" do
+    assert_matches([], "what in:")
+    assert_matches([], "what in:thing")
   end
 
   defp assert_matches(expected_refs, query) do

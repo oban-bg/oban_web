@@ -75,6 +75,7 @@ defmodule Oban.Web.Search do
         {:meta, path}, subcon -> dynamic([j], ^subcon or json_path_search(j.meta, ^path, ^terms))
         {:tags, []}, subcon -> dynamic([j], ^subcon or tags_search(j.tags, ^terms))
         {:worker, []}, subcon -> dynamic([j], ^subcon or ilike(j.worker, ^loose))
+        {:none, _}, subcon -> subcon
       end)
 
     dynamic([j], ^condition and ^grouped)
@@ -91,7 +92,7 @@ defmodule Oban.Web.Search do
   defp parse([], ctx, acc) do
     [ctx | acc]
     |> List.flatten()
-    |> Enum.reject(&(elem(&1, 1) == []))
+    |> Enum.reject(&match?([], elem(&1, 1)))
     |> Enum.map(&prep_terms/1)
   end
 
@@ -111,7 +112,7 @@ defmodule Oban.Web.Search do
       |> Enum.map(fn field ->
         [head | tail] = String.split(field, ".")
 
-        {String.to_existing_atom(head), tail}
+        {field_to_atom(head), tail}
       end)
 
     parse(tail, @empty, [{fields, terms} | acc])
@@ -128,4 +129,10 @@ defmodule Oban.Web.Search do
   defp prep_terms(["not", term | tail], acc), do: prep_terms(tail, ["-", term, " " | acc])
   defp prep_terms([term, "not" | tail], acc), do: prep_terms(tail, ["-", term, " " | acc])
   defp prep_terms([term | tail], acc), do: prep_terms(tail, [term, " " | acc])
+
+  defp field_to_atom("args"), do: :args
+  defp field_to_atom("meta"), do: :meta
+  defp field_to_atom("tags"), do: :tags
+  defp field_to_atom("worker"), do: :worker
+  defp field_to_atom(_field), do: :none
 end
