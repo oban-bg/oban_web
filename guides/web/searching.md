@@ -1,65 +1,84 @@
-# Search Syntax
+# Searching Jobs
+
+The search bar supports basic and advanced syntax to whittle down jobs based on
+multiple fields. Without any qualifiers, your terms are matched against
+`worker`, `tags`, `args` and `meta` fields using loose matching or `tsquery`
+checks, as appropriate.
+
+For more advanced syntax, check the sections below.
+
+_Note: Multi-field advanced searching is only supported for PostgreSQL 11+. For
+older versions, only the `worker` is searched_
 
 ## Qualifier Syntax
 
-With the in qualifier you can restrict your search to the title, body, comments, or any
-combination of these. When you omit this qualifier, the title, body, and comments are all
-searched.
+With the `in:` qualifier you can restrict your search to the `worker`, `args`,
+`meta`, `tags`, or any combination of these.
 
-`in:worker`
-`in:tags`
-`in:args`
-`in:meta` `in:tags,meta,args`
-`in:queue`
+* `foo in:args` — only search within `args`, using a `tsquery` based search
+* `foo in:meta` — only search within `meta`, using a `tsquery` based search
+* `foo in:tags` — only search within `tags`, using a `tsquery` based search
+* `myapp in:worker` — only search within the `worker`, using a loose `ilike` style match
+
+To search through multiple fields, join them together with a comma. For example:
+
+* `foo in:args,meta`
+* `foo in:tags,meta,args`
+* `foo in:worker,tags`
 
 ## Nested Syntax
 
-`in:meta.worker_id`
-`in:args.user.plan.name`
+For the `jsonb` fields, `args` and `meta`, you can also use "dot" path syntax to
+restrict search to nested data.
 
-## Numerical Syntax
+* `a1b2c3d4 in:meta.worker_id`
+* `business in:args.user.plan.name`
 
-`priority:0`
-`priority:0,1`
+Naturally, you can combine path syntax with multi-field syntax:
 
-## Date Syntax
+* `foo in:args.batch_id,meta.worker_id`
+* `foo in:args.user.plan,tags`
 
-`scheduled_at:>2021-04-26`
-`scheduled_at:<2021-04-26`
-
-## Exclude Syntax
-
-You can exclude results containing a certain word, using the NOT syntax. The NOT operator can only
-be used for string keywords. It does not work for numerals or dates.
-
-`term not in:worker`
-
-Another way you can narrow down search results is to exclude certain subsets. You can prefix any
-search qualifier with a - to exclude all results that are matched by that qualifier.
-
-`foo -bar in:worker`
-
-## Quoted
+## Quoted Terms
 
 If your search query contains whitespace, you will need to surround it with
 quotation marks. For example:
 
-    cats NOT "hello world" matches repositories with the word "cats" but not the words "hello world."
-    build label:"bug fix" matches issues with the word "build" that have the label "bug fix."
+* `"foo bar"`
+* `alpha not "foo bar"`
 
-Some non-alphanumeric symbols, such as spaces, are dropped from code search
-queries within quotation marks, so results can be unexpected.
+## Exclude Syntax
+
+You can exclude results containing a certain word, using the `not` syntax. The
+`not` operator can only be used for `args`, `meta` and `tags`. It does not work
+for `worker`.
+
+* `not alpha`
+* `foo -bar in:tags`
+
+## Priority Search
+
+The `priority` field is searchable as well. Use `priority:` and any combination
+of values between `0` and `3` to filter jobs by priority:
+
+`priority:0`
+`priority:0,1`
+`priority:0,1,2,3`
 
 ## Considerations
 
 You can't use the following wildcard characters as part of your search query:
-`. , : ; / \ ' " = * ! ? # $ & + ^ | ~ < > ( ) { } [ ]`.
 
-The search will simply ignore these symbols.
+`, : ; / \ ' = * ! ? # $ & + ^ | ~ < > ( ) { } [ ]`
 
-## Example Playground
+The search will stripe these symbols and ignore them.
 
-alpha in:worker
-alpha NOT omega in:tags,meta
-alpha NOT omega in:tags priority:0
-alpha NOT "super alpha" in:tags pro in:args.account.plan scheduled:>2021-04-25
+## Advanced Examples
+
+Here are a few examples that combine the available syntax and demonstrate what's
+possible:
+
+* `alpha in:worker`
+* `alpha -omega in:tags,meta`
+* `alpha not omega in:tags priority:0`
+* `alpha not "super alpha" in:tags pro in:args.account.plan`
