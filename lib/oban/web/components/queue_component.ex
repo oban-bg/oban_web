@@ -123,7 +123,8 @@ defmodule Oban.Web.QueueComponent do
 
       send(self(), {action, socket.assigns.name})
 
-      {:noreply, assign(socket, paused?: not socket.assigns.paused?, update_at: DateTime.utc_now())}
+      {:noreply,
+       assign(socket, paused?: not socket.assigns.paused?, update_at: DateTime.utc_now())}
     else
       {:noreply, socket}
     end
