@@ -8,6 +8,7 @@ defmodule Oban.Web.Query do
   @default_state "executing"
   @default_limit 30
 
+  @minimum_pg_for_search 110_000
   @timeout :timer.seconds(20)
 
   @doc false
@@ -65,7 +66,7 @@ defmodule Oban.Web.Query do
 
     query =
       args
-      |> Enum.reduce(Job, &filter/2)
+      |> Enum.reduce(Job, &filter(&1, &2, conf))
       |> order_state(args[:state])
       |> limit(^args[:limit])
 
@@ -74,7 +75,7 @@ defmodule Oban.Web.Query do
     |> Enum.map(&relativize_timestamps/1)
   end
 
-  defp filter({:node, name_node}, query) do
+  defp filter({:node, name_node}, query, _conf) do
     node =
       name_node
       |> String.split("/")
@@ -83,10 +84,18 @@ defmodule Oban.Web.Query do
     where(query, [j], fragment("?[1] = ?", j.attempted_by, ^node))
   end
 
-  defp filter({:queue, queue}, query), do: where(query, queue: ^queue)
-  defp filter({:state, state}, query), do: where(query, state: ^state)
-  defp filter({:terms, terms}, query), do: Search.build(query, terms)
-  defp filter(_, query), do: query
+  defp filter({:queue, queue}, query, _conf), do: where(query, queue: ^queue)
+  defp filter({:state, state}, query, _conf), do: where(query, state: ^state)
+
+  defp filter({:terms, terms}, query, conf) when byte_size(terms) > 0 do
+    if pg_version(conf) >= @minimum_pg_for_search do
+      Search.build(query, terms)
+    else
+      where(query, [j], ilike(j.worker, ^"%#{terms}%"))
+    end
+  end
+
+  defp filter(_, query, _conf), do: query
 
   defp order_state(query, state) when state in ~w(available retryable scheduled) do
     order_by(query, [j], asc: j.scheduled_at)
@@ -136,5 +145,23 @@ defmodule Oban.Web.Query do
     query = union(per_queue_query, ^per_state_query)
 
     Repo.all(conf, query, timeout: @timeout)
+  end
+
+  # We need to know the PG server version to toggle full text search capabilities. Queries are
+  # usually performed within a persistent LiveView connection, so we can safely cache the pg
+  # version within that process.
+  defp pg_version(%Config{} = conf) do
+    case Process.get(:pg_version) do
+      version when is_integer(version) ->
+        version
+
+      nil ->
+        {:ok, %{rows: [[version]]}} =
+          Repo.query(conf, "SELECT current_setting('server_version_num')::int", [])
+
+        Process.put(:pg_version, version)
+
+        version
+    end
   end
 end

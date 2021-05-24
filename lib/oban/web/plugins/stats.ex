@@ -158,6 +158,8 @@ defmodule Oban.Web.Plugins.Stats do
       result ->
         {:error, result}
     end
+  rescue
+    ArgumentError -> {:error, :bad_table_reference}
   end
 
   # Callbacks
