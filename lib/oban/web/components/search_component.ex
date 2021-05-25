@@ -18,7 +18,7 @@ defmodule Oban.Web.SearchComponent do
           type="search"
           name="terms"
           class="appearance-none text-sm bg-gray-100 block rounded w-full pr-3 py-3 pl-10 placeholder-gray-600 focus:ring"
-          placeholder="Search jobs by worker, tags and args"
+          placeholder="Search jobs"
           value="<%= @terms %>"
           phx-debounce="250" />
         <button class="absolute inset-y-0 right-0 pr-3 <%= if @show_clear? do %>flex<% else %>hidden<% end %> items-center text-gray-400 hover:text-blue-500" type="reset" phx-target="<%= @myself %>" phx-click="clear">
