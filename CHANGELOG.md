@@ -2,7 +2,7 @@
 
 All notable changes to `Oban.Web` are documented here.
 
-## v2.7.0
+## v2.7.0 — 2021-05-25
 
 ### Enhanced Search Syntax
 
