@@ -2,6 +2,62 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.7.0
+
+### Enhanced Search Syntax
+
+Job search has a new advanced syntax that lets you limit searches to particular
+fields, use negated queries, look for exact matches, and navigate into
+structured fields like `args` and `meta`.
+
+Here are a few examples to show what's possible:
+
+- `alpha in:worker` — only look within `worker` for "alpha"
+- `alpha -omega in:tags,meta` — look for "alpha" and not "omega" within `tags`
+  or `meta` fields
+- `business in:args.account.plan` — dig into the account and plan maps within
+  `args` to look for "business"
+- `a1b2c3d4e5 in:meta.workflow_id` — look for an exact workflow id
+
+See the new [searching guide][sg] for more examples.
+
+[sg]: searching.html
+
+### Push State Navigation
+
+Navigation, filtering, and search now use push-state for navigation. This makes
+it possible to deep-link into job details, save searches for later, or to share
+filter combinations with co-workers.
+
+## v2.6.2 — 2021-05-19
+
+### Fixed
+
+- Strictly guard against missing stats ETS table
+
+  During a restart it was possible for the dashboard to receive a refresh signal
+  before the stats plugin had finished mounting. This introduces a stricter set
+  of conditionals that will safely degrade stats results back to an empty state
+  when the ets table isn't available.
+
+- Increase the timeout while waiting for config on dashboard mount. The restart
+  period for some apps exceeds 5s and mounting would still cause an error.
+
+## v2.6.1 — 2021-04-23
+
+### Fixed
+
+- Update stale sidebar state and queue counts when there aren't any jobs
+  matching the given state or queue.
+
+  When a queue/state combination had no values, the counts on the sidebar would
+  "stick" and only show the previous non-zero value. This was most noticeable
+  with the `executing` state as it worked through jobs quickly.
+
+- Apply access controls on the server side as well as the client. It is no
+  longer possible to use blocked actions by manually restoring button HTML in
+  the browser.
+
 ## v2.6.0 — 2021-04-02
 
 ### Remove Reliance on Beats
