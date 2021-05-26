@@ -20,7 +20,7 @@ defmodule Oban.Web.Live.FilteringTest do
 
     click_state(live, "available")
     select_jobs(live, [job_1, job_3])
-    click_cancel(live)
+    click_bulk_action(live, "cancel")
 
     assert hidden_job?(live, job_1)
     assert hidden_job?(live, job_3)
@@ -33,7 +33,7 @@ defmodule Oban.Web.Live.FilteringTest do
 
     click_state(live, "available")
     select_jobs(live, [job_1, job_3])
-    click_delete(live)
+    click_bulk_action(live, "delete")
 
     assert hidden_job?(live, job_1)
     assert hidden_job?(live, job_3)
@@ -43,8 +43,6 @@ defmodule Oban.Web.Live.FilteringTest do
     live
     |> element("#sidebar #states #state-#{state}")
     |> render_click()
-
-    render(live)
   end
 
   defp select_jobs(live, jobs) do
@@ -53,24 +51,12 @@ defmodule Oban.Web.Live.FilteringTest do
       |> element("#listing #job-#{id} .js-toggle")
       |> render_click()
     end
-
-    render(live)
   end
 
-  defp click_cancel(live) do
+  defp click_cancel(live, action) do
     live
-    |> element("#bulk-action #bulk-cancel")
+    |> element("#bulk-action #bulk-#{action}")
     |> render_click()
-
-    render(live)
-  end
-
-  defp click_delete(live) do
-    live
-    |> element("#bulk-action #bulk-delete")
-    |> render_click()
-
-    render(live)
   end
 
   defp hidden_job?(live, %{id: id}) do

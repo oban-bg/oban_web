@@ -13,7 +13,7 @@ defmodule Oban.Web.DetailComponent do
 
   def render(assigns) do
     ~L"""
-    <div>
+    <div id="job-details">
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200">
         <a href="#" class="flex items-center" phx-click="close" phx-target="<%= @myself %>">
           <svg class="h-5 w-5 hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
@@ -22,7 +22,8 @@ defmodule Oban.Web.DetailComponent do
 
         <div class="flex">
           <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
-            <a href="#"
+            <a id="detail-cancel"
+               href="#"
                class="group flex items-center ml-4 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-yellow-600 hover:border-yellow-600"
                data-disable-with="Cancelling…"
                phx-target="<%= @myself %>"
@@ -33,7 +34,8 @@ defmodule Oban.Web.DetailComponent do
           <% end %>
 
           <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
-            <a href="#"
+            <a id="detail-retry"
+               href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-blue-600 hover:border-blue-600"
                data-disable-with="Running…"
                phx-target="<%= @myself %>"
@@ -44,7 +46,8 @@ defmodule Oban.Web.DetailComponent do
           <% end %>
 
           <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
-            <a href="#"
+            <a id="detail-retry"
+               href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-blue-600 hover:border-blue-600"
                data-disable-with="Retrying…"
                phx-target="<%= @myself %>"
@@ -55,7 +58,8 @@ defmodule Oban.Web.DetailComponent do
           <% end %>
 
           <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
-            <a href="#"
+            <a id="detail-delete"
+               href="#"
                class="group flex items-center ml-3 text-sm text-gray-600 bg-white px-4 py-2 border border-gray-300 rounded-md focus:outline-none hover:text-red-600 hover:border-red-600"
                data-confirm="Are you sure you want to delete this job?"
                data-disable-with="Deleting…"
