@@ -16,9 +16,9 @@ defmodule Oban.Web.ListingRowComponent do
 
   def render(assigns) do
     ~L"""
-    <li phx-target="<%= @myself %>" phx-click="show_details" class="flex justify-between bg-white border-b border-gray-100 cursor-pointer transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
+    <li id="job-<%= @job.id %>" phx-target="<%= @myself %>" phx-click="show_details" class="flex justify-between bg-white border-b border-gray-100 cursor-pointer transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none js-hidden<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
       <div class="flex justify-start">
-        <button class="flex-none block pl-3 py-3" phx-target="<%= @myself %>" phx-click="toggle_select">
+        <button class="js-toggle flex-none block pl-3 py-3" phx-target="<%= @myself %>" phx-click="toggle_select">
           <%= if @selected? do %>
             <svg class="text-blue-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M16 2a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2h12zm-2.7 4.305l-5.31 5.184L6.7 10.145a.967.967 0 00-1.41 0 1.073 1.073 0 000 1.47l1.994 2.08a.967.967 0 001.409 0l6.014-5.92c.39-.406.39-1.064 0-1.47a.967.967 0 00-1.409 0z" fill-rule="evenodd"/></svg>
           <% else %>

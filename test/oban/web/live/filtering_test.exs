@@ -5,8 +5,6 @@ defmodule Oban.Web.Live.FilteringTest do
 
   alias Oban.Web.Plugins.Stats
 
-  @name Oban
-
   setup do
     start_supervised_oban!(plugins: [Stats])
 
@@ -168,7 +166,7 @@ defmodule Oban.Web.Live.FilteringTest do
   defp refresh(%{live: live}), do: refresh(live)
 
   defp refresh(live) do
-    @name
+    Oban
     |> Oban.Registry.whereis({:plugin, Stats})
     |> send(:refresh)
 
