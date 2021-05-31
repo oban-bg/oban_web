@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.FilteringTest do
+defmodule Oban.Web.Live.BulkOperationsTest do
   use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest
@@ -53,7 +53,7 @@ defmodule Oban.Web.Live.FilteringTest do
     end
   end
 
-  defp click_cancel(live, action) do
+  defp click_bulk_action(live, action) do
     live
     |> element("#bulk-action #bulk-#{action}")
     |> render_click()

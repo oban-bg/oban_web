@@ -19,6 +19,7 @@ defmodule Oban.Web.Live.FilteringTest do
     click_state(live, "available")
 
     assert has_job?(live, "FakeWorker")
+    assert has_element?(live, "#jobs-header", "(1/1 Available)")
   end
 
   test "viewing scheduled jobs", %{live: live} do
@@ -132,7 +133,7 @@ defmodule Oban.Web.Live.FilteringTest do
     |> element("#sidebar #states #state-#{state}")
     |> render_click()
 
-    render(live)
+    refresh(live)
   end
 
   defp click_node(live, node) do
@@ -140,7 +141,7 @@ defmodule Oban.Web.Live.FilteringTest do
     |> element("#sidebar #nodes #node-#{node}")
     |> render_click()
 
-    render(live)
+    refresh(live)
   end
 
   defp click_queue(live, queue) do
@@ -148,7 +149,7 @@ defmodule Oban.Web.Live.FilteringTest do
     |> element("#sidebar #queues #queue-#{queue}")
     |> render_click()
 
-    render(live)
+    refresh(live)
   end
 
   defp submit_search(live, terms) do
@@ -156,14 +157,12 @@ defmodule Oban.Web.Live.FilteringTest do
     |> element("#search")
     |> render_change(%{terms: terms})
 
-    render(live)
+    refresh(live)
   end
 
   defp has_job?(live, worker_name) do
     has_element?(live, "#listing", worker_name)
   end
-
-  defp refresh(%{live: live}), do: refresh(live)
 
   defp refresh(live) do
     Oban

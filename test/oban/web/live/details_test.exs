@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.FilteringTest do
+defmodule Oban.Web.Live.DetailsTest do
   use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest
