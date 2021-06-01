@@ -2,6 +2,16 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.7.1 — 2021-06-01
+
+### Fixed
+
+- Guard agaisnt empty params on initial render when the dashboard is re-mounted.
+
+### Added
+
+- Add `id:` qualifier for id and multiple id based searching.
+
 ## v2.7.0 — 2021-05-25
 
 ### Enhanced Search Syntax
