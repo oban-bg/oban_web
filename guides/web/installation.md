@@ -12,7 +12,13 @@ contained—it doesn't hook into your asset pipeline at all.
 
 Before you can pull the package into your application you need to add a new
 `oban` hex repo. First, grab the `OBAN_KEY_FINGERPRINT` and `OBAN_LICENSE_KEY`
-from your account page. Then, run the following `mix hex.repo` command:
+from your account page. Then, ensure `hex` is up-to-date:
+
+```console
+mix local.hex --force
+```
+
+Finally, run the following `mix hex.repo` command:
 
 ```console
 mix hex.repo add oban https://getoban.pro/repo \
