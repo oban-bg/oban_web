@@ -39,6 +39,23 @@ Naturally, you can combine path syntax with multi-field syntax:
 * `foo in:args.batch_id,meta.worker_id`
 * `foo in:args.user.plan,tags`
 
+## Id Search
+
+The `id:` qualifier restricts results to one or more jobs by id. Filter down to
+multiple jobs by separating ids with a comma:
+
+* `id:123`
+* `id:123,124,125`
+
+## Priority Search
+
+The `priority` field is searchable as well. Use `priority:` and any combination
+of values between `0` and `3` to filter jobs by priority:
+
+* `priority:0`
+* `priority:0,1`
+* `priority:0,1,2,3`
+
 ## Quoted Terms
 
 If your search query contains whitespace, you will need to surround it with
@@ -55,15 +72,6 @@ for `worker`.
 
 * `not alpha`
 * `foo -bar in:tags`
-
-## Priority Search
-
-The `priority` field is searchable as well. Use `priority:` and any combination
-of values between `0` and `3` to filter jobs by priority:
-
-`priority:0`
-`priority:0,1`
-`priority:0,1,2,3`
 
 ## Considerations
 

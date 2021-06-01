@@ -3,6 +3,15 @@ defmodule Oban.Web.SearchTest do
 
   alias Oban.Web.Search
 
+  test "constraining by id" do
+    job_1 = insert_job!(%{ref: 1})
+    job_2 = insert_job!(%{ref: 2})
+
+    assert_matches([1], "id:#{job_1.id}")
+    assert_matches([2], "id:#{job_2.id}")
+    assert_matches([1, 2], "id:#{job_1.id},#{job_2.id}")
+  end
+
   test "searching in worker, tags, args and meta by default" do
     insert_job!(%{ref: 1}, worker: MyApp.Video)
     insert_job!(%{ref: 2, mode: "video"})

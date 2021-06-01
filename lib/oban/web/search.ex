@@ -60,6 +60,10 @@ defmodule Oban.Web.Search do
     where(query, ^conditions)
   end
 
+  defp compose({:id, ids}, condition) do
+    dynamic([j], ^condition and j.id in ^ids)
+  end
+
   defp compose({:priority, priorities}, condition) do
     dynamic([j], ^condition and j.priority in ^priorities)
   end
@@ -103,6 +107,15 @@ defmodule Oban.Web.Search do
       |> Enum.map(&String.to_integer/1)
 
     parse(tail, @empty, [{:priority, priorities}, ctx | acc])
+  end
+
+  defp parse(["id:" <> ids | tail], ctx, acc) do
+    ids =
+      ids
+      |> String.split(",")
+      |> Enum.map(&String.to_integer/1)
+
+    parse(tail, @empty, [{:id, ids}, ctx | acc])
   end
 
   defp parse(["in:" <> fields | tail], {_, terms}, acc) do
