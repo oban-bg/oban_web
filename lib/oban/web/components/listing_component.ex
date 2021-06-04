@@ -20,7 +20,7 @@ defmodule Oban.Web.ListingComponent do
   def render(assigns) do
     ~L"""
     <div id="listing">
-      <div class="flex justify-between border-b border-gray-200 px-3 py-3">
+      <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-3">
         <span class="text-xs text-gray-400 pl-8 uppercase">Worker</span>
 
         <div class="flex justify-end">
@@ -32,7 +32,7 @@ defmodule Oban.Web.ListingComponent do
 
       <%= if Enum.empty?(@jobs) do %>
         <div class="flex justify-center py-20">
-          <span class="text-lg text-gray-500 ml-3">No jobs match the current set of filters.</span>
+          <span class="text-lg text-gray-500 dark:text-gray-400 ml-3">No jobs match the current set of filters.</span>
         </div>
       <% else %>
         <ul>
@@ -43,12 +43,12 @@ defmodule Oban.Web.ListingComponent do
 
         <div class="flex justify-center py-6">
           <button type="button"
-            class="font-semibold text-sm mr-6 <%= if @show_less? do %>text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400<% else %>text-gray-400 cursor-not-allowed<% end %>"
+            class="font-semibold text-sm mr-6 <%= if @show_less? do %>text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400<% else %>text-gray-400 dark:text-gray-600 cursor-not-allowed<% end %> focus:outline-none"
             phx-target="<%= @myself %>"
             phx-click="load_less">Show Less</button>
 
           <button type="button"
-            class="font-semibold text-sm <%= if @show_more? do %>text-gray-700 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 hover:border-gray-400<% else %>text-gray-400 cursor-not-allowed<% end %>"
+            class="font-semibold text-sm <%= if @show_more? do %>text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400<% else %>text-gray-400 dark:text-gray-600 cursor-not-allowed<% end %> focus:outline-none"
             phx-target="<%= @myself %>"
             phx-click="load_more">Show More</button>
         </div>

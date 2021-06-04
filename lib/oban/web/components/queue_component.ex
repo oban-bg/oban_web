@@ -41,8 +41,8 @@ defmodule Oban.Web.QueueComponent do
   def render(assigns) do
     ~L"""
     <li class="text-sm">
-      <div id="queue-<%= @name %>" tabindex="0" phx-click="filter" phx-target="<%= @myself %>" class="group flex outline-none cursor-pointer justify-between py-3 border-l-2 border-transparent hover:bg-gray-50 <%= if @expanded? do %>bg-gray-50<% end %> <%= if @active? do %>border-blue-400<% end %>">
-        <span class="pl-3 flex-initial font-semibold truncate <%= if @paused? do %>text-gray-400 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
+      <div id="queue-<%= @name %>" tabindex="0" phx-click="filter" phx-target="<%= @myself %>" class="group flex outline-none cursor-pointer justify-between py-3 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800 <%= if @expanded? do %>bg-gray-50 dark:bg-gray-800<% end %> <%= if @active? do %>border-blue-400<% end %>">
+        <span class="pl-2 flex-initial font-semibold truncate dark:text-gray-300 <%= if @paused? do %>text-gray-400 dark:text-gray-600 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 
         <div class="pr-3 flex-none <%= if @controls? do %>group-hover:hidden<% end %>">
           <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@execu) %></span>
@@ -70,12 +70,12 @@ defmodule Oban.Web.QueueComponent do
       </div>
 
       <%= if can?(:scale_queues, @access) do %>
-        <div class="w-full px-3 bg-white shadow-inner overflow-hidden transition-all duration-300 ease-in-out <%= if @expanded? do %>h-16 py-2 bg-gray-100<% else %>h-0<% end %>">
+        <div class="w-full px-3 bg-white dark:bg-gray-900 shadow-inner overflow-hidden transition-all duration-300 ease-in-out <%= if @expanded? do %>h-16 py-2 bg-gray-100 dark:bg-gray-700<% else %>h-0<% end %>">
           <form phx-submit="scale" phx-target="<%= @myself %>">
             <div class="flex justify-between items-center mt-2 w-full">
-              <label for="queue-<%= @name %>-limit" class="block w-full text-xs font-bold text-gray-600">Per Node Limit</label>
-              <input phx-update="ignore" id="queue-<%= @name %>-limit" type="number" name="local" min="1" max="100" step="1" value="<%= @local %>" class="tabular bg-white rounded px-2 py-2 w-20 text-gray-700">
-              <button class="bg-gray-200 rounded ml-3 px-2 py-2 text-gray-700 hover:bg-blue-500 hover:text-white">Scale</button>
+              <label for="queue-<%= @name %>-limit" class="block w-full text-xs font-bold text-gray-600 dark:text-gray-300">Per Node Limit</label>
+              <input phx-update="ignore" id="queue-<%= @name %>-limit" type="number" name="local" min="1" max="100" step="1" value="<%= @local %>" class="tabular bg-white dark:bg-gray-800 rounded px-2 py-2 w-20 text-gray-700 dark:text-gray-300">
+              <button class="bg-gray-200 dark:bg-gray-700 rounded ml-3 px-2 py-2 text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white">Scale</button>
             </div>
           </form>
         </div>

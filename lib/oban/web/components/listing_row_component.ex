@@ -16,7 +16,7 @@ defmodule Oban.Web.ListingRowComponent do
 
   def render(assigns) do
     ~L"""
-    <li id="job-<%= @job.id %>" phx-target="<%= @myself %>" phx-click="show_details" class="flex justify-between bg-white border-b border-gray-100 cursor-pointer transition ease-in-out duration-200 <%= if @hidden? do %>opacity-25 pointer-events-none js-hidden<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-green-50<% end %>">
+    <li id="job-<%= @job.id %>" phx-target="<%= @myself %>" phx-click="show_details" class="group flex justify-between bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 cursor-pointer <%= if @hidden? do %>opacity-25 pointer-events-none js-hidden<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25<% end %>">
       <div class="flex justify-start">
         <button class="js-toggle flex-none block pl-3 py-3" phx-target="<%= @myself %>" phx-click="toggle_select">
           <%= if @selected? do %>
@@ -27,22 +27,22 @@ defmodule Oban.Web.ListingRowComponent do
         </button>
 
         <div class="flex-auto max-w-xl overflow-hidden pl-3 py-3">
-          <span rel="jid" class="text-sm text-gray-500 tabular"><%= @job.id %></span>
-          <span rel="worker" class="font-semibold text-sm text-gray-700 ml-1"><%= @job.worker %></span>
-          <span rel="args" class="block font-mono truncate text-xs text-gray-500 mt-2"><%= inspect(@job.args) %></span>
+          <span rel="jid" class="text-sm text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
+          <span rel="worker" class="font-semibold text-sm text-gray-700 dark:text-gray-300 ml-1"><%= @job.worker %></span>
+          <span rel="args" class="block font-mono truncate text-xs text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300 mt-2"><%= inspect(@job.args) %></span>
         </div>
       </div>
 
       <div class="flex justify-end items-center">
-        <div class="tabular text-sm truncate text-gray-500 text-right w-32 pl-3">
+        <div class="tabular text-sm truncate text-gray-500 dark:group-hover:text-gray-300 text-right w-32 pl-3">
           <%= @job.queue %>
         </div>
 
-        <div class="tabular text-sm text-gray-500 text-right w-20 pl-3">
+        <div class="tabular text-sm text-gray-500 dark:group-hover:text-gray-300 text-right w-20 pl-3">
           <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
         </div>
 
-        <div class="tabular text-sm text-gray-500 text-right w-20 pl-3">
+        <div class="tabular text-sm text-gray-500 dark:group-hover:text-gray-300 text-right w-20 pl-3">
           <%= relative_time(@job.state, @job) %>
         </div>
 

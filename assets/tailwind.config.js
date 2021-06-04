@@ -1,4 +1,5 @@
 module.exports = {
+  darkMode: 'media',
   theme: {
     fontFamily: {
       sans: ["Inter var", "sans-serif"],
@@ -19,5 +20,8 @@ module.exports = {
   ],
   variants: {
     display: ["group-hover"]
-  }
+  },
+  plugins: [
+    require('@tailwindcss/forms')
+  ]
 }

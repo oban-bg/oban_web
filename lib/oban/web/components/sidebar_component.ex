@@ -9,9 +9,9 @@ defmodule Oban.Web.SidebarComponent do
 
   def render(assigns) do
     ~L"""
-    <div id="nodes" class="bg-white w-fill mb-3 rounded-md shadow-md overflow-hidden md:w-84">
-      <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
-        <span class="font-bold">Nodes</span>
+    <div id="nodes" class="bg-white dark:bg-gray-900 w-fill mb-3 rounded-md shadow-lg overflow-hidden md:w-84">
+      <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+        <span class="dark:text-gray-200 font-bold">Nodes</span>
 
         <div class="group-hover:hidden">
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
@@ -19,7 +19,7 @@ defmodule Oban.Web.SidebarComponent do
         </div>
 
         <div class="hidden group-hover:block">
-          <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="nodes" phx-target="<%= @myself %>">
+          <button class="block w-5 h-5 text-gray-400 dark:text-gray-600 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="nodes" phx-target="<%= @myself %>">
             <%= if @show_nodes? do %>
               <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
             <% else %>
@@ -36,16 +36,16 @@ defmodule Oban.Web.SidebarComponent do
       </ul>
     </div>
 
-    <div id="states" class="bg-white w-full mb-3 rounded-md shadow-md overflow-hidden md:w-84">
-      <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
-        <span class="font-bold">States</span>
+    <div id="states" class="bg-white dark:bg-gray-900 w-full mb-3 rounded-md shadow-lg overflow-hidden md:w-84">
+      <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+        <span class="dark:text-gray-200 font-bold">States</span>
 
         <div class="group-hover:hidden">
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Count</span>
         </div>
 
         <div class="hidden group-hover:block">
-          <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="states" phx-target="<%= @myself %>">
+          <button class="block w-5 h-5 text-gray-400 dark:text-gray-600 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="states" phx-target="<%= @myself %>">
             <%= if @show_states? do %>
               <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
             <% else %>
@@ -62,9 +62,9 @@ defmodule Oban.Web.SidebarComponent do
       </ul>
     </div>
 
-    <div id="queues" class="bg-white w-full rounded-md shadow-md overflow-hidden md:w-84">
-      <header class="group flex justify-between items-center border-b border-gray-200 px-3 py-3">
-        <span class="font-bold">Queues</span>
+    <div id="queues" class="bg-white dark:bg-gray-900 w-full rounded-md shadow-lg overflow-hidden md:w-84">
+      <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+        <span class="dark:text-gray-200 font-bold">Queues</span>
 
         <div class="group-hover:hidden">
           <span class="text-xs text-gray-500 uppercase inline-block text-right w-10">Exec</span>
@@ -73,7 +73,7 @@ defmodule Oban.Web.SidebarComponent do
         </div>
 
         <div class="hidden group-hover:block">
-          <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="queues" phx-target="<%= @myself %>">
+          <button class="block w-5 h-5 text-gray-400 dark:text-gray-600 hover:text-blue-500" title="Minimize or maximize" phx-click="toggle" phx-value-menu="queues" phx-target="<%= @myself %>">
             <%= if @show_queues? do %>
               <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
             <% else %>
