@@ -10,7 +10,7 @@ defmodule Oban.Web.Plugins.Stats do
 
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
-  @empty_queue_states Map.new(@ordered_states, &{&1, 0})
+  @empty_queue_states %{"executing" => 0, "available" => 0}
 
   defmodule State do
     @moduledoc false
@@ -22,6 +22,9 @@ defmodule Oban.Web.Plugins.Stats do
       :timer,
       active: MapSet.new(),
       interval: :timer.seconds(1),
+      slow_query_limit: 10_000,
+      slow_query_ratio: 60,
+      ticks: 0,
       ttl: :timer.seconds(15)
     ]
   end
@@ -61,12 +64,12 @@ defmodule Oban.Web.Plugins.Stats do
   def for_queues(table) when is_reference(table) do
     avail_counts =
       table
-      |> :ets.select([{{{:queue, :"$1", "available"}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
+      |> :ets.select([{{{:queue, :"$1", "available"}, :"$2"}, [], [:"$$"]}])
       |> Map.new(fn [queue, count] -> {queue, count} end)
 
     execu_counts =
       table
-      |> :ets.select([{{{:queue, :"$1", "executing"}, :"$2"}, [{:is_binary, :"$1"}], [:"$$"]}])
+      |> :ets.select([{{{:queue, :"$1", "executing"}, :"$2"}, [], [:"$$"]}])
       |> Map.new(fn [queue, count] -> {queue, count} end)
 
     limit_counts =
@@ -117,14 +120,9 @@ defmodule Oban.Web.Plugins.Stats do
   def for_states(table) when is_reference(table) do
     for state <- @ordered_states do
       count =
-        case :ets.select(table, [{{{:queue, :_, state}, :"$1"}, [], [:"$$"]}]) do
-          [_ | _] = results ->
-            results
-            |> Enum.map(&hd/1)
-            |> Enum.sum()
-
-          _ ->
-            0
+        case :ets.select(table, [{{{:state, state}, :"$1"}, [], [:"$$"]}]) do
+          [[count]] -> count
+          _ -> 0
         end
 
       {state, %{count: count}}
@@ -170,6 +168,9 @@ defmodule Oban.Web.Plugins.Stats do
 
     table = :ets.new(:stats, [:public, read_concurrency: true])
     state = struct!(State, Keyword.put(opts, :table, table))
+
+    # Seed state counts for initial partitioning
+    :ets.insert(table, Enum.map(@ordered_states, &{{:state, &1}, 0}))
 
     Registry.put_meta(
       Oban.Registry,
@@ -252,14 +253,17 @@ defmodule Oban.Web.Plugins.Stats do
   defp refresh(state) do
     expire_older_nodes(state)
     update_queue_counts(state)
+    update_state_counts(state)
 
-    %{state | timer: Process.send_after(self(), :refresh, state.interval)}
+    timer = Process.send_after(self(), :refresh, state.interval)
+
+    %{state | ticks: state.ticks + 1, timer: timer}
   end
 
   defp cancel_refresh(%State{timer: timer} = state) do
     if is_reference(timer), do: Process.cancel_timer(timer)
 
-    %{state | timer: nil}
+    %{state | ticks: 0, timer: nil}
   end
 
   defp expire_older_nodes(%State{table: table, ttl: ttl}) do
@@ -273,7 +277,7 @@ defmodule Oban.Web.Plugins.Stats do
     counts = Query.queue_counts(conf)
 
     # Defer purging until after we've fetched the update
-    purge_older_queues(table)
+    :ets.select_delete(table, [{{{:queue, :_, :_}, :_}, [], [true]}])
 
     counts
     |> Enum.reduce(%{}, &put_count/2)
@@ -284,16 +288,40 @@ defmodule Oban.Web.Plugins.Stats do
     end)
   end
 
-  defp purge_older_queues(table) do
-    pattern = [{{{:queue, :_, :_}, :_}, [], [true]}]
-
-    :ets.select_delete(table, pattern)
-  end
-
   defp put_count({queue, state, count}, acc) do
     acc
     |> Map.put_new(queue, @empty_queue_states)
     |> put_in([queue, state], count)
+  end
+
+  defp update_state_counts(%State{conf: conf, table: table} = state) do
+    {slow_states, fast_states} = partition_states_by_speed(state)
+
+    fast_counts = Query.state_counts(conf, fast_states)
+
+    slow_counts =
+      if Enum.any?(slow_states) and perform_slow_query?(state) do
+        Query.state_counts(conf, slow_states)
+      else
+        []
+      end
+
+    for {state, count} <- slow_counts ++ fast_counts do
+      :ets.insert(table, {{:state, state}, count})
+    end
+  end
+
+  defp perform_slow_query?(%State{slow_query_ratio: ratio, ticks: ticks}) do
+    Integer.mod(ticks, ratio) == 0
+  end
+
+  defp partition_states_by_speed(%State{slow_query_limit: limit, table: table}) do
+    {slow_states, fast_states} =
+      table
+      |> :ets.select([{{{:state, :"$1"}, :"$2"}, [], [:"$$"]}])
+      |> Enum.split_with(fn [_state, count] -> count > limit end)
+
+    {Enum.map(slow_states, &hd/1), Enum.map(fast_states, &hd/1)}
   end
 
   ## Aggregate Helpers
