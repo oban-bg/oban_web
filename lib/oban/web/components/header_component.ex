@@ -43,7 +43,7 @@ defmodule Oban.Web.HeaderComponent do
       </button>
 
       <h2 class="text-lg font-bold ml-2">Jobs</h2>
-      <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= @numerator %>/<%= @denominator %> <%= String.capitalize(@state) %>)</h3>
+      <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= @numerator %>/<%= integer_to_delimited(@denominator) %> <%= String.capitalize(@state) %>)</h3>
     </div>
     """
   end

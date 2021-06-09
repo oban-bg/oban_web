@@ -24,6 +24,32 @@ defmodule Oban.Web.HelpersTest do
     end
   end
 
+  describe "integer_to_estimate/1" do
+    test "large integers are estimated to a rounded value with a unit size" do
+      assert Helpers.integer_to_estimate(0) == "0"
+      assert Helpers.integer_to_estimate(1) == "1"
+      assert Helpers.integer_to_estimate(10) == "10"
+      assert Helpers.integer_to_estimate(100) == "100"
+      assert Helpers.integer_to_estimate(1000) == "1k"
+      assert Helpers.integer_to_estimate(10_000) == "10k"
+      assert Helpers.integer_to_estimate(100_000) == "100k"
+      assert Helpers.integer_to_estimate(1_000_000) == "1m"
+      assert Helpers.integer_to_estimate(10_000_000) == "10m"
+      assert Helpers.integer_to_estimate(100_000_000) == "100m"
+      assert Helpers.integer_to_estimate(1_000_000_000) == "1b"
+    end
+
+    test "values are rounded to business readable values" do
+      assert Helpers.integer_to_estimate(1049) == "1k"
+      assert Helpers.integer_to_estimate(1050) == "1.1k"
+      assert Helpers.integer_to_estimate(1150) == "1.2k"
+      assert Helpers.integer_to_estimate(1949) == "1.9k"
+      assert Helpers.integer_to_estimate(1950) == "2k"
+      assert Helpers.integer_to_estimate(10_949) == "10.9k"
+      assert Helpers.integer_to_estimate(10_950) == "11k"
+    end
+  end
+
   describe "iso8601_to_words/2" do
     test "converting an iso8601 string into time in words" do
       words =

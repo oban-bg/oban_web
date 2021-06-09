@@ -19,8 +19,8 @@ defmodule Oban.Web.NodeComponent do
       <div class="flex justify-between pl-2 pr-3 py-3 border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800 <%= if @active? do %>border-blue-400<% end %>">
         <span class="dark:text-gray-300 flex-initial font-semibold truncate"><%= String.downcase(@name) %></span>
         <div class="flex-none">
-          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@count) %></span>
-          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@limit) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_estimate(@count) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_estimate(@limit) %></span>
         </div>
       </div>
     </li>

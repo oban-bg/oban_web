@@ -45,9 +45,9 @@ defmodule Oban.Web.QueueComponent do
         <span class="pl-2 flex-initial font-semibold truncate dark:text-gray-300 <%= if @paused? do %>text-gray-400 dark:text-gray-600 line-through<% end %>" title="<%= if @paused? do %>Paused<% end %>"><%= @name %></span>
 
         <div class="pr-3 flex-none <%= if @controls? do %>group-hover:hidden<% end %>">
-          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@execu) %></span>
-          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@limit) %></span>
-          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_delimited(@avail) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_estimate(@execu) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_estimate(@limit) %></span>
+          <span class="text-gray-500 inline-block text-right w-10 tabular"><%= integer_to_estimate(@avail) %></span>
         </div>
 
         <div class="pr-3 hidden <%= if @controls? do %>group-hover:flex<% end %>">

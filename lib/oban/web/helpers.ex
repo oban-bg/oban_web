@@ -103,6 +103,30 @@ defmodule Oban.Web.Helpers do
   end
 
   @doc """
+  Round numbers to human readable values with a scale suffix.
+  """
+  def integer_to_estimate(number) when number < 1000, do: to_string(number)
+
+  def integer_to_estimate(number) do
+    {power, suffix} =
+      cond do
+        number < 1_000_000 -> {3, "k"}
+        number < 1_000_000_000 -> {6, "m"}
+        true -> {9, "b"}
+      end
+
+    mult = floor(:math.pow(10, power))
+    base = floor(number / mult)
+    part = round(rem(number, mult) / round(:math.pow(10, power - 1)))
+
+    case part do
+      0 -> "#{base}#{suffix}"
+      10 -> "#{base + 1}#{suffix}"
+      _ -> "#{base}.#{part}#{suffix}"
+    end
+  end
+
+  @doc """
   Extract the name of the node that attempted a job.
   """
   def attempted_by(%Job{attempted_by: [node | _]}), do: node
