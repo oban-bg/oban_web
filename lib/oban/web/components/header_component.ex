@@ -21,7 +21,7 @@ defmodule Oban.Web.HeaderComponent do
        numerator: Enum.count(jobs),
        denominator: state_count(assigns.stats, assigns.params),
        select_mode: select_mode,
-       state: assigns.params.state
+       state: get_in(assigns, [:params, :state]) || "executing"
      )}
   end
 
