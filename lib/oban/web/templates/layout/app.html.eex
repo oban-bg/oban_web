@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <%= csrf_meta_tag() %>
 
-    <title>Oban • Jobs</title>
+    <title><%= assigns[:page_title] || "Jobs • Oban" %></title>
 
     <link rel="icon"
           nonce="<%= @csp_nonces.img %>"

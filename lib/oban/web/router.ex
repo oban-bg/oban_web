@@ -66,7 +66,7 @@ defmodule Oban.Web.Router do
 
     session_opts = [
       session: {__MODULE__, :__session__, session_args},
-      root_layout: {Oban.Web.LayoutView, "app.html"}
+      root_layout: {Oban.Web.LayoutView, :app}
     ]
 
     {session_name, session_opts, as: session_name}

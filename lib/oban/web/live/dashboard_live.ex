@@ -110,7 +110,13 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_params(%{"id" => job_id}, _uri, socket) do
-    {:noreply, assign(socket, detailed: %Job{id: job_id})}
+    case refresh_job(socket.assigns.conf, %Job{id: job_id}) do
+      nil ->
+        {:noreply, socket}
+
+      job ->
+        {:noreply, assign(socket, detailed: job, page_title: page_title(job))}
+    end
   end
 
   def handle_params(params, _uri, socket) do
@@ -128,7 +134,8 @@ defmodule Oban.Web.DashboardLive do
 
     jobs = Query.get_jobs(socket.assigns.conf, params)
 
-    {:noreply, assign(socket, detailed: nil, jobs: jobs, params: params)}
+    {:noreply,
+     assign(socket, detailed: nil, jobs: jobs, params: params, page_title: page_title("Jobs"))}
   end
 
   @impl Phoenix.LiveView

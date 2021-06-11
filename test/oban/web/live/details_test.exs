@@ -13,11 +13,35 @@ defmodule Oban.Web.Live.DetailsTest do
     {:ok, live: live}
   end
 
+  test "viewing job details", %{live: live} do
+    job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+    open_available(live)
+    open_details(live, job)
+
+    assert page_title(live) =~ "WorkerA (#{job.id})"
+  end
+
+  test "viewing details for a job that was deleted falls back", %{live: live} do
+    job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+    open_available(live)
+
+    Repo.delete!(job)
+
+    open_details(live, job)
+
+    refute has_element?(live, "#job-details")
+  end
+
   test "cancelling a job from the detail view", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
     open_available(live)
     open_details(live, job)
+
+    assert has_element?(live, "#job-details")
+
     click_cancel(live)
   end
 
@@ -31,8 +55,6 @@ defmodule Oban.Web.Live.DetailsTest do
     live
     |> element("#listing #job-#{id}")
     |> render_click()
-
-    assert has_element?(live, "#job-details")
   end
 
   defp click_cancel(live) do
