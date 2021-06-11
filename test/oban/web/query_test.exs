@@ -31,6 +31,7 @@ defmodule Oban.Web.QueryTest do
       assert search_ids("myapp") == [job_a.id, job_b.id, job_c.id]
     end
 
+    @tag :search
     test "searching for jobs by args" do
       job_a = insert(Alpha, %{email: "parker@sorentwo.com", name: "Parker"})
       job_b = insert(Alpha, %{email: "shannon@sorentwo.com", name: "Shannon"})
@@ -43,6 +44,7 @@ defmodule Oban.Web.QueryTest do
       assert search_ids("keaton and shannon") == []
     end
 
+    @tag :search
     test "searching for jobs by tags" do
       job_a = insert(Alpha, %{}, tags: ["gamma"])
       job_b = insert(Alpha, %{}, tags: ["gamma", "delta"])

@@ -3,6 +3,8 @@ defmodule Oban.Web.SearchTest do
 
   alias Oban.Web.Search
 
+  @moduletag :search
+
   test "constraining by id" do
     job_1 = insert_job!(%{ref: 1})
     job_2 = insert_job!(%{ref: 2})

@@ -86,6 +86,7 @@ defmodule Oban.Web.Live.FilteringTest do
     refute has_job?(live, "GammaWorker")
   end
 
+  @tag :search
   test "filtering jobs by search query", %{live: live} do
     insert_job!([callsign: "yankee"], queue: "alpha", worker: AlphaWorker)
     insert_job!([callsign: "hotel"], queue: "delta", worker: DeltaWorker)
