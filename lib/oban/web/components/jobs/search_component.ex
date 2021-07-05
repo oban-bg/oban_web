@@ -1,4 +1,4 @@
-defmodule Oban.Web.SearchComponent do
+defmodule Oban.Web.Jobs.SearchComponent do
   use Oban.Web, :live_component
 
   def update(assigns, socket) do

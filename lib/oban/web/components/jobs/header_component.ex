@@ -1,4 +1,4 @@
-defmodule Oban.Web.HeaderComponent do
+defmodule Oban.Web.Jobs.HeaderComponent do
   use Oban.Web, :live_component
 
   def mount(socket) do

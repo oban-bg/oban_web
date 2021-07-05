@@ -3,7 +3,7 @@ defmodule Oban.Web.DetailComponentTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.DetailComponent, as: Component
+  alias Oban.Web.Jobs.DetailComponent, as: Component
 
   test "rendering job details" do
     job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}}

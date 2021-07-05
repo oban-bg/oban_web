@@ -1,7 +1,8 @@
-defmodule Oban.Web.DetailComponent do
+defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.{TimelineComponent, Timing}
+  alias Oban.Web.Jobs.TimelineComponent
+  alias Oban.Web.Timing
 
   def mount(socket) do
     {:ok, assign(socket, access: :read, job: nil)}

@@ -1,4 +1,4 @@
-defmodule Oban.Web.BulkActionComponent do
+defmodule Oban.Web.Jobs.BulkActionComponent do
   use Oban.Web, :live_component
 
   def mount(socket) do

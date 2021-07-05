@@ -4,8 +4,9 @@ defmodule Oban.Web.DashboardLive do
   alias Oban.Job
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.{Query, Telemetry}
-  alias Oban.Web.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
-  alias Oban.Web.{NotificationComponent, RefreshComponent, SearchComponent, SidebarComponent}
+  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
+  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent}
+  alias Oban.Web.{NotificationComponent, RefreshComponent}
 
   @flash_timing 5_000
   @default_limit 20

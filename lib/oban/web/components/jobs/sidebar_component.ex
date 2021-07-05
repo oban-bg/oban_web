@@ -1,7 +1,7 @@
-defmodule Oban.Web.SidebarComponent do
+defmodule Oban.Web.Jobs.SidebarComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.{NodeComponent, QueueComponent, StateComponent}
+  alias Oban.Web.Jobs.{NodeComponent, QueueComponent, StateComponent}
 
   def mount(socket) do
     {:ok, assign(socket, show_nodes?: true, show_states?: true, show_queues?: true)}

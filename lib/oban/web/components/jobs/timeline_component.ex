@@ -1,4 +1,4 @@
-defmodule Oban.Web.TimelineComponent do
+defmodule Oban.Web.Jobs.TimelineComponent do
   use Oban.Web, :live_component
 
   alias Oban.Web.Timing

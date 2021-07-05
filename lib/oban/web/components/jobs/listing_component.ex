@@ -1,7 +1,7 @@
-defmodule Oban.Web.ListingComponent do
+defmodule Oban.Web.Jobs.ListingComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.ListingRowComponent
+  alias Oban.Web.Jobs.ListingRowComponent
 
   @inc_limit 20
   @max_limit 200

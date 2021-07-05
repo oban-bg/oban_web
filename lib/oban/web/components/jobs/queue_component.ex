@@ -1,4 +1,4 @@
-defmodule Oban.Web.QueueComponent do
+defmodule Oban.Web.Jobs.QueueComponent do
   use Oban.Web, :live_component
 
   @local_timeout 10

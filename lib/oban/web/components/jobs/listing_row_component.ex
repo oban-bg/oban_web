@@ -1,4 +1,4 @@
-defmodule Oban.Web.ListingRowComponent do
+defmodule Oban.Web.Jobs.ListingRowComponent do
   use Oban.Web, :live_component
 
   def mount(socket) do
