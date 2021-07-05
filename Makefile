@@ -2,9 +2,11 @@
 prepare:
 	mix deps.get && cd assets && npm install
 
-.PHONY: deploy
+.PHONY: build
 build:
-	cd assets && NODE_ENV=production npx webpack --mode production
+	cd assets && \
+		NODE_ENV=production npx webpack --mode production && \
+		rm ../priv/static/js/app.js.LICENSE.txt
 
 .PHONY: watch
 watch:
