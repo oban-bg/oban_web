@@ -7,8 +7,9 @@ defmodule Oban.Web.Router do
 
   @default_opts [
     oban_name: Oban,
-    transport: "websocket",
-    resolver: Resolver
+    resolver: Resolver,
+    socket_path: "/live",
+    transport: "websocket"
   ]
 
   @transport_values ~w(longpoll websocket)
@@ -59,8 +60,9 @@ defmodule Oban.Web.Router do
 
     session_args = [
       opts[:oban_name],
-      opts[:transport],
       opts[:resolver],
+      opts[:socket_path],
+      opts[:transport],
       opts[:csp_nonce_assign_key]
     ]
 
@@ -73,17 +75,18 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, oban, transport, resolver, csp_nonce_assign_key) do
+  def __session__(conn, oban, resolver, socket_path, transport, csp_nonce_assign_key) do
     user = resolve_with_fallback(resolver, :resolve_user, [conn])
 
     csp_keys = expand_csp_nonce_keys(csp_nonce_assign_key)
 
     %{
       "oban" => oban,
-      "transport" => transport,
       "user" => user,
       "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
       "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user]),
+      "socket_path" => socket_path,
+      "transport" => transport,
       "csp_nonces" => %{
         img: conn.assigns[csp_keys[:img]],
         style: conn.assigns[csp_keys[:style]],
@@ -129,6 +132,14 @@ defmodule Oban.Web.Router do
       raise ArgumentError, """
       invalid :resolver, expected a module that implements the Oban.Web.Resolver behaviour,
       got: #{inspect(resolver)}
+      """
+    end
+  end
+
+  defp validate_opt!({:socket_path, path}) do
+    unless is_binary(path) and byte_size(path) > 0 do
+      raise ArgumentError, """
+      invalid :socket_path, expected a binary URL, got: #{inspect(path)}
       """
     end
   end

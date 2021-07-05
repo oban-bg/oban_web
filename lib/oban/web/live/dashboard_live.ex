@@ -13,7 +13,8 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def mount(_params, session, socket) do
-    %{"oban" => oban, "refresh" => refresh, "transport" => transport} = session
+    %{"oban" => oban, "refresh" => refresh} = session
+    %{"socket_path" => path, "transport" => transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
     conf = await_config(oban)
@@ -28,13 +29,14 @@ defmodule Oban.Web.DashboardLive do
         params: %{},
         detailed: nil,
         jobs: [],
+        live_path: path,
+        live_transport: transport,
         node_stats: Stats.for_nodes(conf.name),
         queue_stats: Stats.for_queues(conf.name),
         state_stats: Stats.for_states(conf.name),
         refresh: refresh,
         selected: MapSet.new(),
         timer: nil,
-        transport: transport,
         user: user
       )
 
@@ -44,7 +46,8 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~L"""
-    <meta name="live-transport" content="<%= @transport %>" />
+    <meta name="live-transport" content="<%= @live_transport %>" />
+    <meta name="live-path" content="<%= @live_path %>" />
 
     <main class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>

@@ -117,7 +117,21 @@ end
 Note that the default name is `Oban`, setting `oban_name: Oban` in the example
 above was purely for demonstration purposes.
 
-## Using LongPolling
+## Customizing the Socket Connection
+
+Applications that use a live socket other than "/live" can override the default
+socket path in the router. For example, if your live socket is hosted at
+`/oban_live`:
+
+```elixir
+socket "/oban_live", Phoenix.LiveView.Socket
+
+scope "/" do
+  pipe_through :browser
+
+  oban_dashboard "/oban", socket_path: "/oban_live"
+end
+```
 
 If your application is hosted in an environment that doesn't support websockets
 you can use longpolling as an alternate transport. To start, make sure that your
