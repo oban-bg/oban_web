@@ -5,18 +5,18 @@ defmodule Oban.Web.ListingRowComponent do
     {:ok, assign(socket, hidden?: false, selected?: false)}
   end
 
-  def update(assigns, socket) do
+  def update(%{job: job, selected: selected}, socket) do
     {:ok,
      assign(socket,
-       job: assigns.job,
-       selected?: MapSet.member?(assigns.selected, assigns.job.id),
-       hidden?: Map.get(assigns.job, :hidden?, false)
+       job: job,
+       selected?: MapSet.member?(selected, job.id),
+       hidden?: Map.get(job, :hidden?, false)
      )}
   end
 
   def render(assigns) do
     ~L"""
-    <li id="job-<%= @job.id %>" phx-target="<%= @myself %>" phx-click="show_details" class="group flex justify-between bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 cursor-pointer <%= if @hidden? do %>opacity-25 pointer-events-none js-hidden<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25<% end %>">
+    <li id="job-<%= @job.id %>" class="group flex justify-between bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 <%= if @hidden? do %>opacity-25 pointer-events-none js-hidden<% end %> <%= if @selected? do %>bg-blue-100<% else %>hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25<% end %>">
       <div class="flex justify-start">
         <button class="js-toggle flex-none block pl-3 py-3" phx-target="<%= @myself %>" phx-click="toggle_select">
           <%= if @selected? do %>
@@ -26,11 +26,11 @@ defmodule Oban.Web.ListingRowComponent do
           <% end %>
         </button>
 
-        <div class="flex-auto max-w-xl overflow-hidden pl-3 py-3">
+        <%= live_patch to: oban_path(@socket, :jobs, @job), class: "flex-auto cursor-pointer max-w-xl overflow-hidden pl-3 py-3" do %>
           <span rel="jid" class="text-sm text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
           <span rel="worker" class="font-semibold text-sm text-gray-700 dark:text-gray-300 ml-1"><%= @job.worker %></span>
           <span rel="args" class="block font-mono truncate text-xs text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300 mt-2"><%= inspect(@job.args) %></span>
-        </div>
+        <% end %>
       </div>
 
       <div class="flex justify-end items-center">
@@ -68,11 +68,5 @@ defmodule Oban.Web.ListingRowComponent do
     send(self(), {:params, :terms, socket.assigns.job.worker})
 
     {:noreply, socket}
-  end
-
-  def handle_event("show_details", _params, socket) do
-    path = oban_path(socket, :jobs, %{id: socket.assigns.job.id})
-
-    {:noreply, push_patch(socket, to: path, replace: true)}
   end
 end
