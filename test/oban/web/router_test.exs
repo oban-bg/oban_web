@@ -47,6 +47,10 @@ defmodule Oban.Web.RouterTest do
       assert %{"transport" => "longpoll"} = options_to_session(transport: "longpoll")
     end
 
+    test "passing the live socket path through to the session" do
+      assert %{"socket_path" => "/alt"} = options_to_session(socket_path: "/alt")
+    end
+
     test "passing csp nonce assign keys to the session" do
       assert %{"csp_nonces" => nonces} = options_to_session(csp_nonce_assign_key: nil)
 
@@ -84,6 +88,12 @@ defmodule Oban.Web.RouterTest do
     test "validating oban name values" do
       assert_raise ArgumentError, ~r/invalid :oban_name/, fn ->
         Router.__options__(oban_name: "MyApp.Oban")
+      end
+    end
+
+    test "validating socket_path values" do
+      assert_raise ArgumentError, ~r/invalid :socket_path/, fn ->
+        Router.__options__(socket_path: :live)
       end
     end
 
