@@ -44,6 +44,7 @@ defmodule Oban.Web.Router do
 
         live_session session_name, session_opts do
           live "/", Oban.Web.DashboardLive, :home, route_opts
+          live "/:page", Oban.Web.DashboardLive, :page, opts
           live "/jobs/:id", Oban.Web.DashboardLive, :jobs, route_opts
         end
       end
