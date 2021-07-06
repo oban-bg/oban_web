@@ -8,11 +8,11 @@ window.addEventListener("phx:page-loading-start", info => topbar.show());
 window.addEventListener("phx:page-loading-stop", info => topbar.hide());
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
-const transport = document.querySelector("meta[name='live-transport']").getAttribute("content");
-const socketPath = document.querySelector("meta[name='live-path']").getAttribute("content");
+const liveTran = document.querySelector("meta[name='live-transport']").getAttribute("content");
+const livePath = document.querySelector("meta[name='live-path']").getAttribute("content");
 
-const liveSocket = new LiveSocket("/live", Socket, {
-  transport: transport === "longpoll" ? LongPoll : WebSocket,
+const liveSocket = new LiveSocket(livePath, Socket, {
+  transport: liveTran === "longpoll" ? LongPoll : WebSocket,
   params: {_csrf_token: csrfToken}
 });
 
