@@ -7,19 +7,19 @@ defmodule Oban.Web.Helpers do
   # Routing Helpers
 
   def oban_path(socket, page) when is_atom(page) do
-    oban_path(socket, [socket, page, %{}])
+    oban_path(socket, [socket, :page, page])
   end
 
   def oban_path(socket, args) when is_list(args) do
     apply(socket.router.__helpers__(), :oban_dashboard_path, args)
   end
 
-  def oban_path(socket, :home, params) do
-    oban_path(socket, [socket, :home, params])
-  end
-
   def oban_path(socket, :jobs, %{id: id}) do
     oban_path(socket, [socket, :jobs, id])
+  end
+
+  def oban_path(socket, page, params) do
+    oban_path(socket, [socket, :page, page, params])
   end
 
   # Title Helpers

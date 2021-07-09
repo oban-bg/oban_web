@@ -32,13 +32,13 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def handle_event("search", %{"terms" => terms}, socket) do
     params = Map.put(socket.assigns.params, :terms, terms)
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
   def handle_event("clear", _params, socket) do
     params = Map.delete(socket.assigns.params, :terms)
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
   def present?(nil), do: false

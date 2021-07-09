@@ -2,8 +2,8 @@ defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.{FooterComponent, JobsComponent, LogoComponent}
-  alias Oban.Web.{NotificationComponent, RefreshComponent}
+  alias Oban.Web.{FooterComponent, JobsComponent, LogoComponent, QueuesComponent}
+  alias Oban.Web.{NotificationComponent, RefreshComponent, TabsComponent}
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
@@ -38,8 +38,9 @@ defmodule Oban.Web.DashboardLive do
     {:ok, init_schedule_refresh(socket)}
   end
 
-  defp resolve_page(%{"page" => "jobs"}), do: JobsComponent
-  defp resolve_page(_params), do: JobsComponent
+  defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsComponent}
+  defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesComponent}
+  defp resolve_page(_params), do: %{name: :jobs, comp: JobsComponent}
 
   @impl Phoenix.LiveView
   def render(assigns) do
@@ -50,12 +51,13 @@ defmodule Oban.Web.DashboardLive do
     <main class="p-4">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
-      <header class="flex justify-between">
+      <header class="flex items-center">
         <%= live_component @socket, LogoComponent %>
+        <%= live_component @socket, TabsComponent, page: @page.name %>
         <%= live_component @socket, RefreshComponent, id: :refresh, refresh: @refresh %>
       </header>
 
-      <%= live_component @socket, @page, Map.put(assigns, :id, :page) %>
+      <%= live_component @socket, @page.comp, Map.put(assigns, :id, :page) %>
 
       <%= live_component @socket, FooterComponent %>
     </main>
@@ -73,7 +75,7 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_params(params, uri, socket) do
-    socket.assigns.page.handle_params(params, uri, socket)
+    socket.assigns.page.comp.handle_params(params, uri, socket)
   end
 
   @impl Phoenix.LiveView
@@ -91,13 +93,13 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:refresh, socket) do
-    socket = socket.assigns.page.refresh(socket)
+    socket = socket.assigns.page.comp.handle_refresh(socket)
 
     {:noreply, schedule_refresh(socket)}
   end
 
   def handle_info(message, socket) do
-    socket.assigns.page.handle_info(message, socket)
+    socket.assigns.page.comp.handle_info(message, socket)
   end
 
   ## Mount Helpers

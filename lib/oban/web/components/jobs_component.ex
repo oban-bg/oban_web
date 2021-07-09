@@ -10,14 +10,14 @@ defmodule Oban.Web.JobsComponent do
   @flash_timing 5_000
 
   def mount(socket) do
-    {:ok, assign(socket, params: %{limit: 20, state: "executing"})}
+    {:ok, assign(socket, params: %{limit: 20, state: "executing"}, selected: MapSet.new())}
   end
 
   def update(assigns, socket) do
-    selected =
-      assigns.jobs
-      |> MapSet.new(& &1.id)
-      |> MapSet.intersection(assigns.selected || MapSet.new())
+    # selected =
+    #   assigns.jobs
+    #   |> MapSet.new(& &1.id)
+    #   |> MapSet.intersection(assigns.selected || MapSet.new())
 
     {:ok,
      assign(socket,
@@ -29,7 +29,7 @@ defmodule Oban.Web.JobsComponent do
        node_stats: Stats.for_nodes(assigns.conf.name),
        queue_stats: Stats.for_queues(assigns.conf.name),
        state_stats: Stats.for_states(assigns.conf.name),
-       selected: selected
+       selected: socket.assigns.selected
      )}
   end
 
@@ -64,7 +64,7 @@ defmodule Oban.Web.JobsComponent do
     """
   end
 
-  def refresh(socket) do
+  def handle_refresh(socket) do
     jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.params)
 
     assign(socket,
@@ -134,7 +134,7 @@ defmodule Oban.Web.JobsComponent do
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
     params = Map.update!(socket.assigns.params, :limit, &to_string(&1 + inc))
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
   def handle_info({:params, key, value}, socket) do
@@ -145,7 +145,7 @@ defmodule Oban.Web.JobsComponent do
         Map.put(socket.assigns.params, key, value)
       end
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :home, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
   # Single Actions
@@ -208,7 +208,7 @@ defmodule Oban.Web.JobsComponent do
       |> hide_and_clear_selected()
       |> flash(:info, "Selected jobs canceled")
 
-    {:noreply, refresh(socket)}
+    {:noreply, handle_refresh(socket)}
   end
 
   def handle_info(:retry_selected, socket) do
@@ -223,7 +223,7 @@ defmodule Oban.Web.JobsComponent do
       |> hide_and_clear_selected()
       |> flash(:info, "Selected jobs scheduled to run immediately")
 
-    {:noreply, refresh(socket)}
+    {:noreply, handle_refresh(socket)}
   end
 
   def handle_info(:delete_selected, socket) do
@@ -238,7 +238,7 @@ defmodule Oban.Web.JobsComponent do
       |> hide_and_clear_selected()
       |> flash(:info, "Selected jobs deleted")
 
-    {:noreply, refresh(socket)}
+    {:noreply, handle_refresh(socket)}
   end
 
   # Helpers
