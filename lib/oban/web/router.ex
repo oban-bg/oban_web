@@ -129,7 +129,7 @@ defmodule Oban.Web.Router do
   end
 
   defp validate_opt!({:resolver, resolver}) do
-    unless is_atom(resolver) and Code.ensure_loaded?(resolver) do
+    unless Code.ensure_loaded?(resolver) do
       raise ArgumentError, """
       invalid :resolver, expected a module that implements the Oban.Web.Resolver behaviour,
       got: #{inspect(resolver)}
