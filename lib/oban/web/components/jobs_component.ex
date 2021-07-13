@@ -26,9 +26,8 @@ defmodule Oban.Web.JobsComponent do
        user: assigns.user,
        jobs: assigns.jobs,
        params: socket.assigns.params,
-       node_stats: Stats.for_nodes(assigns.conf.name),
-       queue_stats: Stats.for_queues(assigns.conf.name),
-       state_stats: Stats.for_states(assigns.conf.name),
+       gossip: Stats.all_gossip(assigns.conf.name),
+       counts: Stats.all_counts(assigns.conf.name),
        selected: socket.assigns.selected
      )}
   end
@@ -42,9 +41,8 @@ defmodule Oban.Web.JobsComponent do
             id: :sidebar,
             access: @access,
             params: @params,
-            node_stats: @node_stats,
-            queue_stats: @queue_stats,
-            state_stats: @state_stats %>
+            gossip: @gossip,
+            counts: @counts %>
       </div>
 
       <div class="flex-1 bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -52,7 +50,7 @@ defmodule Oban.Web.JobsComponent do
           <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
         <% else %>
           <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-            <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, stats: @state_stats, selected: @selected %>
+            <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, counts: @counts, selected: @selected %>
             <%= live_component @socket, SearchComponent, id: :search, params: @params %>
           </div>
 
@@ -70,9 +68,8 @@ defmodule Oban.Web.JobsComponent do
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
-      node_stats: Stats.for_nodes(socket.assigns.conf.name),
-      queue_stats: Stats.for_queues(socket.assigns.conf.name),
-      state_stats: Stats.for_states(socket.assigns.conf.name)
+      gossip: Stats.all_gossip(socket.assigns.conf.name),
+      counts: Stats.all_counts(socket.assigns.conf.name)
     )
   end
 

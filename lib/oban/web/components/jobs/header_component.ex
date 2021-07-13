@@ -19,7 +19,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
      assign(
        socket,
        numerator: Enum.count(jobs),
-       denominator: state_count(assigns.stats, assigns.params),
+       denominator: state_count(assigns.counts, assigns.params),
        select_mode: select_mode,
        state: get_in(assigns, [:params, :state]) || "executing"
      )}
@@ -48,10 +48,8 @@ defmodule Oban.Web.Jobs.HeaderComponent do
     """
   end
 
-  def state_count(stats, %{state: state}) do
-    state
-    |> :proplists.get_value(stats, %{count: 0})
-    |> Map.get(:count)
+  def state_count(counts, %{state: state}) do
+    Enum.reduce(counts, 0, &(Map.get(&1, state, 0) + &2))
   end
 
   def state_count(_stats, _params), do: 0

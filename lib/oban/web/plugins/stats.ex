@@ -1,6 +1,6 @@
 defmodule Oban.Web.Plugins.Stats do
   @moduledoc """
-  Cache for tracking queue, state and node counts for display.
+  Cache for tracking gossip and queue counts for display.
   """
 
   use GenServer
@@ -8,9 +8,9 @@ defmodule Oban.Web.Plugins.Stats do
   alias Oban.Notifier
   alias Oban.Web.Query
 
-  @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
+  @states ~w(executing available scheduled retryable cancelled discarded completed)
 
-  @empty_queue_states %{"executing" => 0, "available" => 0}
+  @empty_states for state <- @states, into: %{}, do: {state, 0}
 
   defmodule State do
     @moduledoc false
@@ -34,105 +34,19 @@ defmodule Oban.Web.Plugins.Stats do
     GenServer.start_link(__MODULE__, opts, name: opts[:name])
   end
 
-  @spec for_nodes(GenServer.name() | reference()) :: list({binary(), map()})
-  def for_nodes(table) when is_reference(table) do
-    table
-    |> :ets.select([{{{:node, :_, :_, :_}, :_, :"$1"}, [], [:"$1"]}])
-    |> Enum.reduce(%{}, fn payload, acc ->
-      limit = payload_limit(payload)
-      count = payload |> Map.get("running", []) |> length()
-
-      nname =
-        [payload["name"], payload["node"]]
-        |> Enum.join("/")
-        |> String.trim_leading("Elixir.")
-
-      Map.update(acc, nname, %{count: count, limit: limit}, fn map ->
-        %{map | count: map.count + count, limit: map.limit + limit}
-      end)
-    end)
-  end
-
-  def for_nodes(oban_name) do
+  @spec all_gossip(GenServer.name()) :: list(map())
+  def all_gossip(oban_name) do
     case fetch_table(oban_name) do
-      {:ok, table} -> for_nodes(table)
+      {:ok, table} -> :ets.select(table, [{{{:gossip, :_, :_, :_}, :_, :"$1"}, [], [:"$1"]}])
       {:error, _} -> []
     end
   end
 
-  @spec for_queues(GenServer.name()) :: list({binary(), map()})
-  def for_queues(table) when is_reference(table) do
-    avail_counts =
-      table
-      |> :ets.select([{{{:queue, :"$1", "available"}, :"$2"}, [], [:"$$"]}])
-      |> Map.new(fn [queue, count] -> {queue, count} end)
-
-    execu_counts =
-      table
-      |> :ets.select([{{{:queue, :"$1", "executing"}, :"$2"}, [], [:"$$"]}])
-      |> Map.new(fn [queue, count] -> {queue, count} end)
-
-    limit_counts =
-      table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
-      |> Enum.reduce(%{}, fn [queue, payload], acc ->
-        limit = payload_limit(payload)
-
-        Map.update(acc, queue, limit, &(&1 + limit))
-      end)
-
-    local_limits =
-      table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
-      |> Map.new(fn [queue, payload] -> {queue, payload_limit(payload)} end)
-
-    pause_states =
-      table
-      |> :ets.select([{{{:node, :_, :_, :"$1"}, :_, :"$2"}, [], [:"$$"]}])
-      |> Enum.reduce(%{}, fn [queue, %{"paused" => paused}], acc ->
-        Map.update(acc, queue, paused, &(&1 or paused))
-      end)
-
-    [avail_counts, execu_counts, limit_counts]
-    |> Enum.flat_map(&Map.keys/1)
-    |> Enum.uniq()
-    |> Enum.sort()
-    |> Enum.map(fn queue ->
-      {queue,
-       %{
-         avail: Map.get(avail_counts, queue, 0),
-         execu: Map.get(execu_counts, queue, 0),
-         limit: Map.get(limit_counts, queue, 0),
-         local: Map.get(local_limits, queue, 0),
-         pause: Map.get(pause_states, queue, true)
-       }}
-    end)
-  end
-
-  def for_queues(oban_name) do
+  @spec all_counts(GenServer.name()) :: list(map())
+  def all_counts(oban_name) do
     case fetch_table(oban_name) do
-      {:ok, table} -> for_queues(table)
+      {:ok, table} -> :ets.select(table, [{{{:count, :_}, :"$1"}, [], [:"$1"]}])
       {:error, _} -> []
-    end
-  end
-
-  @spec for_states(GenServer.name()) :: list({binary(), map()})
-  def for_states(table) when is_reference(table) do
-    for state <- @ordered_states do
-      count =
-        case :ets.select(table, [{{{:state, state}, :"$1"}, [], [:"$$"]}]) do
-          [[count]] -> count
-          _ -> 0
-        end
-
-      {state, %{count: count}}
-    end
-  end
-
-  def for_states(oban_name) do
-    case fetch_table(oban_name) do
-      {:ok, table} -> for_states(table)
-      {:error, _} -> for state <- @ordered_states, do: {state, %{count: 0}}
     end
   end
 
@@ -168,9 +82,6 @@ defmodule Oban.Web.Plugins.Stats do
 
     table = :ets.new(:stats, [:public, read_concurrency: true])
     state = struct!(State, Keyword.put(opts, :table, table))
-
-    # Seed state counts for initial partitioning
-    :ets.insert(table, Enum.map(@ordered_states, &{{:state, &1}, 0}))
 
     Registry.put_meta(
       Oban.Registry,
@@ -215,7 +126,7 @@ defmodule Oban.Web.Plugins.Stats do
 
     timestamp = System.system_time(:millisecond)
 
-    :ets.insert(state.table, {{:node, node, name, queue}, timestamp, payload})
+    :ets.insert(state.table, {{:gossip, node, name, queue}, timestamp, payload})
 
     {:noreply, state}
   end
@@ -251,9 +162,8 @@ defmodule Oban.Web.Plugins.Stats do
   end
 
   defp refresh(state) do
-    expire_older_nodes(state)
-    update_queue_counts(state)
-    update_state_counts(state)
+    expire_gossip(state)
+    update_counts(state)
 
     timer = Process.send_after(self(), :refresh, state.interval)
 
@@ -266,68 +176,65 @@ defmodule Oban.Web.Plugins.Stats do
     %{state | ticks: 0, timer: nil}
   end
 
-  defp expire_older_nodes(%State{table: table, ttl: ttl}) do
+  defp expire_gossip(%State{table: table, ttl: ttl}) do
     expires = System.system_time(:millisecond) - ttl
-    pattern = [{{{:node, :_, :_, :_}, :"$1", :_}, [{:<, :"$1", expires}], [true]}]
+    pattern = [{{{:gossip, :_, :_, :_}, :"$1", :_}, [{:<, :"$1", expires}], [true]}]
 
     :ets.select_delete(table, pattern)
   end
 
-  defp update_queue_counts(%State{conf: conf, table: table}) do
-    counts = Query.queue_counts(conf)
-
-    # Defer purging until after we've fetched the update
-    :ets.select_delete(table, [{{{:queue, :_, :_}, :_}, [], [true]}])
-
-    counts
-    |> Enum.reduce(%{}, &put_count/2)
-    |> Enum.each(fn {queue, counts_by_state} ->
-      for {state, count} <- counts_by_state do
-        :ets.insert(table, {{:queue, queue, state}, count})
-      end
-    end)
-  end
-
-  defp put_count({queue, state, count}, acc) do
-    acc
-    |> Map.put_new(queue, @empty_queue_states)
-    |> put_in([queue, state], count)
-  end
-
-  defp update_state_counts(%State{conf: conf, table: table} = state) do
+  defp update_counts(%State{conf: conf, table: table} = state) do
     {slow_states, fast_states} = partition_states_by_speed(state)
 
-    fast_counts = Query.state_counts(conf, fast_states)
+    fast_counts = Query.queue_state_counts(conf, fast_states)
 
     slow_counts =
-      if Enum.any?(slow_states) and perform_slow_query?(state) do
-        Query.state_counts(conf, slow_states)
+      if Enum.empty?(slow_states) or perform_slow_query?(state) do
+        counts = Query.queue_state_counts(conf, slow_states)
+
+        # When we're performing fast and slow counts we know it's safe to purge
+        :ets.select_delete(table, [{{{:count, :_}, :_}, [], [true]}])
+
+        counts
       else
         []
       end
 
-    for {state, count} <- slow_counts ++ fast_counts do
-      :ets.insert(table, {{:state, state}, count})
+    both_counts = fast_counts ++ slow_counts
+
+    prev_counts =
+      table
+      |> :ets.select([{{{:count, :_}, :"$1"}, [], [:"$1"]}])
+      |> Map.new(fn %{"name" => name} = payload -> {name, payload} end)
+
+    for {queue, payload} <- Enum.reduce(both_counts, prev_counts, &merge_queue_counts/2) do
+      :ets.insert(table, {{:count, queue}, payload})
     end
+  end
+
+  defp partition_states_by_speed(%State{slow_query_limit: limit, table: table}) do
+    {slow_states, fast_states} =
+      table
+      |> :ets.select([{{{:count, :_}, :"$1"}, [], [:"$1"]}])
+      |> Enum.reduce(@empty_states, &merge_state_counts/2)
+      |> Enum.split_with(fn {_state, count} -> count > limit end)
+
+    {Enum.map(slow_states, &elem(&1, 0)), Enum.map(fast_states, &elem(&1, 0))}
   end
 
   defp perform_slow_query?(%State{slow_query_ratio: ratio, ticks: ticks}) do
     Integer.mod(ticks, ratio) == 0
   end
 
-  defp partition_states_by_speed(%State{slow_query_limit: limit, table: table}) do
-    {slow_states, fast_states} =
-      table
-      |> :ets.select([{{{:state, :"$1"}, :"$2"}, [], [:"$$"]}])
-      |> Enum.split_with(fn [_state, count] -> count > limit end)
-
-    {Enum.map(slow_states, &hd/1), Enum.map(fast_states, &hd/1)}
+  defp merge_state_counts(counts, states) do
+    for {key, val} <- counts, key != "name", reduce: states do
+      acc -> Map.update!(acc, key, &(&1 + val))
+    end
   end
 
-  ## Aggregate Helpers
-
-  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: limit
-  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: limit
-  defp payload_limit(%{"limit" => limit}), do: limit
-  defp payload_limit(_payload), do: 0
+  defp merge_queue_counts({queue, state, count}, acc) do
+    acc
+    |> Map.put_new_lazy(queue, fn -> Map.put(@empty_states, "name", queue) end)
+    |> put_in([queue, state], count)
+  end
 end

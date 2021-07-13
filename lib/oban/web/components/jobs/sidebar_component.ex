@@ -3,8 +3,24 @@ defmodule Oban.Web.Jobs.SidebarComponent do
 
   alias Oban.Web.Jobs.{NodeComponent, QueueComponent, StateComponent}
 
+  @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
+
   def mount(socket) do
     {:ok, assign(socket, show_nodes?: true, show_states?: true, show_queues?: true)}
+  end
+
+  def update(assigns, socket) do
+    %{gossip: gossip, counts: counts} = assigns
+
+    {:ok,
+     assign(
+       socket,
+       access: assigns.access,
+       node_stats: node_stats(gossip),
+       state_stats: state_stats(counts),
+       queue_stats: queue_stats(gossip, counts),
+       params: assigns.params
+     )}
   end
 
   def render(assigns) do
@@ -92,6 +108,65 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     """
   end
 
+  def node_stats(gossip) do
+    for payload <- gossip, reduce: %{} do
+      acc ->
+        limit = payload_limit(payload)
+        count = payload |> Map.get("running", []) |> length()
+
+        full_name =
+          [payload["name"], payload["node"]]
+          |> Enum.join("/")
+          |> String.trim_leading("Elixir.")
+
+        Map.update(acc, full_name, %{count: count, limit: limit}, fn map ->
+          %{map | count: map.count + count, limit: map.limit + limit}
+        end)
+    end
+  end
+
+  def state_stats(counts) do
+    for state <- @ordered_states do
+      total = Enum.reduce(counts, 0, &(&1[state] + &2))
+
+      {state, %{count: total}}
+    end
+  end
+
+  def queue_stats(gossip, counts) do
+    avail_counts = Map.new(counts, fn %{"name" => key, "available" => val} -> {key, val} end)
+    execu_counts = Map.new(counts, fn %{"name" => key, "executing" => val} -> {key, val} end)
+
+    total_limits =
+      Enum.reduce(gossip, %{}, fn payload, acc ->
+        limit = payload_limit(payload)
+
+        Map.update(acc, payload["queue"], limit, &(&1 + limit))
+      end)
+
+    local_limits = Map.new(gossip, fn payload -> {payload["queue"], payload_limit(payload)} end)
+
+    pause_states =
+      Enum.reduce(gossip, %{}, fn %{"paused" => paused, "queue" => queue}, acc ->
+        Map.update(acc, queue, paused, &(&1 or paused))
+      end)
+
+    [avail_counts, execu_counts, total_limits]
+    |> Enum.flat_map(&Map.keys/1)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.map(fn queue ->
+      {queue,
+       %{
+         avail: Map.get(avail_counts, queue, 0),
+         execu: Map.get(execu_counts, queue, 0),
+         limit: Map.get(total_limits, queue, 0),
+         local: Map.get(local_limits, queue, 0),
+         pause: Map.get(pause_states, queue, true)
+       }}
+    end)
+  end
+
   def handle_event("toggle", %{"menu" => "nodes"}, socket) do
     {:noreply, assign(socket, show_nodes?: not socket.assigns.show_nodes?)}
   end
@@ -103,4 +178,9 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   def handle_event("toggle", %{"menu" => "queues"}, socket) do
     {:noreply, assign(socket, show_queues?: not socket.assigns.show_queues?)}
   end
+
+  defp payload_limit(%{"global_limit" => limit}), do: limit
+  defp payload_limit(%{"local_limit" => limit}), do: limit
+  defp payload_limit(%{"limit" => limit}), do: limit
+  defp payload_limit(_payload), do: 0
 end

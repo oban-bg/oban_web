@@ -129,23 +129,14 @@ defmodule Oban.Web.Query do
   defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
 
   @doc false
-  def queue_counts(%Config{} = conf) do
-    query =
-      Job
-      |> where([j], j.state in ["available", "executing"])
-      |> group_by([j], [j.queue, j.state])
-      |> select([j], {j.queue, j.state, count(j.id)})
+  def queue_state_counts(_conf, []), do: []
 
-    Repo.all(conf, query, timeout: @timeout)
-  end
-
-  @doc false
-  def state_counts(%Config{} = conf, [_ | _] = states) do
+  def queue_state_counts(%Config{} = conf, [_ | _] = states) do
     query =
       Job
       |> where([j], j.state in ^states)
-      |> group_by([j], j.state)
-      |> select([j], {j.state, count(j.id)})
+      |> group_by([j], [j.queue, j.state])
+      |> select([j], {j.queue, j.state, count(j.id)})
 
     Repo.all(conf, query, timeout: @timeout)
   end
