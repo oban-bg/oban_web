@@ -16,7 +16,7 @@ defmodule Oban.Web.Jobs.QueueComponent do
         access: assigns.access,
         active?: assigns.name == assigns.params[:queue],
         avail: assigns.stat.avail,
-        controls?: can?(:scale_queues, assigns.access) or can?(:pause_queues, assigns.access),
+        controls?: can?(:scale_queues, assigns.access),
         execu: assigns.stat.execu,
         name: assigns.name
       )
@@ -54,16 +54,6 @@ defmodule Oban.Web.Jobs.QueueComponent do
           <%= if can?(:scale_queues, @access) do %>
             <button class="block w-5 h-5 text-gray-400 hover:text-blue-500" title="Expand queue scaling" phx-click="expand" phx-target="<%= @myself %>">
               <svg fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z"></path></svg>
-            </button>
-          <% end %>
-
-          <%= if can?(:pause_queues, @access) do %>
-            <button class="ml-3 block w-5 h-5 text-gray-400 hover:text-blue-500" title="Pause or resume queue" phx-click="play_pause" phx-target="<%= @myself %>" phx-throttle="500">
-              <%= if @paused? do %>
-                <svg fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-              <% else %>
-                <svg fill="currentColor" viewBox="0 0 20 20"><path d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
-              <% end %>
             </button>
           <% end %>
         </div>
@@ -112,19 +102,6 @@ defmodule Oban.Web.Jobs.QueueComponent do
       send(self(), {:scale_queue, socket.assigns.name, local})
 
       {:noreply, assign(socket, local: local, limit: limit, update_at: DateTime.utc_now())}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  def handle_event("play_pause", _params, socket) do
-    if can?(:pause_queues, socket.assigns.access) do
-      action = if socket.assigns.paused?, do: :resume_queue, else: :pause_queue
-
-      send(self(), {action, socket.assigns.name})
-
-      {:noreply,
-       assign(socket, paused?: not socket.assigns.paused?, update_at: DateTime.utc_now())}
     else
       {:noreply, socket}
     end

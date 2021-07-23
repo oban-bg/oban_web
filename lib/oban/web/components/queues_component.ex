@@ -3,6 +3,7 @@ defmodule Oban.Web.QueuesComponent do
 
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.Queues.RowComponent
+  alias Oban.Web.Telemetry
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
@@ -23,7 +24,7 @@ defmodule Oban.Web.QueuesComponent do
       |> Map.values()
       |> Enum.sort_by(& &1.queue)
 
-    {:ok, assign(socket, queues: queues)}
+    {:ok, assign(socket, access: assigns.access, queues: queues)}
   end
 
   @impl Phoenix.LiveComponent
@@ -36,23 +37,27 @@ defmodule Oban.Web.QueuesComponent do
           <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= length(@queues) %>)</h3>
         </div>
 
-        <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 py-3 px-3">
-          <span class="text-xs text-gray-400 pl-3 w-60 uppercase">Name</span>
-          <span class="text-xs text-gray-400 pl-3 w-24 text-right ml-auto uppercase">Executing</span>
-          <span class="text-xs text-gray-400 pl-3 w-24 text-right uppercase">Available</span>
-          <span class="text-xs text-gray-400 pl-3 w-24 text-right uppercase">Completed</span>
-          <span class="text-xs text-gray-400 pl-3 w-20 text-right uppercase">Nodes</span>
-          <span class="text-xs text-gray-400 pl-3 w-20 text-right uppercase">Local</span>
-          <span class="text-xs text-gray-400 pl-3 w-20 text-right uppercase">Global</span>
-          <span class="text-xs text-gray-400 pl-3 w-32 text-right uppercase">Uptime</span>
-          <span class="w-24 pl-3"></span>
-        </div>
+        <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead>
+            <tr>
+              <th scope="col" class="w-4/12  text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Name</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Nodes</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Executing</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Available</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Completed</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Local Limit</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Global Limit</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Started At</th>
+              <th scope="col" class="w-1/12"></th>
+            </tr>
+          </thead>
 
-        <ul>
-          <%= for queue <- @queues do %>
-            <%= live_component @socket, RowComponent, id: queue.id, queue: queue %>
-          <% end %>
-        </ul>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            <%= for queue <- @queues do %>
+              <%= live_component @socket, RowComponent, id: queue.id, queue: queue, access: @access %>
+            <% end %>
+          </tbody>
+        </table>
       </div>
     </div>
     """
@@ -63,6 +68,22 @@ defmodule Oban.Web.QueuesComponent do
   end
 
   def handle_params(_, _uri, socket) do
+    {:noreply, assign(socket, page_title: page_title("Queues"))}
+  end
+
+  def handle_info({:pause_queue, queue}, socket) do
+    Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
+      Oban.pause_queue(socket.assigns.conf.name, queue: queue)
+    end)
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:resume_queue, queue}, socket) do
+    Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
+      Oban.resume_queue(socket.assigns.conf.name, queue: queue)
+    end)
+
     {:noreply, socket}
   end
 

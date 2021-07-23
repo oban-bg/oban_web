@@ -110,22 +110,6 @@ defmodule Oban.Web.JobsComponent do
     {:noreply, socket}
   end
 
-  def handle_info({:pause_queue, queue}, socket) do
-    Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
-      Oban.pause_queue(socket.assigns.conf.name, queue: queue)
-    end)
-
-    {:noreply, socket}
-  end
-
-  def handle_info({:resume_queue, queue}, socket) do
-    Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
-      Oban.resume_queue(socket.assigns.conf.name, queue: queue)
-    end)
-
-    {:noreply, socket}
-  end
-
   # Filtering
 
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
