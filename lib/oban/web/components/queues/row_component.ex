@@ -15,15 +15,16 @@ defmodule Oban.Web.Queues.RowComponent do
         <span rel="name"><%= @queue.queue %></span>
       </td>
 
-      <td rel="nodes" class="p-3 text-right tabular"><%= MapSet.size(@queue.nodes) %></td>
-      <td rel="executing" class="p-3 text-right tabular"><%= integer_to_estimate(@queue.executing) %></td>
-      <td rel="available" class="p-3 text-right tabular"><%= integer_to_estimate(@queue.available) %></td>
-      <td rel="completed" class="p-3 text-right tabular"><%= integer_to_estimate(@queue.completed) %></td>
-      <td rel="local" class="p-3 text-right tabular"><%= local_limit(@queue.local_limits) %></td>
-      <td rel="total" class="p-3 text-right tabular"><%= total_limit(@queue.global_limits, @queue.local_limits) %></td>
-      <td rel="uptime" class="p-3 text-right tabular"><%= Timing.to_words(@queue.uptime) %></td>
+      <td rel="nodes" class="py-3 pl-3 text-right tabular"><%= MapSet.size(@queue.nodes) %></td>
+      <td rel="executing" class="py-3 pl-3 text-right tabular"><%= integer_to_estimate(@queue.executing) %></td>
+      <td rel="available" class="py-3 pl-3 text-right tabular"><%= integer_to_estimate(@queue.available) %></td>
+      <td rel="completed" class="py-3 pl-3 text-right tabular"><%= integer_to_estimate(@queue.completed) %></td>
+      <td rel="local" class="py-3 pl-3 text-right tabular"><%= local_limit(@queue.local_limits) %></td>
+      <td rel="global" class="py-3 pl-3 text-right tabular"><%= total_limit(@queue.global_limits, @queue.local_limits) %></td>
+      <td rel="rate" class="py-3 pl-3 text-right tabular"><%= rate_limit(@queue.rate_limits) %></td>
+      <td rel="uptime" class="py-3 pl-3 text-right tabular"><%= Timing.to_words(@queue.uptime) %></td>
 
-      <td class="p-3 flex justify-end">
+      <td class="py-3 pr-3 flex justify-end">
         <%= if can?(:pause_queues, @access) do %>
           <button class="block pr-2 <%= if any_paused?(@queue.pauses) do %>text-yellow-400<% else %>text-gray-400<% end %> hover:text-blue-500" title="Pause or resume queue" phx-click="play_pause" phx-target="<%= @myself %>">
             <%= if any_paused?(@queue.pauses) do %>
@@ -71,6 +72,30 @@ defmodule Oban.Web.Queues.RowComponent do
   defp total_limit([global | _], _limits) when is_integer(global), do: global
   defp total_limit([_head | tail], limits), do: total_limit(limits, tail)
   defp total_limit([], limits), do: Enum.sum(limits)
+
+  defp rate_limit([]), do: "-"
+  defp rate_limit([nil | _]), do: "-"
+
+  defp rate_limit([rate | _tail] = rates) when is_map(rate) do
+    %{"allowed" => allowed, "period" => period, "window_time" => time} = rate
+
+    curr_time = Time.truncate(Time.utc_now(), :second)
+
+    prev_total = for %{"prev_count" => cnt} <- rates, reduce: 0, do: (acc -> acc + cnt)
+    curr_total = for %{"curr_count" => cnt} <- rates, reduce: 0, do: (acc -> acc + cnt)
+
+    ellapsed =
+      time
+      |> Time.from_iso8601!()
+      |> Time.diff(curr_time, :second)
+      |> abs()
+
+    remaining = (prev_total * div(period - ellapsed, period) + curr_total)
+
+    period_in_words = Timing.to_words(period, relative: false)
+
+    "#{remaining}/#{allowed} per #{period_in_words}"
+  end
 
   defp any_paused?(pauses), do: Enum.any?(pauses)
 end

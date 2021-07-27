@@ -96,8 +96,16 @@ defmodule Oban.Web.Timing do
 
       iex> Oban.Web.Timing.to_words(60 * 60 * 24 * 365 * 2)
       "in 2yr"
+
+  The `:relative` option controls whether an "in" or "ago" modifier is added:
+
+      iex> Oban.Web.Timing.to_words(1, relative: false)
+      "1s"
+
+      iex> Oban.Web.Timing.to_words(-1, relative: false)
+      "1s"
   """
-  def to_words(ellapsed) when is_integer(ellapsed) do
+  def to_words(ellapsed, opts \\ [relative: true]) when is_integer(ellapsed) do
     distance =
       case abs(ellapsed) do
         0 -> "now"
@@ -110,6 +118,7 @@ defmodule Oban.Web.Timing do
       end
 
     cond do
+      not opts[:relative] -> distance
       ellapsed < 0 -> "#{distance} ago"
       ellapsed > 0 -> "in #{distance}"
       true -> distance

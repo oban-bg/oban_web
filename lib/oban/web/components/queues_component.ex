@@ -40,15 +40,16 @@ defmodule Oban.Web.QueuesComponent do
         <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr>
-              <th scope="col" class="w-4/12 text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Nodes</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Executing</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Available</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Completed</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Local Limit</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Global Limit</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Started</th>
-              <th scope="col" class="w-1/12"></th>
+              <th scope="col" class="w-1/4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
+              <th scope="col" class="w-12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Nodes</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Executing</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Available</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Completed</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Local</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Global</th>
+              <th scope="col" class="w-24 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Rate</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Started</th>
+              <th scope="col" class="w-8"></th>
             </tr>
           </thead>
 
@@ -103,6 +104,7 @@ defmodule Oban.Web.QueuesComponent do
         completed: get_in(counts, [queue, "completed"]) || 0,
         local_limits: [],
         global_limits: [],
+        rate_limits: [],
         pauses: [],
         nodes: MapSet.new(),
         uptime: 0
@@ -114,6 +116,7 @@ defmodule Oban.Web.QueuesComponent do
     |> update_in([queue, :pauses], &[gossip["paused"] | &1])
     |> update_in([queue, :global_limits], &[gossip["global_limit"] | &1])
     |> update_in([queue, :local_limits], &[gossip["local_limit"] | &1])
+    |> update_in([queue, :rate_limits], &[gossip["rate_limit"] | &1])
     |> update_in([queue, :nodes], &MapSet.put(&1, gossip["node"]))
     |> update_in([queue, :executing], &(&1 + length(gossip["running"])))
     |> update_in([queue, :uptime], &started_to_uptime(&1, gossip["started_at"]))
