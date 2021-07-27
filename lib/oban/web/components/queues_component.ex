@@ -37,17 +37,17 @@ defmodule Oban.Web.QueuesComponent do
           <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= length(@queues) %>)</h3>
         </div>
 
-        <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr>
-              <th scope="col" class="w-4/12  text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Name</th>
+              <th scope="col" class="w-4/12 text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Nodes</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Executing</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Available</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Completed</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Local Limit</th>
               <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Global Limit</th>
-              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Started At</th>
+              <th scope="col" class="w-1/12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-3">Started</th>
               <th scope="col" class="w-1/12"></th>
             </tr>
           </thead>
@@ -99,10 +99,10 @@ defmodule Oban.Web.QueuesComponent do
         id: id,
         queue: queue,
         executing: 0,
-        available: get_in(counts, [queue, "available"]),
-        completed: get_in(counts, [queue, "completed"]),
+        available: get_in(counts, [queue, "available"]) || 0,
+        completed: get_in(counts, [queue, "completed"]) || 0,
         local_limits: [],
-        global_limit: [],
+        global_limits: [],
         pauses: [],
         nodes: MapSet.new(),
         uptime: 0

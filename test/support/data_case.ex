@@ -43,6 +43,8 @@ defmodule Oban.Web.DataCase do
   def gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
+    iso_now = DateTime.to_iso8601(DateTime.utc_now())
+
     meta_json =
       meta_opts
       |> Map.new()
@@ -50,6 +52,8 @@ defmodule Oban.Web.DataCase do
       |> Map.put_new(:name, inspect(name))
       |> Map.put_new(:paused, false)
       |> Map.put_new(:running, [])
+      |> Map.put_new(:started_at, iso_now)
+      |> Map.put_new(:updated_at, iso_now)
       |> Jason.encode!()
       |> Jason.decode!()
 

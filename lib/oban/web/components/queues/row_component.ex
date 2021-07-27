@@ -8,7 +8,7 @@ defmodule Oban.Web.Queues.RowComponent do
     ~L"""
     <tr id="queue-<%= @queue.id %>" class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
       <td class="p-3 flex">
-        <button class="block pr-3 text-gray-400 hover:text-blue-500">
+        <button class="block pr-2 text-gray-400 hover:text-blue-500">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
 
