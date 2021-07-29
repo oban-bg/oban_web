@@ -8,7 +8,7 @@ defmodule Oban.Web.QueuesComponent do
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, socket}
+    {:ok, assign(socket, sort_by: {:name, :asc})}
   end
 
   @impl Phoenix.LiveComponent
@@ -48,15 +48,15 @@ defmodule Oban.Web.QueuesComponent do
 
         <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
-            <tr>
-              <th scope="col" class="w-1/4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
-              <th scope="col" class="w-24 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Nodes</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Exec</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Avail</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Local</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Global</th>
-              <th scope="col" class="w-24 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Rate Limit</th>
-              <th scope="col" class="w-16 text-right text-xs font-medium text-gray-400 uppercase tracking-wider py-3 px-1">Started</th>
+            <tr class="text-gray-400">
+              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
+              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Nodes</th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Exec</th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Avail</th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Local</th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Global</th>
+              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Rate Limit</th>
+              <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Started</th>
               <th scope="col" class="w-8"></th>
             </tr>
           </thead>
@@ -99,7 +99,6 @@ defmodule Oban.Web.QueuesComponent do
       # Send the notification ourselves because Oban doesn't currently support custom ident
       # pausing. At this point the name and node are already strings and we can combine the names
       # rather than using Config.to_ident.
-
       data = %{action: :pause, queue: queue, ident: name <> "." <> node}
 
       Notifier.notify(socket.assigns.conf, :signal, data)

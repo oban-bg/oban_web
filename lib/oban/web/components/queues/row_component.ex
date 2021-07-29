@@ -34,7 +34,7 @@ defmodule Oban.Web.Queues.RowComponent do
 
       <td class="py-3 pr-3 flex justify-end">
         <%= if can?(:pause_queues, @access) do %>
-          <button rel="play_pause" class="block pr-2 <%= if any_paused?(@gossip) do %>text-yellow-400<% else %>text-gray-400<% end %> hover:text-blue-500" title="Pause or resume queue" phx-click="play_pause" phx-target="<%= @myself %>">
+          <button rel="play_pause" class="block pr-2 <%= pause_color(@gossip) %> hover:text-blue-500" title="Pause or resume queue" phx-click="play_pause" phx-target="<%= @myself %>" phx-throttle="1000">
             <%= if any_paused?(@gossip) do %>
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <% else %>
@@ -63,10 +63,11 @@ defmodule Oban.Web.Queues.RowComponent do
           <td class="py-3 text-right tabular"><%= started_at([entry]) %></td>
           <td class="py-3 pr-10 flex justify-end">
             <%= if can?(:pause_queues, @access) do %>
-              <button rel="play_pause" class="block <%= if entry["paused"] do %>text-yellow-400<% else %>text-gray-500<% end %> hover:text-blue-500"
+              <button rel="play_pause" class="block <%= if entry["paused"] do %>text-red-500<% else %>text-gray-500<% end %> hover:text-blue-500"
                 title="Pause or resume queue"
                 phx-click="play_pause"
                 phx-target="<%= @myself %>"
+                phx-throttle="1000"
                 phx-name="<%= entry["name"] %>"
                 phx-node="<%= entry["node"] %>">
                 <%= if entry["paused"] do %>
@@ -82,9 +83,6 @@ defmodule Oban.Web.Queues.RowComponent do
     <% end %>
     """
   end
-
-  defp queue_id(queue), do: ["queue-", queue]
-  defp queue_id(queue, node), do: ["queue-", queue, "-node-", String.replace(node, ".", "_")]
 
   # Handlers
 
@@ -115,6 +113,17 @@ defmodule Oban.Web.Queues.RowComponent do
   end
 
   # Helpers
+
+  defp queue_id(queue), do: ["queue-", queue]
+  defp queue_id(queue, node), do: ["queue-", queue, "-node-", String.replace(node, ".", "_")]
+
+  defp pause_color(gossip) do
+    cond do
+      Enum.all?(gossip, & &1["paused"]) -> "text-red-500"
+      Enum.any?(gossip, & &1["paused"]) -> "text-yellow-400"
+      true -> "text-gray-400"
+    end
+  end
 
   defp nodes_count(gossip), do: length(gossip)
 
