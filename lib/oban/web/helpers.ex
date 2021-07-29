@@ -143,6 +143,16 @@ defmodule Oban.Web.Helpers do
   def formatted_tags(%Job{tags: []}), do: "..."
   def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
 
+  @doc """
+  A normalized globally unique combination of instance and node names.
+  """
+  def node_name(node, name) do
+    [name, node]
+    |> Enum.join("/")
+    |> String.trim_leading("Elixir.")
+    |> String.downcase()
+  end
+
   # State Helpers
 
   @doc """

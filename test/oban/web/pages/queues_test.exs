@@ -26,7 +26,42 @@ defmodule Oban.Web.Pages.QueuesTest do
     assert has_element?(live, "#queues-table tr", "gamma")
   end
 
+  test "expanding queues to see node details", %{live: live} do
+    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
+
+    refresh(live)
+
+    expand_queue(live, "alpha")
+
+    assert has_element?(live, "#queue-alpha-node-web_1")
+    assert has_element?(live, "#queue-alpha-node-web_2")
+  end
+
+  test "pausing and resuming active queues", %{live: live} do
+    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
+
+    refresh(live)
+
+    live
+    |> element("#queue-alpha button[rel=play_pause]")
+    |> render_click()
+
+    expand_queue(live, "alpha")
+
+    live
+    |> element("#queue-alpha-node-web_2 button[rel=play_pause]")
+    |> render_click()
+  end
+
   defp refresh(live) do
     send(live.pid, :refresh)
+  end
+
+  defp expand_queue(live, queue) do
+    live
+    |> element("#queue-#{queue} button[rel=expand]")
+    |> render_click()
   end
 end
