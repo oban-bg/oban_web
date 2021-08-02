@@ -55,6 +55,19 @@ defmodule Oban.Web.Pages.QueuesTest do
     |> render_click()
   end
 
+  test "sorting queues by different properties", %{live: live} do
+    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(node: "web.1", queue: "gamma", limit: 4, paused: false, running: [])
+
+    refresh(live)
+
+    live
+    |> element("#queues-table a[rel=sort]", "local")
+    |> render_click()
+
+    assert_patch(live, "/oban/queues?sort=local-desc")
+  end
+
   defp refresh(live) do
     send(live.pid, :refresh)
   end

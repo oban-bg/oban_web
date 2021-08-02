@@ -3,16 +3,22 @@ defmodule Oban.Web.QueuesComponent do
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Queues.{RowComponent, SidebarComponent}
+  alias Oban.Web.Queues.{HeaderSortComponent, RowComponent, SidebarComponent}
   alias Oban.Web.Telemetry
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, sort_by: {:name, :asc})}
+    {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
+    assigns =
+      assigns
+      |> Map.take([:access, :conf, :sort_by, :sort_dir])
+      |> Map.put_new(:sort_by, :name)
+      |> Map.put_new(:sort_dir, :asc)
+
     counts =
       assigns.conf.name
       |> Stats.all_counts()
@@ -22,7 +28,7 @@ defmodule Oban.Web.QueuesComponent do
       assigns.conf.name
       |> Stats.all_gossip()
       |> Enum.group_by(& &1["queue"])
-      |> Enum.sort_by(&elem(&1, 0))
+      |> Enum.sort_by(&table_sort(&1, counts, assigns.sort_by), assigns.sort_dir)
 
     nodes =
       assigns.conf.name
@@ -31,7 +37,12 @@ defmodule Oban.Web.QueuesComponent do
       |> Map.values()
       |> Enum.sort_by(& &1.name)
 
-    {:ok, assign(socket, access: assigns.access, counts: counts, nodes: nodes, queues: queues)}
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(counts: counts, nodes: nodes, queues: queues)
+
+    {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
@@ -49,14 +60,30 @@ defmodule Oban.Web.QueuesComponent do
         <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr class="text-gray-400">
-              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-9 pr-3">Name</th>
-              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Nodes</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Exec</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Avail</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Local</th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Global</th>
-              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Rate Limit</th>
-              <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 px-1">Started</th>
+              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-9 pr-3">
+                <%= live_component HeaderSortComponent, label: "name", by: @sort_by, dir: @sort_dir, justify: "start" %>
+              </th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "nodes", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "exec", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "avail", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "local", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "global", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "rate limit", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
+              <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                <%= live_component HeaderSortComponent, label: "started", by: @sort_by, dir: @sort_dir, justify: "end" %>
+              </th>
               <th scope="col" class="w-8"></th>
             </tr>
           </thead>
@@ -78,12 +105,16 @@ defmodule Oban.Web.QueuesComponent do
     """
   end
 
+  # Handlers
+
   def handle_refresh(socket) do
     socket
   end
 
-  def handle_params(_, _uri, socket) do
-    {:noreply, assign(socket, page_title: page_title("Queues"))}
+  def handle_params(params, _uri, socket) do
+    assigns = Keyword.merge([page_title: page_title("Queues")], sort_params(params))
+
+    {:noreply, assign(socket, assigns)}
   end
 
   def handle_info({:pause_queue, queue}, socket) do
@@ -118,6 +149,64 @@ defmodule Oban.Web.QueuesComponent do
   def handle_info(_, socket) do
     {:noreply, socket}
   end
+
+  # Sort Helpers
+
+  defp sort_params(%{"sort" => sort}) do
+    [sby, dir] = String.split(sort, "-", parts: 2)
+
+    [sort_by: String.to_existing_atom(sby), sort_dir: String.to_existing_atom(dir)]
+  end
+
+  defp sort_params(_params), do: []
+
+  defp table_sort({queue, _gossip}, counts, :avail) do
+    get_in(counts, [queue, "available"])
+  end
+
+  defp table_sort({_queue, gossip}, _counts, :exec) do
+    Enum.reduce(gossip, 0, &(length(&1["running"]) + &2))
+  end
+
+  defp table_sort({_queue, gossip}, _counts, :local) do
+    Enum.reduce(gossip, 0, &((&1["limit"] || &1["local_limit"]) + &2))
+  end
+
+  defp table_sort({_queue, gossip}, _counts, :global) do
+    total = for %{"local_limit" => limit} <- gossip, reduce: 0, do: (acc -> acc + limit)
+
+    Enum.find_value(gossip, total, & &1["global_limit"])
+  end
+
+  defp table_sort({queue, _gossip}, _counts, :name), do: queue
+
+  defp table_sort({_queue, gossip}, _counts, :nodes) do
+    gossip
+    |> Enum.uniq_by(& &1["node"])
+    |> length()
+  end
+
+  defp table_sort({_queue, gossip}, _counts, :rate_limit) do
+    gossip
+    |> Enum.map(& &1["rate_limit"])
+    |> Enum.reject(&is_nil/1)
+    |> Enum.reduce(0, & &1["curr_count"] + &1["prev_count"] + &2)
+  end
+
+  defp table_sort({_queue, gossip}, _counts, :started) do
+    started_at_to_diff = fn started_at ->
+      {:ok, date_time, _} = DateTime.from_iso8601(started_at)
+
+      DateTime.diff(date_time, DateTime.utc_now())
+    end
+
+    gossip
+    |> Enum.map(& &1["started_at"])
+    |> Enum.map(started_at_to_diff)
+    |> Enum.max()
+  end
+
+  # Helpers
 
   defp aggregate_nodes(gossip, acc) do
     full_name = node_name(gossip["name"], gossip["node"])
