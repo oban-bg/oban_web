@@ -12,16 +12,16 @@ defmodule Oban.Web.Queues.RowComponent do
   def render(assigns) do
     ~L"""
     <tr id="<%= queue_id(@queue) %>" class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
-      <td class="p-3 flex">
-        <button rel="expand" class="block pr-2 text-gray-400 hover:text-blue-500" phx-click="toggle_expanded" phx-target="<%= @myself %>">
+      <td class="p-3">
+        <button rel="expand" title="View <%= @queue %> queue's details by node" class="block flex items-center text-gray-400 hover:text-blue-500" phx-click="toggle_expanded" phx-target="<%= @myself %>">
           <%= if @expanded? do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <% else %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
           <% end %>
-        </button>
 
-        <span rel="name"><%= @queue %></span>
+          <span class="pl-1" rel="name"><%= @queue %></span>
+        </button>
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right tabular"><%= nodes_count(@gossip) %></td>

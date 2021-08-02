@@ -60,7 +60,7 @@ defmodule Oban.Web.QueuesComponent do
         <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead>
             <tr class="text-gray-400">
-              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-9 pr-3">
+              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
                 <%= live_component HeaderSortComponent, label: "name", by: @sort_by, dir: @sort_dir, justify: "start" %>
               </th>
               <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
