@@ -61,11 +61,17 @@ defmodule Oban.Web.Pages.QueuesTest do
 
     refresh(live)
 
-    live
-    |> element("#queues-table a[rel=sort]", "local")
-    |> render_click()
+    for mode <- ~w(nodes exec avail local global started) do
+      change_sort(live, mode)
 
-    assert_patch(live, "/oban/queues?sort=local-desc")
+      assert_patch(live, "/oban/queues?sort=#{mode}-asc")
+    end
+
+    change_sort(live, "rate limit")
+    assert_patch(live, "/oban/queues?sort=rate_limit-asc")
+
+    change_sort(live, "rate limit")
+    assert_patch(live, "/oban/queues?sort=rate_limit-desc")
   end
 
   defp refresh(live) do
@@ -75,6 +81,12 @@ defmodule Oban.Web.Pages.QueuesTest do
   defp expand_queue(live, queue) do
     live
     |> element("#queue-#{queue} button[rel=expand]")
+    |> render_click()
+  end
+
+  defp change_sort(live, mode) do
+    live
+    |> element("#queues-table a[rel=sort]", mode)
     |> render_click()
   end
 end

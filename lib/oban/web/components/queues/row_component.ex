@@ -13,7 +13,7 @@ defmodule Oban.Web.Queues.RowComponent do
     ~L"""
     <tr id="<%= queue_id(@queue) %>" class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
       <td class="p-3">
-        <button rel="expand" title="View <%= @queue %> queue's details by node" class="block flex items-center text-gray-400 hover:text-blue-500" phx-click="toggle_expanded" phx-target="<%= @myself %>">
+        <button rel="expand" title="Expand <%= @queue %> to view details by node" class="block flex items-center text-gray-400 hover:text-blue-500 focus:outline-none focus:text-blue-500" phx-click="toggle_expanded" phx-target="<%= @myself %>">
           <%= if @expanded? do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <% else %>

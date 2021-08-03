@@ -5,9 +5,9 @@ defmodule Oban.Web.Queues.HeaderSortComponent do
   def render(assigns) do
     ~L"""
     <%= live_patch(
-      to: sort_link(@socket, @label, @dir),
+      to: sort_link(@socket, @label, @by, @dir),
       rel: "sort",
-      title: title(@label, @dir),
+      title: title(@label, @by, @dir),
       class: "flex justify-#{@justify}") do %>
       <%= if active_sort?(@label, @by) do %>
         <%= if @dir == :asc do %>
@@ -24,16 +24,21 @@ defmodule Oban.Web.Queues.HeaderSortComponent do
     """
   end
 
-  defp sort_link(socket, label, dir) do
-    sort = Enum.join([String.replace(label, " ", "_"), new_dir(dir)], "-")
+  defp sort_link(socket, label, by, dir) do
+    sort = Enum.join([String.replace(label, " ", "_"), new_dir(label, by, dir)], "-")
 
     oban_path(socket, :queues, sort: sort)
   end
 
-  defp title(label, dir), do: "Sort by #{label}, #{new_dir(dir)}"
+  defp title(label, by, dir), do: "Sort by #{label}, #{new_dir(label, by, dir)}"
 
-  defp new_dir(:asc), do: "desc"
-  defp new_dir(_), do: "asc"
+  defp new_dir(label, by, dir) do
+    if active_sort?(label, by) and dir == :asc do
+      "desc"
+    else
+      "asc"
+    end
+  end
 
   defp active_sort?("rate" <> _, :rate_limit), do: true
   defp active_sort?(label, by), do: label == to_string(by)
