@@ -36,10 +36,11 @@ defmodule Oban.Web.RouterTest do
 
   describe "__options__" do
     test "setting default options in the router module" do
-      options = Router.__options__([])
+      {session_name, session_opts, route_opts} = Router.__options__([])
 
-      assert options[:as] == :oban_dashboard
-      assert options[:layout] == {Oban.Web.LayoutView, "app.html"}
+      assert session_name == :oban_dashboard
+      assert route_opts[:as] == :oban_dashboard
+      assert session_opts[:root_layout] == {Oban.Web.LayoutView, "app.html"}
     end
 
     test "passing the transport through to the session" do
@@ -106,10 +107,9 @@ defmodule Oban.Web.RouterTest do
   end
 
   defp options_to_session(conn, opts) do
-    {Router, :__session__, session_opts} =
-      opts
-      |> Router.__options__()
-      |> Keyword.get(:session)
+    {_name, sess_opts, _opts} = Router.__options__(opts)
+
+    {Router, :__session__, session_opts} = Keyword.get(sess_opts, :session)
 
     apply(Router, :__session__, [conn | session_opts])
   end

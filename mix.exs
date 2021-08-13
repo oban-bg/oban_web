@@ -47,9 +47,9 @@ defmodule Oban.Web.MixProject do
       {:jason, "~> 1.2"},
       {:oban, "~> 2.7"},
       {:phoenix, "~> 1.5"},
-      {:phoenix_html, "~> 2.14"},
+      {:phoenix_html, "~> 3.0"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_live_view, "~> 0.15"},
+      {:phoenix_live_view, "~> 0.16"},
       {:credo, "~> 1.4", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.26", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}

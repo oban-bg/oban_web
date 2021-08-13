@@ -37,12 +37,14 @@ defmodule Oban.Web.Router do
   defmacro oban_dashboard(path, opts \\ []) do
     quote bind_quoted: binding() do
       scope path, alias: false, as: false do
-        import Phoenix.LiveView.Router, only: [live: 4]
+        import Phoenix.LiveView.Router, only: [live: 4, live_session: 3]
 
-        opts = Oban.Web.Router.__options__(opts)
+        {session_name, session_opts, route_opts} = Oban.Web.Router.__options__(opts)
 
-        live "/", Oban.Web.DashboardLive, :home, opts
-        live "/jobs/:id", Oban.Web.DashboardLive, :jobs, opts
+        live_session session_name, session_opts do
+          live "/", Oban.Web.DashboardLive, :home, route_opts
+          live "/jobs/:id", Oban.Web.DashboardLive, :jobs, route_opts
+        end
       end
     end
   end
@@ -53,6 +55,8 @@ defmodule Oban.Web.Router do
 
     Enum.each(opts, &validate_opt!/1)
 
+    session_name = Keyword.get(opts, :as, :oban_dashboard)
+
     session_args = [
       opts[:oban_name],
       opts[:transport],
@@ -60,10 +64,12 @@ defmodule Oban.Web.Router do
       opts[:csp_nonce_assign_key]
     ]
 
-    opts
-    |> Keyword.put_new(:as, :oban_dashboard)
-    |> Keyword.put_new(:layout, {Oban.Web.LayoutView, "app.html"})
-    |> Keyword.put_new(:session, {__MODULE__, :__session__, session_args})
+    session_opts = [
+      session: {__MODULE__, :__session__, session_args},
+      root_layout: {Oban.Web.LayoutView, "app.html"}
+    ]
+
+    {session_name, session_opts, as: session_name}
   end
 
   @doc false
