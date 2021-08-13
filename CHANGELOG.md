@@ -2,6 +2,12 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.7.2 — 2021-08-13
+
+### Changed
+
+- Upgrade minimum Phoenix Live View dependency to `0.16`.
+
 ## v2.7.1 — 2021-06-01
 
 ### Fixed
