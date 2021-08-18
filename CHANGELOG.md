@@ -8,6 +8,9 @@ All notable changes to `Oban.Web` are documented here.
 
 - Upgrade minimum Phoenix Live View dependency to `0.16`.
 
+  Due to changes in the least version of LiveView, you **must** provide an `as:`
+  option when mounting multiple dashboards in the same router.
+
 ## v2.7.1 — 2021-06-01
 
 ### Fixed

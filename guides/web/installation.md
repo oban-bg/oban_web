@@ -109,8 +109,8 @@ You can then mount both dashboards in your router:
 scope "/" do
   pipe_through :browser
 
-  oban_dashboard "/oban", oban_name: Oban
-  oban_dashboard "/oban/admin", oban_name: MyAdmin.Oban
+  oban_dashboard "/oban", oban_name: Oban, as: :oban_dashboard
+  oban_dashboard "/oban/admin", oban_name: MyAdmin.Oban, as: :oban_admin_dashboard
 end
 ```
 
