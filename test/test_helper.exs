@@ -32,8 +32,8 @@ defmodule Oban.Web.Test.Router do
   scope "/", ThisWontBeUsed, as: :this_wont_be_used do
     pipe_through :browser
 
-    oban_dashboard("/oban")
-    oban_dashboard("/oban-private", as: :oban_private_dashboard, oban_name: ObanPrivate)
+    oban_dashboard "/oban"
+    oban_dashboard "/oban-private", as: :oban_private_dashboard, oban_name: ObanPrivate
   end
 end
 
