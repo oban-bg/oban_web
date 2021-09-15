@@ -2,6 +2,19 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.7.3 — 2021-09-15
+
+### Changed
+
+- Expose documented, but unfortunately hidden, `socket_path` option.
+
+  The socket path is no longer hard coded as `/live`. It is now possible to
+  configure an alternate path when mounting the dashboard.
+
+### Fixed
+
+- Guard against `nil` global limit when calculating sidebar stats.
+
 ## v2.7.2 — 2021-08-13
 
 ### Changed
