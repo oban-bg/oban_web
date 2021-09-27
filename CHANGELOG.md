@@ -2,6 +2,13 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.7.4 — 2021-09-27
+
+### Fixed
+
+- Safely assign state from params when re-mounting to prevent a missing key
+  error.
+
 ## v2.7.3 — 2021-09-15
 
 ### Changed
