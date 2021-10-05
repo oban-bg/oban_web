@@ -14,8 +14,8 @@ build-js:
 .PHONY: build
 build: build-css build-js
 
-.PHONY: watch
-watch:
+.PHONY: watch-css
+watch-css:
 	cd assets && npx tailwindcss --postcss --watch --input css/app.css --output ../priv/static/app.css
 
 .PHONY: release
