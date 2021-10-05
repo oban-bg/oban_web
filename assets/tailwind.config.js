@@ -1,4 +1,5 @@
 module.exports = {
+  mode: 'jit',
   darkMode: 'media',
   theme: {
     fontFamily: {
@@ -14,9 +15,8 @@ module.exports = {
     }
   },
   purge: [
-    "../lib/**/*.eex",
-    "../lib/**/*.ex",
-    "../lib/**/*.leex"
+    "./js/**/*.js",
+    "../lib/**/*.*ex",
   ],
   variants: {
     display: ["group-hover"]

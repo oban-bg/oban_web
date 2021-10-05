@@ -1,8 +1,8 @@
 defmodule Oban.Web.LayoutView do
   use Oban.Web, :view
 
-  js_path = Path.join(__DIR__, "../../../../priv/static/js/app.js")
-  css_path = Path.join(__DIR__, "../../../../priv/static/css/app.css")
+  js_path = Path.join(__DIR__, "../../../../priv/static/app.js")
+  css_path = Path.join(__DIR__, "../../../../priv/static/app.css")
 
   @external_resource js_path
   @external_resource css_path

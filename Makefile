@@ -1,16 +1,22 @@
 .PHONY: prepare
 prepare:
-	mix deps.get && cd assets && npm install
+	mix deps.get && npm install --prefix assets
+
+.PHONY: build-css
+build-css:
+	cd assets && \
+		NODE_ENV=production npx tailwindcss --postcss --minify --input css/app.css --output ../priv/static/app.css
+
+.PHONY: build-js
+build-js:
+	mix esbuild default assets/js/app.js --bundle --minify --outdir=priv/static/
 
 .PHONY: build
-build:
-	cd assets && \
-		NODE_ENV=production npx webpack --mode production && \
-		rm ../priv/static/js/app.js.LICENSE.txt
+build: build-css build-js
 
 .PHONY: watch
 watch:
-	cd assets && npx webpack --mode development --watch
+	cd assets && npx tailwindcss --postcss --watch --input css/app.css --output ../priv/static/app.css
 
 .PHONY: release
 release:

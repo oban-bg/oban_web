@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :esbuild, :version, "0.12.18"
+
 config :logger, level: :warn
 config :logger, :console, format: "[$level] $message\n"
 

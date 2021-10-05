@@ -326,8 +326,8 @@ defmodule Oban.Web.Plugins.Stats do
 
   ## Aggregate Helpers
 
-  defp payload_limit(%{"global_limit" => limit}), do: limit
-  defp payload_limit(%{"local_limit" => limit}), do: limit
+  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: limit
+  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: limit
   defp payload_limit(%{"limit" => limit}), do: limit
   defp payload_limit(_payload), do: 0
 end
