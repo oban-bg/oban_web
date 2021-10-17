@@ -188,9 +188,10 @@ defmodule Oban.Web.QueuesComponent do
 
   defp table_sort({_queue, gossip}, _counts, :rate_limit) do
     gossip
-    |> Enum.map(& &1["rate_limit"])
+    |> Enum.map(&get_in(&1, ["rate_limit", "windows"]))
     |> Enum.reject(&is_nil/1)
-    |> Enum.reduce(0, & &1["curr_count"] + &1["prev_count"] + &2)
+    |> List.flatten()
+    |> Enum.reduce(0, &(&1["curr_count"] + &1["prev_count"] + &2))
   end
 
   defp table_sort({_queue, gossip}, _counts, :started) do

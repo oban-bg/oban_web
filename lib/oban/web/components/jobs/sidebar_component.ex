@@ -179,8 +179,8 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     {:noreply, assign(socket, show_queues?: not socket.assigns.show_queues?)}
   end
 
-  defp payload_limit(%{"global_limit" => limit}), do: limit
-  defp payload_limit(%{"local_limit" => limit}), do: limit
+  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: limit
+  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: limit
   defp payload_limit(%{"limit" => limit}), do: limit
   defp payload_limit(_payload), do: 0
 end

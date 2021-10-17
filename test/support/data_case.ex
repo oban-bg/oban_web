@@ -48,8 +48,10 @@ defmodule Oban.Web.DataCase do
     meta_json =
       meta_opts
       |> Map.new()
-      |> Map.put_new(:limit, 1)
       |> Map.put_new(:name, inspect(name))
+      |> Map.put_new(:local_limit, 1)
+      |> Map.put_new(:global_limit, nil)
+      |> Map.put_new(:rate_limit, nil)
       |> Map.put_new(:paused, false)
       |> Map.put_new(:running, [])
       |> Map.put_new(:started_at, iso_now)

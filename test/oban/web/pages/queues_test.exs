@@ -14,9 +14,9 @@ defmodule Oban.Web.Pages.QueuesTest do
   end
 
   test "viewing active queues", %{live: live} do
-    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
-    gossip(node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
-    gossip(node: "web.1", queue: "gamma", limit: 4, paused: false, running: [])
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.2", queue: "alpha")
+    gossip(node: "web.1", queue: "gamma")
 
     refresh(live)
 
@@ -27,8 +27,8 @@ defmodule Oban.Web.Pages.QueuesTest do
   end
 
   test "expanding queues to see node details", %{live: live} do
-    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
-    gossip(node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.2", queue: "alpha")
 
     refresh(live)
 
@@ -38,9 +38,30 @@ defmodule Oban.Web.Pages.QueuesTest do
     assert has_element?(live, "#queue-alpha-node-web_2")
   end
 
+  test "viewing aggregate rate-limit details", %{live: live} do
+    rate_limit = %{
+      allowed: 10,
+      period: 60,
+      window_time: time_iso_now(),
+      windows: [%{curr_count: 3, prev_count: 0}]
+    }
+
+    gossip(node: "web.1", queue: "alpha", rate_limit: rate_limit)
+    gossip(node: "web.2", queue: "alpha", rate_limit: rate_limit)
+
+    refresh(live)
+
+    assert has_element?(live, "#queue-alpha [rel=rate]", "6/10 per 1m")
+
+    expand_queue(live, "alpha")
+
+    assert has_element?(live, "#queue-alpha-node-web_1 [rel=rate]", "3/10 per 1m")
+    assert has_element?(live, "#queue-alpha-node-web_2 [rel=rate]", "3/10 per 1m")
+  end
+
   test "pausing and resuming active queues", %{live: live} do
-    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
-    gossip(node: "web.2", queue: "alpha", limit: 4, paused: false, running: [])
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.2", queue: "alpha")
 
     refresh(live)
 
@@ -56,8 +77,15 @@ defmodule Oban.Web.Pages.QueuesTest do
   end
 
   test "sorting queues by different properties", %{live: live} do
-    gossip(node: "web.1", queue: "alpha", limit: 4, paused: false, running: [])
-    gossip(node: "web.1", queue: "gamma", limit: 4, paused: false, running: [])
+    rate_limit = %{
+      allowed: 10,
+      period: 60,
+      window_time: time_iso_now(),
+      windows: [%{curr_count: 3, prev_count: 0}]
+    }
+
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.1", queue: "gamma", rate_limit: rate_limit)
 
     refresh(live)
 
@@ -88,5 +116,11 @@ defmodule Oban.Web.Pages.QueuesTest do
     live
     |> element("#queues-table a[rel=sort]", mode)
     |> render_click()
+  end
+
+  defp time_iso_now do
+    Time.utc_now()
+    |> Time.truncate(:second)
+    |> Time.to_iso8601()
   end
 end

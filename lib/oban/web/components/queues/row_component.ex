@@ -54,13 +54,13 @@ defmodule Oban.Web.Queues.RowComponent do
     <%= if @expanded? do %>
       <%= for entry <- @gossip do %>
         <tr id="<%= queue_id(@queue, entry["node"]) %>" class="text-gray-400 bg-gray-100 dark:bg-black dark:bg-opacity-25">
-          <td colspan="2"class="py-3 text-right"><%= node_name(entry["name"], entry["node"]) %></td>
-          <td class="py-3 text-right tabular"><%= length(entry["running"]) %></td>
-          <td class="py-3 text-right tabular"><%= available_count(@counts) %></td>
-          <td class="py-3 text-right tabular"><%= Map.get(entry, "local_limit", "-") %></td>
-          <td class="py-3 text-right tabular"><%= Map.get(entry, "global_limit", "-") %></td>
-          <td class="py-3 text-right tabular"><%= rate_limit([entry]) %></td>
-          <td class="py-3 text-right tabular"><%= started_at([entry]) %></td>
+          <td rel="node" colspan="2"class="py-3 text-right"><%= node_name(entry["name"], entry["node"]) %></td>
+          <td rel="executing" class="py-3 text-right tabular"><%= length(entry["running"]) %></td>
+          <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
+          <td rel="local" class="py-3 text-right tabular"><%= Map.get(entry, "local_limit", "-") %></td>
+          <td rel="global" class="py-3 text-right tabular"><%= Map.get(entry, "global_limit", "-") %></td>
+          <td rel="rate" class="py-3 text-right tabular"><%= rate_limit([entry]) %></td>
+          <td rel="started" class="py-3 text-right tabular"><%= started_at([entry]) %></td>
           <td class="py-3 pr-10 flex justify-end">
             <%= if can?(:pause_queues, @access) do %>
               <button rel="play_pause" class="block <%= if entry["paused"] do %>text-red-500<% else %>text-gray-500<% end %> hover:text-blue-500"
@@ -154,17 +154,21 @@ defmodule Oban.Web.Queues.RowComponent do
   end
 
   defp rate_limit(gossip) do
-    case for %{"rate_limit" => rate} <- gossip, do: rate do
-      [] ->
-        "-"
+    gossip
+    |> Enum.map(& &1["rate_limit"])
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [head_limit | _rest] = rate_limits ->
+        %{"allowed" => allowed, "period" => period, "window_time" => time} = head_limit
 
-      [rate | _] = rates ->
-        %{"allowed" => allowed, "period" => period, "window_time" => time} = rate
+        {prev_total, curr_total} =
+          rate_limits
+          |> Enum.flat_map(& &1["windows"])
+          |> Enum.reduce({0, 0}, fn %{"prev_count" => pcnt, "curr_count" => ccnt}, {pacc, cacc} ->
+            {pacc + pcnt, cacc + ccnt}
+          end)
 
         curr_time = Time.truncate(Time.utc_now(), :second)
-
-        prev_total = for %{"prev_count" => cnt} <- rates, reduce: 0, do: (acc -> acc + cnt)
-        curr_total = for %{"curr_count" => cnt} <- rates, reduce: 0, do: (acc -> acc + cnt)
 
         ellapsed =
           time
@@ -177,6 +181,9 @@ defmodule Oban.Web.Queues.RowComponent do
         period_in_words = Timing.to_words(period, relative: false)
 
         "#{remaining}/#{allowed} per #{period_in_words}"
+
+      [] ->
+        "-"
     end
   end
 
