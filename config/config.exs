@@ -1,6 +1,8 @@
-use Mix.Config
+import Config
 
-config :esbuild, :version, "0.12.18"
+if config_env() == :dev do
+  config :esbuild, :version, "0.12.18"
+end
 
 config :logger, level: :warn
 config :logger, :console, format: "[$level] $message\n"
