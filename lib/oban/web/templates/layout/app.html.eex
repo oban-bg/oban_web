@@ -15,7 +15,7 @@
 
     <style nonce="<%= @csp_nonces.style %>"><%= raw(render("app.css")) %></style>
   </head>
-  <body class="min-h-screen flex flex-col antialiased bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+  <body class="min-h-screen antialiased bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
     <%= @inner_content %>
 
     <script nonce="<%= @csp_nonces.script %>"><%= raw(render("app.js")) %></script>

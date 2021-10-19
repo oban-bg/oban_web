@@ -34,7 +34,7 @@ defmodule Oban.Web.JobsComponent do
 
   def render(assigns) do
     ~L"""
-    <div id="jobs-page" class="w-full flex flex-col my-6 md:flex-row">
+    <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <div id="sidebar" class="mr-0 mb-3 md:mr-3 md:mb-0">
         <%= live_component @socket,
             SidebarComponent,
@@ -45,18 +45,20 @@ defmodule Oban.Web.JobsComponent do
             counts: @counts %>
       </div>
 
-      <div class="flex-1 bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
-        <%= if @detailed do %>
-          <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
-        <% else %>
-          <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-            <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, counts: @counts, selected: @selected %>
-            <%= live_component @socket, SearchComponent, id: :search, params: @params %>
-          </div>
+      <div class="flex-grow">
+        <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
+          <%= if @detailed do %>
+            <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
+          <% else %>
+            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+              <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, counts: @counts, selected: @selected %>
+              <%= live_component @socket, SearchComponent, id: :search, params: @params %>
+            </div>
 
-          <%= live_component @socket, BulkActionComponent, id: :bulk_action, access: @access, jobs: @jobs, selected: @selected %>
-          <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, params: @params, selected: @selected %>
-        <% end %>
+            <%= live_component @socket, BulkActionComponent, id: :bulk_action, access: @access, jobs: @jobs, selected: @selected %>
+            <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, params: @params, selected: @selected %>
+          <% end %>
+        </div>
       </div>
     </div>
     """

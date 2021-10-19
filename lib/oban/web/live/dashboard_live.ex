@@ -48,7 +48,7 @@ defmodule Oban.Web.DashboardLive do
     <meta name="live-transport" content="<%= @live_transport %>" />
     <meta name="live-path" content="<%= @live_path %>" />
 
-    <main class="p-4">
+    <main class="p-4 min-h-screen flex flex-col">
       <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
 
       <header class="flex items-center">

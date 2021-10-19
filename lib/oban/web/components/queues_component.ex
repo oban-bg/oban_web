@@ -50,58 +50,60 @@ defmodule Oban.Web.QueuesComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~L"""
-    <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
+    <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <%= live_component @socket, SidebarComponent, id: :sidebar, nodes: @nodes, active: @node %>
 
-      <div class="flex-1 bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
-        <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-          <h2 class="text-lg font-bold ml-2">Queues</h2>
-          <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= length(@queues) %>)</h3>
+      <div class="flex-grow">
+        <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
+          <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+            <h2 class="text-lg font-bold ml-2">Queues</h2>
+            <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= length(@queues) %>)</h3>
+          </div>
+
+          <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead>
+              <tr class="text-gray-400">
+                <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
+                  <%= live_component HeaderSortComponent, label: "name", by: @sort_by, dir: @sort_dir, justify: "start" %>
+                </th>
+                <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "nodes", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "exec", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "avail", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "local", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "global", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "rate limit", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+                  <%= live_component HeaderSortComponent, label: "started", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                </th>
+                <th scope="col" class="w-8"></th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+              <%= for {queue, gossip} <- @queues do %>
+                <%= live_component @socket,
+                  RowComponent,
+                  id: queue,
+                  counts: Map.get(@counts, queue, %{}),
+                  queue: queue,
+                  gossip: gossip,
+                  access: @access %>
+              <% end %>
+            </tbody>
+          </table>
         </div>
-
-        <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead>
-            <tr class="text-gray-400">
-              <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
-                <%= live_component HeaderSortComponent, label: "name", by: @sort_by, dir: @sort_dir, justify: "start" %>
-              </th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "nodes", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "exec", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "avail", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "local", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "global", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "rate limit", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                <%= live_component HeaderSortComponent, label: "started", by: @sort_by, dir: @sort_dir, justify: "end" %>
-              </th>
-              <th scope="col" class="w-8"></th>
-            </tr>
-          </thead>
-
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <%= for {queue, gossip} <- @queues do %>
-              <%= live_component @socket,
-                RowComponent,
-                id: queue,
-                counts: Map.get(@counts, queue, %{}),
-                queue: queue,
-                gossip: gossip,
-                access: @access %>
-            <% end %>
-          </tbody>
-        </table>
       </div>
     </div>
     """
