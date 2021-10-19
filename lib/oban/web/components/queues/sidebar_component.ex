@@ -20,9 +20,12 @@ defmodule Oban.Web.Queues.SidebarComponent do
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           <%= for node <- @nodes do %>
-            <tr id="node-<%= @id %>" class="border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800">
+            <tr id="node-<%= @id %>" class="border-l-4 border-transparent hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
               <td class="pl-2 py-3 text-sm dark:text-gray-300 text-left font-semibold truncate">
-                <a href="#" class=""><%= String.downcase(node.name) %></a>
+                <%= live_patch(String.downcase(node.name),
+                  to: filter_link(@socket, node.name, @active),
+                  rel: "filter",
+                  class: "hover:text-blue-500") %>
               </td>
               <td class="pr-3 py-3 text-sm text-gray-500 text-right tabular"><%= integer_to_estimate(node.count) %></td>
               <td class="pr-3 py-3 text-sm text-gray-500 text-right tabular"><%= integer_to_estimate(node.limit) %></td>
@@ -33,4 +36,7 @@ defmodule Oban.Web.Queues.SidebarComponent do
     </div>
     """
   end
+
+  defp filter_link(socket, node, node), do: oban_path(socket, :queues)
+  defp filter_link(socket, node, _ative), do: oban_path(socket, :queues, node: node)
 end

@@ -15,7 +15,8 @@ defmodule Oban.Web.QueuesComponent do
   def update(assigns, socket) do
     assigns =
       assigns
-      |> Map.take([:access, :conf, :sort_by, :sort_dir])
+      |> Map.take([:access, :conf, :node, :sort_by, :sort_dir])
+      |> Map.put_new(:node, :all)
       |> Map.put_new(:sort_by, :name)
       |> Map.put_new(:sort_dir, :asc)
 
@@ -27,6 +28,7 @@ defmodule Oban.Web.QueuesComponent do
     queues =
       assigns.conf.name
       |> Stats.all_gossip()
+      |> Enum.filter(&table_filter(&1, assigns.node))
       |> Enum.group_by(& &1["queue"])
       |> Enum.sort_by(&table_sort(&1, counts, assigns.sort_by), assigns.sort_dir)
 
@@ -49,7 +51,7 @@ defmodule Oban.Web.QueuesComponent do
   def render(assigns) do
     ~L"""
     <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
-      <%= live_component @socket, SidebarComponent, id: :sidebar, nodes: @nodes %>
+      <%= live_component @socket, SidebarComponent, id: :sidebar, nodes: @nodes, active: @node %>
 
       <div class="flex-1 bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
         <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
@@ -112,7 +114,10 @@ defmodule Oban.Web.QueuesComponent do
   end
 
   def handle_params(params, _uri, socket) do
-    assigns = Keyword.merge([page_title: page_title("Queues")], sort_params(params))
+    assigns =
+      [page_title: page_title("Queues")]
+      |> Keyword.merge(sort_params(params))
+      |> Keyword.merge(node_params(params))
 
     {:noreply, assign(socket, assigns)}
   end
@@ -149,6 +154,14 @@ defmodule Oban.Web.QueuesComponent do
   def handle_info(_, socket) do
     {:noreply, socket}
   end
+
+  # Filter Helpers
+
+  defp node_params(%{"node" => node}), do: [node: node]
+  defp node_params(_params), do: [node: :all]
+
+  defp table_filter(_gossip, :all), do: true
+  defp table_filter(gossip, node), do: node_name(gossip) == node
 
   # Sort Helpers
 
@@ -210,7 +223,7 @@ defmodule Oban.Web.QueuesComponent do
   # Helpers
 
   defp aggregate_nodes(gossip, acc) do
-    full_name = node_name(gossip["name"], gossip["node"])
+    full_name = node_name(gossip)
     empty_fun = fn -> %{name: full_name, count: 0, limit: 0} end
 
     acc

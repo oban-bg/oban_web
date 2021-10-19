@@ -146,8 +146,10 @@ defmodule Oban.Web.Helpers do
   @doc """
   A normalized globally unique combination of instance and node names.
   """
+  def node_name(%{"node" => node, "name" => name}), do: node_name(node, name)
+
   def node_name(node, name) do
-    [name, node]
+    [node, name]
     |> Enum.join("/")
     |> String.trim_leading("Elixir.")
     |> String.downcase()

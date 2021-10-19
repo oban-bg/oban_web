@@ -102,6 +102,33 @@ defmodule Oban.Web.Pages.QueuesTest do
     assert_patch(live, "/oban/queues?sort=rate_limit-desc")
   end
 
+  test "filtering queues by associated node", %{live: live} do
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.1", queue: "gamma")
+    gossip(node: "web.2", queue: "delta")
+
+    refresh(live)
+
+    filter_by_node(live, "web.1/oban")
+    assert_patch(live, "/oban/queues?#{URI.encode_query(node: "web.1/oban")}")
+
+    assert has_element?(live, "#queues-table tr [rel=name]", "alpha")
+    assert has_element?(live, "#queues-table tr [rel=name]", "gamma")
+    refute has_element?(live, "#queues-table tr [rel=name]", "delta")
+
+    filter_by_node(live, "web.2/oban")
+
+    refute has_element?(live, "#queues-table tr [rel=name]", "alpha")
+    refute has_element?(live, "#queues-table tr [rel=name]", "gamma")
+    assert has_element?(live, "#queues-table tr [rel=name]", "delta")
+
+    filter_by_node(live, "web.2/oban")
+
+    assert has_element?(live, "#queues-table tr [rel=name]", "alpha")
+    assert has_element?(live, "#queues-table tr [rel=name]", "gamma")
+    assert has_element?(live, "#queues-table tr [rel=name]", "delta")
+  end
+
   defp refresh(live) do
     send(live.pid, :refresh)
   end
@@ -115,6 +142,12 @@ defmodule Oban.Web.Pages.QueuesTest do
   defp change_sort(live, mode) do
     live
     |> element("#queues-table a[rel=sort]", mode)
+    |> render_click()
+  end
+
+  defp filter_by_node(live, node) do
+    live
+    |> element("#sidebar #nodes a[rel=filter]", node)
     |> render_click()
   end
 
