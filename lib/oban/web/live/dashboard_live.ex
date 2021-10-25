@@ -2,8 +2,7 @@ defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.{FooterComponent, JobsComponent, LogoComponent, QueuesComponent}
-  alias Oban.Web.{NotificationComponent, RefreshComponent, TabsComponent}
+  alias Oban.Web.{JobsComponent, LayoutComponent, QueuesComponent, RefreshComponent}
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
@@ -44,22 +43,23 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def render(assigns) do
-    ~L"""
-    <meta name="live-transport" content="<%= @live_transport %>" />
-    <meta name="live-path" content="<%= @live_path %>" />
+    ~H"""
+    <meta name="live-transport" content={@live_transport} />
+    <meta name="live-path" content={@live_path} />
 
     <main class="p-4 min-h-screen flex flex-col">
-      <%= live_component @socket, NotificationComponent, id: :flash, flash: @flash %>
+      <LayoutComponent.notify flash={@flash} />
 
       <header class="flex items-center">
-        <%= live_component @socket, LogoComponent %>
-        <%= live_component @socket, TabsComponent, page: @page.name %>
-        <%= live_component @socket, RefreshComponent, id: :refresh, refresh: @refresh %>
+        <LayoutComponent.logo />
+        <LayoutComponent.tabs socket={@socket} page={@page.name} />
+
+        <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
       </header>
 
-      <%= live_component @socket, @page.comp, Map.put(assigns, :id, :page) %>
+      <.live_component module={@page.comp} conf={@conf} params={@params} id="page" />
 
-      <%= live_component @socket, FooterComponent %>
+      <LayoutComponent.footer />
     </main>
     """
   end

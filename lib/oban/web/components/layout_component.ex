@@ -1,8 +1,10 @@
-defmodule Oban.Web.LogoComponent do
-  use Oban.Web, :live_component
+defmodule Oban.Web.LayoutComponent do
+  use Phoenix.Component
 
-  def render(assigns) do
-    ~L"""
+  import Oban.Web.Helpers, only: [oban_path: 2]
+
+  def logo(assigns) do
+    ~H"""
     <svg viewBox="0 0 127 48" class="h-12 text-gray-600 dark:text-gray-300">
       <title>Oban</title>
       <defs>
@@ -17,4 +19,77 @@ defmodule Oban.Web.LogoComponent do
     </svg>
     """
   end
+
+  def notify(assigns) do
+    class = if assigns.flash |> live_flash(:info) |> is_nil(), do: "hidden", else: ""
+
+    ~H"""
+    <div class={"fixed z-40 inset-0 flex items-end justify-center px-4 py-6 pointer-events-none sm:p-6 sm:items-start sm:justify-end #{class}"}>
+      <div class="max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto">
+        <div class="rounded-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
+          <div class="p-4">
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <svg class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <div class="ml-3 w-0 flex-1 pt-0.5">
+                <p class="text-sm leading-5 font-medium text-gray-900">
+                  <%= live_flash(assigns.flash, :info) %>
+                </p>
+              </div>
+              <div class="ml-4 flex-shrink-0 flex">
+                <button phx-click="lv:clear-flash" class="inline-flex text-gray-400 focus:outline-none focus:text-gray-500 transition ease-in-out duration-150">
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  def tabs(assigns) do
+    ~H"""
+    <nav class="ml-8 flex space-x-2">
+      <%= live_redirect "Jobs",
+          to: oban_path(assigns.socket, :jobs),
+          class: link_class(assigns.page, :jobs) %>
+
+      <%= live_redirect "Queues",
+          to: oban_path(assigns.socket, :queues),
+          class: link_class(assigns.page, :queues) %>
+    </nav>
+    """
+  end
+
+  def footer(assigns) do
+    oss_version = "Oban v#{Application.spec(:oban, :vsn)}"
+    web_version = "Oban.Web v#{Application.spec(:oban_web, :vsn)}"
+    pro_version = "Oban.Pro v#{Application.spec(:oban_pro, :vsn)}"
+
+    ~H"""
+    <footer class="flex flex-col px-3 pb-6 text-sm justify-center items-center md:flex-row">
+      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0"><%= oss_version %></span>
+      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0"><%= web_version %></span>
+      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0"><%= pro_version %></span>
+
+      <span class="text-gray-800 dark:text-gray-200 mr-1">
+        <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path fill-rule="evenodd" d="M18 3.315a.251.251 0 00-.073-.177l-1.065-1.065a.25.25 0 00-.353 0l-1.772 1.773a7.766 7.766 0 00-10.89 10.89L2.072 16.51a.251.251 0 000 .352l1.066 1.066a.25.25 0 00.352 0l1.773-1.772a7.766 7.766 0 0010.89-10.891l1.773-1.773A.252.252 0 0018 3.315zM5.474 10c0-1.21.471-2.345 1.326-3.2A4.496 4.496 0 0110 5.474c.867 0 1.697.243 2.413.695l-6.244 6.244A4.495 4.495 0 015.474 10zm9.052 0c0 1.209-.471 2.345-1.326 3.2a4.496 4.496 0 01-3.2 1.326 4.497 4.497 0 01-2.413-.695l6.244-6.244c.452.716.695 1.546.695 2.413z" /></svg>
+      </span>
+
+      <span class="text-gray-800 dark:text-gray-200 font-semibold">Made by Soren</span>
+    </footer>
+    """
+  end
+
+  @tabs_base "text-gray-300 hover:text-gray-100 px-3 py-2 font-medium text-sm rounded-md"
+
+  defp link_class(page, page), do: @tabs_base <> " bg-blue-300 bg-opacity-25"
+  defp link_class(_pag, _exp), do: @tabs_base
 end
