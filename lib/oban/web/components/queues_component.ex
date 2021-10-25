@@ -3,13 +3,8 @@ defmodule Oban.Web.QueuesComponent do
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Queues.{HeaderSortComponent, RowComponent, SidebarComponent}
+  alias Oban.Web.Queues.{HeaderComponent, RowComponent, SidebarComponent}
   alias Oban.Web.Telemetry
-
-  @impl Phoenix.LiveComponent
-  def mount(socket) do
-    {:ok, socket}
-  end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
@@ -49,9 +44,9 @@ defmodule Oban.Web.QueuesComponent do
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
-      <%= live_component @socket, SidebarComponent, id: :sidebar, nodes: @nodes, active: @node %>
+      <.live_component id="sidebar" module={SidebarComponent} nodes={@nodes} active={@node} socket={@socket} />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -64,28 +59,28 @@ defmodule Oban.Web.QueuesComponent do
             <thead>
               <tr class="text-gray-400">
                 <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
-                  <%= live_component HeaderSortComponent, label: "name", by: @sort_by, dir: @sort_dir, justify: "start" %>
+                  <HeaderComponent.sort_link label="name" by={@sort_by} dir={@sort_dir} socket={@socket} justify="start" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "nodes", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="nodes" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "exec", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="exec" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "avail", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="avail" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "local", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="local" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "global", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="global" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "rate limit", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="rate limit" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <%= live_component HeaderSortComponent, label: "started", by: @sort_by, dir: @sort_dir, justify: "end" %>
+                  <HeaderComponent.sort_link label="started" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-8"></th>
               </tr>
@@ -93,13 +88,13 @@ defmodule Oban.Web.QueuesComponent do
 
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
               <%= for {queue, gossip} <- @queues do %>
-                <%= live_component @socket,
-                  RowComponent,
-                  id: queue,
-                  counts: Map.get(@counts, queue, %{}),
-                  queue: queue,
-                  gossip: gossip,
-                  access: @access %>
+                <.live_component
+                  id={queue}
+                  module={RowComponent}
+                  counts={Map.get(@counts, queue, %{})}
+                  queue={queue}
+                  gossip={gossip}
+                  access={@access} />
               <% end %>
             </tbody>
           </table>

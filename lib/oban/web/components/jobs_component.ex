@@ -9,54 +9,46 @@ defmodule Oban.Web.JobsComponent do
 
   @flash_timing 5_000
 
-  def mount(socket) do
-    {:ok, assign(socket, params: %{limit: 20, state: "executing"}, selected: MapSet.new())}
-  end
-
   def update(assigns, socket) do
     # selected =
     #   assigns.jobs
     #   |> MapSet.new(& &1.id)
     #   |> MapSet.intersection(assigns.selected || MapSet.new())
 
-    {:ok,
-     assign(socket,
-       access: assigns.access,
-       detailed: assigns.detailed,
-       user: assigns.user,
-       jobs: assigns.jobs,
-       params: socket.assigns.params,
-       gossip: Stats.all_gossip(assigns.conf.name),
-       counts: Stats.all_counts(assigns.conf.name),
-       selected: socket.assigns.selected
-     )}
+    socket =
+      socket
+      |> assign_new(:detailed, fn -> nil end)
+      |> assign_new(:params, fn -> %{limit: 20, state: "executing"} end)
+      |> assign_new(:selected, &MapSet.new/0)
+      |> assign(access: assigns.access, conf: assigns.conf)
+      |> handle_refresh()
+
+    {:ok, socket}
   end
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
-      <div id="sidebar" class="mr-0 mb-3 md:mr-3 md:mb-0">
-        <%= live_component @socket,
-            SidebarComponent,
-            id: :sidebar,
-            access: @access,
-            params: @params,
-            gossip: @gossip,
-            counts: @counts %>
-      </div>
+      <.live_component
+        id="sidebar"
+        module={SidebarComponent}
+        access={@access}
+        params={@params}
+        gossip={@gossip}
+        counts={@counts} />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
-            <%= live_component @socket, DetailComponent, id: :detail, access: @access, job: @detailed %>
+            <.live_component id="detail" module={DetailComponent} access={@access} job={@detailed} />
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-              <%= live_component @socket, HeaderComponent, id: :header, params: @params, jobs: @jobs, counts: @counts, selected: @selected %>
-              <%= live_component @socket, SearchComponent, id: :search, params: @params %>
+              <.live_component id="header" module={HeaderComponent} params={@params} jobs={@jobs} counts={@counts} selected={@selected} />
+              <.live_component id="search" module={SearchComponent} params={@params} />
             </div>
 
-            <%= live_component @socket, BulkActionComponent, id: :bulk_action, access: @access, jobs: @jobs, selected: @selected %>
-            <%= live_component @socket, ListingComponent, id: :listing, jobs: @jobs, params: @params, selected: @selected %>
+            <.live_component id="bulk_action" module={BulkActionComponent} access={@access} jobs={@jobs} selected={@selected} />
+            <.live_component id="listing" module={ListingComponent} jobs={@jobs} params={@params} selected={@selected} />
           <% end %>
         </div>
       </div>

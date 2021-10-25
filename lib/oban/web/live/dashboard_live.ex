@@ -57,7 +57,7 @@ defmodule Oban.Web.DashboardLive do
         <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
       </header>
 
-      <.live_component module={@page.comp} conf={@conf} params={@params} id="page" />
+      <%= live_component(@page.comp, Map.put(assigns, :id, "page")) %>
 
       <LayoutComponent.footer />
     </main>

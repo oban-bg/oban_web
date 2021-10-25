@@ -18,7 +18,7 @@ defmodule Oban.Web.Jobs.ListingComponent do
   end
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div id="listing">
       <div class="flex justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-3">
         <span class="text-xs text-gray-400 pl-8 uppercase">Worker</span>
@@ -37,19 +37,19 @@ defmodule Oban.Web.Jobs.ListingComponent do
       <% else %>
         <ul>
           <%= for job <- @jobs do %>
-            <%= live_component @socket, ListingRowComponent, id: job.id, job: job, selected: @selected %>
+            <.live_component id={job.id} module={ListingRowComponent} job={job} selected={@selected} />
           <% end %>
         </ul>
 
         <div class="flex justify-center py-6">
           <button type="button"
-            class="font-semibold text-sm mr-6 <%= if @show_less? do %>text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400<% else %>text-gray-400 dark:text-gray-600 cursor-not-allowed<% end %> focus:outline-none"
-            phx-target="<%= @myself %>"
+            class="font-semibold text-sm mr-6 focus:outline-none #{activity_class(@show_less?)}"
+            phx-target={@myself}
             phx-click="load_less">Show Less</button>
 
           <button type="button"
-            class="font-semibold text-sm <%= if @show_more? do %>text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400<% else %>text-gray-400 dark:text-gray-600 cursor-not-allowed<% end %> focus:outline-none"
-            phx-target="<%= @myself %>"
+            class={"font-semibold text-sm focus:outline-none #{activity_class(@show_more?)}"}
+            phx-target={@myself}
             phx-click="load_more">Show More</button>
         </div>
       <% end %>
@@ -72,4 +72,13 @@ defmodule Oban.Web.Jobs.ListingComponent do
 
     {:noreply, socket}
   end
+
+  defp activity_class(true) do
+    """
+    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
+    border-gray-200 dark:border-gray-800 hover:border-gray-400
+    """
+  end
+
+  defp activity_class(_), do: "text-gray-400 dark:text-gray-600 cursor-not-allowed"
 end

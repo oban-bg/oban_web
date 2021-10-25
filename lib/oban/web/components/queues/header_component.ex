@@ -1,9 +1,10 @@
-defmodule Oban.Web.Queues.HeaderSortComponent do
-  use Oban.Web, :live_component
+defmodule Oban.Web.Queues.HeaderComponent do
+  use Phoenix.Component
 
-  @impl Phoenix.LiveComponent
-  def render(assigns) do
-    ~L"""
+  import Oban.Web.Helpers, only: [oban_path: 3]
+
+  def sort_link(assigns) do
+    ~H"""
     <%= live_patch(
       to: sort_link(@socket, @label, @by, @dir),
       rel: "sort",
