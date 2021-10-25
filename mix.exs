@@ -1,14 +1,14 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.7.2"
+  @version "2.8.0"
 
   def project do
     [
       app: :oban_web,
       version: @version,
-      elixir: "~> 1.9",
-      compilers: [:phoenix] ++ Mix.compilers(),
+      elixir: "~> 1.12",
+      compilers: Mix.compilers(),
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -45,12 +45,12 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.7"},
-      {:phoenix, "~> 1.5"},
-      {:phoenix_html, "~> 3.0"},
+      {:oban, "~> 2.9"},
+      {:phoenix, "~> 1.6"},
+      {:phoenix_html, "~> 3.1"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_live_view, "~> 0.16"},
-      {:esbuild, "~> 0.1", runtime: false, only: [:dev]},
+      {:phoenix_live_view, "~> 0.17"},
+      {:esbuild, "~> 0.3", runtime: false, only: [:dev]},
       {:credo, "~> 1.4", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.26", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
