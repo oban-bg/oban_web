@@ -11,35 +11,21 @@ defmodule Oban.Web.DashboardLive do
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
     conf = await_config(oban)
+    page = resolve_page(params)
 
     :ok = Stats.activate(oban)
 
     socket =
-      assign(socket,
-        conf: conf,
-        params: %{},
-        page: resolve_page(params),
+      socket
+      |> assign(conf: conf, params: params, page: page)
+      |> assign(csp_nonces: csp_nonces, live_path: path, live_transport: transport)
+      |> assign(access: access, user: user)
+      |> assign(refresh: refresh, timer: nil)
+      |> init_schedule_refresh()
+      |> page.comp.handle_mount()
 
-        # Socket Config
-        csp_nonces: csp_nonces,
-        live_path: path,
-        live_transport: transport,
-
-        # Access
-        access: access,
-        user: user,
-
-        # Refreshing
-        refresh: refresh,
-        timer: nil
-      )
-
-    {:ok, init_schedule_refresh(socket)}
+    {:ok, socket}
   end
-
-  defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsComponent}
-  defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesComponent}
-  defp resolve_page(_params), do: %{name: :jobs, comp: JobsComponent}
 
   @impl Phoenix.LiveView
   def render(assigns) do
@@ -57,7 +43,7 @@ defmodule Oban.Web.DashboardLive do
         <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
       </header>
 
-      <%= live_component(@page.comp, Map.put(assigns, :id, "page")) %>
+      <%= render_page(@page, assigns) %>
 
       <LayoutComponent.footer />
     </main>
@@ -93,9 +79,12 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:refresh, socket) do
-    socket = socket.assigns.page.comp.handle_refresh(socket)
+    socket =
+      socket
+      |> socket.assigns.page.comp.handle_refresh()
+      |> schedule_refresh()
 
-    {:noreply, schedule_refresh(socket)}
+    {:noreply, socket}
   end
 
   def handle_info(message, socket) do
@@ -122,6 +111,21 @@ defmodule Oban.Web.DashboardLive do
       end
   after
     :telemetry.detach("oban-await-config")
+  end
+
+  ## Render Helpers
+
+  defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsComponent}
+  defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesComponent}
+  defp resolve_page(_params), do: %{name: :jobs, comp: JobsComponent}
+
+  defp render_page(page, assigns) do
+    assigns =
+      assigns
+      |> Map.put(:id, "page")
+      |> Map.drop([:csp_nonces, :live_path, :live_transport, :refresh, :timer])
+
+    live_component(page.comp, assigns)
   end
 
   ## Refresh Helpers

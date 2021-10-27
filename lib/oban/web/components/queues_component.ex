@@ -4,43 +4,9 @@ defmodule Oban.Web.QueuesComponent do
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.Queues.{HeaderComponent, RowComponent, SidebarComponent}
-  alias Oban.Web.Telemetry
+  alias Oban.Web.{Page, Telemetry}
 
-  @impl Phoenix.LiveComponent
-  def update(assigns, socket) do
-    assigns =
-      assigns
-      |> Map.take([:access, :conf, :node, :sort_by, :sort_dir])
-      |> Map.put_new(:node, :all)
-      |> Map.put_new(:sort_by, :name)
-      |> Map.put_new(:sort_dir, :asc)
-
-    counts =
-      assigns.conf.name
-      |> Stats.all_counts()
-      |> Map.new(fn counts -> {counts["name"], counts} end)
-
-    queues =
-      assigns.conf.name
-      |> Stats.all_gossip()
-      |> Enum.filter(&table_filter(&1, assigns.node))
-      |> Enum.group_by(& &1["queue"])
-      |> Enum.sort_by(&table_sort(&1, counts, assigns.sort_by), assigns.sort_dir)
-
-    nodes =
-      assigns.conf.name
-      |> Stats.all_gossip()
-      |> Enum.reduce(%{}, &aggregate_nodes/2)
-      |> Map.values()
-      |> Enum.sort_by(& &1.name)
-
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign(counts: counts, nodes: nodes, queues: queues)
-
-    {:ok, socket}
-  end
+  @behaviour Page
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -104,21 +70,56 @@ defmodule Oban.Web.QueuesComponent do
     """
   end
 
-  # Handlers
-
-  def handle_refresh(socket) do
+  @impl Page
+  def handle_mount(socket) do
     socket
+    |> assign_new(:node, fn -> :all end)
+    |> assign_new(:sort_by, fn -> :name end)
+    |> assign_new(:sort_dir, fn -> :asc end)
   end
 
+  @impl Page
+  def handle_refresh(socket) do
+    counts =
+      socket.assigns.conf.name
+      |> Stats.all_counts()
+      |> Map.new(fn counts -> {counts["name"], counts} end)
+
+    queues =
+      socket.assigns.conf.name
+      |> Stats.all_gossip()
+      |> Enum.filter(&table_filter(&1, socket.assigns.node))
+      |> Enum.group_by(& &1["queue"])
+      |> Enum.sort_by(&table_sort(&1, counts, socket.assigns.sort_by), socket.assigns.sort_dir)
+
+    nodes =
+      socket.assigns.conf.name
+      |> Stats.all_gossip()
+      |> Enum.reduce(%{}, &aggregate_nodes/2)
+      |> Map.values()
+      |> Enum.sort_by(& &1.name)
+
+    assign(socket, counts: counts, nodes: nodes, queues: queues)
+  end
+
+  # Handlers
+
+  @impl Page
   def handle_params(params, _uri, socket) do
     assigns =
       [page_title: page_title("Queues")]
       |> Keyword.merge(sort_params(params))
       |> Keyword.merge(node_params(params))
 
-    {:noreply, assign(socket, assigns)}
+    socket =
+      socket
+      |> assign(assigns)
+      |> handle_refresh()
+
+    {:noreply, socket}
   end
 
+  @impl Page
   def handle_info({:pause_queue, queue}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
       Oban.pause_queue(socket.assigns.conf.name, queue: queue)

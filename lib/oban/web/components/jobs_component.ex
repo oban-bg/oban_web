@@ -5,27 +5,15 @@ defmodule Oban.Web.JobsComponent do
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
   alias Oban.Web.Jobs.{SearchComponent, SidebarComponent}
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.{Query, Telemetry}
+  alias Oban.Web.{Page, Query, Telemetry}
+
+  @behaviour Page
 
   @flash_timing 5_000
 
-  def update(assigns, socket) do
-    # selected =
-    #   assigns.jobs
-    #   |> MapSet.new(& &1.id)
-    #   |> MapSet.intersection(assigns.selected || MapSet.new())
+  @default_params %{limit: 20, state: "executing"}
 
-    socket =
-      socket
-      |> assign_new(:detailed, fn -> nil end)
-      |> assign_new(:params, fn -> %{limit: 20, state: "executing"} end)
-      |> assign_new(:selected, &MapSet.new/0)
-      |> assign(access: assigns.access, conf: assigns.conf)
-      |> handle_refresh()
-
-    {:ok, socket}
-  end
-
+  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
@@ -56,17 +44,36 @@ defmodule Oban.Web.JobsComponent do
     """
   end
 
+  @impl Page
+  def handle_mount(socket) do
+    socket
+    |> assign_new(:detailed, fn -> nil end)
+    |> assign_new(:jobs, fn -> [] end)
+    |> assign_new(:params, fn -> Map.merge(socket.assigns.params, @default_params) end)
+    |> assign_new(:selected, &MapSet.new/0)
+    |> assign_new(:gossip, fn -> Stats.all_gossip(socket.assigns.conf.name) end)
+    |> assign_new(:counts, fn -> Stats.all_counts(socket.assigns.conf.name) end)
+  end
+
+  @impl Page
   def handle_refresh(socket) do
     jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.params)
+
+    selected =
+      jobs
+      |> MapSet.new(& &1.id)
+      |> MapSet.intersection(socket.assigns.selected)
 
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
       gossip: Stats.all_gossip(socket.assigns.conf.name),
-      counts: Stats.all_counts(socket.assigns.conf.name)
+      counts: Stats.all_counts(socket.assigns.conf.name),
+      selected: selected
     )
   end
 
+  @impl Page
   def handle_params(%{"id" => job_id}, _uri, socket) do
     case refresh_job(socket.assigns.conf, %Job{id: job_id}) do
       nil ->
@@ -87,6 +94,7 @@ defmodule Oban.Web.JobsComponent do
       params
       |> Map.take(["limit", "node", "queue", "state", "terms"])
       |> Map.new(normalize)
+      |> Map.merge(@default_params)
 
     jobs = Query.get_jobs(socket.assigns.conf, params)
 
@@ -96,6 +104,7 @@ defmodule Oban.Web.JobsComponent do
 
   # Queues
 
+  @impl Page
   def handle_info({:scale_queue, queue, limit}, socket) do
     Telemetry.action(:scale_queue, socket, [queue: queue, limit: limit], fn ->
       Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
