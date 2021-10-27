@@ -5,10 +5,12 @@ defmodule Oban.Web.Jobs.SidebarComponent do
 
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
+  @impl Phoenix.LiveComponent
   def mount(socket) do
     {:ok, assign(socket, show_nodes?: true, show_states?: true, show_queues?: true)}
   end
 
+  @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     %{gossip: gossip, counts: counts} = assigns
 
@@ -23,6 +25,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
      )}
   end
 
+  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="sidebar" class="mr-0 mb-3 md:mr-3 md:mb-0">
