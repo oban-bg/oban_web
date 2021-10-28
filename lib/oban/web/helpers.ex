@@ -19,7 +19,18 @@ defmodule Oban.Web.Helpers do
   end
 
   def oban_path(socket, page, params) do
+    params = Enum.reject(params, fn {_, val} -> is_nil(val) end)
+
     oban_path(socket, [socket, :page, page, params])
+  end
+
+  @doc """
+  Construct a map without any default values included.
+  """
+  def without_defaults(params, defaults) do
+    params
+    |> Enum.reject(fn {key, val} -> val == defaults[key] end)
+    |> Map.new()
   end
 
   # Title Helpers

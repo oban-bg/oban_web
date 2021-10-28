@@ -3,15 +3,13 @@ defmodule Oban.Web.JobsComponent do
 
   alias Oban.Job
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
-  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent}
+  alias Oban.Web.Jobs.SearchComponent
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.{Page, Query, Telemetry}
+  alias Oban.Web.{Page, Query, SidebarComponent, Telemetry}
 
   @behaviour Page
 
   @flash_timing 5_000
-
-  @default_params %{limit: 20, state: "executing"}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -20,10 +18,12 @@ defmodule Oban.Web.JobsComponent do
       <.live_component
         id="sidebar"
         module={SidebarComponent}
-        access={@access}
-        params={@params}
+        sections={~w(nodes states queues)a}
+        counts={@counts}
         gossip={@gossip}
-        counts={@counts} />
+        page={:jobs}
+        params={without_defaults(@params, %{limit: 20})}
+        socket={@socket} />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -46,10 +46,13 @@ defmodule Oban.Web.JobsComponent do
 
   @impl Page
   def handle_mount(socket) do
+    default = fn -> %{limit: 20, state: "executing"} end
+
     socket
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:jobs, fn -> [] end)
-    |> assign_new(:params, fn -> Map.merge(socket.assigns.params, @default_params) end)
+    |> assign_new(:params, default)
+    |> assign_new(:default_params, default)
     |> assign_new(:selected, &MapSet.new/0)
     |> assign_new(:gossip, fn -> Stats.all_gossip(socket.assigns.conf.name) end)
     |> assign_new(:counts, fn -> Stats.all_counts(socket.assigns.conf.name) end)
@@ -94,12 +97,14 @@ defmodule Oban.Web.JobsComponent do
       params
       |> Map.take(["limit", "node", "queue", "state", "terms"])
       |> Map.new(normalize)
-      |> Map.merge(@default_params)
 
-    jobs = Query.get_jobs(socket.assigns.conf, params)
+    socket =
+      socket
+      |> assign(detailed: nil, page_title: page_title("Jobs"))
+      |> assign(params: Map.merge(socket.assigns.default_params, params))
+      |> assign(jobs: Query.get_jobs(socket.assigns.conf, params))
 
-    {:noreply,
-     assign(socket, detailed: nil, jobs: jobs, params: params, page_title: page_title("Jobs"))}
+    {:noreply, socket}
   end
 
   # Queues
@@ -117,17 +122,6 @@ defmodule Oban.Web.JobsComponent do
 
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
     params = Map.update!(socket.assigns.params, :limit, &to_string(&1 + inc))
-
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
-  end
-
-  def handle_info({:params, key, value}, socket) do
-    params =
-      if is_nil(value) do
-        Map.delete(socket.assigns.params, key)
-      else
-        Map.put(socket.assigns.params, key, value)
-      end
 
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end

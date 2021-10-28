@@ -3,8 +3,8 @@ defmodule Oban.Web.QueuesComponent do
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Queues.{HeaderComponent, RowComponent, SidebarComponent}
-  alias Oban.Web.{Page, Telemetry}
+  alias Oban.Web.Queues.{HeaderComponent, RowComponent}
+  alias Oban.Web.{Page, SidebarComponent, Telemetry}
 
   @behaviour Page
 
@@ -12,12 +12,20 @@ defmodule Oban.Web.QueuesComponent do
   def render(assigns) do
     ~H"""
     <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
-      <.live_component id="sidebar" module={SidebarComponent} nodes={@nodes} active={@node} socket={@socket} />
+      <.live_component
+        id="sidebar"
+        module={SidebarComponent}
+        sections={[:nodes]}
+        counts={@counts}
+        gossip={@gossip}
+        page={:queues}
+        params={without_defaults(@params, @default_params)}
+        socket={@socket} />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-            <h2 class="text-lg font-bold ml-2">Queues</h2>
+            <h2 class="text-lg dark:text-gray-200 font-bold ml-2">Queues</h2>
             <h3 class="text-lg ml-1 text-gray-500 font-normal tabular">(<%= length(@queues) %>)</h3>
           </div>
 
@@ -25,28 +33,28 @@ defmodule Oban.Web.QueuesComponent do
             <thead>
               <tr class="text-gray-400">
                 <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
-                  <HeaderComponent.sort_link label="name" by={@sort_by} dir={@sort_dir} socket={@socket} justify="start" />
+                  <HeaderComponent.sort_link label="name" params={@params} socket={@socket} justify="start" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="nodes" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="nodes" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="exec" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="exec" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="avail" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="avail" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="local" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="local" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="global" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="global" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="rate limit" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="rate limit" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-                  <HeaderComponent.sort_link label="started" by={@sort_by} dir={@sort_dir} socket={@socket} justify="end" />
+                  <HeaderComponent.sort_link label="started" params={@params} socket={@socket} justify="end" />
                 </th>
                 <th scope="col" class="w-8"></th>
               </tr>
@@ -57,7 +65,7 @@ defmodule Oban.Web.QueuesComponent do
                 <.live_component
                   id={queue}
                   module={RowComponent}
-                  counts={Map.get(@counts, queue, %{})}
+                  counts={Map.get(@counts_map, queue, %{})}
                   queue={queue}
                   gossip={gossip}
                   access={@access} />
@@ -72,48 +80,44 @@ defmodule Oban.Web.QueuesComponent do
 
   @impl Page
   def handle_mount(socket) do
+    default = fn -> %{node: nil, sort_by: "name", sort_dir: "asc"} end
+
     socket
-    |> assign_new(:node, fn -> :all end)
-    |> assign_new(:sort_by, fn -> :name end)
-    |> assign_new(:sort_dir, fn -> :asc end)
+    |> assign_new(:params, default)
+    |> assign_new(:default_params, default)
   end
 
   @impl Page
   def handle_refresh(socket) do
-    counts =
-      socket.assigns.conf.name
-      |> Stats.all_counts()
-      |> Map.new(fn counts -> {counts["name"], counts} end)
+    counts = Stats.all_counts(socket.assigns.conf.name)
+    gossip = Stats.all_gossip(socket.assigns.conf.name)
+
+    counts_map = Map.new(counts, &{&1["name"], &1})
+
+    {sort_by, sort_dir} = atomize_sort(socket.assigns.params)
 
     queues =
-      socket.assigns.conf.name
-      |> Stats.all_gossip()
-      |> Enum.filter(&table_filter(&1, socket.assigns.node))
+      gossip
+      |> Enum.filter(&table_filter(&1, socket.assigns.params.node))
       |> Enum.group_by(& &1["queue"])
-      |> Enum.sort_by(&table_sort(&1, counts, socket.assigns.sort_by), socket.assigns.sort_dir)
+      |> Enum.sort_by(&table_sort(&1, counts, sort_by), sort_dir)
 
-    nodes =
-      socket.assigns.conf.name
-      |> Stats.all_gossip()
-      |> Enum.reduce(%{}, &aggregate_nodes/2)
-      |> Map.values()
-      |> Enum.sort_by(& &1.name)
-
-    assign(socket, counts: counts, nodes: nodes, queues: queues)
+    assign(socket, counts: counts, counts_map: counts_map, gossip: gossip, queues: queues)
   end
 
   # Handlers
 
   @impl Page
   def handle_params(params, _uri, socket) do
-    assigns =
-      [page_title: page_title("Queues")]
-      |> Keyword.merge(sort_params(params))
-      |> Keyword.merge(node_params(params))
+    params =
+      params
+      |> Map.take(["node", "sort_by", "sort_dir"])
+      |> Map.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
 
     socket =
       socket
-      |> assign(assigns)
+      |> assign(page_title: page_title("Queues"))
+      |> assign(params: Map.merge(socket.assigns.default_params, params))
       |> handle_refresh()
 
     {:noreply, socket}
@@ -155,21 +159,14 @@ defmodule Oban.Web.QueuesComponent do
 
   # Filter Helpers
 
-  defp node_params(%{"node" => node}), do: [node: node]
-  defp node_params(_params), do: [node: :all]
-
-  defp table_filter(_gossip, :all), do: true
+  defp table_filter(_gossip, nil), do: true
   defp table_filter(gossip, node), do: node_name(gossip) == node
 
   # Sort Helpers
 
-  defp sort_params(%{"sort" => sort}) do
-    [sby, dir] = String.split(sort, "-", parts: 2)
-
-    [sort_by: String.to_existing_atom(sby), sort_dir: String.to_existing_atom(dir)]
+  defp atomize_sort(%{sort_by: sby, sort_dir: dir}) do
+    {String.to_existing_atom(sby), String.to_existing_atom(dir)}
   end
-
-  defp sort_params(_params), do: []
 
   defp table_sort({queue, _gossip}, counts, :avail) do
     get_in(counts, [queue, "available"])
@@ -216,17 +213,5 @@ defmodule Oban.Web.QueuesComponent do
     |> Enum.map(& &1["started_at"])
     |> Enum.map(started_at_to_diff)
     |> Enum.max()
-  end
-
-  # Helpers
-
-  defp aggregate_nodes(gossip, acc) do
-    full_name = node_name(gossip)
-    empty_fun = fn -> %{name: full_name, count: 0, limit: 0} end
-
-    acc
-    |> Map.put_new_lazy(full_name, empty_fun)
-    |> update_in([full_name, :count], &(&1 + length(gossip["running"])))
-    |> update_in([full_name, :limit], &(&1 + (gossip["limit"] || gossip["local_limit"])))
   end
 end

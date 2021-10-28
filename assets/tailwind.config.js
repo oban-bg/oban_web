@@ -32,10 +32,7 @@ module.exports = {
       yellow: colors.amber
     }
   },
-  purge: [
-    "./js/**/*.js",
-    "../lib/**/*.*ex",
-  ],
+  purge: ["../lib/**/*.ex"],
   variants: {
     display: ["group-hover"]
   },
