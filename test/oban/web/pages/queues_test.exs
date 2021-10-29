@@ -92,14 +92,14 @@ defmodule Oban.Web.Pages.QueuesTest do
     for mode <- ~w(nodes exec avail local global started) do
       change_sort(live, mode)
 
-      assert_patch(live, "/oban/queues?sort=#{mode}-asc")
+      assert_patch(live, "/oban/queues?sort_by=#{mode}&sort_dir=asc")
     end
 
     change_sort(live, "rate limit")
-    assert_patch(live, "/oban/queues?sort=rate_limit-asc")
+    assert_patch(live, "/oban/queues?sort_by=rate_limit&sort_dir=asc")
 
     change_sort(live, "rate limit")
-    assert_patch(live, "/oban/queues?sort=rate_limit-desc")
+    assert_patch(live, "/oban/queues?sort_by=rate_limit&sort_dir=desc")
   end
 
   test "filtering queues by associated node", %{live: live} do

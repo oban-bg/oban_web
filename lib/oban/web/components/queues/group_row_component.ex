@@ -1,20 +1,19 @@
-defmodule Oban.Web.Queues.RowComponent do
+defmodule Oban.Web.Queues.GroupRowComponent do
   use Oban.Web, :live_component
 
   alias Oban.Web.Timing
-
-  @impl Phoenix.LiveComponent
-  def mount(socket) do
-    {:ok, assign(socket, expanded?: false)}
-  end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <tr id={"queue-#{@queue}"} class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
       <td class="p-3 dark:text-gray-300">
-        <button rel="expand" title={"Expand #{@queue} to view details by node"} class="block flex items-center hover:text-blue-500 focus:outline-none focus:text-blue-500" phx-click="toggle_expanded" phx-target={@myself}>
-          <%= if @expanded? do %>
+        <button rel="expand"
+          title={"Expand #{@queue} to view details by node"}
+          class="block flex items-center hover:text-blue-500 focus:outline-none focus:text-blue-500"
+          phx-click="toggle_queue"
+          phx-target={@myself}>
+          <%= if @expanded do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <% else %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
@@ -34,7 +33,12 @@ defmodule Oban.Web.Queues.RowComponent do
 
       <td class="py-3 pr-3 flex justify-end">
         <%= if can?(:pause_queues, @access) do %>
-          <button rel="play_pause" class={"block pr-2 #{pause_color(@gossip)} hover:text-blue-500"} title="Pause or resume queue" phx-click="play_pause" phx-target={@myself} phx-throttle="1000">
+          <button rel="play_pause"
+            class={"block pr-2 #{pause_color(@gossip)} hover:text-blue-500"}
+            title="Pause or resume queue"
+            phx-click="play_pause"
+            phx-target={@myself}
+            phx-throttle="1000">
             <%= if any_paused?(@gossip) do %>
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <% else %>
@@ -53,20 +57,7 @@ defmodule Oban.Web.Queues.RowComponent do
     """
   end
 
-  # Handlers
-
   @impl Phoenix.LiveComponent
-  def handle_event("play_pause", %{"name" => name, "node" => node}, socket) do
-    if can?(:pause_queues, socket.assigns.access) do
-      gossip = Enum.find(socket.assigns.gossip, &(&1["name"] == name and &1["node"] == node))
-      action = if gossip["paused"], do: :resume_queue, else: :pause_queue
-
-      send(self(), {action, socket.assigns.queue, name, node})
-    end
-
-    {:noreply, socket}
-  end
-
   def handle_event("play_pause", _params, socket) do
     if can?(:pause_queues, socket.assigns.access) do
       action = if any_paused?(socket.assigns.gossip), do: :resume_queue, else: :pause_queue
@@ -77,8 +68,10 @@ defmodule Oban.Web.Queues.RowComponent do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_expanded", _params, socket) do
-    {:noreply, assign(socket, expanded?: not socket.assigns.expanded?)}
+  def handle_event("toggle_queue", _, socket) do
+    send(self(), {:toggle_queue, socket.assigns.queue})
+
+    {:noreply, socket}
   end
 
   # Helpers

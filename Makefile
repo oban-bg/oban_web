@@ -16,7 +16,8 @@ build: build-css build-js
 
 .PHONY: watch-css
 watch-css:
-	cd assets && npx tailwindcss --postcss --watch --input css/app.css --output ../priv/static/app.css
+	cd assets && \
+		NODE_ENV=development TAILWIND_MODE=watch npx tailwindcss --postcss --watch --input css/app.css --output ../priv/static/app.css
 
 .PHONY: release
 release:

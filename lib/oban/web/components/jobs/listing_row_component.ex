@@ -12,7 +12,11 @@ defmodule Oban.Web.Jobs.ListingRowComponent do
 
   def render(assigns) do
     hidden_class = if assigns.hidden?, do: "opacity-25 pointer-events-none js-hidden"
-    select_class = if assigns.selected?, do: "bg-blue-100", else: "hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25"
+
+    select_class =
+      if assigns.selected?,
+        do: "bg-blue-100",
+        else: "hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25"
 
     ~H"""
     <li id={"job-#{@job.id}"} class={"group flex justify-between bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 #{hidden_class} #{select_class}"}>

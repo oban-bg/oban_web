@@ -2,7 +2,8 @@ defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.{JobsComponent, LayoutComponent, QueuesComponent, RefreshComponent}
+  alias Oban.Web.{LayoutComponent, RefreshComponent}
+  alias Oban.Web.{JobsPage, QueuesPage}
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
@@ -115,9 +116,9 @@ defmodule Oban.Web.DashboardLive do
 
   ## Render Helpers
 
-  defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsComponent}
-  defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesComponent}
-  defp resolve_page(_params), do: %{name: :jobs, comp: JobsComponent}
+  defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsPage}
+  defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesPage}
+  defp resolve_page(_params), do: %{name: :jobs, comp: JobsPage}
 
   defp render_page(page, assigns) do
     assigns =

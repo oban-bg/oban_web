@@ -1,4 +1,4 @@
-defmodule Oban.Web.JobsComponent do
+defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Job

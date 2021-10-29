@@ -1,9 +1,9 @@
-defmodule Oban.Web.QueuesComponent do
+defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Queues.{HeaderComponent, RowComponent}
+  alias Oban.Web.Queues.{HeaderComponent, ChildRowComponent, GroupRowComponent}
   alias Oban.Web.{Page, SidebarComponent, Telemetry}
 
   @behaviour Page
@@ -61,14 +61,26 @@ defmodule Oban.Web.QueuesComponent do
             </thead>
 
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-              <%= for {queue, gossip} <- @queues do %>
-                <.live_component
-                  id={queue}
-                  module={RowComponent}
-                  counts={Map.get(@counts_map, queue, %{})}
-                  queue={queue}
-                  gossip={gossip}
-                  access={@access} />
+              <%= for row_tuple <- queues_to_rows(@queues, @counts, @expanded) do %>
+                <%= case row_tuple do %>
+                <% {:group, queue, counts, gossip, expanded} -> %>
+                  <.live_component
+                    id={queue}
+                    module={GroupRowComponent}
+                    queue={queue}
+                    expanded={expanded}
+                    counts={counts}
+                    gossip={gossip}
+                    access={@access} />
+                <% {:child, queue, counts, gossip} -> %>
+                  <.live_component
+                    id={"#{gossip["queue"]}-#{gossip["node"]}"}
+                    module={ChildRowComponent}
+                    queue={queue}
+                    counts={counts}
+                    gossip={gossip}
+                    access={@access} />
+                <% end %>
               <% end %>
             </tbody>
           </table>
@@ -85,14 +97,13 @@ defmodule Oban.Web.QueuesComponent do
     socket
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
+    |> assign_new(:expanded, &MapSet.new/0)
   end
 
   @impl Page
   def handle_refresh(socket) do
     counts = Stats.all_counts(socket.assigns.conf.name)
     gossip = Stats.all_gossip(socket.assigns.conf.name)
-
-    counts_map = Map.new(counts, &{&1["name"], &1})
 
     {sort_by, sort_dir} = atomize_sort(socket.assigns.params)
 
@@ -102,7 +113,7 @@ defmodule Oban.Web.QueuesComponent do
       |> Enum.group_by(& &1["queue"])
       |> Enum.sort_by(&table_sort(&1, counts, sort_by), sort_dir)
 
-    assign(socket, counts: counts, counts_map: counts_map, gossip: gossip, queues: queues)
+    assign(socket, counts: counts, gossip: gossip, queues: queues)
   end
 
   # Handlers
@@ -145,6 +156,17 @@ defmodule Oban.Web.QueuesComponent do
     {:noreply, socket}
   end
 
+  def handle_info({:toggle_queue, queue}, socket) do
+    expanded =
+      if MapSet.member?(socket.assigns.expanded, queue) do
+        MapSet.delete(socket.assigns.expanded, queue)
+      else
+        MapSet.put(socket.assigns.expanded, queue)
+      end
+
+    {:noreply, assign(socket, expanded: expanded)}
+  end
+
   def handle_info({:resume_queue, queue}, socket) do
     Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
       Oban.resume_queue(socket.assigns.conf.name, queue: queue)
@@ -169,7 +191,9 @@ defmodule Oban.Web.QueuesComponent do
   end
 
   defp table_sort({queue, _gossip}, counts, :avail) do
-    get_in(counts, [queue, "available"])
+    counts
+    |> Enum.find(%{}, &(&1["name"] == queue))
+    |> Map.get("available", 0)
   end
 
   defp table_sort({_queue, gossip}, _counts, :exec) do
@@ -213,5 +237,25 @@ defmodule Oban.Web.QueuesComponent do
     |> Enum.map(& &1["started_at"])
     |> Enum.map(started_at_to_diff)
     |> Enum.max()
+  end
+
+  # Render Helpers
+
+  defp queues_to_rows(queues, counts, expanded_set) do
+    counts_map = Map.new(counts, &{&1["name"], &1})
+
+    Enum.flat_map(queues, fn {queue, gossip} ->
+      queue_counts = Map.get(counts_map, queue, %{})
+      expanded? = MapSet.member?(expanded_set, queue)
+
+      group = {:group, queue, queue_counts, gossip, expanded?}
+      children = Enum.map(gossip, &{:child, queue, queue_counts, &1})
+
+      if expanded? do
+        [group | children]
+      else
+        [group]
+      end
+    end)
   end
 end

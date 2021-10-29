@@ -15,7 +15,8 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
   end
 
   def render(assigns) do
-    expanded_class = if assigns.expanded?, do: "h-12 py-3 bg-gray-100 dark:bg-gray-800", else: "h-0"
+    expanded_class =
+      if assigns.expanded?, do: "h-12 py-3 bg-gray-100 dark:bg-gray-800", else: "h-0"
 
     ~H"""
     <div id="bulk-action" class={"flex items-center bg-white dark:bg-gray-900 shadow-inner overflow-hidden transition-all duration-300 ease-in-out px-3 #{expanded_class}"}>

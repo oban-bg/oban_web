@@ -64,7 +64,10 @@ defmodule Oban.Web.SidebarComponent do
   end
 
   defp node_row(assigns) do
-    active_class = if assigns.params[:node] == assigns.node.name, do: "border-blue-500", else: "border-transparent"
+    active_class =
+      if assigns.params[:node] == assigns.node.name,
+        do: "border-blue-500",
+        else: "border-transparent"
 
     ~H"""
     <%= live_patch(
@@ -85,7 +88,10 @@ defmodule Oban.Web.SidebarComponent do
   end
 
   defp state_row(assigns) do
-    active_class = if assigns.params[:state] == assigns.state.name, do: "border-blue-500", else: "border-transparent"
+    active_class =
+      if assigns.params[:state] == assigns.state.name,
+        do: "border-blue-500",
+        else: "border-transparent"
 
     ~H"""
     <%= live_patch(
@@ -101,7 +107,10 @@ defmodule Oban.Web.SidebarComponent do
   end
 
   defp queue_row(assigns) do
-    active_class = if assigns.params[:queue] == assigns.queue.name, do: "border-blue-500", else: "border-transparent"
+    active_class =
+      if assigns.params[:queue] == assigns.queue.name,
+        do: "border-blue-500",
+        else: "border-transparent"
 
     ~H"""
     <%= live_patch(
@@ -215,8 +224,8 @@ defmodule Oban.Web.SidebarComponent do
         execu: Map.get(execu_counts, queue, 0),
         limit: Map.get(total_limits, queue, 0),
         paused?: Map.get(pause_states, queue, true),
-        global?: Enum.any?(gossip, & &1["queue"] == queue and is_integer(&1["global_limit"])),
-        rate_limited?: Enum.any?(gossip, & &1["queue"] == queue and is_map(&1["rate_limit"]))
+        global?: Enum.any?(gossip, &(&1["queue"] == queue and is_integer(&1["global_limit"]))),
+        rate_limited?: Enum.any?(gossip, &(&1["queue"] == queue and is_map(&1["rate_limit"])))
       }
     end)
   end
