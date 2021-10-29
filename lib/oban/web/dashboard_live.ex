@@ -79,6 +79,30 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, socket}
   end
 
+  def handle_info(:pause_refresh, socket) do
+    socket =
+      if socket.assigns.refresh > 0 do
+        assign(socket, refresh: -1, original_refresh: socket.assigns.refresh)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_info(:resume_refresh, socket) do
+    socket =
+      if socket.assigns.original_refresh do
+        socket
+        |> assign(refresh: socket.assigns.original_refresh)
+        |> schedule_refresh()
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
   def handle_info(:refresh, socket) do
     socket =
       socket
