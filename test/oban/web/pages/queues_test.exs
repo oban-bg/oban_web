@@ -92,14 +92,14 @@ defmodule Oban.Web.Pages.QueuesTest do
     for mode <- ~w(nodes exec avail local global started) do
       change_sort(live, mode)
 
-      assert_patch(live, "/oban/queues?sort_by=#{mode}&sort_dir=asc")
+      assert_patch(live, queues_path(sort_by: mode, sort_dir: "asc"))
     end
 
     change_sort(live, "rate limit")
-    assert_patch(live, "/oban/queues?sort_by=rate_limit&sort_dir=asc")
+    assert_patch(live, queues_path(sort_by: "rate_limit", sort_dir: "asc"))
 
     change_sort(live, "rate limit")
-    assert_patch(live, "/oban/queues?sort_by=rate_limit&sort_dir=desc")
+    assert_patch(live, queues_path(sort_by: "rate_limit", sort_dir: "desc"))
   end
 
   test "filtering queues by associated node", %{live: live} do
@@ -110,13 +110,15 @@ defmodule Oban.Web.Pages.QueuesTest do
     refresh(live)
 
     filter_by_node(live, "web.1/oban")
-    assert_patch(live, "/oban/queues?#{URI.encode_query(node: "web.1/oban")}")
+    assert_patch(live, queues_path(nodes: "web.1/oban"))
 
     assert has_element?(live, "#queues-table tr [rel=name]", "alpha")
     assert has_element?(live, "#queues-table tr [rel=name]", "gamma")
     refute has_element?(live, "#queues-table tr [rel=name]", "delta")
 
+    filter_by_node(live, "web.1/oban")
     filter_by_node(live, "web.2/oban")
+    assert_patch(live, queues_path(nodes: "web.2/oban"))
 
     refute has_element?(live, "#queues-table tr [rel=name]", "alpha")
     refute has_element?(live, "#queues-table tr [rel=name]", "gamma")
@@ -127,6 +129,10 @@ defmodule Oban.Web.Pages.QueuesTest do
     assert has_element?(live, "#queues-table tr [rel=name]", "alpha")
     assert has_element?(live, "#queues-table tr [rel=name]", "gamma")
     assert has_element?(live, "#queues-table tr [rel=name]", "delta")
+  end
+
+  defp queues_path(params) do
+    "/oban/queues?#{URI.encode_query(params)}"
   end
 
   defp refresh(live) do

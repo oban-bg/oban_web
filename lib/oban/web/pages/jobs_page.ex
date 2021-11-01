@@ -2,7 +2,7 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Job
-  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, ListingComponent}
+  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.{Page, Query, SidebarComponent, Telemetry}
@@ -36,7 +36,7 @@ defmodule Oban.Web.JobsPage do
             </div>
 
             <.live_component id="bulk_action" module={BulkActionComponent} access={@access} jobs={@jobs} selected={@selected} />
-            <.live_component id="listing" module={ListingComponent} jobs={@jobs} params={@params} selected={@selected} />
+            <.live_component id="jobs-table" module={TableComponent} jobs={@jobs} params={@params} selected={@selected} />
           <% end %>
         </div>
       </div>
@@ -99,6 +99,7 @@ defmodule Oban.Web.JobsPage do
       params
       |> Map.take(["limit", "nodes", "queues", "state", "terms"])
       |> Map.new(normalize)
+      |> without_defaults(socket.assigns.default_params)
 
     socket =
       socket
@@ -135,7 +136,7 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_info({:params, :none}, socket) do
-    params = without_defaults(socket.assigns.params, %{limit: 20})
+    params = without_defaults(socket.assigns.params, socket.assigns.default_params)
 
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params))}
   end

@@ -53,7 +53,7 @@ defmodule Oban.Web.Live.DetailsTest do
 
   defp open_details(live, %{id: id}) do
     live
-    |> element("#listing #job-#{id} a")
+    |> element("#jobs-table #job-#{id} a")
     |> render_click()
   end
 

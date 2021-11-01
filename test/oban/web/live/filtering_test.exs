@@ -125,7 +125,7 @@ defmodule Oban.Web.Live.FilteringTest do
     assert has_job?(live, "GammaWorker")
 
     live
-    |> element("#listing button[rel='worker-AlphaWorker']")
+    |> element("#jobs-table button[rel='worker-AlphaWorker']")
     |> render_click()
 
     assert has_job?(live, "AlphaWorker")
@@ -170,7 +170,7 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   defp has_job?(live, worker_name) do
-    has_element?(live, "#listing", worker_name)
+    has_element?(live, "#jobs-table", worker_name)
   end
 
   defp refresh(live) do

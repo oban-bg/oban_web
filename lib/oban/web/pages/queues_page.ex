@@ -92,7 +92,7 @@ defmodule Oban.Web.QueuesPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = fn -> %{node: nil, sort_by: "name", sort_dir: "asc"} end
+    default = fn -> %{nodes: nil, sort_by: "name", sort_dir: "asc"} end
 
     socket
     |> assign_new(:params, default)
@@ -109,7 +109,7 @@ defmodule Oban.Web.QueuesPage do
 
     queues =
       gossip
-      |> Enum.filter(&table_filter(&1, socket.assigns.params.node))
+      |> Enum.filter(&table_filter(&1, socket.assigns.params.nodes))
       |> Enum.group_by(& &1["queue"])
       |> Enum.sort_by(&table_sort(&1, counts, sort_by), sort_dir)
 
@@ -122,8 +122,11 @@ defmodule Oban.Web.QueuesPage do
   def handle_params(params, _uri, socket) do
     params =
       params
-      |> Map.take(["node", "sort_by", "sort_dir"])
-      |> Map.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
+      |> Map.take(["nodes", "sort_by", "sort_dir"])
+      |> Map.new(fn
+        {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
+        {key, val} -> {String.to_existing_atom(key), val}
+      end)
 
     socket =
       socket
@@ -182,7 +185,8 @@ defmodule Oban.Web.QueuesPage do
   # Filter Helpers
 
   defp table_filter(_gossip, nil), do: true
-  defp table_filter(gossip, node), do: node_name(gossip) == node
+  defp table_filter(_gossip, []), do: true
+  defp table_filter(gossip, nodes), do: node_name(gossip) in nodes
 
   # Sort Helpers
 

@@ -48,7 +48,7 @@ defmodule Oban.Web.Live.BulkOperationsTest do
   defp select_jobs(live, jobs) do
     for %{id: id} <- jobs do
       live
-      |> element("#listing #job-#{id} .js-toggle")
+      |> element("#jobs-table #job-#{id} [rel=toggle-select]")
       |> render_click()
     end
   end
