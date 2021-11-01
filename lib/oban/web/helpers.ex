@@ -19,7 +19,13 @@ defmodule Oban.Web.Helpers do
   end
 
   def oban_path(socket, page, params) do
-    params = Enum.reject(params, fn {_, val} -> is_nil(val) end)
+    params =
+      params
+      |> Enum.reject(fn {_, val} -> is_nil(val) end)
+      |> Map.new(fn
+        {key, [_ | _] = val} -> {key, Enum.join(val, ",")}
+        {key, val} -> {key, val}
+      end)
 
     oban_path(socket, [socket, :page, page, params])
   end

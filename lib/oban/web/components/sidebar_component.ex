@@ -65,13 +65,13 @@ defmodule Oban.Web.SidebarComponent do
 
   defp node_row(assigns) do
     active_class =
-      if assigns.params[:node] == assigns.node.name,
+      if assigns.node.name in List.wrap(assigns.params[:nodes]),
         do: "border-blue-500",
         else: "border-transparent"
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :node, @node.name, @params),
+        to: filter_link(@socket, @page, :nodes, @node.name, @params),
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
@@ -89,13 +89,21 @@ defmodule Oban.Web.SidebarComponent do
 
   defp state_row(assigns) do
     active_class =
-      if assigns.params[:state] == assigns.state.name,
-        do: "border-blue-500",
-        else: "border-transparent"
+      if assigns.params[:state] == assigns.state.name or
+           (is_nil(assigns.params[:state]) and assigns.state.name == "executing"),
+         do: "border-blue-500",
+         else: "border-transparent"
+
+    params =
+      if assigns.state.name in ["available", "scheduled"] do
+        Map.delete(assigns.params, :nodes)
+      else
+        assigns.params
+      end
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :state, @state.name, @params),
+        to: filter_link(@socket, @page, :state, @state.name, params),
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
@@ -108,13 +116,13 @@ defmodule Oban.Web.SidebarComponent do
 
   defp queue_row(assigns) do
     active_class =
-      if assigns.params[:queue] == assigns.queue.name,
+      if assigns.queue.name in List.wrap(assigns.params[:queues]),
         do: "border-blue-500",
         else: "border-transparent"
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :queue, @queue.name, @params),
+        to: filter_link(@socket, @page, :queues, @queue.name, @params),
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
@@ -149,11 +157,21 @@ defmodule Oban.Web.SidebarComponent do
   end
 
   defp filter_link(socket, page, key, value, params) do
+    param_value = params[key]
+
     params =
-      if params[key] == value do
-        Map.delete(params, key)
-      else
-        Map.put(params, key, value)
+      cond do
+        value == param_value or [value] == param_value ->
+          Map.delete(params, key)
+
+        is_list(param_value) and value in param_value ->
+          Map.put(params, key, List.delete(param_value, value))
+
+        is_list(param_value) ->
+          Map.put(params, key, [value | param_value])
+
+        true ->
+          Map.put(params, key, value)
       end
 
     oban_path(socket, page, params)

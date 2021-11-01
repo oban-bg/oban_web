@@ -65,16 +65,19 @@ defmodule Oban.Web.Query do
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
-  defp filter({:node, name_node}, query, _conf) do
-    node =
-      name_node
-      |> String.split("/")
-      |> List.last()
+  defp filter({:nodes, named_nodes}, query, _conf) do
+    nodes =
+      for name_node <- named_nodes do
+        name_node
+        |> String.downcase()
+        |> String.split("/")
+        |> List.first()
+      end
 
-    where(query, [j], fragment("?[1] = ?", j.attempted_by, ^node))
+    where(query, [j], fragment("lower(?[1])", j.attempted_by) in ^nodes)
   end
 
-  defp filter({:queue, queue}, query, _conf), do: where(query, queue: ^queue)
+  defp filter({:queues, queues}, query, _conf), do: where(query, [j], j.queue in ^queues)
   defp filter({:state, state}, query, _conf), do: where(query, state: ^state)
 
   defp filter({:terms, terms}, query, conf) when byte_size(terms) > 0 do

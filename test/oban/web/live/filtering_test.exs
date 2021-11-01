@@ -13,31 +13,23 @@ defmodule Oban.Web.Live.FilteringTest do
     {:ok, live: live}
   end
 
-  test "viewing available jobs", %{live: live} do
-    insert_job!([ref: 1], worker: FakeWorker, state: "available")
+  test "viewing jobs by state", %{live: live} do
+    now = DateTime.utc_now()
 
-    click_state(live, "available")
+    insert_job!([ref: 1], worker: AvailableWorker, state: "available")
+    insert_job!([ref: 2], worker: ScheduledWorker, state: "scheduled")
+    insert_job!([ref: 3], worker: RetryableWorker, state: "retryable")
+    insert_job!([ref: 4], worker: CancelledWorker, state: "cancelled", cancelled_at: now)
+    insert_job!([ref: 5], worker: DiscardedWorker, state: "discarded", discarded_at: now)
+    insert_job!([ref: 6], worker: CompletedWorker, state: "completed", completed_at: now)
 
-    assert has_job?(live, "FakeWorker")
-    assert has_element?(live, "#jobs-header", "(1/1 Available)")
-  end
+    for state <- ~w(available scheduled retryable cancelled discarded completed) do
+      title = String.capitalize(state)
 
-  test "viewing scheduled jobs", %{live: live} do
-    insert_job!([ref: 1], state: "available", worker: RealWorker)
-    insert_job!([ref: 2], state: "scheduled", worker: NeueWorker)
-
-    click_state(live, "scheduled")
-
-    assert has_job?(live, "NeueWorker")
-    refute has_job?(live, "RealWorker")
-  end
-
-  test "viewing retryable jobs", %{live: live} do
-    insert_job!([ref: 1], state: "retryable", worker: JankWorker)
-
-    click_state(live, "retryable")
-
-    assert has_job?(live, "JankWorker")
+      click_state(live, state)
+      assert has_job?(live, "#{title}Worker")
+      assert has_element?(live, "#jobs-header", "(1/1 #{title})")
+    end
   end
 
   test "filtering jobs by node", %{live: live} do
@@ -52,18 +44,30 @@ defmodule Oban.Web.Live.FilteringTest do
     insert_job!([ref: 3], queue: "alpha", worker: GammaWorker, attempted_by: web_1)
 
     click_state(live, "available")
-
-    assert has_job?(live, "AlphaWorker")
-    assert has_job?(live, "DeltaWorker")
-    assert has_job?(live, "GammaWorker")
-
-    refresh(live)
-
-    click_node(live, "oban_web-2")
+    click_node(live, "web-2_oban")
+    assert_patch(live, jobs_path(nodes: "web-2/oban", state: "available"))
 
     refute has_job?(live, "AlphaWorker")
     assert has_job?(live, "DeltaWorker")
     refute has_job?(live, "GammaWorker")
+
+    click_node(live, "web-1_oban")
+    assert_patch(live, jobs_path(nodes: "web-1/oban,web-2/oban", state: "available"))
+
+    assert has_job?(live, "AlphaWorker")
+    assert has_job?(live, "DeltaWorker")
+    assert has_job?(live, "GammaWorker")
+  end
+
+  test "viewing available or scheduled clears the node filter", %{live: live} do
+    gossip(node: "web-1", queue: "alpha")
+
+    click_state(live, "executing")
+    click_node(live, "web-1_oban")
+    assert_patch(live, jobs_path(nodes: "web-1/oban"))
+
+    click_state(live, "available")
+    assert_patch(live, jobs_path(state: "available"))
   end
 
   test "filtering jobs by queue", %{live: live} do
@@ -72,16 +76,16 @@ defmodule Oban.Web.Live.FilteringTest do
     insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
 
     click_state(live, "available")
-
-    assert has_job?(live, "AlphaWorker")
-    assert has_job?(live, "DeltaWorker")
-    assert has_job?(live, "GammaWorker")
-
-    refresh(live)
-
     click_queue(live, "delta")
 
     refute has_job?(live, "AlphaWorker")
+    assert has_job?(live, "DeltaWorker")
+    refute has_job?(live, "GammaWorker")
+
+    click_queue(live, "alpha")
+    assert_patch(live, jobs_path(queues: "alpha,delta", state: "available"))
+
+    assert has_job?(live, "AlphaWorker")
     assert has_job?(live, "DeltaWorker")
     refute has_job?(live, "GammaWorker")
   end
@@ -127,6 +131,10 @@ defmodule Oban.Web.Live.FilteringTest do
     assert has_job?(live, "AlphaWorker")
     refute has_job?(live, "DeltaWorker")
     refute has_job?(live, "GammaWorker")
+  end
+
+  defp jobs_path(params) do
+    "/oban/jobs?#{URI.encode_query(params)}"
   end
 
   defp click_state(live, state) do

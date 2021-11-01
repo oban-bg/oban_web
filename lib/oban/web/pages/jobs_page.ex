@@ -22,7 +22,7 @@ defmodule Oban.Web.JobsPage do
         counts={@counts}
         gossip={@gossip}
         page={:jobs}
-        params={without_defaults(@params, %{limit: 20})}
+        params={without_defaults(@params, @default_params)}
         socket={@socket} />
 
       <div class="flex-grow">
@@ -46,7 +46,7 @@ defmodule Oban.Web.JobsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = fn -> %{limit: 20, state: "executing"} end
+    default = fn -> %{limit: 20, state: "executing", terms: nil} end
 
     socket
     |> assign_new(:detailed, fn -> nil end)
@@ -90,12 +90,14 @@ defmodule Oban.Web.JobsPage do
   def handle_params(params, _uri, socket) do
     normalize = fn
       {"limit", limit} -> {:limit, String.to_integer(limit)}
+      {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
+      {"queues", queues} -> {:queues, String.split(queues, ",")}
       {key, val} -> {String.to_existing_atom(key), val}
     end
 
     params =
       params
-      |> Map.take(["limit", "node", "queue", "state", "terms"])
+      |> Map.take(["limit", "nodes", "queues", "state", "terms"])
       |> Map.new(normalize)
 
     socket =
@@ -122,6 +124,12 @@ defmodule Oban.Web.JobsPage do
 
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
     params = Map.update!(socket.assigns.params, :limit, &to_string(&1 + inc))
+
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
+  end
+
+  def handle_info({:params, :terms, terms}, socket) do
+    params = Map.put(socket.assigns.params, :terms, terms)
 
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
