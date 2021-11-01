@@ -121,7 +121,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   # Handlers
 
   def handle_event("close", _params, socket) do
-    send(self(), {:params, :none, nil})
+    send(self(), {:params, :none})
 
     {:noreply, socket}
   end

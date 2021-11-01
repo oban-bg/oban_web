@@ -126,6 +126,12 @@ defmodule Oban.Web.JobsPage do
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
+  def handle_info({:params, :none}, socket) do
+    params = without_defaults(socket.assigns.params, %{limit: 20})
+
+    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params))}
+  end
+
   # Single Actions
 
   def handle_info({:cancel_job, job}, socket) do
@@ -148,7 +154,7 @@ defmodule Oban.Web.JobsPage do
 
   def handle_info({:retry_job, job}, socket) do
     Telemetry.action(:retry_jobs, socket, [job_ids: [job.id]], fn ->
-      Query.deschedule_jobs(socket.assigns.conf, [job.id])
+      Query.retry_jobs(socket.assigns.conf, [job.id])
     end)
 
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
@@ -193,7 +199,7 @@ defmodule Oban.Web.JobsPage do
     job_ids = MapSet.to_list(socket.assigns.selected)
 
     Telemetry.action(:retry_jobs, socket, [job_ids: job_ids], fn ->
-      Query.deschedule_jobs(socket.assigns.conf, job_ids)
+      Query.retry_jobs(socket.assigns.conf, job_ids)
     end)
 
     socket =

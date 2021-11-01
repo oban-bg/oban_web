@@ -22,8 +22,8 @@ defmodule Oban.Web.Live.BulkOperationsTest do
     select_jobs(live, [job_1, job_3])
     click_bulk_action(live, "cancel")
 
-    assert hidden_job?(live, job_1)
-    assert hidden_job?(live, job_3)
+    hidden_job?(live, job_1)
+    hidden_job?(live, job_3)
   end
 
   test "deleting selected jobs", %{live: live} do
@@ -35,8 +35,8 @@ defmodule Oban.Web.Live.BulkOperationsTest do
     select_jobs(live, [job_1, job_3])
     click_bulk_action(live, "delete")
 
-    assert hidden_job?(live, job_1)
-    assert hidden_job?(live, job_3)
+    hidden_job?(live, job_1)
+    hidden_job?(live, job_3)
   end
 
   defp click_state(live, state) do
@@ -60,6 +60,6 @@ defmodule Oban.Web.Live.BulkOperationsTest do
   end
 
   defp hidden_job?(live, %{id: id}) do
-    has_element?(live, "#job-#{id}.js-hidden")
+    refute has_element?(live, "#job-#{id}")
   end
 end

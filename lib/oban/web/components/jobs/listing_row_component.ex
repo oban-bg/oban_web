@@ -11,7 +11,7 @@ defmodule Oban.Web.Jobs.ListingRowComponent do
   end
 
   def render(assigns) do
-    hidden_class = if assigns.hidden?, do: "opacity-25 pointer-events-none js-hidden"
+    hidden_class = if assigns.hidden?, do: "opacity-25 pointer-events-none"
 
     select_class =
       if assigns.selected?,

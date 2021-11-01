@@ -24,35 +24,21 @@ defmodule Oban.Web.Query do
 
   @doc false
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
-    Enum.each(job_ids, &Oban.cancel_job(name, &1))
+    Oban.cancel_all_jobs(name, only_ids(job_ids))
 
     :ok
   end
 
   @doc false
   def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
-    Repo.delete_all(conf, where(Job, [j], j.id in ^job_ids))
+    Repo.delete_all(conf, only_ids(job_ids))
 
     :ok
   end
 
   @doc false
-  def deschedule_jobs(%Config{} = conf, [_ | _] = job_ids) do
-    query =
-      Job
-      |> where([j], j.id in ^job_ids)
-      |> update([j],
-        set: [
-          state: "available",
-          max_attempts: fragment("GREATEST(?, ? + 1)", j.max_attempts, j.attempt),
-          scheduled_at: ^DateTime.utc_now(),
-          completed_at: nil,
-          cancelled_at: nil,
-          discarded_at: nil
-        ]
-      )
-
-    Repo.update_all(conf, query, [])
+  def retry_jobs(%Config{name: name}, [_ | _] = job_ids) do
+    Oban.retry_all_jobs(name, only_ids(job_ids))
 
     :ok
   end
@@ -74,6 +60,10 @@ defmodule Oban.Web.Query do
     |> Repo.all(query)
     |> Enum.map(&relativize_timestamps/1)
   end
+
+  # Helpers
+
+  defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
   defp filter({:node, name_node}, query, _conf) do
     node =

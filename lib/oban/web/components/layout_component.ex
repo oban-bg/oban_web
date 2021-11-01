@@ -3,8 +3,6 @@ defmodule Oban.Web.LayoutComponent do
 
   import Oban.Web.Helpers, only: [oban_path: 2]
 
-  alias Phoenix.LiveView.JS
-
   def logo(assigns) do
     ~H"""
     <svg viewBox="0 0 127 48" class="h-12 text-gray-600 dark:text-gray-300">
@@ -103,6 +101,8 @@ defmodule Oban.Web.LayoutComponent do
 
   @tabs_base "text-gray-500 hover:text-gray-400 dark:text-gray-100 dark:hover:text-gray-50 px-3 py-2 font-medium text-sm rounded-md"
 
-  defp link_class(page, page), do: @tabs_base <> " bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25"
+  defp link_class(page, page),
+    do: @tabs_base <> " bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25"
+
   defp link_class(_pag, _exp), do: @tabs_base
 end

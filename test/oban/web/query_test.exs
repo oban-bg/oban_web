@@ -6,19 +6,6 @@ defmodule Oban.Web.QueryTest do
 
   @conf Config.new(repo: Repo)
 
-  describe "deschedule_jobs/2" do
-    test "transitioning jobs to the available state" do
-      job =
-        %{}
-        |> Job.new(worker: FakeWorker)
-        |> Repo.insert!()
-
-      assert :ok = Query.deschedule_jobs(@conf, [job.id])
-
-      assert %{state: "available"} = Repo.reload!(job)
-    end
-  end
-
   describe "get_jobs/2" do
     test "searching for jobs by worker" do
       job_a = insert(MyApp.Alpha)
