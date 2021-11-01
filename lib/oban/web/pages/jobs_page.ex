@@ -36,7 +36,13 @@ defmodule Oban.Web.JobsPage do
             </div>
 
             <.live_component id="bulk_action" module={BulkActionComponent} access={@access} jobs={@jobs} selected={@selected} />
-            <.live_component id="jobs-table" module={TableComponent} jobs={@jobs} params={@params} selected={@selected} />
+
+            <.live_component
+              id="jobs-table"
+              module={TableComponent}
+              jobs={@jobs}
+              params={@params}
+              selected={@selected} />
           <% end %>
         </div>
       </div>
@@ -46,7 +52,9 @@ defmodule Oban.Web.JobsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = fn -> %{limit: 20, state: "executing", terms: nil} end
+    default = fn ->
+      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing", terms: nil}
+    end
 
     socket
     |> assign_new(:detailed, fn -> nil end)
@@ -97,7 +105,7 @@ defmodule Oban.Web.JobsPage do
 
     params =
       params
-      |> Map.take(["limit", "nodes", "queues", "state", "terms"])
+      |> Map.take(["limit", "nodes", "queues", "sort_by", "sort_dir", "state", "terms"])
       |> Map.new(normalize)
       |> without_defaults(socket.assigns.default_params)
 

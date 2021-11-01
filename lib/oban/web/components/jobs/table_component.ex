@@ -2,6 +2,7 @@ defmodule Oban.Web.Jobs.TableComponent do
   use Oban.Web, :live_component
 
   alias Oban.Web.Jobs.RowComponent
+  alias Oban.Web.SortComponent
 
   @inc_limit 20
   @max_limit 200
@@ -11,7 +12,7 @@ defmodule Oban.Web.Jobs.TableComponent do
   def update(assigns, socket) do
     socket =
       socket
-      |> assign(jobs: assigns.jobs, selected: assigns.selected)
+      |> assign(jobs: assigns.jobs, params: assigns.params, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
 
@@ -25,17 +26,17 @@ defmodule Oban.Web.Jobs.TableComponent do
       <thead>
         <tr class="text-gray-400">
           <th scope="col" class="w-10"></th>
-          <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
-            Worker
+          <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3">
+            <SortComponent.link label="worker" params={@params} socket={@socket} page={:jobs} justify="start" />
           </th>
           <th scope="col" class="w-32 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            Queue
+            <SortComponent.link label="queue" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            Attempt
+            <SortComponent.link label="attempt" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            Time
+            <SortComponent.link label="time" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-10"></th>
         </tr>

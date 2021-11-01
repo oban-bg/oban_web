@@ -5,8 +5,12 @@ defmodule Oban.Web.Query do
 
   alias Oban.{Config, Job, Repo, Web.Search}
 
-  @default_state "executing"
-  @default_limit 30
+  @defaults %{
+    limit: 30,
+    sort_by: "time",
+    sort_dir: "asc",
+    state: "executing"
+  }
 
   @minimum_pg_for_search 110_000
   @timeout :timer.seconds(20)
@@ -45,15 +49,21 @@ defmodule Oban.Web.Query do
 
   @doc false
   def get_jobs(%Config{} = conf, %{} = args) do
+    maybe_atomize = fn
+      val when is_binary(val) -> String.to_existing_atom(val)
+      val when is_atom(val) -> val
+    end
+
     args =
-      args
-      |> Map.put_new(:limit, @default_limit)
-      |> Map.put_new(:state, @default_state)
+      @defaults
+      |> Map.merge(args)
+      |> Map.update!(:sort_by, maybe_atomize)
+      |> Map.update!(:sort_dir, maybe_atomize)
 
     query =
       args
       |> Enum.reduce(Job, &filter(&1, &2, conf))
-      |> order_state(args[:state])
+      |> order(args[:sort_by], args[:state], args[:sort_dir])
       |> limit(^args[:limit])
 
     conf
@@ -90,16 +100,28 @@ defmodule Oban.Web.Query do
 
   defp filter(_, query, _conf), do: query
 
-  defp order_state(query, state) when state in ~w(available retryable scheduled) do
-    order_by(query, [j], asc: j.scheduled_at)
+  defp order(query, :attempt, _state, dir) do
+    order_by(query, [j], {^dir, j.attempt})
   end
 
-  defp order_state(query, "executing") do
-    order_by(query, [j], asc: j.attempted_at)
+  defp order(query, :queue, _state, dir) do
+    order_by(query, [j], {^dir, j.queue})
   end
 
-  defp order_state(query, _state) do
-    order_by(query, [j], desc: j.attempted_at)
+  defp order(query, :time, state, dir) when state in ~w(available retryable scheduled) do
+    order_by(query, [j], {^dir, j.scheduled_at})
+  end
+
+  defp order(query, :time, "executing", dir) do
+    order_by(query, [j], {^dir, j.attempted_at})
+  end
+
+  defp order(query, :time, _state, dir) do
+    order_by(query, [j], {^dir, j.attempted_at})
+  end
+
+  defp order(query, :worker, _state, dir) do
+    order_by(query, [j], {^dir, j.worker})
   end
 
   # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
