@@ -42,6 +42,8 @@ defmodule Oban.Web.DashboardLive do
         <LayoutComponent.tabs socket={@socket} page={@page.name} />
 
         <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
+
+        <LayoutComponent.dark_toggle />
       </header>
 
       <%= render_page(@page, assigns) %>
@@ -92,7 +94,7 @@ defmodule Oban.Web.DashboardLive do
 
   def handle_info(:resume_refresh, socket) do
     socket =
-      if socket.assigns.original_refresh do
+      if socket.assigns[:original_refresh] do
         socket
         |> assign(refresh: socket.assigns.original_refresh)
         |> schedule_refresh()

@@ -3,6 +3,8 @@ defmodule Oban.Web.LayoutComponent do
 
   import Oban.Web.Helpers, only: [oban_path: 2]
 
+  alias Phoenix.LiveView.JS
+
   def logo(assigns) do
     ~H"""
     <svg viewBox="0 0 127 48" class="h-12 text-gray-600 dark:text-gray-300">
@@ -68,6 +70,17 @@ defmodule Oban.Web.LayoutComponent do
     """
   end
 
+  def dark_toggle(assigns) do
+    ~H"""
+    <button
+      class="ml-3 p-2 relative text-gray-500 dark:text-gray-50 bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25 rounded-full focus:outline-none focus:bg-opacity-50"
+      aria-label="Click to toggle dark mode"
+      phx-hook="ToggleDarkMode">
+      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+    </button>
+    """
+  end
+
   def footer(assigns) do
     oss_version = "Oban v#{Application.spec(:oban, :vsn)}"
     web_version = "Oban.Web v#{Application.spec(:oban_web, :vsn)}"
@@ -88,8 +101,8 @@ defmodule Oban.Web.LayoutComponent do
     """
   end
 
-  @tabs_base "text-gray-300 hover:text-gray-100 px-3 py-2 font-medium text-sm rounded-md"
+  @tabs_base "text-gray-500 hover:text-gray-400 dark:text-gray-100 dark:hover:text-gray-50 px-3 py-2 font-medium text-sm rounded-md"
 
-  defp link_class(page, page), do: @tabs_base <> " bg-blue-300 bg-opacity-25"
+  defp link_class(page, page), do: @tabs_base <> " bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25"
   defp link_class(_pag, _exp), do: @tabs_base
 end

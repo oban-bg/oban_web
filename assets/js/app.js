@@ -23,6 +23,24 @@ Hooks.ToggleRefresh = {
   }
 }
 
+Hooks.ToggleDarkMode = {
+  setMode() {
+    if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      document.documentElement.classList.add("dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+    }
+  },
+
+  mounted() {
+    this.el.addEventListener("click", _event => {
+      localStorage.theme = localStorage.theme === "dark" ? "light" : "dark";
+
+      this.setMode();
+    })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
 const liveTran = document.querySelector("meta[name='live-transport']").getAttribute("content");
 const livePath = document.querySelector("meta[name='live-path']").getAttribute("content");

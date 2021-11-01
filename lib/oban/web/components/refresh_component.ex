@@ -28,9 +28,9 @@ defmodule Oban.Web.RefreshComponent do
           </span>
         </button>
 
-        <ul id="refresh-menu" class="hidden absolute z-10 mt-1 w-16 bg-gray-50 dark:bg-gray-700 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-blue-400 ring-opacity-5 overflow-auto focus:outline-none sm:text-sm" tabindex="-1" role="listbox" aria-labelledby="listbox-label" aria-activedescendant="listbox-option-3">
+        <ul id="refresh-menu" class="hidden absolute z-10 mt-1 w-16 bg-gray-50 dark:bg-gray-700 shadow-lg max-h-60 rounded-md text-base ring-1 ring-blue-400 ring-opacity-5 overflow-auto focus:outline-none sm:text-sm" tabindex="-1" role="listbox" aria-labelledby="listbox-label" aria-activedescendant="listbox-option-3">
           <%= for {option, display} <- refresh_options() do %>
-            <li class="text-gray-800 dark:text-gray-400 cursor-pointer select-none relative py-2 pl-8 pr-4"
+            <li class="relative text-gray-800 dark:text-gray-400 cursor-pointer select-none hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25 py-2 pl-8 pr-4"
               role="option"
               value={option}
               phx-click="select-refresh"

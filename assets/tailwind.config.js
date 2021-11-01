@@ -2,7 +2,7 @@ const colors = require("tailwindcss/colors");
 
 module.exports = {
   mode: 'jit',
-  darkMode: 'media',
+  darkMode: 'class',
   theme: {
     fontFamily: {
       sans: ["Inter var", "sans-serif"],
@@ -32,7 +32,7 @@ module.exports = {
       yellow: colors.amber
     }
   },
-  purge: ["../lib/**/*.ex"],
+  purge: ["../lib/**/*.*ex"],
   variants: {
     display: ["group-hover"]
   },
