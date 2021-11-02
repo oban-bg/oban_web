@@ -13,16 +13,83 @@ defmodule Oban.Web.Query do
   }
 
   @minimum_pg_for_search 110_000
-  @timeout :timer.seconds(20)
+
+  @list_fields [
+    :id,
+    :args,
+    :attempt,
+    :worker,
+    :queue,
+    :max_attempts,
+    :state,
+    :inserted_at,
+    :attempted_at,
+    :cancelled_at,
+    :completed_at,
+    :discarded_at,
+    :scheduled_at
+  ]
+
+  @refresh_fields [
+    :attempt,
+    :errors,
+    :state,
+    :attempted_at,
+    :cancelled_at,
+    :completed_at,
+    :discarded_at,
+    :scheduled_at
+  ]
 
   @doc false
-  def fetch_job(%Config{} = conf, job_id) do
-    case Repo.all(conf, where(Job, id: ^job_id)) do
-      [] ->
-        {:error, :not_found}
+  def all_jobs(%Config{} = conf, %{} = args) do
+    maybe_atomize = fn
+      val when is_binary(val) -> String.to_existing_atom(val)
+      val when is_atom(val) -> val
+    end
 
-      [job] ->
-        {:ok, relativize_timestamps(job)}
+    args =
+      @defaults
+      |> Map.merge(args)
+      |> Map.update!(:sort_by, maybe_atomize)
+      |> Map.update!(:sort_dir, maybe_atomize)
+
+    query =
+      args
+      |> Enum.reduce(Job, &filter(&1, &2, conf))
+      |> order(args[:sort_by], args[:state], args[:sort_dir])
+      |> limit(^args[:limit])
+      |> select(^@list_fields)
+
+    conf
+    |> Repo.all(query)
+    |> Enum.map(&relativize_timestamps/1)
+  end
+
+  @doc false
+  def refresh_job(_conf, nil), do: nil
+
+  def refresh_job(%Config{} = conf, %Job{id: job_id} = job) do
+    query =
+      Job
+      |> where(id: ^job_id)
+      |> select([j], map(j, ^@refresh_fields))
+
+    case Repo.all(conf, query) do
+      [] ->
+        nil
+
+      [new_job] ->
+        new_job
+        |> Enum.reduce(job, fn {key, val}, acc -> %{acc | key => val} end)
+        |> relativize_timestamps()
+    end
+  end
+
+  def refresh_job(%Config{} = conf, job_id) when is_binary(job_id) or is_integer(job_id) do
+    case Repo.all(conf, where(Job, id: ^job_id)) do
+      [] -> nil
+      [job] -> relativize_timestamps(job)
     end
   end
 
@@ -48,27 +115,16 @@ defmodule Oban.Web.Query do
   end
 
   @doc false
-  def get_jobs(%Config{} = conf, %{} = args) do
-    maybe_atomize = fn
-      val when is_binary(val) -> String.to_existing_atom(val)
-      val when is_atom(val) -> val
-    end
+  def queue_state_counts(_conf, []), do: []
 
-    args =
-      @defaults
-      |> Map.merge(args)
-      |> Map.update!(:sort_by, maybe_atomize)
-      |> Map.update!(:sort_dir, maybe_atomize)
-
+  def queue_state_counts(%Config{} = conf, [_ | _] = states) do
     query =
-      args
-      |> Enum.reduce(Job, &filter(&1, &2, conf))
-      |> order(args[:sort_by], args[:state], args[:sort_dir])
-      |> limit(^args[:limit])
+      Job
+      |> where([j], j.state in ^states)
+      |> group_by([j], [j.queue, j.state])
+      |> select([j], {j.queue, j.state, count(j.id)})
 
-    conf
-    |> Repo.all(query)
-    |> Enum.map(&relativize_timestamps/1)
+    Repo.all(conf, query, timeout: :timer.seconds(20))
   end
 
   # Helpers
@@ -127,7 +183,7 @@ defmodule Oban.Web.Query do
   # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
   # re-rendering the relative time, which makes it look like the view is broken. To work around
   # this issue we inject relative values to trigger change tracking.
-  defp relativize_timestamps(%Job{} = job, now \\ NaiveDateTime.utc_now()) do
+  defp relativize_timestamps(job, now \\ NaiveDateTime.utc_now()) do
     relative = %{
       relative_attempted_at: maybe_diff(now, job.attempted_at),
       relative_cancelled_at: maybe_diff(now, job.cancelled_at),
@@ -142,19 +198,6 @@ defmodule Oban.Web.Query do
 
   defp maybe_diff(_now, nil), do: nil
   defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
-
-  @doc false
-  def queue_state_counts(_conf, []), do: []
-
-  def queue_state_counts(%Config{} = conf, [_ | _] = states) do
-    query =
-      Job
-      |> where([j], j.state in ^states)
-      |> group_by([j], [j.queue, j.state])
-      |> select([j], {j.queue, j.state, count(j.id)})
-
-    Repo.all(conf, query, timeout: @timeout)
-  end
 
   # We need to know the PG server version to toggle full text search capabilities. Queries are
   # usually performed within a persistent LiveView connection, so we can safely cache the pg

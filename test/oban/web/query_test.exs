@@ -6,7 +6,7 @@ defmodule Oban.Web.QueryTest do
 
   @conf Config.new(repo: Repo)
 
-  describe "get_jobs/2" do
+  describe "all_jobs/2" do
     test "searching for jobs by worker" do
       job_a = insert(MyApp.Alpha)
       job_b = insert(MyApp.Delta)
@@ -54,7 +54,7 @@ defmodule Oban.Web.QueryTest do
 
   defp search_ids(terms) do
     @conf
-    |> Query.get_jobs(%{terms: terms, state: "available"})
+    |> Query.all_jobs(%{terms: terms, state: "available"})
     |> Enum.map(& &1.id)
     |> Enum.sort()
   end

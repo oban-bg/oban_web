@@ -1,7 +1,6 @@
 defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
-  alias Oban.Job
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
   alias Oban.Web.Plugins.Stats
@@ -68,7 +67,7 @@ defmodule Oban.Web.JobsPage do
 
   @impl Page
   def handle_refresh(socket) do
-    jobs = Query.get_jobs(socket.assigns.conf, socket.assigns.params)
+    jobs = Query.all_jobs(socket.assigns.conf, socket.assigns.params)
 
     selected =
       jobs
@@ -86,7 +85,7 @@ defmodule Oban.Web.JobsPage do
 
   @impl Page
   def handle_params(%{"id" => job_id}, _uri, socket) do
-    case refresh_job(socket.assigns.conf, %Job{id: job_id}) do
+    case refresh_job(socket.assigns.conf, job_id) do
       nil ->
         {:noreply, socket}
 
@@ -113,7 +112,7 @@ defmodule Oban.Web.JobsPage do
       socket
       |> assign(detailed: nil, page_title: page_title("Jobs"))
       |> assign(params: Map.merge(socket.assigns.default_params, params))
-      |> assign(jobs: Query.get_jobs(socket.assigns.conf, params))
+      |> assign(jobs: Query.all_jobs(socket.assigns.conf, params))
 
     {:noreply, socket}
   end
@@ -258,12 +257,7 @@ defmodule Oban.Web.JobsPage do
     assign(socket, jobs: jobs, selected: MapSet.new())
   end
 
-  defp refresh_job(conf, %Job{id: jid}) do
-    case Query.fetch_job(conf, jid) do
-      {:ok, job} -> job
-      {:error, :not_found} -> nil
-    end
+  defp refresh_job(conf, job_or_jid) do
+    Query.refresh_job(conf, job_or_jid)
   end
-
-  defp refresh_job(_conf, _job), do: nil
 end
