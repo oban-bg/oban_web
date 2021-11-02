@@ -3,6 +3,8 @@ defmodule Oban.Web.Resolver do
   A behavior and default implementation for dashboard value resolution.
   """
 
+  alias Oban.Job
+
   @type user :: nil | map() | struct()
   @type access :: :all | :read_only | [access_option()]
   @type access_option ::
@@ -12,6 +14,16 @@ defmodule Oban.Web.Resolver do
           | {:delete_jobs, boolean()}
           | {:retry_jobs, boolean()}
   @type refresh :: 1 | 2 | 5 | 15 | -1
+
+  @doc """
+  Customize the formatting of job args wherever they are displayed.
+  """
+  @callback format_job_args(Job.t()) :: String.t()
+
+  @doc """
+  Customize the formatting of job meta wherever it is displayed.
+  """
+  @callback format_job_meta(Job.t()) :: String.t()
 
   @doc """
   Lookup or extract a user from a `Plug.Conn`.
@@ -28,7 +40,17 @@ defmodule Oban.Web.Resolver do
   """
   @callback resolve_refresh(user()) :: refresh()
 
-  @optional_callbacks resolve_user: 1, resolve_access: 1, resolve_refresh: 1
+  @optional_callbacks format_job_args: 1,
+                      format_job_meta: 1,
+                      resolve_user: 1,
+                      resolve_access: 1,
+                      resolve_refresh: 1
+
+  @doc false
+  def format_job_args(%Job{args: args}), do: inspect(args, charlists: :as_lists, pretty: true)
+
+  @doc false
+  def format_job_meta(%Job{meta: meta}), do: inspect(meta, charlists: :as_lists, pretty: true)
 
   @doc false
   def resolve_user(_conn), do: nil

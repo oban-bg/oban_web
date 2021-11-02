@@ -1,11 +1,13 @@
 defmodule Oban.Web.Jobs.RowComponent do
   use Oban.Web, :live_component
 
+  alias Oban.Web.Resolver
+
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     socket =
       socket
-      |> assign(job: assigns.job)
+      |> assign(job: assigns.job, resolver: assigns.resolver)
       |> assign(:selected?, MapSet.member?(assigns.selected, assigns.job.id))
       |> assign(:hidden?, Map.get(assigns.job, :hidden?, false))
 
@@ -37,7 +39,9 @@ defmodule Oban.Web.Jobs.RowComponent do
         <%= live_patch to: oban_path(@socket, :jobs, @job), class: "flex-auto cursor-pointer max-w-xl overflow-hidden" do %>
           <span rel="jid" class="text-sm text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
           <span rel="worker" class="font-semibold text-sm text-gray-700 dark:text-gray-300 ml-1"><%= @job.worker %></span>
-          <span rel="args" class="block font-mono truncate text-xs text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300 mt-2"><%= inspect(@job.args) %></span>
+          <span rel="args" class="block font-mono truncate text-xs text-gray-500 dark:text-gray-400 dark:group-hover:text-gray-300 mt-2">
+            <%= format_args(@job, @resolver) %>
+          </span>
         <% end %>
       </td>
 
@@ -66,6 +70,8 @@ defmodule Oban.Web.Jobs.RowComponent do
     """
   end
 
+  # Handlers
+
   @impl Phoenix.LiveComponent
   def handle_event("toggle-select", _params, socket) do
     if socket.assigns.selected? do
@@ -81,5 +87,15 @@ defmodule Oban.Web.Jobs.RowComponent do
     send(self(), {:params, :terms, socket.assigns.job.worker})
 
     {:noreply, socket}
+  end
+
+  # Helpers
+
+  defp format_args(job, resolver, length \\ 128) do
+    resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
+
+    job
+    |> resolver.format_job_args()
+    |> String.slice(0..128)
   end
 end

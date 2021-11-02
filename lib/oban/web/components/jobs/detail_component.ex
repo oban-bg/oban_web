@@ -2,8 +2,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
   alias Oban.Web.Jobs.TimelineComponent
-  alias Oban.Web.Timing
+  alias Oban.Web.{Resolver, Timing}
 
+  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="job-details">
@@ -91,27 +92,36 @@ defmodule Oban.Web.Jobs.DetailComponent do
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 class="font-semibold mb-3">Args</h3>
-        <pre><code class="font-mono text-sm text-gray-500 dark:text-gray-300 overflow-x-scroll"><%= inspect(@job.args, charlists: :as_lists, pretty: true) %></code></pre>
+        <h3 class="flex font-semibold mb-3 space-x-2">
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span>Args</span>
+        </h3>
+        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 overflow-x-scroll"><%= format_args(@job, @resolver) %></pre>
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 class="font-semibold mb-3">Meta</h3>
-        <pre><code class="font-mono text-sm text-gray-500 dark:text-gray-300 overflow-x-scroll"><%= inspect(@job.meta, charlists: :as_lists, pretty: true) %></code></pre>
+        <h3 class="flex font-semibold mb-3 space-x-2">
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+          <span>Meta</span>
+        </h3>
+        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 overflow-x-scroll"><%= format_meta(@job, @resolver) %></pre>
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 class="font-semibold mb-3">Errors</h3>
+        <h3 class="flex font-semibold mb-3 space-x-2">
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Errors</span>
+        </h3>
 
         <%= if Enum.any?(@job.errors) do %>
           <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
-            <div class="mt-3">
+            <div class="mb-6">
               <h4 class="text-sm mb-2">Attempt <%= attempt %> (<%= iso8601_to_words(at) %>)</h4>
-              <pre><code class="font-mono text-sm text-gray-500 dark:text-gray-300 overflow-x-scroll"><%= error %></code></pre>
+              <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 overflow-x-scroll"><%= error %></pre>
             </div>
           <% end %>
         <% else %>
-          <code class="font-mono text-sm text-gray-500">No Errors</code>
+          <pre class="font-mono text-sm text-gray-500 dark:text-gray-400">No Errors</pre>
         <% end %>
       </div>
     </div>
@@ -120,6 +130,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   # Handlers
 
+  @impl Phoenix.LiveComponent
   def handle_event("close", _params, socket) do
     send(self(), {:params, :none})
 
@@ -148,5 +159,19 @@ defmodule Oban.Web.Jobs.DetailComponent do
     end
 
     {:noreply, socket}
+  end
+
+  # Helpers
+
+  defp format_args(job, resolver) do
+    resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
+
+    resolver.format_job_args(job)
+  end
+
+  defp format_meta(job, resolver) do
+    resolver = if function_exported?(resolver, :format_job_meta, 1), do: resolver, else: Resolver
+
+    resolver.format_job_meta(job)
   end
 end

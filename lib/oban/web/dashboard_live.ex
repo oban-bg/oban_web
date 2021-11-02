@@ -7,7 +7,7 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
-    %{"oban" => oban, "refresh" => refresh} = session
+    %{"oban" => oban, "resolver" => resolver, "refresh" => refresh} = session
     %{"socket_path" => path, "transport" => transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
@@ -18,7 +18,7 @@ defmodule Oban.Web.DashboardLive do
 
     socket =
       socket
-      |> assign(conf: conf, params: params, page: page)
+      |> assign(conf: conf, params: params, page: page, resolver: resolver)
       |> assign(csp_nonces: csp_nonces, live_path: path, live_transport: transport)
       |> assign(access: access, user: user)
       |> assign(refresh: refresh, timer: nil)

@@ -84,6 +84,7 @@ defmodule Oban.Web.Router do
     %{
       "oban" => oban,
       "user" => user,
+      "resolver" => resolver,
       "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
       "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user]),
       "socket_path" => socket_path,

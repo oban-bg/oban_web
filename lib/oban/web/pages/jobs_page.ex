@@ -27,7 +27,12 @@ defmodule Oban.Web.JobsPage do
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
-            <.live_component id="detail" module={DetailComponent} access={@access} job={@detailed} />
+            <.live_component
+              id="detail"
+              module={DetailComponent}
+              access={@access}
+              job={@detailed}
+              resolver={@resolver} />
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
               <.live_component id="header" module={HeaderComponent} params={@params} jobs={@jobs} counts={@counts} selected={@selected} />
@@ -41,6 +46,7 @@ defmodule Oban.Web.JobsPage do
               module={TableComponent}
               jobs={@jobs}
               params={@params}
+              resolver={@resolver}
               selected={@selected} />
           <% end %>
         </div>

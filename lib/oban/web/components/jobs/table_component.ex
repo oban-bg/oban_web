@@ -12,7 +12,8 @@ defmodule Oban.Web.Jobs.TableComponent do
   def update(assigns, socket) do
     socket =
       socket
-      |> assign(jobs: assigns.jobs, params: assigns.params, selected: assigns.selected)
+      |> assign(jobs: assigns.jobs, params: assigns.params)
+      |> assign(resolver: assigns.resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
 
@@ -49,6 +50,7 @@ defmodule Oban.Web.Jobs.TableComponent do
               id={job.id}
               module={RowComponent}
               job={job}
+              resolver={@resolver}
               selected={@selected}
               socket={@socket} />
           <% end %>
