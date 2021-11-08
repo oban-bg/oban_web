@@ -148,12 +148,6 @@ defmodule Oban.Web.JobsPage do
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
-  def handle_info({:params, :none}, socket) do
-    params = without_defaults(socket.assigns.params, socket.assigns.default_params)
-
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params))}
-  end
-
   # Single Actions
 
   def handle_info({:cancel_job, job}, socket) do

@@ -89,6 +89,8 @@ defmodule Oban.Web.Plugins.Stats do
       table
     )
 
+    :ok = Notifier.listen(state.conf.name, [:gossip])
+
     {:ok, state}
   end
 
@@ -143,8 +145,6 @@ defmodule Oban.Web.Plugins.Stats do
 
   defp maybe_start_refresh(%State{active: active} = state) do
     if Enum.empty?(active) do
-      :ok = Notifier.listen(state.conf.name, [:gossip])
-
       refresh(state)
     else
       state
@@ -153,8 +153,6 @@ defmodule Oban.Web.Plugins.Stats do
 
   defp maybe_cancel_refresh(%State{active: active} = state) do
     if Enum.empty?(active) do
-      :ok = Notifier.unlisten(state.conf.name, [:gossip])
-
       cancel_refresh(state)
     else
       state

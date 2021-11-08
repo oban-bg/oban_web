@@ -1,5 +1,5 @@
-defmodule Oban.Web.DetailComponentTest do
-  use Oban.Web.DataCase
+defmodule Oban.Web.Jobs.DetailComponentTest do
+  use Oban.Web.DataCase, async: true
 
   import Phoenix.LiveViewTest
 

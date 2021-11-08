@@ -1,6 +1,8 @@
 defmodule Oban.Web.Queues.GroupRowComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.Helpers.QueueHelper
+
   alias Oban.Web.Timing
 
   @impl Phoenix.LiveComponent
@@ -47,10 +49,8 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           </button>
         <% end %>
 
-        <%= if can?(:scale_queues, @access) do %>
-          <button class="block text-gray-400 hover:text-blue-500">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-          </button>
+        <%= live_patch to: oban_path(@socket, :queues, %{detail: @queue}), class: "block text-gray-400 hover:text-blue-500" do %>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
         <% end %>
       </td>
     </tr>
@@ -86,10 +86,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
   defp nodes_count(gossip), do: length(gossip)
 
-  defp executing_count(gossip) do
-    for %{"running" => running} <- gossip, reduce: 0, do: (acc -> acc + length(running))
-  end
-
   defp available_count(counts) do
     counts
     |> Map.get("available", 0)
@@ -107,9 +103,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   end
 
   defp global_limit(gossip) do
-    total = for %{"local_limit" => limit} <- gossip, reduce: 0, do: (acc -> acc + limit)
-
-    Enum.find_value(gossip, total, & &1["global_limit"])
+    Enum.find_value(gossip, "-", & &1["global_limit"])
   end
 
   defp rate_limit(gossip) do
@@ -144,20 +138,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       [] ->
         "-"
     end
-  end
-
-  defp started_at(gossip) do
-    gossip
-    |> Enum.map(& &1["started_at"])
-    |> Enum.map(&started_at_to_diff/1)
-    |> Enum.max()
-    |> Timing.to_words()
-  end
-
-  defp started_at_to_diff(started_at) do
-    {:ok, date_time, _} = DateTime.from_iso8601(started_at)
-
-    DateTime.diff(date_time, DateTime.utc_now())
   end
 
   defp any_paused?(gossip), do: Enum.any?(gossip, & &1["paused"])

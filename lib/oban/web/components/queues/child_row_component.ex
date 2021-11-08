@@ -1,6 +1,8 @@
 defmodule Oban.Web.Queues.ChildRowComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.Helpers.QueueHelper
+
   alias Oban.Web.Timing
 
   @impl Phoenix.LiveComponent
@@ -87,19 +89,5 @@ defmodule Oban.Web.Queues.ChildRowComponent do
       [] ->
         "-"
     end
-  end
-
-  defp started_at(gossip) do
-    gossip
-    |> Enum.map(& &1["started_at"])
-    |> Enum.map(&started_at_to_diff/1)
-    |> Enum.max()
-    |> Timing.to_words()
-  end
-
-  defp started_at_to_diff(started_at) do
-    {:ok, date_time, _} = DateTime.from_iso8601(started_at)
-
-    DateTime.diff(date_time, DateTime.utc_now())
   end
 end

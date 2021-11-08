@@ -129,7 +129,7 @@ defmodule Oban.Web.Helpers do
   """
   def integer_to_estimate(number) when number < 1000, do: to_string(number)
 
-  def integer_to_estimate(number) do
+  def integer_to_estimate(number) when is_integer(number) do
     {power, suffix} =
       cond do
         number < 1_000_000 -> {3, "k"}

@@ -49,7 +49,7 @@ defmodule Oban.Web.SidebarComponent do
         </div>
 
         <div class="hidden group-hover:block">
-          <button class="block w-5 h-5 text-gray-400 dark:text-gray-600 hover:text-blue-500" title="Minimize or maximize" phx-click={toggle(@id)}>
+          <button class="block w-5 h-5 text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-500" title="Minimize or maximize" phx-click={toggle(@id)}>
             <svg id={"#{@id}-hide-icon"} class="block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
             <svg id={"#{@id}-show-icon"} class="hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
           </button>
