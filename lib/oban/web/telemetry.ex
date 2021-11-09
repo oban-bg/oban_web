@@ -9,7 +9,7 @@ defmodule Oban.Web.Telemetry do
       [:oban_web, :action, :exception]
     ]
 
-    :telemetry.attach_many("oban_web-logger", events, &handle_event/4, level)
+    :telemetry.attach_many("oban_web-logger", events, &__MODULE__.handle_event/4, level)
   end
 
   def action(name, socket, meta, fun) do

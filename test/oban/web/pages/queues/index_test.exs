@@ -1,4 +1,4 @@
-defmodule Oban.Web.Pages.QueuesTest do
+defmodule Oban.Web.Pages.Queues.IndexTest do
   use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest

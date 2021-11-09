@@ -33,8 +33,9 @@ This chart breaks down the possible actions and their specific metadata:
 
 | action          | metadata           |
 | --------------- | ------------------ |
-| `:pause_queues` | `:queue`           |
-| `:scale_queues` | `:queue`, `:limit` |
+| `:pause_queue`  | `:queue`           |
+| `:resume_queue` | `:queue`           |
+| `:scale_queue`  | `:queue`, `:limit` |
 | `:cancel_jobs`  | `:job_ids`         |
 | `:delete_jobs`  | `:job_ids`         |
 | `:retry_jobs`   | `:job_ids`         |

@@ -7,15 +7,15 @@ defmodule Oban.Web.Helpers do
   # Routing Helpers
 
   def oban_path(socket, page) when is_atom(page) do
-    oban_path(socket, [socket, :page, page])
+    oban_path(socket, [socket, :index, page])
   end
 
   def oban_path(socket, args) when is_list(args) do
     apply(socket.router.__helpers__(), :oban_dashboard_path, args)
   end
 
-  def oban_path(socket, :jobs, %{id: id}) do
-    oban_path(socket, [socket, :jobs, id])
+  def oban_path(socket, page, %{id: id}) do
+    oban_path(socket, [socket, :show, page, id])
   end
 
   def oban_path(socket, page, params) do
@@ -27,12 +27,14 @@ defmodule Oban.Web.Helpers do
         {key, val} -> {key, val}
       end)
 
-    oban_path(socket, [socket, :page, page, params])
+    oban_path(socket, [socket, :index, page, params])
   end
 
   @doc """
   Construct a map without any default values included.
   """
+  def without_defaults(%_params{}, _defaults), do: %{}
+
   def without_defaults(params, defaults) do
     params
     |> Enum.reject(fn {key, val} -> val == defaults[key] end)
@@ -127,6 +129,8 @@ defmodule Oban.Web.Helpers do
   @doc """
   Round numbers to human readable values with a scale suffix.
   """
+  def integer_to_estimate(nil), do: "0"
+
   def integer_to_estimate(number) when number < 1000, do: to_string(number)
 
   def integer_to_estimate(number) when is_integer(number) do

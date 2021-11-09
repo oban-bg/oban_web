@@ -77,7 +77,7 @@ defmodule Oban.Web.QueuesPage do
   # Handlers
 
   @impl Page
-  def handle_params(%{"detail" => queue}, _uri, socket) do
+  def handle_params(%{"id" => queue}, _uri, socket) do
     title = "#{String.capitalize(queue)} Queue"
 
     {:noreply, assign(socket, detail: queue, page_title: page_title(title))}
@@ -142,11 +142,27 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  def handle_info({:scale_queue, queue, opts}, socket) do
+    opts = Keyword.put(opts, :queue, queue)
+
+    Telemetry.action(:scale_queue, socket, opts, fn ->
+      Oban.scale_queue(socket.assigns.conf.name, opts)
+    end)
+
+    {:noreply, flash(socket, :info, "#{String.capitalize(to_string(queue))} queue scaled")}
+  end
+
   def handle_info(_, socket) do
     {:noreply, socket}
   end
 
   # Helpers
+
+  defp flash(socket, mode, message, timing \\ 5_000) do
+    Process.send_after(self(), :clear_flash, timing)
+
+    put_flash(socket, mode, message)
+  end
 
   defp queues_count(gossip) do
     gossip

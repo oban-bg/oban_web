@@ -8,13 +8,23 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    counts = Enum.find(assigns.counts, & &1["name"] == assigns.queue)
-    gossip = Enum.filter(assigns.gossip, & &1["queue"] == assigns.queue)
+    counts = Enum.find(assigns.counts, %{}, &(&1["name"] == assigns.queue))
+    gossip = Enum.filter(assigns.gossip, &(&1["queue"] == assigns.queue))
 
     socket =
       socket
       |> assign(access: assigns.access, conf: assigns.conf, queue: assigns.queue)
       |> assign(counts: counts, gossip: gossip)
+      |> assign_new(:inputs, fn ->
+        %{
+          local_limit: local_limit(gossip),
+          global_limit: global_limit(gossip),
+          rate_limit_allowed: rate_limit_allowed(gossip),
+          rate_limit_period: rate_limit_period(gossip),
+          rate_limit_partition_fields: rate_limit_partition_fields(gossip),
+          rate_limit_partition_keys: rate_limit_partition_keys(gossip)
+        }
+      end)
 
     {:ok, socket}
   end
@@ -86,8 +96,8 @@ defmodule Oban.Web.Queues.DetailComponent do
           <h3 class="font-medium text-base">Global Configuration</h3>
         </div>
 
-        <form class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
-          <div class="w-1/4 pr-3 pt-3 pb-6">
+        <div class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
+          <form id="local-form" class="w-1/4 pr-3 pt-3 pb-6" phx-target={@myself} phx-submit="local-update">
             <h3 class="flex items-center mb-4">
               <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
               <span class="text-base font-semibold">Local Concurrency</span>
@@ -96,15 +106,18 @@ defmodule Oban.Web.Queues.DetailComponent do
             <label for="local_limit" class="block font-medium text-sm mb-2">Limit</label>
             <.number_input
               name="local_limit"
-              value={local_limit(@gossip)}
-              disabled={not can?(:scale_queues, @access)} />
+              value={@inputs.local_limit}
+              disabled={not can?(:scale_queues, @access)}
+              myself={@myself} />
 
-            <div class="flex justify-end mt-4">
-              <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
-                Save
+              <div class="flex justify-end mt-4">
+              <button
+                class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm"
+                disabled={not can?(:scale_queues, @access)}>
+                Scale
               </button>
             </div>
-          </div>
+          </form>
 
           <div id="global-limit-fields" class={"relative w-1/4 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}>
             <%= if missing_pro?(@conf) do %>
@@ -120,12 +133,13 @@ defmodule Oban.Web.Queues.DetailComponent do
               <label for="global_limit" class="block font-medium text-sm mb-2">Limit</label>
               <.number_input
                 name="global_limit"
-                value={global_limit(@gossip)}
-                disabled={not can?(:scale_queues, @access)} />
+                value={@inputs.global_limit}
+                disabled={not can?(:scale_queues, @access)}
+                myself={@myself} />
 
               <div class="flex justify-end mt-4 opacity-20 cursor-not-allowed pointer-events-none select-none">
                 <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
-                  Save
+                  Apply
                 </button>
               </div>
             </div>
@@ -147,16 +161,18 @@ defmodule Oban.Web.Queues.DetailComponent do
                   <label for="rate_limit_allowed" class="block font-medium text-sm mb-2">Allowed</label>
                   <.number_input
                     name="rate_limit_allowed"
-                    value={rate_limit_allowed(@gossip)}
-                    disabled={not can?(:scale_queues, @access)} />
+                    value={@inputs.rate_limit_allowed}
+                    disabled={not can?(:scale_queues, @access)}
+                    myself={@myself} />
                 </div>
 
                 <div class="w-1/2">
                   <label for="rate_limit_period" class="block font-medium text-sm mb-2">Period</label>
                   <.number_input
                     name="rate_limit_period"
-                    value={rate_limit_period(@gossip)}
-                    disabled={not can?(:scale_queues, @access)} />
+                    value={@inputs.rate_limit_period}
+                    disabled={not can?(:scale_queues, @access)}
+                    myself={@myself} />
                 </div>
               </div>
 
@@ -168,7 +184,9 @@ defmodule Oban.Web.Queues.DetailComponent do
                     name="rate_limit_fields"
                     class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access)}>
-                    <%= options_for_select(["Disabled": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker+args"], rate_limit_partition_fields(@gossip)) %>
+                    <%= options_for_select(
+                      ["Off": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker+args"],
+                      @inputs.rate_limit_partition_fields) %>
                   </select>
                 </div>
 
@@ -180,19 +198,19 @@ defmodule Oban.Web.Queues.DetailComponent do
                     id="rate_limit_keys"
                     name="rate_limit_keys"
                     class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    value={rate_limit_partition_keys(@gossip)}
+                    value={@inputs.rate_limit_partition_keys}
                     disabled={not can?(:scale_queues, @access)}>
                 </div>
               </div>
 
               <div class="flex justify-end mt-4 opacity-30 cursor-not-allowed pointer-events-none select-none">
                 <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
-                  Save
+                  Apply
                 </button>
               </div>
             </div>
           </div>
-        </form>
+        </div>
       </div>
 
       <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
@@ -230,7 +248,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </td>
                 <td class="pr-3 py-3">
                   <form class="flex space-x-3">
-                    <.number_input name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} />
+                    <.number_input name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} myself={@myself} />
                     <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">Scale</button>
                   </form>
                 </td>
@@ -243,28 +261,64 @@ defmodule Oban.Web.Queues.DetailComponent do
     """
   end
 
+  # Handlers
+
+  @impl Phoenix.LiveComponent
+  def handle_event("local-update", params, socket) do
+    limit = String.to_integer(params["local_limit"])
+
+    send(self(), {:scale_queue, socket.assigns.queue, limit: limit})
+
+    inputs = %{socket.assigns.inputs | local_limit: limit}
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("increment", %{"field" => field}, socket) do
+    {:noreply, change_input(socket, field, 1)}
+  end
+
+  def handle_event("decrement", %{"field" => field}, socket) do
+    {:noreply, change_input(socket, field, -1)}
+  end
+
   # Components
 
   defp number_input(assigns) do
     ~H"""
     <div class="flex">
       <input
-        type="text"
-        id={@name}
-        name={@name}
-        placeholder="Off"
-        disabled={@disabled}
+        autocomplete="off"
         class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
-        value={@value}>
+        disabled={@disabled}
+        id={@name}
+        inputmode="numeric"
+        name={@name}
+        pattern="[1-9][0-9]*"
+        placeholder="Off"
+        type="text"
+        value={@value} />
 
       <div class="w-9">
-        <button class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+        <span
+          rel="inc"
+          class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          tabindex="-1"
+          phx-click="increment"
+          phx-target={@myself}
+          phx-value-field={@name}>
           <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-        </button>
+        </span>
 
-        <button class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+        <span
+          rel="dec"
+          class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          tabindex="-1"
+          phx-click="decrement"
+          phx-target={@myself}
+          phx-value-field={@name}>
           <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </button>
+        </span>
       </div>
     </div>
     """
@@ -323,6 +377,21 @@ defmodule Oban.Web.Queues.DetailComponent do
     |> Enum.map(& &1["rate_limit"])
     |> Enum.filter(&is_map/1)
     |> List.first()
+  end
+
+  defp change_input(socket, field, change) do
+    field = String.to_existing_atom(field)
+
+    inputs =
+      Map.update!(socket.assigns.inputs, field, fn value ->
+        if is_integer(value) and value + change > 0 do
+          value + change
+        else
+          value
+        end
+      end)
+
+    assign(socket, inputs: inputs)
   end
 
   # Pro Helpers

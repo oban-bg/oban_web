@@ -35,7 +35,9 @@ defmodule Oban.Web.DashboardLive do
     <meta name="live-path" content={@live_path} />
 
     <main class="p-4 min-h-screen flex flex-col">
-      <LayoutComponent.notify flash={@flash} />
+      <%= if live_flash(@flash, :info) do %>
+        <LayoutComponent.notify flash={@flash} />
+      <% end %>
 
       <header class="flex items-center">
         <LayoutComponent.logo />
