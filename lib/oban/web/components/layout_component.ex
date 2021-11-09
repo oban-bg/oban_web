@@ -71,6 +71,7 @@ defmodule Oban.Web.LayoutComponent do
   def dark_toggle(assigns) do
     ~H"""
     <button
+      id="dark-toggle"
       class="ml-3 p-2 relative text-gray-500 dark:text-gray-50 bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25 rounded-full focus:outline-none focus:bg-opacity-50"
       aria-label="Click to toggle dark mode"
       phx-hook="ToggleDarkMode">

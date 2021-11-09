@@ -26,11 +26,11 @@ defmodule Oban.Web.QueuesPage do
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detail do %>
             <.live_component id="detail"
-              conf={@conf}
-              module={DetailComponent}
               access={@access}
+              conf={@conf}
               counts={@counts}
               gossip={@gossip}
+              module={DetailComponent}
               queue={@detail} />
           <% else %>
             <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">

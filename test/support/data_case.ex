@@ -19,6 +19,7 @@ defmodule Oban.Web.DataCase do
 
       alias Oban.Job
       alias Oban.Web.{Beat, Repo}
+      alias Oban.Web.Test.Router
 
       @endpoint Oban.Web.Endpoint
     end
@@ -40,24 +41,30 @@ defmodule Oban.Web.DataCase do
     pid
   end
 
-  def gossip(meta_opts) do
+  def build_gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
     iso_now = DateTime.to_iso8601(DateTime.utc_now())
 
-    meta_json =
-      meta_opts
-      |> Map.new()
-      |> Map.put_new(:name, inspect(name))
-      |> Map.put_new(:local_limit, 1)
-      |> Map.put_new(:global_limit, nil)
-      |> Map.put_new(:rate_limit, nil)
-      |> Map.put_new(:paused, false)
-      |> Map.put_new(:running, [])
-      |> Map.put_new(:started_at, iso_now)
-      |> Map.put_new(:updated_at, iso_now)
-      |> Jason.encode!()
-      |> Jason.decode!()
+    meta_opts
+    |> Map.new()
+    |> Map.put_new(:name, inspect(name))
+    |> Map.put_new(:node, "localhost")
+    |> Map.put_new(:local_limit, 1)
+    |> Map.put_new(:global_limit, nil)
+    |> Map.put_new(:rate_limit, nil)
+    |> Map.put_new(:paused, false)
+    |> Map.put_new(:running, [])
+    |> Map.put_new(:started_at, iso_now)
+    |> Map.put_new(:updated_at, iso_now)
+    |> Jason.encode!()
+    |> Jason.decode!()
+  end
+
+  def gossip(meta_opts) do
+    name = Keyword.get(meta_opts, :name, Oban)
+
+    meta_json = build_gossip(meta_opts)
 
     name
     |> Oban.Registry.whereis({:plugin, Oban.Web.Plugins.Stats})

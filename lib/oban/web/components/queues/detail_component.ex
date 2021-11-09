@@ -13,7 +13,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
     socket =
       socket
-      |> assign(conf: assigns.conf, queue: assigns.queue)
+      |> assign(access: assigns.access, conf: assigns.conf, queue: assigns.queue)
       |> assign(counts: counts, gossip: gossip)
 
     {:ok, socket}
@@ -28,6 +28,15 @@ defmodule Oban.Web.Queues.DetailComponent do
           <svg class="h-5 w-5 hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
           <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
         <% end %>
+
+        <button rel="play_pause"
+          class="block text-gray-500 hover:text-blue-500"
+          title="Pause all instances"
+          phx-click="play_pause"
+          phx-target={@myself}
+          phx-throttle="1000">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </button>
       </div>
 
       <table class="table-fixed w-full bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25">
@@ -85,7 +94,10 @@ defmodule Oban.Web.Queues.DetailComponent do
             </h3>
 
             <label for="local_limit" class="block font-medium text-sm mb-2">Limit</label>
-            <.number_input name="local_limit" value={local_limit(@gossip)} />
+            <.number_input
+              name="local_limit"
+              value={local_limit(@gossip)}
+              disabled={not can?(:scale_queues, @access)} />
 
             <div class="flex justify-end mt-4">
               <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
@@ -106,7 +118,10 @@ defmodule Oban.Web.Queues.DetailComponent do
               </h3>
 
               <label for="global_limit" class="block font-medium text-sm mb-2">Limit</label>
-              <.number_input name="global_limit" value={global_limit(@gossip)} />
+              <.number_input
+                name="global_limit"
+                value={global_limit(@gossip)}
+                disabled={not can?(:scale_queues, @access)} />
 
               <div class="flex justify-end mt-4 opacity-20 cursor-not-allowed pointer-events-none select-none">
                 <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
@@ -129,32 +144,44 @@ defmodule Oban.Web.Queues.DetailComponent do
 
               <div class="flex w-full space-x-3 mb-6">
                 <div class="w-1/2">
-                  <label for="allowed" class="block font-medium text-sm mb-2">Allowed</label>
-                  <.number_input name="allowed" value={rate_limit_allowed(@gossip)} />
+                  <label for="rate_limit_allowed" class="block font-medium text-sm mb-2">Allowed</label>
+                  <.number_input
+                    name="rate_limit_allowed"
+                    value={rate_limit_allowed(@gossip)}
+                    disabled={not can?(:scale_queues, @access)} />
                 </div>
 
                 <div class="w-1/2">
-                  <label for="period" class="block font-medium text-sm mb-2">Period</label>
-                  <.number_input name="period" value={rate_limit_period(@gossip)} />
+                  <label for="rate_limit_period" class="block font-medium text-sm mb-2">Period</label>
+                  <.number_input
+                    name="rate_limit_period"
+                    value={rate_limit_period(@gossip)}
+                    disabled={not can?(:scale_queues, @access)} />
                 </div>
               </div>
 
               <div class="flex w-full space-x-3">
                 <div class="w-1/2">
-                  <label for="fields" class="block font-medium text-sm mb-2">Partition Fields</label>
-                  <select id="fields" name="fields" class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                  <label for="rate_limit_fields" class="block font-medium text-sm mb-2">Partition Fields</label>
+                  <select
+                    id="rate_limit_fields"
+                    name="rate_limit_fields"
+                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled={not can?(:scale_queues, @access)}>
                     <%= options_for_select(["Disabled": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker+args"], rate_limit_partition_fields(@gossip)) %>
                   </select>
                 </div>
 
                 <div class="w-1/2 opacity-30 cursor-not-allowed pointer-events-none select-none">
-                  <label for="keys" class="block font-medium text-sm mb-2">Partition Keys</label>
+                  <label for="rate_limit_keys" class="block font-medium text-sm mb-2">Partition Keys</label>
 
                   <input
                     type="text"
-                    name="keys"
+                    id="rate_limit_keys"
+                    name="rate_limit_keys"
                     class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    value="">
+                    value={rate_limit_partition_keys(@gossip)}
+                    disabled={not can?(:scale_queues, @access)}>
                 </div>
               </div>
 
@@ -168,7 +195,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         </form>
       </div>
 
-      <div class="border-t border-gray-200 dark:border-gray-700">
+      <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
         <div class="flex items-center pl-3 pt-6 pb-3">
           <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
           <h3 class="font-medium text-base">Instance Configuration</h3>
@@ -186,7 +213,7 @@ defmodule Oban.Web.Queues.DetailComponent do
           </thead>
 
           <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <%= for gossip <- List.flatten([@gossip, @gossip, @gossip]) do %>
+            <%= for gossip <- @gossip do %>
               <tr>
                 <td class="pl-3 py-3"><%= node_name(gossip) %></td>
                 <td class="text-right py-3"><%= executing_count(gossip) %></td>
@@ -203,7 +230,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </td>
                 <td class="pr-3 py-3">
                   <form class="flex space-x-3">
-                    <.number_input name="local_limit" value={gossip["local_limit"]} />
+                    <.number_input name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} />
                     <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">Scale</button>
                   </form>
                 </td>
@@ -223,8 +250,10 @@ defmodule Oban.Web.Queues.DetailComponent do
     <div class="flex">
       <input
         type="text"
-        name="{@name}"
-        placeholder="Disabled"
+        id={@name}
+        name={@name}
+        placeholder="Off"
+        disabled={@disabled}
         class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
         value={@value}>
 
