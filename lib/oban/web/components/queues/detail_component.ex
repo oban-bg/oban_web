@@ -110,11 +110,15 @@ defmodule Oban.Web.Queues.DetailComponent do
               disabled={not can?(:scale_queues, @access)}
               myself={@myself} />
 
-              <div class="flex justify-end mt-4">
+            <div class="flex items-center justify-end mt-4 space-x-2">
+              <%= unless can?(:scale_queues, @access) do %>
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              <% end %>
+
               <button
-                class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm"
+                class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{unless can?(:scale_queues, @access), do: "opacity-20 pointer-events-none"}"}
                 disabled={not can?(:scale_queues, @access)}>
-                Scale
+               Scale
               </button>
             </div>
           </form>
@@ -302,7 +306,7 @@ defmodule Oban.Web.Queues.DetailComponent do
       <div class="w-9">
         <span
           rel="inc"
-          class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
           tabindex="-1"
           phx-click="increment"
           phx-target={@myself}
@@ -312,7 +316,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
         <span
           rel="dec"
-          class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
           tabindex="-1"
           phx-click="decrement"
           phx-target={@myself}
