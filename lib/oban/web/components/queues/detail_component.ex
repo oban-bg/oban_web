@@ -100,54 +100,55 @@ defmodule Oban.Web.Queues.DetailComponent do
           <form id="local-form" class="w-1/4 pr-3 pt-3 pb-6" phx-target={@myself} phx-submit="local-update">
             <h3 class="flex items-center mb-4">
               <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-              <span class="text-base font-semibold">Local Concurrency</span>
+              <span class="text-base font-medium">Local</span>
             </h3>
 
-            <label for="local_limit" class="block font-medium text-sm mb-2">Limit</label>
             <.number_input
-              name="local_limit"
-              value={@inputs.local_limit}
               disabled={not can?(:scale_queues, @access)}
-              myself={@myself} />
+              label="Limit"
+              myself={@myself}
+              name="local_limit"
+              value={@inputs.local_limit} />
 
-            <div class="flex items-center justify-end mt-4 space-x-2">
-              <%= unless can?(:scale_queues, @access) do %>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-              <% end %>
-
-              <button
-                class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{unless can?(:scale_queues, @access), do: "opacity-20 pointer-events-none"}"}
-                disabled={not can?(:scale_queues, @access)}>
-               Scale
-              </button>
-            </div>
+            <.submit_input
+              locked={not can?(:scale_queues, @access)}
+              disabled={not can?(:scale_queues, @access)}
+              label="Scale" />
           </form>
 
-          <div id="global-limit-fields" class={"relative w-1/4 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}>
+          <form id="global-form" class={"relative w-1/4 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"} phx-target={@myself} phx-submit="global-update">
             <%= if missing_pro?(@conf) do %>
               <.pro_blocker />
             <% end %>
 
             <div class={if missing_pro?(@conf), do: "opacity-20 cursor-not-allowed pointer-events-none select-none"}>
-              <h3 class="flex items-center mb-4">
-                <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                <span class="text-base font-semibold">Global Concurrency</span>
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="flex items-center">
+                  <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                  <span class="text-base font-medium">Global</span>
+                </h3>
 
-              <label for="global_limit" class="block font-medium text-sm mb-2">Limit</label>
-              <.number_input
-                name="global_limit"
-                value={@inputs.global_limit}
-                disabled={not can?(:scale_queues, @access)}
-                myself={@myself} />
-
-              <div class="flex justify-end mt-4 opacity-20 cursor-not-allowed pointer-events-none select-none">
-                <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
-                  Apply
-                </button>
+                <.toggle_button
+                  default={@inputs.global_limit || @inputs.local_limit}
+                  disabled={not can?(:scale_queues, @access)}
+                  enabled={not is_nil(@inputs.global_limit)}
+                  feature="global"
+                  myself={@myself} />
               </div>
+
+              <.number_input
+                disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_limit)}
+                label="Limit"
+                myself={@myself}
+                name="global_limit"
+                value={@inputs.global_limit} />
+
+              <.submit_input
+                locked={not can?(:scale_queues, @access)}
+                disabled={not can?(:scale_queues, @access)}
+                label="Apply" />
             </div>
-          </div>
+          </form>
 
           <div id="rate-limit-fields" class={"relative w-1/2 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}>
             <%= if missing_pro?(@conf) do %>
@@ -157,26 +158,26 @@ defmodule Oban.Web.Queues.DetailComponent do
             <div class={if missing_pro?(@conf), do: "opacity-20 cursor-not-allowed pointer-events-none select-none"}>
               <h3 class="flex items-center mb-4">
                 <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-                <span class="text-base font-semibold">Rate Limiting</span>
+                <span class="text-base font-medium">Rate Limiting</span>
               </h3>
 
               <div class="flex w-full space-x-3 mb-6">
                 <div class="w-1/2">
-                  <label for="rate_limit_allowed" class="block font-medium text-sm mb-2">Allowed</label>
                   <.number_input
-                    name="rate_limit_allowed"
-                    value={@inputs.rate_limit_allowed}
                     disabled={not can?(:scale_queues, @access)}
-                    myself={@myself} />
+                    label="Allowed"
+                    myself={@myself}
+                    name="rate_limit_allowed"
+                    value={@inputs.rate_limit_allowed} />
                 </div>
 
                 <div class="w-1/2">
-                  <label for="rate_limit_period" class="block font-medium text-sm mb-2">Period</label>
                   <.number_input
-                    name="rate_limit_period"
-                    value={@inputs.rate_limit_period}
                     disabled={not can?(:scale_queues, @access)}
-                    myself={@myself} />
+                    label="Period"
+                    myself={@myself}
+                    name="rate_limit_period"
+                    value={@inputs.rate_limit_period} />
                 </div>
               </div>
 
@@ -207,11 +208,10 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </div>
               </div>
 
-              <div class="flex justify-end mt-4 opacity-30 cursor-not-allowed pointer-events-none select-none">
-                <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">
-                  Apply
-                </button>
-              </div>
+              <.submit_input
+                locked={not can?(:scale_queues, @access)}
+                disabled={not can?(:scale_queues, @access)}
+                label="Apply" />
             </div>
           </div>
         </div>
@@ -252,7 +252,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </td>
                 <td class="pr-3 py-3">
                   <form class="flex space-x-3">
-                    <.number_input name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} myself={@myself} />
+                    <.number_input label={false} name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} myself={@myself} />
                     <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">Scale</button>
                   </form>
                 </td>
@@ -278,6 +278,20 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, assign(socket, inputs: inputs)}
   end
 
+  def handle_event("global-update", params, socket) do
+    limit =
+      case params["global_limit"] do
+        nil -> nil
+        value -> String.to_integer(value)
+      end
+
+    send(self(), {:scale_queue, socket.assigns.queue, global_limit: limit})
+
+    inputs = %{socket.assigns.inputs | global_limit: limit}
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
   def handle_event("increment", %{"field" => field}, socket) do
     {:noreply, change_input(socket, field, 1)}
   end
@@ -286,44 +300,113 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, change_input(socket, field, -1)}
   end
 
+  def handle_event("toggle-feature", params, socket) do
+    %{"default" => default, "feature" => feature} = params
+
+    inputs =
+      case feature do
+        "global" ->
+          Map.update!(socket.assigns.inputs, :global_limit, fn value ->
+            if is_nil(value), do: String.to_integer(default), else: nil
+          end)
+      end
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
   # Components
 
   defp number_input(assigns) do
     ~H"""
-    <div class="flex">
-      <input
-        autocomplete="off"
-        class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
-        disabled={@disabled}
-        id={@name}
-        inputmode="numeric"
-        name={@name}
-        pattern="[1-9][0-9]*"
-        placeholder="Off"
-        type="text"
-        value={@value} />
+    <div>
+      <%= if @label do %>
+        <label for={@name} class="block font-medium text-sm text-gray-800 dark:text-gray-200 mb-2">
+          <%= @label %>
+        </label>
+      <% end %>
 
-      <div class="w-9">
-        <span
-          rel="inc"
-          class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
-          tabindex="-1"
-          phx-click="increment"
-          phx-target={@myself}
-          phx-value-field={@name}>
-          <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-        </span>
+      <div class="flex">
+        <input
+          autocomplete="off"
+          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
+          disabled={@disabled}
+          id={@name}
+          inputmode="numeric"
+          name={@name}
+          pattern="[1-9][0-9]*"
+          placeholder="Off"
+          type="text"
+          value={@value} />
 
-        <span
-          rel="dec"
-          class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
-          tabindex="-1"
-          phx-click="decrement"
-          phx-target={@myself}
-          phx-value-field={@name}>
-          <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </span>
+        <div class="w-9">
+          <button
+            rel="inc"
+            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
+            disabled={@disabled}
+            type="button"
+            phx-click="increment"
+            phx-target={@myself}
+            phx-value-field={@name}>
+            <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+          </button>
+
+          <button
+            rel="dec"
+            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
+            disabled={@disabled}
+            tabindex="-1"
+            type="button"
+            phx-click="decrement"
+            phx-target={@myself}
+            phx-value-field={@name}>
+            <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+        </div>
       </div>
+    </div>
+    """
+  end
+
+  defp toggle_button(assigns) do
+    ~H"""
+    <button
+      class="bg-gray-200 dark:bg-gray-800 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500" role="switch" aria-checked="false"
+      disabled={@disabled}
+      id={"toggle-#{@feature}"}
+      phx-target={@myself}
+      phx-click="toggle-feature"
+      phx-value-feature={@feature}
+      phx-value-default={@default}
+      type="button">
+      <span class={"#{if @enabled, do: "translate-x-5", else: "translate-x-0"} pointer-events-none relative inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"}>
+        <span class={"#{if @enabled, do: "opacity-0 ease-out duration-100", else: "opacity-100 ease-in duration-200"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"} aria-hidden="true">
+          <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
+            <path d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class={"#{if @enabled, do: "opacity-100 ease-in duration-200", else: "opacity-0 ease-out duration-100"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"} aria-hidden="true">
+          <svg class="h-3 w-3 text-blue-500" fill="currentColor" viewBox="0 0 12 12">
+            <path d="M3.707 5.293a1 1 0 00-1.414 1.414l1.414-1.414zM5 8l-.707.707a1 1 0 001.414 0L5 8zm4.707-3.293a1 1 0 00-1.414-1.414l1.414 1.414zm-7.414 2l2 2 1.414-1.414-2-2-1.414 1.414zm3.414 2l4-4-1.414-1.414-4 4 1.414 1.414z" />
+          </svg>
+        </span>
+      </span>
+    </button>
+    """
+  end
+
+  defp submit_input(assigns) do
+    ~H"""
+    <div class="flex items-center justify-end mt-4 space-x-2">
+      <%= if @locked do %>
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+      <% end %>
+
+      <button
+        class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @disabled, do: "opacity-20 pointer-events-none"}"}
+        disabled={@disabled}
+        type="submit">
+        <%= @label %>
+      </button>
     </div>
     """
   end

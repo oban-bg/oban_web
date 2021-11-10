@@ -149,7 +149,19 @@ defmodule Oban.Web.QueuesPage do
       Oban.scale_queue(socket.assigns.conf.name, opts)
     end)
 
-    {:noreply, flash(socket, :info, "#{String.capitalize(to_string(queue))} queue scaled")}
+    message =
+      cond do
+        is_nil(opts[:global_limit]) ->
+          "Global limit disabled for #{queue} queue"
+
+        Keyword.has_key?(opts, :global_limit) ->
+          "Global limit set for #{queue} queue"
+
+        Keyword.has_key?(opts, :limit) ->
+          "Local limit set for #{queue} queue"
+      end
+
+    {:noreply, flash(socket, :info, message)}
   end
 
   def handle_info(_, socket) do

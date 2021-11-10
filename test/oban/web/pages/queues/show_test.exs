@@ -41,10 +41,33 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     |> form("#local-form")
     |> render_submit(%{local_limit: 10})
 
-    assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
     assert_action(:scale_queue, queue: "alpha")
+    assert_notice(live, "local limit set for alpha queue")
+    assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
+  end
 
-    assert has_element?(live, "#notice", "Alpha queue scaled")
+  test "setting the global limit across all nodes" do
+    gossip(local_limit: 5, global_limit: nil, queue: "alpha")
+
+    live = render_details("alpha")
+
+    # Initially the input is disabled when the limit is nil
+    assert has_element?(live, "#global_limit[disabled]")
+
+    live
+    |> element("#toggle-global")
+    |> render_click()
+
+    # When the input is enabled it gets the local limit value
+    assert has_element?(live, "#global_limit[value=5]")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_limit: 10})
+
+    assert_action(:scale_queue, queue: "alpha")
+    assert_notice(live, "global limit set for alpha queue")
+    assert_signal(%{"action" => "scale", "global_limit" => 10, "queue" => "alpha"})
   end
 
   defp render_details(queue) do
@@ -67,5 +90,9 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     for {key, val} <- expected do
       assert message[key] == val
     end
+  end
+
+  defp assert_notice(live, message) do
+    assert has_element?(live, "#notice", message)
   end
 end
