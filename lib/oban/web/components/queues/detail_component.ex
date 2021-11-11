@@ -33,7 +33,7 @@ defmodule Oban.Web.Queues.DetailComponent do
   def render(assigns) do
     ~H"""
     <div id="queue-details">
-      <div class="flex justify-between items-center px-3 py-4 border-t border-b border-gray-200 dark:border-gray-700">
+      <div class="flex justify-between items-center px-3 py-6">
         <%= live_patch to: oban_path(@socket, :queues), class: "flex items-center" do %>
           <svg class="h-5 w-5 hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
           <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
@@ -51,15 +51,15 @@ defmodule Oban.Web.Queues.DetailComponent do
 
       <table class="table-fixed w-full bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25">
         <thead>
-          <tr class="text-sm text-gray-600 dark:text-gray-300">
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Started</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Executing</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Available</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Scheduled</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Retryable</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Cancelled</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Discarded</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-2 px-3">Completed</th>
+          <tr class="text-sm text-gray-600 dark:text-gray-100 dark:text-opacity-60">
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Started</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Executing</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Available</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Scheduled</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Retryable</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Cancelled</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Discarded</th>
+            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Completed</th>
           </tr>
         </thead>
         <tbody>
@@ -91,15 +91,16 @@ defmodule Oban.Web.Queues.DetailComponent do
       </table>
 
       <div>
-        <div class="flex items-center pl-3 pt-6 pb-3">
-          <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+        <div class="flex items-center pl-3 py-6">
+          <svg class="w-6 h-6 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
           <h3 class="font-medium text-base">Global Configuration</h3>
+          <svg class="w-4 h-4 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
 
         <div class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
           <form id="local-form" class="w-1/4 pr-3 pt-3 pb-6" phx-target={@myself} phx-submit="local-update">
             <h3 class="flex items-center mb-4">
-              <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <svg class="w-5 h-5 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
               <span class="text-base font-medium">Local</span>
             </h3>
 
@@ -124,12 +125,11 @@ defmodule Oban.Web.Queues.DetailComponent do
             <div class={if missing_pro?(@conf), do: "opacity-20 cursor-not-allowed pointer-events-none select-none"}>
               <div class="flex items-center justify-between mb-4">
                 <h3 class="flex items-center">
-                  <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                  <svg class="w-5 h-5 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clip-rule="evenodd"></path></svg>
                   <span class="text-base font-medium">Global</span>
                 </h3>
 
                 <.toggle_button
-                  default={@inputs.global_limit || @inputs.local_limit}
                   disabled={not can?(:scale_queues, @access)}
                   enabled={not is_nil(@inputs.global_limit)}
                   feature="global"
@@ -156,15 +156,23 @@ defmodule Oban.Web.Queues.DetailComponent do
             <% end %>
 
             <div class={if missing_pro?(@conf), do: "opacity-20 cursor-not-allowed pointer-events-none select-none"}>
-              <h3 class="flex items-center mb-4">
-                <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-                <span class="text-base font-medium">Rate Limiting</span>
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="flex items-center">
+                  <svg class="w-5 h-5 mr-2 text-gray-300" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M12 13a1 1 0 100 2h5a1 1 0 001-1V9a1 1 0 10-2 0v2.586l-4.293-4.293a1 1 0 00-1.414 0L8 9.586 3.707 5.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0L11 9.414 14.586 13H12z" clip-rule="evenodd"></path></svg>
+                  <span class="text-base font-medium">Rate Limit</span>
+                </h3>
+
+                <.toggle_button
+                  disabled={not can?(:scale_queues, @access)}
+                  enabled={not is_nil(@inputs.rate_limit_allowed)}
+                  feature="rate-limit"
+                  myself={@myself} />
+              </div>
 
               <div class="flex w-full space-x-3 mb-6">
                 <div class="w-1/2">
                   <.number_input
-                    disabled={not can?(:scale_queues, @access)}
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed)}
                     label="Allowed"
                     myself={@myself}
                     name="rate_limit_allowed"
@@ -173,7 +181,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
                 <div class="w-1/2">
                   <.number_input
-                    disabled={not can?(:scale_queues, @access)}
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed) }
                     label="Period"
                     myself={@myself}
                     name="rate_limit_period"
@@ -187,24 +195,24 @@ defmodule Oban.Web.Queues.DetailComponent do
                   <select
                     id="rate_limit_fields"
                     name="rate_limit_fields"
-                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    disabled={not can?(:scale_queues, @access)}>
+                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed)}>
                     <%= options_for_select(
                       ["Off": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker+args"],
                       @inputs.rate_limit_partition_fields) %>
                   </select>
                 </div>
 
-                <div class="w-1/2 opacity-30 cursor-not-allowed pointer-events-none select-none">
+                <div class="w-1/2">
                   <label for="rate_limit_keys" class="block font-medium text-sm mb-2">Partition Keys</label>
 
                   <input
-                    type="text"
+                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_partition_fields)}
                     id="rate_limit_keys"
                     name="rate_limit_keys"
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    value={@inputs.rate_limit_partition_keys}
-                    disabled={not can?(:scale_queues, @access)}>
+                    type="text"
+                    value={@inputs.rate_limit_partition_keys } />
                 </div>
               </div>
 
@@ -218,14 +226,14 @@ defmodule Oban.Web.Queues.DetailComponent do
       </div>
 
       <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center pl-3 pt-6 pb-3">
-          <svg class="w-5 h-5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-          <h3 class="font-medium text-base">Instance Configuration</h3>
+        <div class="flex items-center pl-3 py-6">
+          <svg class="w-6 h-6 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+          <h3 class="font-medium text-base">Instances</h3>
         </div>
 
         <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
           <thead>
-            <tr class="text-sm text-gray-500 dark:text-gray-400">
+            <tr class="bg-gray-50 dark:bg-gray-950 text-gray-400 dark:text-gray-500">
               <th scope="col" class="w-1/2 text-left text-xs font-medium uppercase tracking-wider pl-3 py-3">Node/Name</th>
               <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3">Executing</th>
               <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3">Started</th>
@@ -300,15 +308,25 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, change_input(socket, field, -1)}
   end
 
-  def handle_event("toggle-feature", params, socket) do
-    %{"default" => default, "feature" => feature} = params
-
+  def handle_event("toggle-feature", %{"feature" => "global"}, socket) do
     inputs =
-      case feature do
-        "global" ->
-          Map.update!(socket.assigns.inputs, :global_limit, fn value ->
-            if is_nil(value), do: String.to_integer(default), else: nil
-          end)
+      Map.update!(socket.assigns.inputs, :global_limit, fn value ->
+        if is_nil(value), do: socket.assigns.inputs.local_limit, else: nil
+      end)
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("toggle-feature", %{"feature" => "rate-limit"}, socket) do
+    inputs =
+      if is_nil(socket.assigns.inputs.rate_limit_allowed) do
+        socket.assigns.inputs
+        |> Map.put(:rate_limit_allowed, socket.assigns.inputs.local_limit)
+        |> Map.put(:rate_limit_period, 60)
+      else
+        socket.assigns.inputs
+        |> Map.put(:rate_limit_allowed, nil)
+        |> Map.put(:rate_limit_period, nil)
       end
 
     {:noreply, assign(socket, inputs: inputs)}
@@ -320,7 +338,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     ~H"""
     <div>
       <%= if @label do %>
-        <label for={@name} class="block font-medium text-sm text-gray-800 dark:text-gray-200 mb-2">
+        <label for={@name} class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "text-gray-800 dark:text-gray-200"}"}>
           <%= @label %>
         </label>
       <% end %>
@@ -376,7 +394,6 @@ defmodule Oban.Web.Queues.DetailComponent do
       phx-target={@myself}
       phx-click="toggle-feature"
       phx-value-feature={@feature}
-      phx-value-default={@default}
       type="button">
       <span class={"#{if @enabled, do: "translate-x-5", else: "translate-x-0"} pointer-events-none relative inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"}>
         <span class={"#{if @enabled, do: "opacity-0 ease-out duration-100", else: "opacity-100 ease-in duration-200"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"} aria-hidden="true">

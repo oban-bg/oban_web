@@ -1,14 +1,19 @@
 const colors = require("tailwindcss/colors");
 
 module.exports = {
-  mode: 'jit',
-  darkMode: 'class',
+  mode: "jit",
+  darkMode: "class",
   theme: {
     fontFamily: {
       sans: ["Inter var", "sans-serif"],
       mono: ["Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
     },
     extend: {
+      colors: {
+        gray: {
+          950: "#0D1320"
+        }
+      },
       spacing: {
         "72": "18rem",
         "84": "21rem",
@@ -37,6 +42,6 @@ module.exports = {
     display: ["group-hover"]
   },
   plugins: [
-    require('@tailwindcss/forms')
+    require("@tailwindcss/forms")
   ]
 }

@@ -24,7 +24,7 @@
     </script>
   </head>
 
-  <body class="min-h-screen antialiased bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-100  transition duration-200 ease-out">
+  <body class="min-h-screen antialiased bg-gray-200 dark:bg-gray-950 text-gray-900 dark:text-gray-100  transition duration-200 ease-out">
     <%= @inner_content %>
 
     <script phx-track-static nonce="<%= @csp_nonces.script %>"><%= raw(render("app.js")) %></script>

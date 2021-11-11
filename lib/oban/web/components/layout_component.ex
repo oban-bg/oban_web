@@ -88,7 +88,7 @@ defmodule Oban.Web.LayoutComponent do
     pro_version = "Oban.Pro v#{Application.spec(:oban_pro, :vsn)}"
 
     ~H"""
-    <footer class="flex flex-col px-3 pb-6 text-sm justify-center items-center md:flex-row">
+    <footer class="flex flex-col px-3 py-6 text-sm justify-center items-center md:flex-row">
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0"><%= oss_version %></span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0"><%= web_version %></span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0"><%= pro_version %></span>

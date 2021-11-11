@@ -36,7 +36,7 @@ defmodule Oban.Web.SidebarComponent do
 
   defp section(assigns) do
     ~H"""
-    <div id={@id} class="bg-white dark:bg-gray-900 w-fill mb-3 rounded-md shadow-lg overflow-hidden md:w-84">
+    <div id={@id} class="bg-transparent dark:bg-transparent w-fill mb-3 md:w-84">
       <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
         <span class="dark:text-gray-200 font-bold"><%= @name %></span>
 

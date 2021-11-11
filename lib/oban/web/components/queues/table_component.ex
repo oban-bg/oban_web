@@ -23,7 +23,7 @@ defmodule Oban.Web.Queues.TableComponent do
     ~H"""
     <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
       <thead>
-        <tr class="text-gray-400">
+        <tr class="text-gray-400 dark:text-gray-500">
           <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
             <SortComponent.link label="name" params={@params} socket={@socket} page={:queues} justify="start" />
           </th>
