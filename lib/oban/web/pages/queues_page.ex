@@ -151,11 +151,17 @@ defmodule Oban.Web.QueuesPage do
 
     message =
       cond do
-        is_nil(opts[:global_limit]) ->
+        Keyword.has_key?(opts, :global_limit) and is_nil(opts[:global_limit]) ->
           "Global limit disabled for #{queue} queue"
 
         Keyword.has_key?(opts, :global_limit) ->
           "Global limit set for #{queue} queue"
+
+        Keyword.has_key?(opts, :rate_limit) and is_nil(opts[:rate_limit]) ->
+          "Rate limit disabled for #{queue} queue"
+
+        Keyword.has_key?(opts, :rate_limit) ->
+          "Rate limit set for #{queue} queue"
 
         Keyword.has_key?(opts, :limit) ->
           "Local limit set for #{queue} queue"

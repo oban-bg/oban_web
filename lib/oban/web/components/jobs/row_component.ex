@@ -45,15 +45,15 @@ defmodule Oban.Web.Jobs.RowComponent do
         <% end %>
       </td>
 
-      <td class="tabular text-sm truncate text-gray-500 dark:group-hover:text-gray-300 text-right py-3">
+      <td class="tabular text-sm truncate text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100 text-right py-3">
         <%= @job.queue %>
       </td>
 
-      <td class="tabular text-sm text-gray-500 dark:group-hover:text-gray-300 text-right w-20 py-3">
+      <td class="tabular text-sm text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100 text-right w-20 py-3">
         <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
       </td>
 
-      <td class="tabular text-sm text-gray-500 dark:group-hover:text-gray-300 text-right w-20 pl-3">
+      <td class="tabular text-sm text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100 text-right w-20 pl-3">
         <%= relative_time(@job.state, @job) %>
       </td>
 
@@ -96,6 +96,6 @@ defmodule Oban.Web.Jobs.RowComponent do
 
     job
     |> resolver.format_job_args()
-    |> String.slice(0..128)
+    |> String.slice(0..length)
   end
 end

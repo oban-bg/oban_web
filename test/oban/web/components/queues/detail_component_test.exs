@@ -19,8 +19,6 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     html = render_component(Component, assigns(access: :all), router: Router)
 
     refute has_fragment?(html, "#local_limit[disabled]")
-    refute has_fragment?(html, "#global_limit[disabled]")
-    refute has_fragment?(html, "#rate_limit_allowed[disabled]")
   end
 
   test "listing all queue instances" do
@@ -41,15 +39,15 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     conf = Config.new(engine: BasicEngine, repo: Repo)
     html = render_component(Component, assigns(conf: conf), router: Router)
 
-    assert has_fragment?(html, "#global-limit-fields [rel=requires-pro]")
-    assert has_fragment?(html, "#rate-limit-fields [rel=requires-pro]")
+    assert has_fragment?(html, "#global-form [rel=requires-pro]")
+    assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
 
     # Pro isn't available, we check whether the engine isn't the BasicEngine instead
     conf = %{conf | engine: FakeEngine}
     html = render_component(Component, assigns(conf: conf), router: Router)
 
-    refute has_fragment?(html, "#global-limit-fields [rel=requires-pro]")
-    refute has_fragment?(html, "#rate-limit-fields [rel=requires-pro]")
+    refute has_fragment?(html, "#global-form [rel=requires-pro]")
+    refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
   end
 
   defp assigns(opts) do

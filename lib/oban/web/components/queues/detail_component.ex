@@ -38,15 +38,6 @@ defmodule Oban.Web.Queues.DetailComponent do
           <svg class="h-5 w-5 hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
           <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
         <% end %>
-
-        <button rel="play_pause"
-          class="block text-gray-500 hover:text-blue-500"
-          title="Pause all instances"
-          phx-click="play_pause"
-          phx-target={@myself}
-          phx-throttle="1000">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </button>
       </div>
 
       <table class="table-fixed w-full bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25">
@@ -150,7 +141,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             </div>
           </form>
 
-          <div id="rate-limit-fields" class={"relative w-1/2 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}>
+          <form id="rate-limit-form" class={"relative w-1/2 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"} phx-target={@myself} phx-submit="rate-limit-update" phx-change="rate-limit-change">
             <%= if missing_pro?(@conf) do %>
               <.pro_blocker />
             <% end %>
@@ -193,12 +184,12 @@ defmodule Oban.Web.Queues.DetailComponent do
                 <div class="w-1/2">
                   <label for="rate_limit_fields" class="block font-medium text-sm mb-2">Partition Fields</label>
                   <select
-                    id="rate_limit_fields"
-                    name="rate_limit_fields"
+                    id="rate_limit_partition_fields"
+                    name="rate_limit_partition_fields"
                     class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed)}>
                     <%= options_for_select(
-                      ["Off": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker+args"],
+                      ["Off": nil, "Worker": "worker", "Args": "args", "Worker + Args": "worker,args"],
                       @inputs.rate_limit_partition_fields) %>
                   </select>
                 </div>
@@ -208,9 +199,9 @@ defmodule Oban.Web.Queues.DetailComponent do
 
                   <input
                     class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_partition_fields)}
-                    id="rate_limit_keys"
-                    name="rate_limit_keys"
+                    disabled={not can?(:scale_queues, @access) or @inputs.rate_limit_partition_fields not in ["args", "worker,args"]}
+                    id="rate_limit_partition_keys"
+                    name="rate_limit_partition_keys"
                     type="text"
                     value={@inputs.rate_limit_partition_keys } />
                 </div>
@@ -221,7 +212,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 disabled={not can?(:scale_queues, @access)}
                 label="Apply" />
             </div>
-          </div>
+          </form>
         </div>
       </div>
 
@@ -229,6 +220,15 @@ defmodule Oban.Web.Queues.DetailComponent do
         <div class="flex items-center pl-3 py-6">
           <svg class="w-6 h-6 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           <h3 class="font-medium text-base">Instances</h3>
+
+          <button rel="play_pause"
+            class="block text-gray-500 hover:text-blue-500"
+            title="Pause all instances"
+            phx-click="play_pause"
+            phx-target={@myself}
+            phx-throttle="1000">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </button>
         </div>
 
         <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
@@ -287,17 +287,66 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   def handle_event("global-update", params, socket) do
-    limit =
-      case params["global_limit"] do
-        nil -> nil
-        value -> String.to_integer(value)
-      end
+    limit = params["global_limit"]
 
     send(self(), {:scale_queue, socket.assigns.queue, global_limit: limit})
 
     inputs = %{socket.assigns.inputs | global_limit: limit}
 
     {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("rate-limit-update", params, socket) do
+    inputs =
+      if is_nil(params["rate_limit_allowed"]) do
+        send(self(), {:scale_queue, socket.assigns.queue, rate_limit: nil})
+
+        socket.assigns.inputs
+        |> Map.replace!(:rate_limit_allowed, nil)
+        |> Map.replace!(:rate_limit_period, nil)
+        |> Map.replace!(:rate_limit_partition_fields, nil)
+        |> Map.replace!(:rate_limit_partition_keys, nil)
+      else
+        allowed = params["rate_limit_allowed"]
+        period = params["rate_limit_period"]
+        fields = maybe_split(params["rate_limit_partition_fields"])
+        keys = maybe_split(params["rate_limit_partition_keys"])
+
+        rate_limit =
+          case fields do
+            [] ->
+              %{allowed: allowed, period: period}
+
+            ["worker"] ->
+              %{allowed: allowed, period: period, partition: [fields: fields]}
+
+            _ ->
+              %{allowed: allowed, period: period, partition: [fields: fields, keys: keys]}
+          end
+
+        send(self(), {:scale_queue, socket.assigns.queue, rate_limit: rate_limit})
+
+        socket.assigns.inputs
+        |> Map.replace!(:rate_limit_allowed, allowed)
+        |> Map.replace!(:rate_limit_period, period)
+        |> Map.replace!(:rate_limit_partition_fields, Enum.join(fields, ","))
+        |> Map.replace!(:rate_limit_partition_keys, Enum.join(keys, ","))
+      end
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("rate-limit-change", params, socket) do
+    if params["_target"] == ["rate_limit_partition_fields"] do
+      fields = params["rate_limit_partition_fields"]
+      inputs = %{socket.assigns.inputs | rate_limit_partition_fields: fields}
+
+      IO.inspect(inputs)
+
+      {:noreply, assign(socket, inputs: inputs)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("increment", %{"field" => field}, socket) do
@@ -327,6 +376,8 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.put(:rate_limit_allowed, nil)
         |> Map.put(:rate_limit_period, nil)
+        |> Map.put(:rate_limit_partition_fields, nil)
+        |> Map.put(:rate_limit_partition_keys, nil)
       end
 
     {:noreply, assign(socket, inputs: inputs)}
@@ -464,14 +515,14 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp rate_limit_partition_fields(gossip) do
     case first_rate_limit(gossip) do
-      %{"partition" => %{"fields" => fields}} -> Enum.join(fields, "+")
+      %{"partition" => %{"fields" => [_ | _] = fields}} -> Enum.join(fields, ",")
       _ -> nil
     end
   end
 
   defp rate_limit_partition_keys(gossip) do
     case first_rate_limit(gossip) do
-      %{"partition" => %{"keys" => keys}} -> Enum.join(keys, ", ")
+      %{"partition" => %{"keys" => [_ | _] = keys}} -> Enum.join(keys, ",")
       _ -> nil
     end
   end
@@ -497,6 +548,10 @@ defmodule Oban.Web.Queues.DetailComponent do
 
     assign(socket, inputs: inputs)
   end
+
+  defp maybe_split(""), do: []
+  defp maybe_split(nil), do: []
+  defp maybe_split(value) when is_binary(value), do: String.split(value, ",")
 
   # Pro Helpers
 

@@ -36,7 +36,7 @@ defmodule Oban.Web.SidebarComponent do
 
   defp section(assigns) do
     ~H"""
-    <div id={@id} class="bg-transparent dark:bg-transparent w-fill mb-3 md:w-84">
+    <div id={@id} class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84">
       <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
         <span class="dark:text-gray-200 font-bold"><%= @name %></span>
 
@@ -75,7 +75,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25 #{active_class}") do %>
+        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
       <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate">
         <%= String.downcase(@node.name) %>
       </span>
@@ -107,7 +107,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25 #{active_class}") do %>
+        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
       <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate"><%= @state.name %></span>
       <span class="pr-3 text-sm text-gray-400 text-right tabular"><%= integer_to_estimate(@state.count) %></span>
     <% end %>
@@ -126,7 +126,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25 #{active_class}") do %>
+        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
       <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate"><%= @queue.name %></span>
 
       <div class="pr-3 flex items-center flex-none">

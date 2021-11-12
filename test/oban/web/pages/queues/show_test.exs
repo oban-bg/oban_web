@@ -1,4 +1,4 @@
-defmodule Oban.Web.Pages.Queues.IndexTest do
+defmodule Oban.Web.Pages.Queues.ShowTest do
   use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest
@@ -42,8 +42,10 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     |> render_submit(%{local_limit: 10})
 
     assert_action(:scale_queue, queue: "alpha")
-    assert_notice(live, "local limit set for alpha queue")
+    assert_notice(live, "Local limit set for alpha queue")
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
+  after
+    :telemetry.detach(__MODULE__)
   end
 
   test "setting the global limit across all nodes" do
@@ -66,8 +68,41 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     |> render_submit(%{global_limit: 10})
 
     assert_action(:scale_queue, queue: "alpha")
-    assert_notice(live, "global limit set for alpha queue")
-    assert_signal(%{"action" => "scale", "global_limit" => 10, "queue" => "alpha"})
+    assert_notice(live, "Global limit set for alpha queue")
+    assert_signal(%{"action" => "scale", "global_limit" => "10", "queue" => "alpha"})
+  after
+    :telemetry.detach(__MODULE__)
+  end
+
+  test "setting the rate limit across all nodes" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    # Initially the input is disabled when the limit is nil
+    assert has_element?(live, "#rate_limit_allowed[disabled]")
+
+    live
+    |> element("#toggle-rate-limit")
+    |> render_click()
+
+    assert has_element?(live, "#rate_limit_allowed[value=5]")
+    assert has_element?(live, "#rate_limit_period[value=60]")
+
+    live
+    |> form("#rate-limit-form")
+    |> render_submit(%{rate_limit_allowed: 10, rate_limit_period: 90})
+
+    assert_action(:scale_queue, queue: "alpha")
+    assert_notice(live, "Rate limit set for alpha queue")
+
+    assert_signal(%{
+      "action" => "scale",
+      "queue" => "alpha",
+      "rate_limit" => %{"allowed" => "10", "period" => "90"}
+    })
+  after
+    :telemetry.detach(__MODULE__)
   end
 
   defp render_details(queue) do
@@ -77,7 +112,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
   end
 
   defp assert_action(action, expected) do
-    assert_received {:action, %{action: ^action} = message}
+    assert_receive {:action, %{action: ^action} = message}
 
     for {key, val} <- expected do
       assert message[key] == val

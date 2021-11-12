@@ -25,13 +25,13 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         </button>
       </td>
 
-      <td rel="nodes" class="py-3 pl-3 text-right text-gray-400 tabular"><%= nodes_count(@gossip) %></td>
-      <td rel="executing" class="py-3 pl-3 text-right text-gray-400 tabular"><%= executing_count(@gossip) %></td>
-      <td rel="available" class="py-3 pl-3 text-right text-gray-400 tabular"><%= available_count(@counts) %></td>
-      <td rel="local" class="py-3 pl-3 text-right text-gray-400 tabular"><%= local_limit(@gossip) %></td>
-      <td rel="global" class="py-3 pl-3 text-right text-gray-400 tabular"><%= global_limit(@gossip) %></td>
-      <td rel="rate" class="py-3 pl-3 text-right text-gray-400 tabular"><%= rate_limit(@gossip) %></td>
-      <td rel="started" class="py-3 pl-3 text-right text-gray-400 tabular"><%= started_at(@gossip) %></td>
+      <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= nodes_count(@gossip) %></td>
+      <td rel="executing" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= executing_count(@gossip) %></td>
+      <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= available_count(@counts) %></td>
+      <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= local_limit(@gossip) %></td>
+      <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= global_limit(@gossip) %></td>
+      <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= rate_limit(@gossip) %></td>
+      <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= started_at(@gossip) %></td>
 
       <td class="py-3 pr-3 flex justify-end">
         <%= if can?(:pause_queues, @access) do %>
