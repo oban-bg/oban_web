@@ -3,7 +3,7 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
-  alias Oban.Web.Queues.{DetailComponent, TableComponent}
+  alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, SidebarComponent, Telemetry}
 
   @behaviour Page
@@ -25,7 +25,8 @@ defmodule Oban.Web.QueuesPage do
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detail do %>
-            <.live_component id="detail"
+            <.live_component
+              id="detail"
               access={@access}
               conf={@conf}
               counts={@counts}
@@ -112,12 +113,7 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_info({:pause_queue, queue, name, node}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue, name: name, node: node], fn ->
-      # Send the notification ourselves because Oban doesn't currently support custom ident
-      # pausing. At this point the name and node are already strings and we can combine the names
-      # rather than using Config.to_ident.
-      data = %{action: :pause, queue: queue, ident: name <> "." <> node}
-
-      Notifier.notify(socket.assigns.conf, :signal, data)
+      notify_scoped(socket.assigns.conf, name, node, action: :pause, queue: queue)
     end)
 
     {:noreply, socket}
@@ -142,6 +138,18 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  def handle_info({:scale_queue, queue, name, node, limit}, socket) do
+    meta = [queue: queue, name: name, node: node, limit: limit]
+
+    Telemetry.action(:scale_queue, socket, meta, fn ->
+      notify_scoped(socket.assigns.conf, name, node, action: :scale, queue: queue, limit: limit)
+    end)
+
+    send_update(DetailComponent, id: "detail", local_limit: limit)
+
+    {:noreply, flash(socket, :info, "Local limit set for #{queue} queue on #{node}")}
+  end
+
   def handle_info({:scale_queue, queue, opts}, socket) do
     opts = Keyword.put(opts, :queue, queue)
 
@@ -149,25 +157,13 @@ defmodule Oban.Web.QueuesPage do
       Oban.scale_queue(socket.assigns.conf.name, opts)
     end)
 
-    message =
-      cond do
-        Keyword.has_key?(opts, :global_limit) and is_nil(opts[:global_limit]) ->
-          "Global limit disabled for #{queue} queue"
-
-        Keyword.has_key?(opts, :global_limit) ->
-          "Global limit set for #{queue} queue"
-
-        Keyword.has_key?(opts, :rate_limit) and is_nil(opts[:rate_limit]) ->
-          "Rate limit disabled for #{queue} queue"
-
-        Keyword.has_key?(opts, :rate_limit) ->
-          "Rate limit set for #{queue} queue"
-
-        Keyword.has_key?(opts, :limit) ->
-          "Local limit set for #{queue} queue"
+    if Keyword.has_key?(opts, :limit) do
+      for gossip <- socket.assigns.gossip do
+        send_update(DetailInsanceComponent, id: node_name(gossip), local_limit: opts[:limit])
       end
+    end
 
-    {:noreply, flash(socket, :info, message)}
+    {:noreply, flash(socket, :info, scale_message(queue, opts))}
   end
 
   def handle_info(_, socket) do
@@ -175,6 +171,37 @@ defmodule Oban.Web.QueuesPage do
   end
 
   # Helpers
+
+  defp scale_message(queue, opts) do
+    cond do
+      Keyword.has_key?(opts, :global_limit) and is_nil(opts[:global_limit]) ->
+        "Global limit disabled for #{queue} queue"
+
+      Keyword.has_key?(opts, :global_limit) ->
+        "Global limit set for #{queue} queue"
+
+      Keyword.has_key?(opts, :rate_limit) and is_nil(opts[:rate_limit]) ->
+        "Rate limit disabled for #{queue} queue"
+
+      Keyword.has_key?(opts, :rate_limit) ->
+        "Rate limit set for #{queue} queue"
+
+      Keyword.has_key?(opts, :limit) ->
+        "Local limit set for #{queue} queue"
+    end
+  end
+
+  # Send the notification ourselves because Oban doesn't currently support custom ident pausing.
+  # At this point the name and node are already strings and we can combine the names rather than
+  # using Config.to_ident.
+  defp notify_scoped(conf, name, node, data) do
+    message =
+      data
+      |> Map.new()
+      |> Map.put(:ident, name <> "." <> node)
+
+    Notifier.notify(conf, :signal, message)
+  end
 
   defp flash(socket, mode, message, timing \\ 5_000) do
     Process.send_after(self(), :clear_flash, timing)

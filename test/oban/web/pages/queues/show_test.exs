@@ -23,6 +23,8 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
       self()
     )
 
+    on_exit(fn -> :telemetry.detach(__MODULE__) end)
+
     :ok
   end
 
@@ -44,8 +46,6 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Local limit set for alpha queue")
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
-  after
-    :telemetry.detach(__MODULE__)
   end
 
   test "setting the global limit across all nodes" do
@@ -70,8 +70,6 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Global limit set for alpha queue")
     assert_signal(%{"action" => "scale", "global_limit" => "10", "queue" => "alpha"})
-  after
-    :telemetry.detach(__MODULE__)
   end
 
   test "setting the rate limit across all nodes" do
@@ -101,8 +99,28 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
       "queue" => "alpha",
       "rate_limit" => %{"allowed" => "10", "period" => "90"}
     })
-  after
-    :telemetry.detach(__MODULE__)
+  end
+
+  test "scaling the limit for a single instance" do
+    gossip(local_limit: 5, queue: "alpha", node: "web-1")
+    gossip(local_limit: 6, queue: "alpha", node: "web-2")
+
+    live = render_details("alpha")
+
+    assert has_element?(live, "#local-form [name=local_limit][value=6]")
+    assert has_element?(live, "#web-1-form [name=local_limit][value=5]")
+    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
+
+    live
+    |> form("#web-1-form")
+    |> render_submit(%{local_limit: 9})
+
+    assert_action(:scale_queue, queue: "alpha", node: "web-1")
+    assert_notice(live, "Local limit set for alpha queue on web-1")
+
+    assert has_element?(live, "#local-form [name=local_limit][value=9]")
+    assert has_element?(live, "#web-1-form [name=local_limit][value=9]")
+    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
   end
 
   defp render_details(queue) do

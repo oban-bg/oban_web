@@ -1,12 +1,20 @@
 defmodule Oban.Web.Queues.DetailComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.Components.FormComponent
   import Oban.Web.Helpers.QueueHelper
 
   alias Oban.Config
   alias Oban.Queue.BasicEngine
+  alias Oban.Web.Queues.DetailInsanceComponent
 
   @impl Phoenix.LiveComponent
+  def update(%{local_limit: local_limit}, socket) do
+    inputs = %{socket.assigns.inputs | local_limit: local_limit}
+
+    {:ok, assign(socket, inputs: inputs)}
+  end
+
   def update(assigns, socket) do
     counts = Enum.find(assigns.counts, %{}, &(&1["name"] == assigns.queue))
     gossip = Enum.filter(assigns.gossip, &(&1["queue"] == assigns.queue))
@@ -244,27 +252,11 @@ defmodule Oban.Web.Queues.DetailComponent do
 
           <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
             <%= for gossip <- @gossip do %>
-              <tr>
-                <td class="pl-3 py-3"><%= node_name(gossip) %></td>
-                <td class="text-right py-3"><%= executing_count(gossip) %></td>
-                <td class="text-right py-3"><%= started_at(gossip) %></td>
-                <td class="pl-6 py-3">
-                  <button rel="play_pause"
-                    class="block text-gray-500 hover:text-blue-500"
-                    title="Pause or resume queue"
-                    phx-click="play_pause"
-                    phx-target={@myself}
-                    phx-throttle="1000">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </button>
-                </td>
-                <td class="pr-3 py-3">
-                  <form class="flex space-x-3">
-                    <.number_input label={false} name="local_limit" value={gossip["local_limit"]} disabled={not can?(:scale_queues, @access)} myself={@myself} />
-                    <button class="block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm">Scale</button>
-                  </form>
-                </td>
-              </tr>
+              <.live_component
+                access={@access}
+                gossip={gossip}
+                id={node_name(gossip)}
+                module={DetailInsanceComponent} />
             <% end %>
           </tbody>
         </table>
@@ -341,8 +333,6 @@ defmodule Oban.Web.Queues.DetailComponent do
       fields = params["rate_limit_partition_fields"]
       inputs = %{socket.assigns.inputs | rate_limit_partition_fields: fields}
 
-      IO.inspect(inputs)
-
       {:noreply, assign(socket, inputs: inputs)}
     else
       {:noreply, socket}
@@ -384,57 +374,6 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   # Components
-
-  defp number_input(assigns) do
-    ~H"""
-    <div>
-      <%= if @label do %>
-        <label for={@name} class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "text-gray-800 dark:text-gray-200"}"}>
-          <%= @label %>
-        </label>
-      <% end %>
-
-      <div class="flex">
-        <input
-          autocomplete="off"
-          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
-          disabled={@disabled}
-          id={@name}
-          inputmode="numeric"
-          name={@name}
-          pattern="[1-9][0-9]*"
-          placeholder="Off"
-          type="text"
-          value={@value} />
-
-        <div class="w-9">
-          <button
-            rel="inc"
-            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
-            disabled={@disabled}
-            type="button"
-            phx-click="increment"
-            phx-target={@myself}
-            phx-value-field={@name}>
-            <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
-          </button>
-
-          <button
-            rel="dec"
-            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
-            disabled={@disabled}
-            tabindex="-1"
-            type="button"
-            phx-click="decrement"
-            phx-target={@myself}
-            phx-value-field={@name}>
-            <svg class="w-3 h-3 text-gray-600 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-    """
-  end
 
   defp toggle_button(assigns) do
     ~H"""
