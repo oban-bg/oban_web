@@ -66,13 +66,13 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     refresh(live)
 
     live
-    |> element("#queue-alpha button[rel=play_pause]")
+    |> element("#queue-alpha button[rel=toggle-pause]")
     |> render_click()
 
     expand_queue(live, "alpha")
 
     live
-    |> element("#queue-alpha-node-web_2 button[rel=play_pause]")
+    |> element("#queue-alpha-node-web_2 button[rel=toggle-pause]")
     |> render_click()
   end
 

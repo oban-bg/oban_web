@@ -1,7 +1,6 @@
 defmodule Oban.Web.Queues.DetailInsanceComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Components.FormComponent
   import Oban.Web.Helpers.QueueHelper
 
   @impl Phoenix.LiveComponent
@@ -26,15 +25,12 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
       <td class="pl-3 py-3"><%= node_name(@gossip) %></td>
       <td class="text-right py-3"><%= executing_count(@gossip) %></td>
       <td class="text-right py-3"><%= started_at(@gossip) %></td>
-      <td class="pl-6 py-3">
-        <button rel="play_pause"
-          class="block text-gray-500 hover:text-blue-500"
-          title="Pause or resume queue"
-          phx-click="toggle-pause"
-          phx-target={@myself}
-          phx-throttle="5000">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </button>
+      <td class="pl-9 py-3">
+        <.pause_button
+          click="toggle-pause"
+          disabled={not can?(:pause_queues, @access)}
+          myself={@myself}
+          paused={@paused} />
       </td>
       <td class="pr-3 py-3">
         <form id={"#{@gossip["node"]}-form"} class="flex space-x-3" phx-target={@myself} phx-submit="update">
@@ -56,10 +52,19 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("toggle-pause", _params, socket) do
-    {:noreply, socket}
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    gossip = socket.assigns.gossip
+    action = if socket.assigns.paused, do: :resume_queue, else: :pause_queue
+
+    send(self(), {action, gossip["queue"], gossip["name"], gossip["node"]})
+
+    {:noreply, assign(socket, paused: not socket.assigns.paused)}
   end
 
   def handle_event("update", %{"local_limit" => limit}, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
     limit = String.to_integer(limit)
     gossip = socket.assigns.gossip
 

@@ -103,6 +103,17 @@ defmodule Oban.Web.QueuesPage do
   end
 
   @impl Page
+  def handle_info({:toggle_queue, queue}, socket) do
+    expanded =
+      if MapSet.member?(socket.assigns.expanded, queue) do
+        MapSet.delete(socket.assigns.expanded, queue)
+      else
+        MapSet.put(socket.assigns.expanded, queue)
+      end
+
+    {:noreply, assign(socket, expanded: expanded)}
+  end
+
   def handle_info({:pause_queue, queue}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
       Oban.pause_queue(socket.assigns.conf.name, queue: queue)
@@ -119,20 +130,17 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
-  def handle_info({:toggle_queue, queue}, socket) do
-    expanded =
-      if MapSet.member?(socket.assigns.expanded, queue) do
-        MapSet.delete(socket.assigns.expanded, queue)
-      else
-        MapSet.put(socket.assigns.expanded, queue)
-      end
-
-    {:noreply, assign(socket, expanded: expanded)}
-  end
-
   def handle_info({:resume_queue, queue}, socket) do
     Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
       Oban.resume_queue(socket.assigns.conf.name, queue: queue)
+    end)
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:resume_queue, queue, name, node}, socket) do
+    Telemetry.action(:resume_queue, socket, [queue: queue, name: name, node: node], fn ->
+      notify_scoped(socket.assigns.conf, name, node, action: :resume, queue: queue)
     end)
 
     {:noreply, socket}

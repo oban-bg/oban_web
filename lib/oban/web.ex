@@ -38,14 +38,11 @@ defmodule Oban.Web do
 
   defp view_helpers do
     quote do
-      # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
-      # Import convenience functions for LiveView rendering
-      import Phoenix.LiveView.Helpers
-
-      # Import dashboard built-in functions
+      import Oban.Web.Components.FormComponent
       import Oban.Web.Helpers
+      import Phoenix.LiveView.Helpers
     end
   end
 

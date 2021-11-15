@@ -93,7 +93,6 @@ defmodule Oban.Web.Queues.DetailComponent do
         <div class="flex items-center pl-3 py-6">
           <svg class="w-6 h-6 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
           <h3 class="font-medium text-base">Global Configuration</h3>
-          <svg class="w-4 h-4 ml-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
 
         <div class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
@@ -228,15 +227,6 @@ defmodule Oban.Web.Queues.DetailComponent do
         <div class="flex items-center pl-3 py-6">
           <svg class="w-6 h-6 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
           <h3 class="font-medium text-base">Instances</h3>
-
-          <button rel="play_pause"
-            class="block text-gray-500 hover:text-blue-500"
-            title="Pause all instances"
-            phx-click="play_pause"
-            phx-target={@myself}
-            phx-throttle="1000">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          </button>
         </div>
 
         <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
@@ -269,6 +259,8 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("local-update", params, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
     limit = String.to_integer(params["local_limit"])
 
     send(self(), {:scale_queue, socket.assigns.queue, limit: limit})
@@ -279,6 +271,8 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   def handle_event("global-update", params, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
     limit = params["global_limit"]
 
     send(self(), {:scale_queue, socket.assigns.queue, global_limit: limit})
@@ -289,6 +283,8 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   def handle_event("rate-limit-update", params, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
     inputs =
       if is_nil(params["rate_limit_allowed"]) do
         send(self(), {:scale_queue, socket.assigns.queue, rate_limit: nil})

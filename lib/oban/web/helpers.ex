@@ -2,7 +2,7 @@ defmodule Oban.Web.Helpers do
   @moduledoc false
 
   alias Oban.Job
-  alias Oban.Web.{Resolver, Timing}
+  alias Oban.Web.{AccessError, Resolver, Timing}
 
   # Routing Helpers
 
@@ -55,6 +55,16 @@ defmodule Oban.Web.Helpers do
   def can?(_action, :all), do: true
   def can?(_action, :read_only), do: false
   def can?(action, [_ | _] = opts), do: Keyword.get(opts, action, false)
+
+  @doc """
+  Enforce access by raising an error if access isn't allowed.
+  """
+  @spec enforce_access!(Resolver.access(), atom() | keyword()) :: :ok
+  def enforce_access!(action, opts) do
+    unless can?(action, opts), do: raise AccessError
+
+    :ok
+  end
 
   # Formatting Helpers
 

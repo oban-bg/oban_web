@@ -13,6 +13,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         <button rel="expand"
           title={"Expand #{@queue} to view details by node"}
           class="block flex items-center hover:text-blue-500 focus:outline-none focus:text-blue-500"
+          type="button"
           phx-click="toggle_queue"
           phx-target={@myself}>
           <%= if @expanded do %>
@@ -34,20 +35,21 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= started_at(@gossip) %></td>
 
       <td class="py-3 pr-3 flex justify-end">
-        <%= if can?(:pause_queues, @access) do %>
-          <button rel="play_pause"
-            class={"block pr-2 #{pause_color(@gossip)} hover:text-blue-500"}
-            title="Pause or resume queue"
-            phx-click="play_pause"
-            phx-target={@myself}
-            phx-throttle="1000">
-            <%= if any_paused?(@gossip) do %>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <% else %>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <% end %>
-          </button>
-        <% end %>
+        <button
+          rel="toggle-pause"
+          class={"block pr-2 #{pause_color(@gossip)} hover:text-blue-500"}
+          disabled={not can?(:pause_queues, @access)}
+          title={pause_title(@gossip)}
+          type="button"
+          phx-click="toggle-pause"
+          phx-target={@myself}
+          phx-throttle="2000">
+          <%= if any_paused?(@gossip) do %>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <% else %>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <% end %>
+        </button>
 
         <%= live_patch to: oban_path(@socket, :queues, %{id: @queue}), class: "block text-gray-400 hover:text-blue-500" do %>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
@@ -58,12 +60,12 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   end
 
   @impl Phoenix.LiveComponent
-  def handle_event("play_pause", _params, socket) do
-    if can?(:pause_queues, socket.assigns.access) do
-      action = if any_paused?(socket.assigns.gossip), do: :resume_queue, else: :pause_queue
+  def handle_event("toggle-pause", _params, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
 
-      send(self(), {action, socket.assigns.queue})
-    end
+    action = if any_paused?(socket.assigns.gossip), do: :resume_queue, else: :pause_queue
+
+    send(self(), {action, socket.assigns.queue})
 
     {:noreply, socket}
   end
@@ -81,6 +83,14 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       Enum.all?(gossip, & &1["paused"]) -> "text-red-500"
       Enum.any?(gossip, & &1["paused"]) -> "text-yellow-400"
       true -> "text-gray-400"
+    end
+  end
+
+  defp pause_title(gossip) do
+    cond do
+      Enum.all?(gossip, & &1["paused"]) -> "Resume all queues"
+      Enum.any?(gossip, & &1["paused"]) -> "Resume paused queues"
+      true -> "Pause all queues"
     end
   end
 
