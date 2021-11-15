@@ -9,14 +9,14 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: '1.9'
-              otp: '21.3'
+              elixir: '1.12'
+              otp: '24.1'
               postgres: '9.6-alpine'
             exclude_tags: 'search'
           - pair:
               elixir: '1.12'
-              otp: '24.0'
-              postgres: '13.2-alpine'
+              otp: '24.1'
+              postgres: '14.1-alpine'
             lint: lint
             exclude_tags: 'nothing'
 
@@ -53,6 +53,12 @@ jobs:
           key: ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
             ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-
+
+      - name: Authorize with Oban
+        env:
+          OBAN_KEY_SHA: ${{secrets.oban_key_sha}}
+          OBAN_API_KEY: ${{secrets.oban_api_key}}
+        run: mix hex.repo add oban https://getoban.pro/repo --fetch-public-key $OBAN_KEY_SHA --auth-key $OBAN_API_KEY
 
       - name: Run mix deps.get
         run: mix deps.get
