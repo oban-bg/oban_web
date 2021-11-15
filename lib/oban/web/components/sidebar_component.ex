@@ -218,7 +218,6 @@ defmodule Oban.Web.SidebarComponent do
     avail_counts = Map.new(counts, fn %{"name" => key, "available" => val} -> {key, val} end)
     execu_counts = Map.new(counts, fn %{"name" => key, "executing" => val} -> {key, val} end)
 
-    # TODO: Change this to reflect global state
     total_limits =
       Enum.reduce(gossip, %{}, fn payload, acc ->
         limit = payload_limit(payload)

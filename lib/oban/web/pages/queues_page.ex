@@ -1,12 +1,12 @@
 defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
+  @behaviour Oban.Web.Page
+
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, SidebarComponent, Telemetry}
-
-  @behaviour Page
 
   @impl Phoenix.LiveComponent
   def render(assigns) do

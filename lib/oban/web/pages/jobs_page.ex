@@ -1,12 +1,12 @@
 defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
+  @behaviour Oban.Web.Page
+
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
   alias Oban.Web.Plugins.Stats
   alias Oban.Web.{Page, Query, SidebarComponent, Telemetry}
-
-  @behaviour Page
 
   @flash_timing 5_000
 

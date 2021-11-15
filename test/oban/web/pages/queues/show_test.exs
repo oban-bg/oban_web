@@ -3,9 +3,9 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.Plugins.Stats
-  alias Oban.Pro.Queue.SmartEngine
   alias Oban.Pro.Notifiers.PG
+  alias Oban.Pro.Queue.SmartEngine
+  alias Oban.Web.Plugins.Stats
 
   setup do
     start_supervised_oban!(
