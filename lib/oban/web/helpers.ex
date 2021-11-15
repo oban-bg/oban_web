@@ -61,7 +61,7 @@ defmodule Oban.Web.Helpers do
   """
   @spec enforce_access!(Resolver.access(), atom() | keyword()) :: :ok
   def enforce_access!(action, opts) do
-    unless can?(action, opts), do: raise AccessError
+    unless can?(action, opts), do: raise(AccessError)
 
     :ok
   end

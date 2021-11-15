@@ -111,7 +111,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
             <.submit_input
               locked={not can?(:scale_queues, @access)}
-              disabled={not can?(:scale_queues, @access)}
+              disabled={@inputs.local_limit == local_limit(@gossip) or not can?(:scale_queues, @access)}
               label="Scale" />
           </form>
 
@@ -143,7 +143,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
               <.submit_input
                 locked={not can?(:scale_queues, @access)}
-                disabled={not can?(:scale_queues, @access)}
+                disabled={@inputs.global_limit == global_limit(@gossip) or not can?(:scale_queues, @access)}
                 label="Apply" />
             </div>
           </form>
@@ -216,7 +216,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
               <.submit_input
                 locked={not can?(:scale_queues, @access)}
-                disabled={not can?(:scale_queues, @access)}
+                disabled={rate_limit_unchanged?(@gossip, @inputs) or not can?(:scale_queues, @access)}
                 label="Apply" />
             </div>
           </form>
@@ -460,6 +460,13 @@ defmodule Oban.Web.Queues.DetailComponent do
       %{"partition" => %{"keys" => [_ | _] = keys}} -> Enum.join(keys, ",")
       _ -> nil
     end
+  end
+
+  defp rate_limit_unchanged?(gossip, inputs) do
+    inputs.rate_limit_allowed == rate_limit_allowed(gossip) and
+      inputs.rate_limit_period == rate_limit_period(gossip) and
+      inputs.rate_limit_partition_fields == rate_limit_partition_fields(gossip) and
+      inputs.rate_limit_partition_keys == rate_limit_partition_keys(gossip)
   end
 
   defp first_rate_limit(gossip) do
