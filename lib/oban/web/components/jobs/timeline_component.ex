@@ -58,7 +58,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       :finished -> "bg-green-500 text-white"
       :retrying -> "bg-orange-400 text-white"
       :started -> "bg-yellow-400 text-white"
-      :unstarted -> "bg-gray-100 text-white dark:bg-black dark:bg-opacity-25 shadow-inner"
+      :unstarted -> "bg-gray-100 text-white dark:bg-black dark:bg-opacity-25"
     end
   end
 

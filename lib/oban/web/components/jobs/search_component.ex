@@ -21,7 +21,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
         <input
           type="search"
           name="terms"
-          class="appearance-none text-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 block rounded-md w-full pr-3 py-3 pl-10 placeholder-gray-600 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-400 focus:border-blue-400"
+          class="appearance-none text-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 block rounded-md w-full pr-3 py-2.5 pl-10 placeholder-gray-600 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-400 focus:border-blue-400"
           placeholder="Search"
           value={@terms}
           phx-debounce="2000" />

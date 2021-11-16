@@ -18,7 +18,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
             <a id="detail-cancel"
                href="#"
-               class="group flex items-center ml-4 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none hover:text-yellow-600 hover:border-yellow-600"
+               class="group flex items-center ml-4 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
                data-disable-with="Cancelling…"
                phx-target={@myself}
                phx-click="cancel">
@@ -30,7 +30,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
             <a id="detail-retry"
                href="#"
-               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none hover:text-blue-500 hover:border-blue-600"
+               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
                data-disable-with="Running…"
                phx-target={@myself}
                phx-click="retry">
@@ -42,7 +42,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
             <a id="detail-retry"
                href="#"
-               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
+               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
                data-disable-with="Retrying…"
                phx-target={@myself}
                phx-click="retry">
@@ -54,7 +54,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
             <a id="detail-delete"
                href="#"
-               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none hover:text-red-500 hover:border-red-600"
+               class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
                data-confirm="Are you sure you want to delete this job?"
                data-disable-with="Deleting…"
                phx-target={@myself}

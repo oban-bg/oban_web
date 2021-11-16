@@ -6,7 +6,7 @@ defmodule Oban.Web.SidebarComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="sidebar" class="mr-0 mb-3 md:mr-3 md:mb-0">
+    <div id="sidebar" class="mr-3 mt-4">
       <%= if :nodes in @sections do %>
         <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
           <%= for node <- nodes(@gossip) do %>
@@ -75,7 +75,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
       <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate">
         <%= String.downcase(@node.name) %>
       </span>
@@ -107,7 +107,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 #{active_class}") do %>
       <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate"><%= @state.name %></span>
       <span class="pr-3 text-sm text-gray-400 text-right tabular"><%= integer_to_estimate(@state.count) %></span>
     <% end %>
@@ -126,7 +126,7 @@ defmodule Oban.Web.SidebarComponent do
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
-        class: "flex justify-between py-3 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
         <span class={"pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}><%= @queue.name %></span>
 
       <div class="pr-3 flex items-center flex-none">

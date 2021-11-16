@@ -71,12 +71,12 @@ defmodule Oban.Web.Jobs.TableComponent do
           <td colspan="6" class="py-6">
             <div class="flex items-center justify-center space-x-2">
               <button type="button"
-                class={"font-semibold text-sm mr-6 focus:outline-none #{activity_class(@show_less?)}"}
+                class={"font-semibold text-sm mr-6 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{activity_class(@show_less?)}"}
                 phx-target={@myself}
                 phx-click="load_less">Show Less</button>
 
               <button type="button"
-                class={"font-semibold text-sm focus:outline-none #{activity_class(@show_more?)}"}
+                class={"font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{activity_class(@show_more?)}"}
                 phx-target={@myself}
                 phx-click="load_more">Show More</button>
             </div>
