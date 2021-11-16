@@ -3,9 +3,10 @@
   "license": "MIT",
   "scripts": {},
   "dependencies": {
-    "phoenix": "^1.6.0",
-    "phoenix_html": "^3.0.4",
-    "phoenix_live_view": "^0.16.0",
+    "phoenix": "file:../deps/phoenix",
+    "phoenix_html": "file:../deps/phoenix_html",
+    "phoenix_live_view": "file:../deps/phoenix_live_view",
+    "tippy.js": "^6.3.7",
     "topbar": "^1.0.1"
   },
   "devDependencies": {

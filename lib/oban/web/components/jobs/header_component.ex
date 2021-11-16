@@ -24,7 +24,13 @@ defmodule Oban.Web.Jobs.HeaderComponent do
   def render(assigns) do
     ~H"""
     <div id="jobs-header" class="flex items-center">
-      <button class="block text-gray-400 hover:text-blue-500" phx-target={@myself} phx-click="toggle_select">
+      <button
+        class="block text-gray-400 hover:text-blue-500"
+        data-title="Select All"
+        phx-target={@myself}
+        phx-click="toggle_select"
+        phx-hook="Tippy"
+        type="button">
         <%= if @select_mode == :all do %>
           <svg class="text-blue-500 h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M16 2a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2h12zm-2.7 4.305l-5.31 5.184L6.7 10.145a.967.967 0 00-1.41 0 1.073 1.073 0 000 1.47l1.994 2.08a.967.967 0 001.409 0l6.014-5.92c.39-.406.39-1.064 0-1.47a.967.967 0 00-1.409 0z" fill-rule="evenodd"/></svg>
         <% end %>

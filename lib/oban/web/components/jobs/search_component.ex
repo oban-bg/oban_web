@@ -24,7 +24,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
           class="appearance-none text-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 block rounded-md w-full pr-3 py-3 pl-10 placeholder-gray-600 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-400 focus:border-blue-400"
           placeholder="Search"
           value={@terms}
-          phx-debounce="1000" />
+          phx-debounce="2000" />
         <button class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class}"} type="reset" phx-target{@myself} phx-click="clear">
           <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
         </button>

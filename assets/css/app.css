@@ -26,6 +26,66 @@ select:-moz-focusring {
   text-shadow: 0 0 0 #000;
 }
 
+.tippy-box {
+  @apply relative bg-gray-950 text-gray-100 dark:bg-gray-50 dark:text-gray-900 shadow text-sm rounded font-normal outline-none;
+
+  transition-property: transform, visibility, opacity;
+}
+
+.tippy-box[data-placement^=top] > .tippy-svg-arrow{
+  bottom:0;
+}
+
+.tippy-box[data-placement^=top] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^=top] > .tippy-svg-arrow > svg {
+  top: 16px;
+  transform: rotate(180deg);
+}
+
+.tippy-box[data-placement^=bottom] > .tippy-svg-arrow {
+  top:0;
+}
+
+.tippy-box[data-placement^=bottom] > .tippy-svg-arrow > svg {
+  bottom: 16px;
+}
+
+.tippy-box[data-placement^=left] > .tippy-svg-arrow{
+  right: 0
+}
+
+.tippy-box[data-placement^=left] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^=left] > .tippy-svg-arrow > svg{
+  transform: rotate(90deg);
+  top: calc(50% - 3px);
+  left: 11px;
+}
+
+.tippy-box[data-placement^=right] > .tippy-svg-arrow{
+  left: 0;
+}
+
+.tippy-box[data-placement^=right] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^=right] > .tippy-svg-arrow > svg {
+  transform: rotate(-90deg);
+  top: calc(50% - 3px);
+  right: 11px;
+}
+
+.tippy-svg-arrow{
+  @apply w-4 h-4 fill-current text-gray-950 dark:text-gray-50;
+
+  text-align: initial;
+}
+
+.tippy-svg-arrow, .tippy-svg-arrow > svg{
+  position: absolute;
+}
+
+.tippy-content {
+  @apply relative px-3 py-2 z-10;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

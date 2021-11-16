@@ -1,9 +1,10 @@
 import "phoenix_html"
 import {Socket, LongPoll} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
+import tippy, {roundArrow} from "tippy.js"
 import topbar from "topbar"
 
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"});
+topbar.config({barColors: {0: "#0284c7"}, shadowColor: "rgba(0, 0, 0, .3)"});
 window.addEventListener("phx:page-loading-start", info => topbar.show());
 window.addEventListener("phx:page-loading-stop", info => topbar.hide());
 
@@ -38,6 +39,18 @@ Hooks.ToggleDarkMode = {
 
       this.setMode();
     })
+
+    const content = this.el.getAttribute("data-title");
+
+    tippy(this.el, { arrow: roundArrow, content: content, delay: [500, null] });
+  }
+}
+
+Hooks.Tippy = {
+  mounted() {
+    const content = this.el.getAttribute("data-title");
+
+    tippy(this.el, { arrow: roundArrow, content: content, delay: [500, null] });
   }
 }
 
