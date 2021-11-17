@@ -9,8 +9,22 @@ defmodule Oban.Web.Queues.DetailComponent do
   alias Oban.Web.Queues.DetailInsanceComponent
 
   @impl Phoenix.LiveComponent
-  def update(%{local_limit: local_limit}, socket) do
-    inputs = %{socket.assigns.inputs | local_limit: local_limit}
+  def update(%{local_limit: new_limit}, socket) do
+    %{gossip: gossip, inputs: inputs} = socket.assigns
+
+    local_limit =
+      cond do
+        match?([_], gossip) ->
+          new_limit
+
+        match?([_ | _], gossip) ->
+          max(local_limit(gossip), new_limit)
+
+        true ->
+          inputs.local_limit
+      end
+
+    inputs = %{inputs | local_limit: local_limit}
 
     {:ok, assign(socket, inputs: inputs)}
   end

@@ -1,4 +1,4 @@
-defmodule Oban.Web.Pages.Queues.ShowTest do
+defmodule Oban.Web.Pages.Queues.DetailTest do
   use Oban.Web.DataCase
 
   import Phoenix.LiveViewTest
@@ -120,6 +120,14 @@ defmodule Oban.Web.Pages.Queues.ShowTest do
 
     assert has_element?(live, "#local-form [name=local_limit][value=9]")
     assert has_element?(live, "#web-1-form [name=local_limit][value=9]")
+    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
+
+    live
+    |> form("#web-1-form")
+    |> render_submit(%{local_limit: 4})
+
+    assert has_element?(live, "#local-form [name=local_limit][value=6]")
+    assert has_element?(live, "#web-1-form [name=local_limit][value=4]")
     assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
   end
 
