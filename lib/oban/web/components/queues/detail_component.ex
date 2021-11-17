@@ -110,7 +110,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         </div>
 
         <div class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
-          <form id="local-form" class="w-1/4 pr-3 pt-3 pb-6" phx-target={@myself} phx-submit="local-update">
+          <form id="local-form" class="w-1/4 pr-3 pt-3 pb-6" phx-target={@myself} phx-change="form-change" phx-submit="local-submit">
             <h3 class="flex items-center mb-4">
               <svg class="w-5 h-5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path></svg>
               <span class="text-base font-medium">Local</span>
@@ -129,7 +129,11 @@ defmodule Oban.Web.Queues.DetailComponent do
               label="Scale" />
           </form>
 
-          <form id="global-form" class={"relative w-1/4 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"} phx-target={@myself} phx-submit="global-update">
+          <form id="global-form"
+                class={"relative w-1/4 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}
+                phx-target={@myself}
+                phx-change="form-change"
+                phx-submit="global-update">
             <%= if missing_pro?(@conf) do %>
               <.pro_blocker />
             <% end %>
@@ -162,7 +166,11 @@ defmodule Oban.Web.Queues.DetailComponent do
             </div>
           </form>
 
-          <form id="rate-limit-form" class={"relative w-1/2 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"} phx-target={@myself} phx-submit="rate-limit-update" phx-change="rate-limit-change">
+          <form id="rate-limit-form"
+                class={"relative w-1/2 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}
+                phx-target={@myself}
+                phx-submit="rate-limit-update"
+                phx-change="form-change">
             <%= if missing_pro?(@conf) do %>
               <.pro_blocker />
             <% end %>
@@ -271,8 +279,33 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Handlers
 
+  @integer_inputs ~w(local_limit global_limit rate_limit_allowed rate_limit_period)
+
   @impl Phoenix.LiveComponent
-  def handle_event("local-update", params, socket) do
+  def handle_event("form-change", %{"_target" => "rate_limit_partition_fields"} = params, socket) do
+    fields = params["rate_limit_partition_fields"]
+    inputs = %{socket.assigns.inputs | rate_limit_partition_fields: fields}
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("form-change", params, socket) do
+    inputs =
+      for {key, val} <- params, key in @integer_inputs, reduce: socket.assigns.inputs do
+        acc ->
+          case Integer.parse(val) do
+            {int, _} when int > 0 ->
+              %{acc | String.to_existing_atom(key) => int}
+
+            _ ->
+              acc
+          end
+      end
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("local-submit", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
     limit = String.to_integer(params["local_limit"])
@@ -336,17 +369,6 @@ defmodule Oban.Web.Queues.DetailComponent do
       end
 
     {:noreply, assign(socket, inputs: inputs)}
-  end
-
-  def handle_event("rate-limit-change", params, socket) do
-    if params["_target"] == ["rate_limit_partition_fields"] do
-      fields = params["rate_limit_partition_fields"]
-      inputs = %{socket.assigns.inputs | rate_limit_partition_fields: fields}
-
-      {:noreply, assign(socket, inputs: inputs)}
-    else
-      {:noreply, socket}
-    end
   end
 
   def handle_event("increment", %{"field" => field}, socket) do
