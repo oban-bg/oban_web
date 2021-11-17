@@ -105,8 +105,12 @@ defmodule Oban.Web.LayoutComponent do
   @tabs_base "font-medium text-sm rounded-md px-3 py-2"
 
   defp link_class(page, page),
-    do: @tabs_base <> " bg-blue-200 text-blue-800 dark:text-gray-200 dark:bg-blue-300 dark:bg-opacity-25"
+    do:
+      @tabs_base <>
+        " bg-blue-200 text-blue-800 dark:text-gray-200 dark:bg-blue-300 dark:bg-opacity-25"
 
   defp link_class(_pag, _exp),
-    do: @tabs_base <> " text-gray-600 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-300"
+    do:
+      @tabs_base <>
+        " text-gray-600 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-300"
 end

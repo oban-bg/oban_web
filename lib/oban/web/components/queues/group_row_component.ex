@@ -24,7 +24,9 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           <% end %>
         </button>
 
-        <%= live_patch @queue, to: oban_path(@socket, :queues, %{id: @queue}),
+        <%= live_patch @queue,
+            to: oban_path(@socket, :queues, %{id: @queue}),
+            rel: "name",
             class: "block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500",
             "phx-hook": "Tippy",
             "data-title": "Configure the #{@queue} queue" %>

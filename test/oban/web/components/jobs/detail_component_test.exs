@@ -40,7 +40,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
   end
 
   defp assigns(job, opts \\ []) do
-    [access: :all, id: :details, resolver: nil]
+    [access: :all, id: :details, resolver: nil, params: %{}]
     |> Keyword.put(:job, job)
     |> Keyword.merge(opts)
   end
