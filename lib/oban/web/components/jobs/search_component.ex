@@ -24,8 +24,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
           class="appearance-none text-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 block rounded-md w-full pr-3 py-2.5 pl-10 placeholder-gray-600 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-400 focus:border-blue-400"
           placeholder="Search"
           value={@terms}
-          phx-debounce="2000" />
-        <button class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class}"} type="reset" phx-target{@myself} phx-click="clear">
+          phx-debounce="1000" />
+        <button class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class}"} type="reset" phx-target={@myself} phx-click="clear">
           <svg fill="currentColor" viewBox="0 0 20 20" class="h-5 w-5"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
         </button>
       </div>
@@ -35,15 +35,15 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("search", %{"terms" => terms}, socket) do
-    params = Map.put(socket.assigns.params, :terms, terms)
+    send(self(), {:params, :terms, terms})
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
+    {:noreply, socket}
   end
 
   def handle_event("clear", _params, socket) do
-    params = Map.delete(socket.assigns.params, :terms)
+    send(self(), {:params, :terms, nil})
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
+    {:noreply, socket}
   end
 
   def present?(nil), do: false

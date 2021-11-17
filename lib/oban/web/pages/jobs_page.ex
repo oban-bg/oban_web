@@ -29,9 +29,10 @@ defmodule Oban.Web.JobsPage do
           <%= if @detailed do %>
             <.live_component
               id="detail"
-              module={DetailComponent}
               access={@access}
               job={@detailed}
+              module={DetailComponent}
+              params={without_defaults(@params, @default_params)}
               resolver={@resolver} />
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
@@ -137,13 +138,19 @@ defmodule Oban.Web.JobsPage do
   # Filtering
 
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
-    params = Map.update!(socket.assigns.params, :limit, &to_string(&1 + inc))
+    params =
+      socket.assigns.params
+      |> Map.update!(:limit, &to_string(&1 + inc))
+      |> without_defaults(socket.assigns.default_params)
 
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
 
   def handle_info({:params, :terms, terms}, socket) do
-    params = Map.put(socket.assigns.params, :terms, terms)
+    params =
+      socket.assigns.params
+      |> Map.put(:terms, terms)
+      |> without_defaults(socket.assigns.default_params)
 
     {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
   end
