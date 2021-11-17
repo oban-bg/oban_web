@@ -9,8 +9,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
     ~H"""
     <div id="job-details">
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
-        <%= live_patch to: oban_path(@socket, :jobs, @params), class: "flex items-center" do %>
-          <svg class="h-5 w-5 hover:text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
+        <%= live_patch to: oban_path(@socket, :jobs, @params), class: "flex items-center hover:text-blue-500", "data-title": "Back to jobs", "phx-hook": "Tippy" do %>
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
           <span class="text-lg font-bold ml-2">Job Details</span>
         <% end %>
 

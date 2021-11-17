@@ -12,7 +12,7 @@ defmodule Oban.Web.Components.FormComponent do
     ~H"""
     <div>
       <%= if @label do %>
-        <label for={@name} class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "text-gray-800 dark:text-gray-200"}"}>
+        <label for={@name} class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "opacity-50"}"}>
           <%= @label %>
         </label>
       <% end %>
@@ -20,7 +20,7 @@ defmodule Oban.Web.Components.FormComponent do
       <div class="flex">
         <input
           autocomplete="off"
-          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 disabled:border-gray-400 dark:disabled:border-gray-700 bg-gray-100 dark:bg-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-900 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
+          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
           disabled={@disabled}
           id={@name}
           inputmode="numeric"
@@ -33,7 +33,7 @@ defmodule Oban.Web.Components.FormComponent do
         <div class="w-9">
           <button
             rel="inc"
-            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
+            class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             disabled={@disabled}
             type="button"
             phx-click="increment"
@@ -44,7 +44,7 @@ defmodule Oban.Web.Components.FormComponent do
 
           <button
             rel="dec"
-            class={"block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer #{if @disabled, do: "cursor-not-allowed pointer-events-none"}"}
+            class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             disabled={@disabled}
             tabindex="-1"
             type="button"

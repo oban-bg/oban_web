@@ -32,7 +32,7 @@ defmodule Oban.Web.JobsPage do
               access={@access}
               job={@detailed}
               module={DetailComponent}
-              params={without_defaults(@params, @default_params)}
+              params={without_defaults(Map.delete(@params, "id"), @default_params)}
               resolver={@resolver} />
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">

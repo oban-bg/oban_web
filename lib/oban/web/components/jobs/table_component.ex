@@ -25,7 +25,7 @@ defmodule Oban.Web.Jobs.TableComponent do
     ~H"""
     <table id="jobs-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
       <thead>
-        <tr class="text-gray-400 dark:text-gray-500">
+        <tr class="text-gray-500 dark:text-gray-400">
           <th scope="col" class="w-10"></th>
           <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3">
             <SortComponent.link label="worker" params={@params} socket={@socket} page={:jobs} justify="start" />

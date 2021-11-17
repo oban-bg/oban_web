@@ -23,7 +23,7 @@ defmodule Oban.Web.Queues.TableComponent do
     ~H"""
     <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
       <thead>
-        <tr class="text-gray-400 dark:text-gray-500">
+        <tr class="text-gray-500 dark:text-gray-400">
           <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
             <SortComponent.link label="name" params={@params} socket={@socket} page={:queues} justify="start" />
           </th>
@@ -48,7 +48,7 @@ defmodule Oban.Web.Queues.TableComponent do
           <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
             <SortComponent.link label="started" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-8"></th>
+          <th scope="col" class="w-5"></th>
         </tr>
       </thead>
 

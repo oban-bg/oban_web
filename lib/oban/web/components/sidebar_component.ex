@@ -37,12 +37,12 @@ defmodule Oban.Web.SidebarComponent do
   defp section(assigns) do
     ~H"""
     <div id={@id} class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84">
-      <header class="group flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+      <header class="group flex justify-between items-center border-b border-gray-300 dark:border-gray-700 px-3 py-3">
         <span class="dark:text-gray-200 font-bold"><%= @name %></span>
 
         <div class="flex group-hover:hidden">
           <%= for header <- @headers do %>
-            <div class="text-xs text-gray-500 uppercase text-right w-10">
+            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase text-right w-10">
               <%= header %>
             </div>
           <% end %>
@@ -76,12 +76,12 @@ defmodule Oban.Web.SidebarComponent do
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
         class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
-      <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate">
+      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
         <%= String.downcase(@node.name) %>
       </span>
       <div class="flex-none">
-        <span class="pr-3 text-sm text-gray-400 text-right tabular"><%= integer_to_estimate(@node.count) %></span>
-        <span class="pr-3 text-sm text-gray-400 text-right w-10 tabular"><%= integer_to_estimate(@node.limit) %></span>
+        <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular"><%= integer_to_estimate(@node.count) %></span>
+        <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right w-10 tabular"><%= integer_to_estimate(@node.limit) %></span>
       </div>
     <% end %>
     """
@@ -108,8 +108,8 @@ defmodule Oban.Web.SidebarComponent do
         id: "state-#{@state.name}",
         rel: "filter",
         class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
-      <span class="pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate"><%= @state.name %></span>
-      <span class="pr-3 text-sm text-gray-400 text-right tabular"><%= integer_to_estimate(@state.count) %></span>
+      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate"><%= @state.name %></span>
+      <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular"><%= integer_to_estimate(@state.count) %></span>
     <% end %>
     """
   end
@@ -127,32 +127,32 @@ defmodule Oban.Web.SidebarComponent do
         id: "queue-#{@queue.name}",
         rel: "filter",
         class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
-        <span class={"pl-2 text-sm dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}><%= @queue.name %></span>
+        <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}><%= @queue.name %></span>
 
-      <div class="pr-3 flex items-center flex-none">
+      <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
         <div class="flex items-center text-right">
           <%= if @queue.paused? do %>
             <span title="Paused">
-              <svg class="text-gray-400 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </span>
           <% end %>
 
           <%= if @queue.rate_limited? do %>
             <span title="Rate Limited">
-              <svg class="text-gray-400 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
             </span>
           <% end %>
 
           <%= if @queue.global? do %>
             <span title="Global">
-              <svg class="text-gray-400 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
             </span>
           <% end %>
 
-          <div class="text-gray-400 text-sm w-10 tabular"><%= integer_to_estimate(@queue.limit) %></div>
+          <div class="text-sm w-10 tabular"><%= integer_to_estimate(@queue.limit) %></div>
         </div>
-        <div class="text-gray-400 text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.execu) %></div>
-        <div class="text-gray-400 text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.avail) %></div>
+        <div class="text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.execu) %></div>
+        <div class="text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.avail) %></div>
       </div>
     <% end %>
     """

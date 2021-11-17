@@ -8,15 +8,15 @@ defmodule Oban.Web.Queues.ChildRowComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <tr id={queue_id(@queue, @gossip["node"])} class="text-gray-400 bg-gray-100 dark:bg-black dark:bg-opacity-25">
-      <td rel="node" colspan="2"class="py-3 text-right"><%= node_name(@gossip) %></td>
+    <tr id={queue_id(@queue, @gossip["node"])} class="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-black dark:bg-opacity-25">
+      <td rel="node" colspan="2"class="py-3 font-medium text-right"><%= node_name(@gossip) %></td>
       <td rel="executing" class="py-3 text-right tabular"><%= length(@gossip["running"]) %></td>
       <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 text-right tabular"><%= Map.get(@gossip, "local_limit", "-") %></td>
       <td rel="global" class="py-3 text-right tabular"><%= Map.get(@gossip, "global_limit", "-") %></td>
       <td rel="rate" class="py-3 text-right tabular"><%= rate_limit([@gossip]) %></td>
       <td rel="started" class="py-3 text-right tabular"><%= started_at([@gossip]) %></td>
-      <td class="py-3 pr-10 flex justify-end">
+      <td class="py-3 pr-3 flex justify-end">
         <.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}

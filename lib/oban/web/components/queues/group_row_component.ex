@@ -9,21 +9,25 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   def render(assigns) do
     ~H"""
     <tr id={"queue-#{@queue}"} class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25">
-      <td class="p-3 dark:text-gray-300">
+      <td class="pl-3 py-3 text-gray-700 dark:text-gray-300 flex items-center space-x-2">
         <button rel="expand"
-          title={"Expand #{@queue} to view details by node"}
-          class="block flex items-center hover:text-blue-500 focus:outline-none focus:text-blue-500"
+          class="block hover:text-blue-500 focus:outline-none focus:text-blue-500"
+          data-title={"Expand #{@queue} to view instances"}
           type="button"
           phx-click="toggle_queue"
-          phx-target={@myself}>
+          phx-target={@myself}
+          phx-hook="Tippy">
           <%= if @expanded do %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           <% else %>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
           <% end %>
-
-          <span class="pl-1 font-semibold" rel="name"><%= @queue %></span>
         </button>
+
+        <%= live_patch @queue, to: oban_path(@socket, :queues, %{id: @queue}),
+            class: "block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500",
+            "phx-hook": "Tippy",
+            "data-title": "Configure the #{@queue} queue" %>
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= nodes_count(@gossip) %></td>
@@ -37,7 +41,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       <td class="py-3 pr-3 flex justify-end">
         <button
           rel="toggle-pause"
-          class={"block pr-2 #{pause_color(@gossip)} hover:text-blue-500"}
+          class={"block #{pause_color(@gossip)} hover:text-blue-500"}
           disabled={not can?(:pause_queues, @access)}
           data-title={pause_title(@gossip)}
           type="button"
@@ -51,13 +55,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <% end %>
         </button>
-
-        <%= live_patch to: oban_path(@socket, :queues, %{id: @queue}),
-            class: "block text-gray-400 hover:text-blue-500",
-            "phx-hook": "Tippy",
-            "data-title": "Configure #{@queue} queue" do %>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-        <% end %>
       </td>
     </tr>
     """
@@ -86,7 +83,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
     cond do
       Enum.all?(gossip, & &1["paused"]) -> "text-red-500"
       Enum.any?(gossip, & &1["paused"]) -> "text-yellow-400"
-      true -> "text-gray-400"
+      true -> "text-gray-600 dark:text-gray-400"
     end
   end
 

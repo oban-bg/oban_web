@@ -25,10 +25,11 @@ defmodule Oban.Web.Jobs.HeaderComponent do
     ~H"""
     <div id="jobs-header" class="flex items-center">
       <button
+        id="toggle-select"
         class="block text-gray-400 hover:text-blue-500"
         data-title="Select All"
         phx-target={@myself}
-        phx-click="toggle_select"
+        phx-click="toggle-select"
         phx-hook="Tippy"
         type="button">
         <%= if @select_mode == :all do %>
@@ -56,7 +57,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
 
   def state_count(_stats, _params), do: 0
 
-  def handle_event("toggle_select", _params, socket) do
+  def handle_event("toggle-select", _params, socket) do
     if socket.assigns.select_mode == :none do
       send(self(), :select_all)
     else
