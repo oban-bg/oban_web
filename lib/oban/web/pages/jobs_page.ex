@@ -1,7 +1,7 @@
 defmodule Oban.Web.JobsPage do
-  use Oban.Web, :live_component
-
   @behaviour Oban.Web.Page
+
+  use Oban.Web, :live_component
 
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent

@@ -1,7 +1,7 @@
 defmodule Oban.Web.QueuesPage do
-  use Oban.Web, :live_component
-
   @behaviour Oban.Web.Page
+
+  use Oban.Web, :live_component
 
   alias Oban.Notifier
   alias Oban.Web.Plugins.Stats

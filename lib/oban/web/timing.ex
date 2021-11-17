@@ -35,9 +35,7 @@ defmodule Oban.Web.Timing do
     parts = [minutes, seconds]
     parts = if hours > 0, do: [hours | parts], else: parts
 
-    parts
-    |> Enum.map(&pad/1)
-    |> Enum.join(":")
+    Enum.map_join(parts, ":", &pad/1)
   end
 
   def to_duration(ellapsed, _time_unit) do

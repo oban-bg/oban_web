@@ -55,6 +55,7 @@
         #
         ## Refactoring Opportunities
         #
+        {Credo.Check.Refactor.Apply, false},
         {Credo.Check.Refactor.CondStatements, []},
         {Credo.Check.Refactor.CyclomaticComplexity, false},
         {Credo.Check.Refactor.FunctionArity, []},

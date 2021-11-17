@@ -52,7 +52,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "0.17.2"},
       {:esbuild, "~> 0.3", runtime: false, only: [:dev]},
       {:oban_pro, "~> 0.9", repo: :oban, only: [:test, :dev]},
-      {:credo, "~> 1.4", only: [:test, :dev], runtime: false},
+      {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.26", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
     ]
