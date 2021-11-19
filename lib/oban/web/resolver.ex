@@ -13,7 +13,7 @@ defmodule Oban.Web.Resolver do
           | {:cancel_jobs, boolean()}
           | {:delete_jobs, boolean()}
           | {:retry_jobs, boolean()}
-  @type refresh :: 1 | 2 | 5 | 15 | -1
+  @type refresh :: 1 | 2 | 5 | 15 | 60 | -1
 
   @doc """
   Customize the formatting of job args wherever they are displayed.

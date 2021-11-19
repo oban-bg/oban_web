@@ -3,7 +3,7 @@ defmodule Oban.Web.RefreshComponent do
 
   alias Phoenix.LiveView.JS
 
-  @refresh_options %{1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", -1 => "Off"}
+  @refresh_options %{1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 60 => "1m", -1 => "Off"}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
