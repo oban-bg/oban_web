@@ -2,14 +2,116 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.8.0 — 2021-11-19
+
+### 📋 New Queues Table, Details, and Runtime Configuration
+
+Oban Web has a new queues page that shows details about every active queue,
+including previously invisible configuration like global concurrency limits,
+uptime, and rate limit activity. You can also expand queues to view specifics
+about instances across each node, along with the ability to pause or resume
+instances.
+
+For more queue information and runtime configuration there is a details page for
+every queue. Within it you can scale the local limit across all nodes, change
+the global limit, edit the rate limit, and even scale individual instances.
+
+### 🌗 Dark Mode and Visual Updates
+
+The dashboard is completely overhauled with a visual refresh and a new dark
+mode! The visual changes were driven by accessibility improvements such as:
+
+- Increased contrast
+- Consistent hover/focus for actionable elements
+- Informative tooltips
+- Semantic forms
+
+### 🔏 Custom Args/Meta Formatting Callbacks
+
+By default, the job views pretty print `args` and `meta` in full. For more
+control, i.e. for privacy or brevity, there are now `format_job_args/1` and
+`format_job_meta/1` callbacks.
+
+For example, to redact the `"email"` for only the `SecretJob` worker:
+
+```elixir
+@impl true
+def format_job_args(%Oban.Job{worker: "MyApp.SecretJob", args: args}) do
+  args
+  |> Map.replace("email", "REDACTED")
+  |> inspect(pretty: true)
+end
+
+def format_job_args(job), do: Oban.Web.Resolver.format_job_args(job)
+```
+
+See the [Customizing the Dashboard](web_customizing.html) guide for more.
+
+### Enhancements
+
+#### Dependencies
+
+  - Upgrade the minimum Phoenix Live View dependency to `0.17.4` in order to get
+    components working properly.
+
+  - Upgrade the minimum Elixir version to `1.12` due to the required use of HEEX
+    templates in the latest Live View.
+
+#### Jobs Page
+
+  - Sort jobs by worker, queue, attempt, or time in either ascending or
+    descending order. The default is by time ascending.
+
+  - Filter jobs by multiple nodes or queues at once. Within nodes or queues
+    filtering acts like an "OR", while between them it is an "AND".
+
+#### Performance
+
+  - Pause refreshing when Web loses window visiblity and restore it when the
+    window becomes visible again. This prevents runaway database queries when
+    the tab is left open unattended. Additionally, there is a new 1 minute
+    refresh option for even less frequent polling.
+
+  - Perform stats counts less frequently for large states to minimize database
+    load. This trades realtime fidelity for performance by backing off of counts
+    that can't be accelerated by an index. State counts are displayed as
+    suffixed estimates, e.g. `41k` or `43.1k` to compensate.
+
+  - Fetch only fields that may change when refreshing the jobs table or details
+    view.
+
+  - Use the built-in `cancel_all`/`retry_all` from Oban to accelerate bulk
+    operations.
+
+#### Formatter
+
+  - Export `locals_without_parens` for `oban_dashboard/1,2` in `.formatter.exs`
+
+## v2.7.4 — 2021-09-27
+
+### Fixed
+
+- Safely assign state from params when re-mounting to prevent a missing key
+  error.
+
+## v2.7.3 — 2021-09-15
+
+### Changed
+
+- Expose documented, but unfortunately hidden, `socket_path` option.
+
+  The socket path is no longer hard coded as `/live`. It is now possible to
+  configure an alternate path when mounting the dashboard.
+
+### Fixed
+
+- Guard against `nil` global limit when calculating sidebar stats.
+
 ## v2.7.2 — 2021-08-13
 
 ### Changed
 
 - Upgrade minimum Phoenix Live View dependency to `0.16`.
-
-  Due to changes in the least version of LiveView, you **must** provide an `as:`
-  option when mounting multiple dashboards in the same router.
 
 ## v2.7.1 — 2021-06-01
 
@@ -401,160 +503,3 @@ See the new [Telemetry](web_telemetry.html) guide for event details!
 
 - Consistently toggle filters on and off from the sidebar, rather than matching
   on a filter list in the header.
-
-## v1.5.0 — 2020-04-27
-
-### Changed
-
-- Upgrade to Phoenix `~> 1.5`, LiveView `~> 0.12` and PubSub `~> 2.0`. None of
-  these upgrades required changes to ObanWeb, they are meant to enable upgrades
-  for host applications.
-
-## v1.4.0 — 2020-03-24
-
-### Changed
-
-- Upgrade to LiveView `~> 0.10` along with requisite changes to use
-  `@inner_content` in the layout template. This prevents the view from hanging
-  with a blank screen on load.
-
-## v1.3.1 — 2020-03-18
-
-### Fixed
-
-- Prevent `FunctionClauseError` when closing the dashboard before it has
-  finished mounting.
-
-## v1.3.0 — 2020-03-10
-
-### Changed
-
-- Upgrade to LiveView `~> 0.9` along with the requisite changes to `flash`
-  handling. Note, this requires pipelines in the host app to use
-  `fetch_live_flash` instead of `fetch_flash`.
-
-## v1.2.0 — 2020-02-07
-
-### Fixes
-
-- Prevent flash map key issue on initial mount. The lack of a `show` key on the
-  empty flash map caused runtime errors.
-
-- Prevent losing stats cache on restart by shifting table ownership into the
-  supervisor.
-
-### Changed
-
-- Clear `completed_at` and `discarded_at` timestamps when descheduling jobs.
-
-- Upgrade to LiveView `~> 0.7`.
-
-### Added
-
-- Display job `priority` value in the table and detail views.
-
-- Display job `tags` in the detail view.
-
-## v1.1.2 — 2020-02-07
-
-### Fixes
-
-- Correct syntax used for descheduling and discarding jobs
-
-- Set the `discarded_at` timestamp when discarding jobs
-
-## v1.1.1 — 2020-02-06
-
-### Fixes
-
-- Fix job detail refreshing on `tick` events
-
-## v1.1.0 — 2020-02-06
-
-### Changes
-
-- Add `verbose` setting to control log levels. This command mirrors the behavior
-  in Oban and is respected by all queries.
-
-- Deprecate `stats` configuration. The stats module is entirely overhauled so
-  that it only refreshes when one or more users are connected. That prevents it
-  from using any connections or performing any queries while testing, which
-  renders the `stats` option pointless.
-
-- Add `stats_interval` to control how often node and queue counts are refreshed.
-  The default value is every 1s.
-
-- Add `tick_interval` to control how often the jobs table and job details are
-  refreshed. The default value is every 500ms.
-
-## v1.0.1 — 2020-01-29
-
-### Fixes
-
-- Display `discarded_at` time in detail timeline view.
-- Prevent jitter when clearing stats cache.
-
-## v1.0.0 — 2020-01-29
-
-### Changed
-
-- Upgrade Oban and set dependency to `~> 1.0.0`
-- Update stats and the queries that power stats to rely on more frequent
-  refreshes and fewer database calls. The average refresh time dropped from
-  `~310ms` to `~180ms`.
-
-## v0.8.0 — 2020-01-23
-
-### Changed
-
-- Upgrade to LiveView `~> 0.5` and test with `0.6`.
-
-## v0.7.0 — 2020-01-08
-
-### Added
-
-- Add detail modal for inspecting job arguments, errors and state timings.
-
-## v0.6.3 — 2019-12-15
-
-### Changed
-
-- Display duration or distance in words depending on job state. This clarifies
-  timestamp information. Relative timestamps have an formatted absolute value as
-  the "title" attribute as well.
-
-- Improved ordering for various job states. Many states were reversed, making
-  the table view seem broken.
-
-### Fixes
-
-- Ensure all assigns are available on render when a disconnected node
-  reconnects. This fixes an issue when viewing the UI in development.
-
-## v0.6.2 — 2019-12-05
-
-### Changed
-
-- Add support for explicitly disabling stats rather than inferring based on
-  queue configuration. This prevents issues in production environments where
-  certain nodes (i.e. web) aren't processing any queues, but the the UI is
-  accessed.
-
-  ObanWeb configuration now differs from Oban configuration and you'll need to
-  specify it separately. Specify the `repo` in `config.exs`:
-
-  ```elixir
-  config :my_app, ObanWeb, repo: MyApp.Repo
-  ```
-
-  Disable the stats tracker in the test environment:
-
-  ```elixir
-  config :my_app, ObanWeb, stats: false
-  ```
-
-## v0.6.1 — 2019-11-22
-
-### Fixes
-
-- Ignore the stats server when queues is empty.
