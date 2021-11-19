@@ -46,6 +46,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           class={"block #{pause_color(@gossip)} hover:text-blue-500"}
           disabled={not can?(:pause_queues, @access)}
           data-title={pause_title(@gossip)}
+          id={"#{@queue}-toggle-pause"}
           type="button"
           phx-click="toggle-pause"
           phx-target={@myself}
