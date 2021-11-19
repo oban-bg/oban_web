@@ -74,7 +74,7 @@ defmodule Oban.Web.LayoutComponent do
     ~H"""
     <button
       id="dark-toggle"
-      class="ml-3 p-2 relative text-blue-800 dark:text-gray-50 bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25 rounded-full focus:outline-none hover:text-blue-600 dark:hover:text-gray-300"
+      class="ml-3 p-2 relative text-blue-800 dark:text-gray-50 bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25 rounded-full focus:outline-none hover:text-blue-600 dark:hover:text-gray-300 hidden md:block"
       data-title="Toggle dark mode"
       phx-hook="ToggleDarkMode">
       <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>

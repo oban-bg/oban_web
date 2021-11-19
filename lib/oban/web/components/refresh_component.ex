@@ -11,7 +11,7 @@ defmodule Oban.Web.RefreshComponent do
     <div id="refresh" class="flex items-center ml-auto" phx-hook="ToggleRefresh">
       <label
         id="listbox-label"
-        class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+        class="text-sm font-medium text-gray-700 dark:text-gray-300 hidden md:block"
         data-title="Change background refresh rate"
         phx-hook="Tippy">
         Refresh
