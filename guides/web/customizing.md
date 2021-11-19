@@ -17,6 +17,16 @@ defmodule MyApp.Resolver do
 
   @impl true
   def resolve_refresh(_user), do: 1
+
+  @impl true
+  def format_job_args(%Job{args: args}) do
+    inspect(args, charlists: :as_lists, pretty: true)
+  end
+
+  @impl true
+  def format_job_meta(%Job{meta: meta}) do
+    inspect(meta, charlists: :as_lists, pretty: true)
+  end
 end
 ```
 
@@ -25,6 +35,31 @@ Jump to details for each of the callbacks:
 * [resolve_user/1](#current-user)
 * [resolve_access/1](#action-controls)
 * [resolve_refresh/1](#default-refresh)
+* [format_job_args/1](#formatting-args)
+* [format_meta_args/1](#formatting-meta)
+
+### Typespecs
+
+_📚 In order to bridge the gap between module level docs and a guide, here are
+the types and callbacks for the Resolver module._
+
+```elixir
+@type user :: nil | map()
+@type access :: :all | :read_only | [access_option()]
+@type access_option ::
+        {:pause_queues, boolean()}
+        | {:scale_queues, boolean()}
+        | {:cancel_jobs, boolean()}
+        | {:delete_jobs, boolean()}
+        | {:retry_jobs, boolean()}
+@type refresh :: 1 | 2 | 5 | 15 | -1
+
+@callback format_job_args(Job.t()) :: String.t()
+@callback format_job_meta(Job.t()) :: String.t()
+@callback resolve_user(Plug.Conn.t()) :: user()
+@callback resolve_access(user()) :: access()
+@callback resolve_refresh(user()) :: refresh()
+```
 
 ## Current User
 
@@ -119,3 +154,39 @@ Possible values are: `1`, `2`, `5`, `15` or `-1` to disable refreshing.
 
 Note that this only sets the default. Users may still choose a different refresh
 for themselves while viewing the dashboard.
+
+## Formatting Args
+
+By default, all `args` are displayed in full in the table and detail views. If
+you desire more control, i.e. for for privacy or brevity, there is the
+`format_job_args/1` callback.
+
+For example, to redact the `"email"` for only the `SecretJob` worker:
+
+```elixir
+@impl true
+def format_job_args(%Oban.Job{worker: "MyApp.SecretJob", args: args}) do
+  args
+  |> Map.replace("email", "REDACTED")
+  |> inspect(pretty: true)
+end
+
+def format_job_args(job), do: Oban.Web.Resolver.format_job_args(job)
+```
+
+## Formatting Meta
+
+Similarly to `args`, you can format `meta` using the `format_job_meta/1`
+callback. Here we're using the callback to mask the `batch_id` for some secret
+batch jobs:
+
+```elixir
+@impl Oban.Web.Resolver
+def format_job_meta(%Oban.Job{meta: %{"batch_id" => _batch} = meta}) do
+  meta
+  |> Map.replace("batch_id", "SECRET BATCHES")
+  |> inspect(pretty: true)
+end
+
+def format_job_meta(job), do: Oban.Web.Resolver.format_job_meta(job)
+```
