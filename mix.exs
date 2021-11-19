@@ -60,9 +60,21 @@ defmodule Oban.Web.MixProject do
 
   defp aliases do
     [
+      release: [
+        "cmd git tag v#{@version}",
+        "cmd git push",
+        "cmd git push --tags",
+        "hex.publish package --yes",
+        "hex.build"
+      ],
       "test.reset": ["ecto.drop -r Oban.Web.Repo", "test.setup"],
       "test.setup": ["ecto.create -r Oban.Web.Repo --quiet", "ecto.migrate -r Oban.Web.Repo"],
-      "test.ci": ["format --check-formatted", "credo --strict", "test --raise"]
+      "test.ci": [
+        "format --check-formatted",
+        "deps.unlock --check-unused",
+        "credo --strict",
+        "test --raise"
+      ]
     ]
   end
 end
