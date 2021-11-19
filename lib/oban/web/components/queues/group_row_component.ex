@@ -91,9 +91,9 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
   defp pause_title(gossip) do
     cond do
-      Enum.all?(gossip, & &1["paused"]) -> "Resume all queues"
-      Enum.any?(gossip, & &1["paused"]) -> "Resume paused queues"
-      true -> "Pause all queues"
+      Enum.all?(gossip, & &1["paused"]) -> "Resume all instances"
+      Enum.any?(gossip, & &1["paused"]) -> "Resume paused instances"
+      true -> "Pause all instances"
     end
   end
 
