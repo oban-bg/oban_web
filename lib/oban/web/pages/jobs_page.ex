@@ -94,7 +94,7 @@ defmodule Oban.Web.JobsPage do
   def handle_params(%{"id" => job_id}, _uri, socket) do
     case refresh_job(socket.assigns.conf, job_id) do
       nil ->
-        {:noreply, socket}
+        {:noreply, patch_to_jobs(socket)}
 
       job ->
         {:noreply, assign(socket, detailed: job, page_title: page_title(job))}
@@ -102,23 +102,12 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_params(params, _uri, socket) do
-    normalize = fn
-      {"limit", limit} -> {:limit, String.to_integer(limit)}
-      {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
-      {"queues", queues} -> {:queues, String.split(queues, ",")}
-      {key, val} -> {String.to_existing_atom(key), val}
-    end
-
-    params =
-      params
-      |> Map.take(["limit", "nodes", "queues", "sort_by", "sort_dir", "state", "terms"])
-      |> Map.new(normalize)
-      |> without_defaults(socket.assigns.default_params)
+    params = params_with_defaults(params, socket)
 
     socket =
       socket
       |> assign(detailed: nil, page_title: page_title("Jobs"))
-      |> assign(params: Map.merge(socket.assigns.default_params, params))
+      |> assign(params: params)
       |> assign(jobs: Query.all_jobs(socket.assigns.conf, params))
 
     {:noreply, socket}
@@ -172,7 +161,7 @@ defmodule Oban.Web.JobsPage do
       Query.delete_jobs(socket.assigns.conf, [job.id])
     end)
 
-    {:noreply, assign(socket, detailed: nil)}
+    {:noreply, patch_to_jobs(socket)}
   end
 
   def handle_info({:retry_job, job}, socket) do
@@ -262,6 +251,26 @@ defmodule Oban.Web.JobsPage do
     jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
 
     assign(socket, jobs: jobs, selected: MapSet.new())
+  end
+
+  defp params_with_defaults(params, socket) do
+    normalize = fn
+      {"limit", limit} -> {:limit, String.to_integer(limit)}
+      {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
+      {"queues", queues} -> {:queues, String.split(queues, ",")}
+      {key, val} -> {String.to_existing_atom(key), val}
+    end
+
+    params =
+      params
+      |> Map.take(["limit", "nodes", "queues", "sort_by", "sort_dir", "state", "terms"])
+      |> Map.new(normalize)
+
+    Map.merge(socket.assigns.default_params, params)
+  end
+
+  defp patch_to_jobs(socket) do
+    push_patch(socket, to: oban_path(socket, :jobs), replace: true)
   end
 
   defp refresh_job(conf, job_or_jid) do
