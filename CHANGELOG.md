@@ -2,6 +2,21 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.8.1 — 2021-11-24
+
+### Fixed
+
+- Ensure all required params are available when navigating job pages.
+
+  When a job was deleted, either manually or automatically, the params weren't
+  initialized properly. By consistently routing back to the base jobs page we
+  ensure that all keys are available.
+
+- Clean up tooltip warnings caused by missing ids.
+
+  Some elements declared a phx-hook without providing an id. That caused
+  console errors and prevented unmounting in-use tooltips.
+
 ## v2.8.0 — 2021-11-19
 
 ### 📋 New Queues Table, Details, and Runtime Configuration
@@ -51,41 +66,41 @@ See the [Customizing the Dashboard](web_customizing.html) guide for more.
 
 #### Dependencies
 
-  - Upgrade the minimum Phoenix Live View dependency to `0.17.4` in order to get
-    components working properly.
+- Upgrade the minimum Phoenix Live View dependency to `0.17.4` in order to get
+  components working properly.
 
-  - Upgrade the minimum Elixir version to `1.12` due to the required use of HEEX
-    templates in the latest Live View.
+- Upgrade the minimum Elixir version to `1.12` due to the required use of HEEX
+  templates in the latest Live View.
 
 #### Jobs Page
 
-  - Sort jobs by worker, queue, attempt, or time in either ascending or
-    descending order. The default is by time ascending.
+- Sort jobs by worker, queue, attempt, or time in either ascending or
+  descending order. The default is by time ascending.
 
-  - Filter jobs by multiple nodes or queues at once. Within nodes or queues
-    filtering acts like an "OR", while between them it is an "AND".
+- Filter jobs by multiple nodes or queues at once. Within nodes or queues
+  filtering acts like an "OR", while between them it is an "AND".
 
 #### Performance
 
-  - Pause refreshing when Web loses window visiblity and restore it when the
-    window becomes visible again. This prevents runaway database queries when
-    the tab is left open unattended. Additionally, there is a new 1 minute
-    refresh option for even less frequent polling.
+- Pause refreshing when Web loses window visiblity and restore it when the
+  window becomes visible again. This prevents runaway database queries when
+  the tab is left open unattended. Additionally, there is a new 1 minute
+  refresh option for even less frequent polling.
 
-  - Perform stats counts less frequently for large states to minimize database
-    load. This trades realtime fidelity for performance by backing off of counts
-    that can't be accelerated by an index. State counts are displayed as
-    suffixed estimates, e.g. `41k` or `43.1k` to compensate.
+- Perform stats counts less frequently for large states to minimize database
+  load. This trades realtime fidelity for performance by backing off of counts
+  that can't be accelerated by an index. State counts are displayed as
+  suffixed estimates, e.g. `41k` or `43.1k` to compensate.
 
-  - Fetch only fields that may change when refreshing the jobs table or details
-    view.
+- Fetch only fields that may change when refreshing the jobs table or details
+  view.
 
-  - Use the built-in `cancel_all`/`retry_all` from Oban to accelerate bulk
-    operations.
+- Use the built-in `cancel_all`/`retry_all` from Oban to accelerate bulk
+  operations.
 
 #### Formatter
 
-  - Export `locals_without_parens` for `oban_dashboard/1,2` in `.formatter.exs`
+- Export `locals_without_parens` for `oban_dashboard/1,2` in `.formatter.exs`
 
 ## v2.7.4 — 2021-09-27
 
