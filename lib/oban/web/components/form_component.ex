@@ -68,6 +68,7 @@ defmodule Oban.Web.Components.FormComponent do
       rel="toggle-pause"
       class={"block hover:text-blue-500 #{if @paused, do: "text-red-500", else: "text-gray-500"}"}
       disabled={@disabled}
+      id={"play-pause-#{@myself}"}
       data-title={if @paused, do: "Resume queue", else: "Pause queue"}
       type="button"
       phx-click={@click}

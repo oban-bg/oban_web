@@ -13,6 +13,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         <button rel="expand"
           class="block hover:text-blue-500 focus:outline-none focus:text-blue-500"
           data-title={"Expand #{@queue} to view instances"}
+          id={"expand-#{@queue}"}
           type="button"
           phx-click="toggle_queue"
           phx-target={@myself}
@@ -26,10 +27,9 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
         <%= live_patch @queue,
             to: oban_path(@socket, :queues, %{id: @queue}),
-            rel: "name",
+            "aria-label": "View and configure #{@queue} details",
             class: "block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500",
-            "phx-hook": "Tippy",
-            "data-title": "Configure the #{@queue} queue" %>
+            rel: "name" %>
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= nodes_count(@gossip) %></td>

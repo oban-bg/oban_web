@@ -36,7 +36,7 @@ defmodule Oban.Web.Jobs.RowComponent do
       </td>
 
       <td class="py-3 truncate max-w-0">
-        <%= live_patch to: oban_path(@socket, :jobs, @job), class: "flex-auto max-w-xl overflow-hidden group", title: "View job details" do %>
+        <%= live_patch to: oban_path(@socket, :jobs, @job), class: "flex-auto max-w-xl overflow-hidden group", "aria-label": "View job #{@job.id} details" do %>
           <span rel="jid" class="text-sm text-gray-600 dark:text-gray-300 group-hover:text-blue-500 group-focus:outline-none group-focus:text-blue-500"><%= @job.id %></span>
           <span rel="worker" class="font-semibold text-sm text-gray-800 dark:text-gray-200 group-hover:text-blue-500 group-focus:outline-none group-focus:text-blue-500 ml-1"><%= @job.worker %></span>
           <span rel="args" class="block font-mono truncate text-xs text-gray-600 dark:text-gray-300 dark:group-hover:text-gray-300 mt-2">
