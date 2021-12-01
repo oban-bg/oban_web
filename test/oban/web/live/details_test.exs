@@ -16,7 +16,7 @@ defmodule Oban.Web.Live.DetailsTest do
   test "viewing job details", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
-    open_available(live)
+    open_state(live, "available")
     open_details(live, job)
 
     assert page_title(live) =~ "WorkerA (#{job.id})"
@@ -25,7 +25,7 @@ defmodule Oban.Web.Live.DetailsTest do
   test "viewing details for a job that was deleted falls back", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
-    open_available(live)
+    open_state(live, "available")
 
     Repo.delete!(job)
 
@@ -37,17 +37,36 @@ defmodule Oban.Web.Live.DetailsTest do
   test "cancelling a job from the detail view", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
-    open_available(live)
+    open_state(live, "available")
     open_details(live, job)
 
     assert has_element?(live, "#job-details")
 
     click_cancel(live)
+
+    with_backoff(fn ->
+      assert %{state: "cancelled"} = Repo.reload!(job)
+    end)
   end
 
-  defp open_available(live) do
+  test "immediately running a job from the detail view", %{live: live} do
+    job = insert_job!([ref: 1], state: "scheduled", worker: WorkerA)
+
+    open_state(live, "scheduled")
+    open_details(live, job)
+
+    assert has_element?(live, "#job-details")
+
+    click_run_now(live)
+
+    with_backoff(fn ->
+      assert %{state: "available"} = Repo.reload!(job)
+    end)
+  end
+
+  defp open_state(live, state) do
     live
-    |> element("#sidebar #states #state-available")
+    |> element("#sidebar #states #state-#{state}")
     |> render_click()
   end
 
@@ -60,6 +79,12 @@ defmodule Oban.Web.Live.DetailsTest do
   defp click_cancel(live) do
     live
     |> element("#detail-cancel")
+    |> render_click()
+  end
+
+  defp click_run_now(live) do
+    live
+    |> element("#detail-retry")
     |> render_click()
   end
 end
