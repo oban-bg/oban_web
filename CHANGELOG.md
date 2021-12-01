@@ -2,6 +2,21 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.8.2 — 2021-12-01
+
+### Fixed
+
+- Restore previous "Run Now" functionality for scheduled jobs. Oban's built-in
+  function ignores the `scheduled` state, which prevented the intended
+  functionality.
+
+- Use whitespace and wrapping when displaying args and meta on the job details
+  page. Overflowing was restrictive, and often broken. The new styling matches
+  that of error reporting services.
+
+- Indicate that jobs are complete, rather than just attempted in the details
+  timeline.
+
 ## v2.8.1 — 2021-11-24
 
 ### Fixed
