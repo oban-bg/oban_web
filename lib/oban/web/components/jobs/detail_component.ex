@@ -117,7 +117,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= for %{"at" => at, "attempt" => attempt, "error" => error} <- Enum.reverse(@job.errors) do %>
             <div class="mb-6">
               <h4 class="text-sm mb-2">Attempt <%= attempt %> (<%= iso8601_to_words(at) %>)</h4>
-              <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 overflow-x-scroll"><%= error %></pre>
+              <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= error %></pre>
             </div>
           <% end %>
         <% else %>
