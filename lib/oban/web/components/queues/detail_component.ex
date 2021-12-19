@@ -460,6 +460,8 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Helpers
 
+  defp local_limit([]), do: 0
+
   defp local_limit(gossip) do
     gossip
     |> Enum.map(& &1["local_limit"])

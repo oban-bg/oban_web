@@ -32,6 +32,10 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     send(pid, {:action, meta})
   end
 
+  test "viewing details for an inoperative queue" do
+    {:error, {:live_redirect, %{to: "/oban/queues"}}} = live(build_conn(), "/oban/queues/omicron")
+  end
+
   test "scaling the local limit across all nodes" do
     gossip(local_limit: 5, queue: "alpha")
 

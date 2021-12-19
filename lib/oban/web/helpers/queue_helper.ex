@@ -8,6 +8,8 @@ defmodule Oban.Web.Helpers.QueueHelper do
   @doc """
   Find and format the oldest starting time in a collection of gossip messages.
   """
+  def started_at([]), do: "-"
+
   def started_at(gossip) do
     gossip
     |> List.wrap()

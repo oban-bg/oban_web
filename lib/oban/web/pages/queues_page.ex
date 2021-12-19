@@ -81,7 +81,11 @@ defmodule Oban.Web.QueuesPage do
   def handle_params(%{"id" => queue}, _uri, socket) do
     title = "#{String.capitalize(queue)} Queue"
 
-    {:noreply, assign(socket, detail: queue, page_title: page_title(title))}
+    if Enum.any?(socket.assigns.gossip, &(&1["queue"] == queue)) do
+      {:noreply, assign(socket, detail: queue, page_title: page_title(title))}
+    else
+      {:noreply, push_patch(socket, to: oban_path(socket, :queues), replace: true)}
+    end
   end
 
   def handle_params(params, _uri, socket) do
