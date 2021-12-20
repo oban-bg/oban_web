@@ -132,7 +132,7 @@ defmodule Oban.Web.JobsPage do
       |> Map.update!(:limit, &to_string(&1 + inc))
       |> without_defaults(socket.assigns.default_params)
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(:jobs, params), replace: true)}
   end
 
   def handle_info({:params, :terms, terms}, socket) do
@@ -141,7 +141,7 @@ defmodule Oban.Web.JobsPage do
       |> Map.put(:terms, terms)
       |> without_defaults(socket.assigns.default_params)
 
-    {:noreply, push_patch(socket, to: oban_path(socket, :jobs, params), replace: true)}
+    {:noreply, push_patch(socket, to: oban_path(:jobs, params), replace: true)}
   end
 
   # Single Actions
@@ -270,7 +270,7 @@ defmodule Oban.Web.JobsPage do
   end
 
   defp patch_to_jobs(socket) do
-    push_patch(socket, to: oban_path(socket, :jobs), replace: true)
+    push_patch(socket, to: oban_path(:jobs), replace: true)
   end
 
   defp refresh_job(conf, job_or_jid) do

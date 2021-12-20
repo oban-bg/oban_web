@@ -84,7 +84,7 @@ defmodule Oban.Web.QueuesPage do
     if Enum.any?(socket.assigns.gossip, &(&1["queue"] == queue)) do
       {:noreply, assign(socket, detail: queue, page_title: page_title(title))}
     else
-      {:noreply, push_patch(socket, to: oban_path(socket, :queues), replace: true)}
+      {:noreply, push_patch(socket, to: oban_path(:queues), replace: true)}
     end
   end
 

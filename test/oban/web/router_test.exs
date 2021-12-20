@@ -44,11 +44,11 @@ defmodule Oban.Web.RouterTest do
     end
 
     test "passing the transport through to the session" do
-      assert %{"transport" => "longpoll"} = options_to_session(transport: "longpoll")
+      assert %{"live_transport" => "longpoll"} = options_to_session(transport: "longpoll")
     end
 
     test "passing the live socket path through to the session" do
-      assert %{"socket_path" => "/alt"} = options_to_session(socket_path: "/alt")
+      assert %{"live_path" => "/alt"} = options_to_session(socket_path: "/alt")
     end
 
     test "passing csp nonce assign keys to the session" do

@@ -21,7 +21,6 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     refresh(live)
 
     assert has_element?(live, "#queues-header h3", "(2)")
-
     assert has_element?(live, "#queues-table tr", "alpha")
     assert has_element?(live, "#queues-table tr", "gamma")
   end

@@ -9,6 +9,12 @@ defmodule Oban.Web.Queues.DetailComponentTest do
 
   @queue "alpha"
 
+  setup do
+    Process.put(:routing, :nowhere)
+
+    :ok
+  end
+
   test "restricting actions based on access" do
     html = render_component(Component, assigns(access: :read_only), router: Router)
 

@@ -6,19 +6,35 @@ defmodule Oban.Web.Helpers do
 
   # Routing Helpers
 
-  def oban_path(socket, page) when is_atom(page) do
-    oban_path(socket, [socket, :index, page])
+  @doc """
+  Construct a path to a dashboard page with optional params.
+
+  Routing is based on a socket and path helper tuple stored in the process
+  dictionary. Proper routing can be disabled for testing by setting the value to
+  `:nowhere`.
+  """
+  def oban_path(args) when is_list(args) do
+    case Process.get(:routing) do
+      {socket, path_helper} ->
+        apply(socket.router.__helpers__(), path_helper, [socket | args])
+
+      :nowhere ->
+        "/"
+
+      nil ->
+        raise RuntimeError, "nothing stored in the :routing key"
+    end
   end
 
-  def oban_path(socket, args) when is_list(args) do
-    apply(socket.router.__helpers__(), :oban_dashboard_path, args)
+  def oban_path(page) when is_atom(page) do
+    oban_path([:index, page])
   end
 
-  def oban_path(socket, page, %{id: id}) do
-    oban_path(socket, [socket, :show, page, id])
+  def oban_path(page, %{id: id}) when is_atom(page) do
+    oban_path([:show, page, id])
   end
 
-  def oban_path(socket, page, params) do
+  def oban_path(page, params) when is_atom(page) and is_map(params) do
     params =
       params
       |> Enum.reject(fn {_, val} -> is_nil(val) end)
@@ -27,7 +43,7 @@ defmodule Oban.Web.Helpers do
         {key, val} -> {key, val}
       end)
 
-    oban_path(socket, [socket, :index, page, params])
+    oban_path([:index, page, params])
   end
 
   @doc """

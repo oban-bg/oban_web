@@ -1,7 +1,7 @@
 defmodule Oban.Web.LayoutComponent do
   use Phoenix.Component
 
-  import Oban.Web.Helpers, only: [oban_path: 2]
+  import Oban.Web.Helpers
 
   alias Phoenix.LiveView.JS
 
@@ -59,13 +59,11 @@ defmodule Oban.Web.LayoutComponent do
   def tabs(assigns) do
     ~H"""
     <nav class="ml-8 flex space-x-2">
-      <%= live_redirect "Jobs",
-          to: oban_path(assigns.socket, :jobs),
-          class: link_class(assigns.page, :jobs) %>
-
-      <%= live_redirect "Queues",
-          to: oban_path(assigns.socket, :queues),
-          class: link_class(assigns.page, :queues) %>
+      <%= for page <- [:jobs, :queues] do %>
+        <%= live_redirect String.capitalize(to_string(page)),
+            to: oban_path(page),
+            class: link_class(@page, page) %>
+      <% end %>
     </nav>
     """
   end

@@ -12,6 +12,12 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     def format_job_args(_job), do: "ARGS REDACTED"
   end
 
+  setup do
+    Process.put(:routing, :nowhere)
+
+    :ok
+  end
+
   test "restricting action buttons based on access" do
     job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "retryable"}
 

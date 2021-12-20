@@ -27,6 +27,11 @@ defmodule Oban.Web.Live.IsolationTest do
     assert html =~ "GammaWorker"
   end
 
+  test "routing to the configured path for a mount point" do
+    assert {:error, {:live_redirect, %{to: "/oban-private/queues"}}} =
+             live(build_conn(), "/oban-private/queues/omicron")
+  end
+
   defp click_state(live, state) do
     live
     |> element("#sidebar #states #state-#{state}")

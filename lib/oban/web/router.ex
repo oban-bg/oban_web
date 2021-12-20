@@ -59,7 +59,13 @@ defmodule Oban.Web.Router do
 
     session_name = Keyword.get(opts, :as, :oban_dashboard)
 
+    path_helper =
+      [session_name, :path]
+      |> Enum.join("_")
+      |> String.to_atom()
+
     session_args = [
+      path_helper,
       opts[:oban_name],
       opts[:resolver],
       opts[:socket_path],
@@ -76,19 +82,20 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, oban, resolver, socket_path, transport, csp_nonce_assign_key) do
+  def __session__(conn, path_helper, oban, resolver, live_path, live_transport, csp_key) do
     user = resolve_with_fallback(resolver, :resolve_user, [conn])
 
-    csp_keys = expand_csp_nonce_keys(csp_nonce_assign_key)
+    csp_keys = expand_csp_nonce_keys(csp_key)
 
     %{
+      "path_helper" => path_helper,
       "oban" => oban,
       "user" => user,
       "resolver" => resolver,
       "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
       "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user]),
-      "socket_path" => socket_path,
-      "transport" => transport,
+      "live_path" => live_path,
+      "live_transport" => live_transport,
       "csp_nonces" => %{
         img: conn.assigns[csp_keys[:img]],
         style: conn.assigns[csp_keys[:style]],

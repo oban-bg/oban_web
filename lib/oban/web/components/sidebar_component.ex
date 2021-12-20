@@ -71,7 +71,7 @@ defmodule Oban.Web.SidebarComponent do
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :nodes, @node.name, @params),
+        to: filter_link(@page, :nodes, @node.name, @params),
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
@@ -103,7 +103,7 @@ defmodule Oban.Web.SidebarComponent do
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :state, @state.name, params),
+        to: filter_link(@page, :state, @state.name, params),
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
@@ -122,7 +122,7 @@ defmodule Oban.Web.SidebarComponent do
 
     ~H"""
     <%= live_patch(
-        to: filter_link(@socket, @page, :queues, @queue.name, @params),
+        to: filter_link(@page, :queues, @queue.name, @params),
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
@@ -158,7 +158,7 @@ defmodule Oban.Web.SidebarComponent do
     """
   end
 
-  defp filter_link(socket, page, key, value, params) do
+  defp filter_link(page, key, value, params) do
     param_value = params[key]
 
     params =
@@ -176,7 +176,7 @@ defmodule Oban.Web.SidebarComponent do
           Map.put(params, key, value)
       end
 
-    oban_path(socket, page, params)
+    oban_path(page, params)
   end
 
   # Effects

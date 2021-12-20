@@ -1,12 +1,12 @@
 defmodule Oban.Web.SortComponent do
   use Phoenix.Component
 
-  import Oban.Web.Helpers, only: [oban_path: 3]
+  import Oban.Web.Helpers
 
   def link(assigns) do
     ~H"""
     <%= live_patch(
-      to: sort_link(@socket, @label, @page, @params),
+      to: sort_link(@label, @page, @params),
       rel: "sort",
       title: title(@label, @params.sort_by, @params.sort_dir),
       class: "flex justify-#{@justify}") do %>
@@ -25,13 +25,13 @@ defmodule Oban.Web.SortComponent do
     """
   end
 
-  defp sort_link(socket, label, page, %{sort_by: by, sort_dir: dir} = params) do
+  defp sort_link(label, page, %{sort_by: by, sort_dir: dir} = params) do
     params =
       params
       |> Map.put(:sort_by, String.replace(label, " ", "_"))
       |> Map.put(:sort_dir, new_dir(label, by, dir))
 
-    oban_path(socket, page, params)
+    oban_path(page, params)
   end
 
   defp title(label, by, dir), do: "Sort by #{label}, #{new_dir(label, by, dir)}"
