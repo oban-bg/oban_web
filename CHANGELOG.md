@@ -2,6 +2,20 @@
 
 All notable changes to `Oban.Web` are documented here.
 
+## v2.8.3 — 2021-12-19
+
+### Fixed
+
+- Restore custom route naming, e.g. mounting with `as: :my_oban_dashboard` or
+  mounting multiple dashboards in the same router.
+
+- Wrap lengthy error messages rather than attempting to scroll. This preserves
+  the detail view's layout and matches the display for `args` and `meta`.
+
+- Redirect back to the queues page when details for a particular queue aren't
+  available. This could happen when a tab was left open and a dynamic queue
+  stopped running.
+
 ## v2.8.2 — 2021-12-01
 
 ### Fixed
