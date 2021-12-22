@@ -110,7 +110,7 @@ scope "/" do
   pipe_through :browser
 
   oban_dashboard "/oban", oban_name: Oban, as: :oban_dashboard
-  oban_dashboard "/oban/admin", oban_name: MyAdmin.Oban, as: :oban_admin_dashboard
+  oban_dashboard "/admin/oban", oban_name: MyAdmin.Oban, as: :oban_admin_dashboard
 end
 ```
 
