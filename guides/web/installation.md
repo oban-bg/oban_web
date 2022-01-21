@@ -1,24 +1,30 @@
 # Installation
 
-_Before continuing, be sure you have Oban up and running in your app!_
-
-`Oban.Web` is built with [Phoenix Live View][plv] and it relies on a working
-installation of it in your application. If you don't have Live View
-installed, follow [these instructions][lvi] to get started.
-
 `Oban.Web` is delivered as a hex package named `oban_web`, which is published
 privately to our self-hosted package repository. The package is entirely self
 contained—it doesn't hook into your asset pipeline at all.
 
+## Prerequisites
+
+1. Ensure Oban is installed for your application. It's probably there already,
+   but just in case, follow [these instructions][oi] to get started.
+
+2. Ensure [Phoenix Live View][plv] is installed and working in your application.
+   If you don't have Live View, follow [these instructions][lvi] to get started.
+
+3. Ensure you're running Erlang/OTP v23.3.4.5, v24.0.4, or later. Older Erlang/OTP
+   versions have an expired CA root certificate that doesn't work with Let's
+   Encrypt certificates.
+
+4. Ensure you're running `hex` v1.0.0 or later, via `mix local.hex --force`
+
+## Authentication
+
 Before you can pull the package into your application you need to add a new
 `oban` hex repo. First, grab the `OBAN_KEY_FINGERPRINT` and `OBAN_LICENSE_KEY`
-from your account page. Then, ensure `hex` is up-to-date:
+from your account page.
 
-```console
-mix local.hex --force
-```
-
-Finally, run the following `mix hex.repo` command:
+Then, run the following `mix hex.repo` command:
 
 ```console
 mix hex.repo add oban https://getoban.pro/repo \
@@ -27,8 +33,10 @@ mix hex.repo add oban https://getoban.pro/repo \
 ```
 
 ⚠️ _You'll also need to authenticate on any other development machines, build
-servers and CI instances. There are also guides to help with authenticating on
-[Gigalixir][gi] and [Heroku][he]_.
+servers and CI instances. There are also guides to help with building [Docker
+Images][do], authenticating on [Gigalixir][gi], and on [Heroku][he]_.
+
+## Configuration
 
 Now that you're authenticated you're ready to add `oban_web` as a dependency for
 your application. Open `mix.exs` and add the following line:
@@ -84,7 +92,9 @@ restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 
-## Running Multiple Dashboards
+## Advanced Configuration
+
+### Running Multiple Dashboards
 
 Applications that run multiple Oban instances can mount a dashboard for each
 instance. Set the mounted dashboard's `:oban_name` to match the corresponding
@@ -117,7 +127,7 @@ end
 Note that the default name is `Oban`, setting `oban_name: Oban` in the example
 above was purely for demonstration purposes.
 
-## Customizing the Socket Connection
+### Customizing the Socket Connection
 
 Applications that use a live socket other than "/live" can override the default
 socket path in the router. For example, if your live socket is hosted at
@@ -152,7 +162,7 @@ scope "/" do
 end
 ```
 
-## Content Security Policy
+### Content Security Policy
 
 To secure the dashboard, or comply with an existing CSP within your application,
 you can specify nonce keys for images, scripts and styles.
@@ -181,7 +191,7 @@ oban_dashboard("/oban",
 
 Note that using the CSP is entirely optional.
 
-## Customizing with a Resolver Callback Module
+### Customizing with a Resolver Callback Module
 
 Implementing a `Oban.Web.Resolver` callback module allows you to customize the
 dashboard per-user, i.e. setting access controls or the default refresh rate.
@@ -209,7 +219,7 @@ end
 
 See [Customizing the Dashboard][cus] for details on the `Resolver` behaviour.
 
-## Integrating with Telemetry
+### Integrating with Telemetry
 
 Oban Web uses `Telemetry` to provide instrumentation and to power logging
 of dashboard activity. See the [Telemetry][tel] guide for a breakdown of emitted
@@ -227,5 +237,7 @@ If not, or if you need any help, stop by the #oban channel in [Elixir Slack][sla
 [tel]: web_telemetry.html
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html
+[oi]: installation.html
+[do]: pro_installation.html#building-docker-images
 [gi]: pro_installation.html#authorizing-on-gigalixir
 [he]: pro_installation.html#authorizing-on-heroku
