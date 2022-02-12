@@ -33,6 +33,7 @@ defmodule Oban.Web.Query do
   @refresh_fields [
     :attempt,
     :errors,
+    :meta,
     :state,
     :attempted_at,
     :cancelled_at,

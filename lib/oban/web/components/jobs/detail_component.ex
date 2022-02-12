@@ -67,9 +67,31 @@ defmodule Oban.Web.Jobs.DetailComponent do
       </div>
 
       <div class="bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25 border-b border-gray-200 dark:border-gray-700 px-3 py-6">
-        <div>
-          <span class="text-md text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
-          <span class="text-lg font-bold text-gray-900 dark:text-gray-200 ml-1"><%= @job.worker %></span>
+        <div class="flex justify-between">
+          <div>
+            <span class="text-md text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
+            <span class="text-lg font-bold text-gray-900 dark:text-gray-200 ml-1"><%= @job.worker %></span>
+          </div>
+
+          <div>
+            <%= if @job.meta["recorded"] do %>
+              <span id="is-recorded" data-title="Recording Enabled" phx-hook="Tippy">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </span>
+            <% end %>
+
+            <%= if @job.meta["encrypted"] do %>
+              <span id="is-encrypted" data-title="Encryption Enabled" phx-hook="Tippy">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+              </span>
+            <% end %>
+
+            <%= if @job.meta["structured"] do %>
+              <span id="is-structured" data-title="Structure Enabled" phx-hook="Tippy">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              </span>
+            <% end %>
+          </div>
         </div>
 
         <div class="text-sm flex justify-left pt-2 text-gray-900 dark:text-gray-200">
@@ -106,6 +128,16 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </h3>
         <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_meta(@job, @resolver) %></pre>
       </div>
+
+      <%= if recorded_job?(@job) do %>
+        <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+          <h3 class="flex font-semibold mb-3 space-x-2">
+            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>Recorded Output</span>
+          </h3>
+          <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job) %></pre>
+        </div>
+      <% end %>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <h3 class="flex font-semibold mb-3 space-x-2">
@@ -157,6 +189,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   # Helpers
 
+  defp recorded_job?(%{meta: meta}), do: meta["recorded"] == true
+
   defp format_args(job, resolver) do
     resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
 
@@ -167,5 +201,18 @@ defmodule Oban.Web.Jobs.DetailComponent do
     resolver = if function_exported?(resolver, :format_job_meta, 1), do: resolver, else: Resolver
 
     resolver.format_job_meta(job)
+  end
+
+  defp format_recorded(%{meta: meta}) do
+    case meta do
+      %{"recorded" => true, "return" => value} ->
+        value
+        |> Base.decode64!(padding: false)
+        |> :erlang.binary_to_term([:safe])
+        |> inspect(charlists: :as_lists, pretty: true)
+
+      _ ->
+        "No Recording Yet"
+    end
   end
 end
