@@ -59,7 +59,7 @@ defmodule Oban.Web.JobsPage do
   @impl Page
   def handle_mount(socket) do
     default = fn ->
-      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing", terms: nil}
+      %{limit: 20, sort_by: "time", sort_dir: "desc", state: "executing", terms: nil}
     end
 
     socket

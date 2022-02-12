@@ -101,6 +101,13 @@ defmodule Oban.Web.SidebarComponent do
         assigns.params
       end
 
+    params =
+      if assigns.state.name in ["executing", "cancelled", "completed", "discarded"] do
+        Map.put(params, :sort_dir, "desc")
+      else
+        Map.put(params, :sort_dir, "asc")
+      end
+
     ~H"""
     <%= live_patch(
         to: filter_link(@page, :state, @state.name, params),

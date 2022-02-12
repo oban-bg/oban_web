@@ -3,7 +3,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Pro.Notifiers.PG
+  alias Oban.Notifiers.PG
   alias Oban.Pro.Queue.SmartEngine
   alias Oban.Web.Plugins.Stats
 
