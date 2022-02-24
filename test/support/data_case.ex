@@ -41,6 +41,8 @@ defmodule Oban.Web.DataCase do
     pid
   end
 
+  # Factory Helpers
+
   def build_gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
@@ -85,6 +87,8 @@ defmodule Oban.Web.DataCase do
     |> Repo.insert!()
   end
 
+  # Timing Helpers
+
   def with_backoff(opts \\ [], fun) do
     total = Keyword.get(opts, :total, 100)
     sleep = Keyword.get(opts, :sleep, 10)
@@ -103,6 +107,25 @@ defmodule Oban.Web.DataCase do
       else
         reraise(exception, __STACKTRACE__)
       end
+  end
+
+  # Floki Helpers
+
+  def has_fragment?(html, selector) do
+    fragment =
+      html
+      |> Floki.parse_fragment!()
+      |> Floki.find(selector)
+
+    fragment != []
+  end
+
+  def has_fragment?(html, selector, text) do
+    to_string(text) ==
+      html
+      |> Floki.parse_fragment!()
+      |> Floki.find(selector)
+      |> Floki.text()
   end
 
   setup tags do

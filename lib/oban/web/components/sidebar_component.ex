@@ -139,27 +139,27 @@ defmodule Oban.Web.SidebarComponent do
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
         <div class="flex items-center text-right">
           <%= if @queue.paused? do %>
-            <span title="Paused">
+            <span title="Paused" rel="is-paused">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </span>
           <% end %>
 
           <%= if @queue.rate_limited? do %>
-            <span title="Rate Limited">
+            <span title="Rate Limited" rel="is-rate-limited">
               <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
             </span>
           <% end %>
 
           <%= if @queue.global? do %>
-            <span title="Global">
+            <span title="Global" rel="is-global">
               <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
             </span>
           <% end %>
 
-          <div class="text-sm w-10 tabular"><%= integer_to_estimate(@queue.limit) %></div>
+          <div class="text-sm w-10 tabular" rel="limit"><%= integer_to_estimate(@queue.limit) %></div>
         </div>
-        <div class="text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.execu) %></div>
-        <div class="text-sm text-right w-10 tabular"><%= integer_to_estimate(@queue.avail) %></div>
+        <div class="text-sm text-right w-10 tabular" rel="executing"><%= integer_to_estimate(@queue.execu) %></div>
+        <div class="text-sm text-right w-10 tabular" rel="available"><%= integer_to_estimate(@queue.avail) %></div>
       </div>
     <% end %>
     """
@@ -229,9 +229,13 @@ defmodule Oban.Web.SidebarComponent do
 
     total_limits =
       Enum.reduce(gossip, %{}, fn payload, acc ->
-        limit = payload_limit(payload)
+        case payload_limit(payload) do
+          {:global, limit} ->
+            Map.put(acc, payload["queue"], limit)
 
-        Map.update(acc, payload["queue"], limit, &(&1 + limit))
+          {:local, limit} ->
+            Map.update(acc, payload["queue"], limit, &(&1 + limit))
+        end
       end)
 
     pause_states =
@@ -256,10 +260,10 @@ defmodule Oban.Web.SidebarComponent do
     end)
   end
 
-  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: limit
-  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: limit
-  defp payload_limit(%{"limit" => limit}), do: limit
-  defp payload_limit(_payload), do: 0
+  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: {:global, limit}
+  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: {:local, limit}
+  defp payload_limit(%{"limit" => limit}) when is_integer(limit), do: {:local, limit}
+  defp payload_limit(_payload), do: {:local, 0}
 
   defp sanitize_name(name) do
     name

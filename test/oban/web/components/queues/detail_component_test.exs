@@ -75,13 +75,4 @@ defmodule Oban.Web.Queues.DetailComponentTest do
       "scheduled" => 0
     }
   end
-
-  defp has_fragment?(html, selector) do
-    fragment =
-      html
-      |> Floki.parse_fragment!()
-      |> Floki.find(selector)
-
-    fragment != []
-  end
 end
