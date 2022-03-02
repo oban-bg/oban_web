@@ -1,7 +1,5 @@
 defmodule Oban.Web.Timing do
-  @moduledoc """
-  Utilitiy functions for formatting and converting times.
-  """
+  @moduledoc false
 
   @empty_time "-"
 

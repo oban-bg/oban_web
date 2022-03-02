@@ -1,7 +1,5 @@
 defmodule Oban.Web.Search do
-  @moduledoc """
-  Search parsing and query construction.
-  """
+  @moduledoc false
 
   import Ecto.Query, only: [dynamic: 2, where: 2]
 

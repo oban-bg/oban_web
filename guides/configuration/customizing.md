@@ -1,4 +1,4 @@
-# Customizing the Dashboard
+# Customizing Dashboards
 
 Dashboard customization is done through a callback module that implements the
 `Oban.Web.Resolver` behaviour. Each of the callback functions are optional and

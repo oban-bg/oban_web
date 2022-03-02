@@ -1,7 +1,5 @@
 defmodule Oban.Web.Components.FormComponent do
-  @moduledoc """
-  Shared form components.
-  """
+  @moduledoc false
 
   use Phoenix.Component
 

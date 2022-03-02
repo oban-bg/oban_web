@@ -1,7 +1,5 @@
 defmodule Oban.Web.Page do
-  @moduledoc """
-  Base behaviour for "page" components.
-  """
+  @moduledoc false
 
   alias Phoenix.LiveView.Socket
 

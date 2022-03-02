@@ -1,7 +1,5 @@
 defmodule Oban.Web.Router do
-  @moduledoc """
-  Provides routing for Oban.Web dashboards.
-  """
+  @moduledoc false
 
   alias Oban.Web.Resolver
 

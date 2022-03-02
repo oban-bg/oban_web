@@ -1,7 +1,5 @@
 defmodule Oban.Web.Resolver do
-  @moduledoc """
-  A behavior and default implementation for dashboard value resolution.
-  """
+  @moduledoc false
 
   alias Oban.Job
 

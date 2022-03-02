@@ -1,4 +1,6 @@
 defmodule Oban.Web.SortComponent do
+  @moduledoc false
+
   use Phoenix.Component
 
   import Oban.Web.Helpers

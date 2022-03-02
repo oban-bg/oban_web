@@ -1,4 +1,6 @@
 defmodule Oban.Web.Jobs.TimelineComponent do
+  @moduledoc false
+
   use Phoenix.Component
 
   alias Oban.Web.Timing

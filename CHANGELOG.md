@@ -2,7 +2,7 @@
 
 All notable changes to `Oban.Web` are documented here.
 
-## 📷📋🔐 Encrypted, Structured, and Recorded Support
+## Encrypted, Structured, and Recorded Support
 
 Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,

@@ -1,7 +1,5 @@
 defmodule Oban.Web.Plugins.Stats do
-  @moduledoc """
-  Cache for tracking gossip and queue counts for display.
-  """
+  @moduledoc false
 
   use GenServer
 

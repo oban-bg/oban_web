@@ -1,7 +1,5 @@
 defmodule Oban.Web.Helpers.QueueHelper do
-  @moduledoc """
-  Helpers for queue formatting and operations.
-  """
+  @moduledoc false
 
   alias Oban.Web.Timing
 
