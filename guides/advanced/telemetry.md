@@ -1,7 +1,8 @@
 # Telemetry
 
-Oban Web emits telemetry events for instrumentation, logging, error reporting
-and activity auditing.
+Oban Web uses `Telemetry` to provide instrumentation and to power logging
+of dashboard activity. See the [Telemetry][tel] guide for a breakdown of emitted
+events and how to use the default logger.
 
 ## Action Events
 

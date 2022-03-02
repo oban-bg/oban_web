@@ -12,9 +12,10 @@ defmodule Oban.Web.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      docs: docs(),
       aliases: aliases(),
       package: package(),
-      name: "ObanWeb",
+      name: "Oban Web",
       description: "Oban Web Component",
       preferred_cli_env: [
         "test.ci": :test,
@@ -50,9 +51,10 @@ defmodule Oban.Web.MixProject do
       {:phoenix_html, "~> 3.1"},
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_live_view, "~> 0.17.4"},
-      {:esbuild, "~> 0.3", runtime: false, only: [:dev]},
-      {:oban_pro, "~> 0.9", repo: :oban, only: [:test, :dev]},
+      {:esbuild, "~> 0.3", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.21", only: [:dev], runtime: false},
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
+      {:oban_pro, "~> 0.9", repo: :oban, only: [:test, :dev]},
       {:floki, "~> 0.26", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
     ]
@@ -75,6 +77,48 @@ defmodule Oban.Web.MixProject do
         "credo --strict",
         "test --raise"
       ]
+    ]
+  end
+
+  defp docs do
+    [
+      main: "overview",
+      source_ref: "v#{@version}",
+      formatters: ["html"],
+      api_reference: false,
+      extra_section: "GUIDES",
+      extras: extras(),
+      groups_for_extras: groups_for_extras(),
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
+      before_closing_body_tag: fn _ ->
+        """
+        <script>document.querySelector('footer.footer p').remove()</script>
+        """
+      end
+    ]
+  end
+
+  defp extras do
+    [
+      "guides/introduction/overview.md",
+      "guides/introduction/installation.md",
+
+      "guides/configuration/mounting.md",
+      "guides/configuration/customizing.md",
+
+      "guides/advanced/searching.md",
+      "guides/advanced/telemetry.md",
+
+      "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
+    ]
+  end
+
+  defp groups_for_extras do
+    [
+      Introduction: ~r/guides\/introduction\/.?/,
+      Configuration: ~r/guides\/configuration\/.?/,
+      Advanced: ~r/guides\/advanced\/.?/,
+      Deployment: ~r/guides\/deployment\/.?/
     ]
   end
 end
