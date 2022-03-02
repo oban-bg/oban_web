@@ -89,6 +89,7 @@ defmodule Oban.Web.MixProject do
       extra_section: "GUIDES",
       extras: extras(),
       groups_for_extras: groups_for_extras(),
+      homepage_url: "/",
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       before_closing_body_tag: fn _ ->
         """
@@ -100,16 +101,13 @@ defmodule Oban.Web.MixProject do
 
   defp extras do
     [
-      "guides/introduction/overview.md",
       "guides/introduction/installation.md",
-
       "guides/configuration/mounting.md",
       "guides/configuration/customizing.md",
-
       "guides/advanced/searching.md",
       "guides/advanced/telemetry.md",
-
-      "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
+      "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
+      "guides/introduction/overview.md": [title: "Overview"]
     ]
   end
 
