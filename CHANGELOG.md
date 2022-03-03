@@ -8,6 +8,13 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.1 — 2022-03-03
+
+### Bug Fixes
+
+- [Jobs Page] Display correct global count in the sidebar. Now, global queues
+  will show a single global value rather than global * nodes.
+
 ## v2.9.0 — 2022-02-13
 
 ### Enhancements
