@@ -30,7 +30,7 @@ with a couple of clicks.
 
 ## Advanced Usage
 
-[**Powerful Search**](search.html) — Intelligently search through job arguments
+[**Powerful Search**](searching.html) — Intelligently search through job arguments
 instantly, with support for partial matches and auto-correction.
 
 [**Access Control**](customizing.html)—Allow admins to control queues and
