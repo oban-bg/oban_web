@@ -32,9 +32,11 @@ mix hex.repo add oban https://getoban.pro/repo \
   --auth-key $OBAN_LICENSE_KEY
 ```
 
-⚠️ _You'll also need to authenticate on any other development machines, build
-servers and CI instances. There are also guides to help with building [Docker
-Images][do], authenticating on [Gigalixir][gi], and on [Heroku][he]_.
+#### Authenticating Other Systems
+
+You'll also need to authenticate on any other development machines, build
+servers and CI/CD instances. There are also guides to help with building
+[Docker Images][di], authenticating on [Gigalixir][gi] and [Heroku][he].
 
 ## Configuration
 
@@ -101,6 +103,6 @@ If you need any help, stop by the #oban channel in [Elixir Slack][sla].
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html
 [oi]: installation.html
-[do]: pro_installation.html#building-docker-images
-[gi]: pro_installation.html#authorizing-on-gigalixir
-[he]: pro_installation.html#authorizing-on-heroku
+[do]: https://getoban.pro/docs/pro/docker.html
+[gi]: https://getoban.pro/docs/pro/gigalixir.html
+[he]: https://getoban.pro/docs/pro/heroku.html
