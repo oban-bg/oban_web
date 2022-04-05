@@ -36,8 +36,30 @@ defmodule Oban.Web.Timing do
     Enum.map_join(parts, ":", &pad/1)
   end
 
-  def to_duration(ellapsed, _time_unit) do
-    milliseconds = Integer.mod(ellapsed, 1000)
+  @doc """
+  Format elapsed seconds with trailing milliseconds.
+
+      iex> Oban.Web.Timing.to_duration(0, :millisecond)
+      "00:00.000"
+
+      iex> Oban.Web.Timing.to_duration(5, :millisecond)
+      "00:00.005"
+
+      iex> Oban.Web.Timing.to_duration(-5, :millisecond)
+      "00:00.005"
+
+      iex> Oban.Web.Timing.to_duration(61030, :millisecond)
+      "01:01.030"
+
+      iex> Oban.Web.Timing.to_duration(61930, :millisecond)
+      "01:01.930"
+  """
+  def to_duration(ellapsed, :millisecond) do
+    milliseconds =
+      ellapsed
+      |> abs()
+      |> Integer.mod(1000)
+      |> pad(3)
 
     ellapsed
     |> div(1000)
@@ -129,12 +151,12 @@ defmodule Oban.Web.Timing do
 
       iex> at = DateTime.utc_now()
       ...> Oban.Web.Timing.queue_time(%{attempted_at: at, scheduled_at: at})
-      "00:00.0"
+      "00:00.000"
 
       iex> at_at = DateTime.utc_now()
       ...> sc_at = DateTime.add(at_at, -60)
       ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, scheduled_at: sc_at})
-      "01:00.0"
+      "01:00.000"
   """
   def queue_time(%{attempted_at: nil}), do: @empty_time
 
@@ -155,17 +177,17 @@ defmodule Oban.Web.Timing do
 
       iex> at = DateTime.utc_now()
       ...> Oban.Web.Timing.run_time(%{attempted_at: at, completed_at: at})
-      "00:00.0"
+      "00:00.000"
 
       iex> at_at = DateTime.utc_now()
       ...> co_at = DateTime.add(at_at, -60)
       ...> Oban.Web.Timing.run_time(%{attempted_at: at_at, completed_at: co_at})
-      "01:00.0"
+      "01:00.000"
 
       iex> at_at = DateTime.utc_now()
       ...> di_at = DateTime.add(at_at, -60)
       ...> Oban.Web.Timing.run_time(%{attempted_at: at_at, completed_at: nil, discarded_at: di_at})
-      "01:00.0"
+      "01:00.000"
   """
   def run_time(%{attempted_at: nil}), do: @empty_time
   def run_time(%{completed_at: nil, discarded_at: nil}), do: @empty_time
@@ -178,9 +200,9 @@ defmodule Oban.Web.Timing do
     |> to_duration(:millisecond)
   end
 
-  defp pad(time) do
+  defp pad(time, places \\ 2) do
     time
     |> to_string()
-    |> String.pad_leading(2, "0")
+    |> String.pad_leading(places, "0")
   end
 end
