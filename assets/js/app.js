@@ -4,9 +4,21 @@ import {LiveSocket} from "phoenix_live_view"
 import tippy, {roundArrow} from "tippy.js"
 import topbar from "topbar"
 
-topbar.config({barColors: {0: "#0284c7"}, shadowColor: "rgba(0, 0, 0, .3)"});
-window.addEventListener("phx:page-loading-start", info => topbar.show());
-window.addEventListener("phx:page-loading-stop", info => topbar.hide());
+let topBarScheduled = undefined
+
+topbar.config({barColors: {0: "#0284c7"}, shadowColor: "rgba(0, 0, 0, .3)"})
+
+window.addEventListener("phx:page-loading-start", (info) => {
+  if(!topBarScheduled) {
+    topBarScheduled = setTimeout(() => topbar.show(), 500)
+  }
+})
+
+window.addEventListener("phx:page-loading-stop", (info) => {
+  clearTimeout(topBarScheduled)
+  topBarScheduled = undefined
+  topbar.hide()
+})
 
 let Hooks = {}
 
