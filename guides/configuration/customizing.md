@@ -30,6 +30,16 @@ defmodule MyApp.Resolver do
 end
 ```
 
+Use your custom resolver within a dashboard:
+
+```elixir
+scope "/" do
+  pipe_through :browser
+
+  oban_dashboard "/oban", resolver: MyApp.Resolver
+end
+```
+
 Jump to details for each of the callbacks:
 
 * [resolve_user/1](#current-user)
