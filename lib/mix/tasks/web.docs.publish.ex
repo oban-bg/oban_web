@@ -5,12 +5,14 @@ defmodule Mix.Tasks.Web.Docs.Publish do
 
   use Mix.Task
 
+  @bucket_prefix "s3://repo-oban-pro/docs/web"
+
   @impl Mix.Task
   def run(args) do
-    {opts, _, []} = OptionParser.parse(args, strict: [release_token: :string])
+    {opts, _, []} = OptionParser.parse(args, strict: [current: :boolean, release_token: :string])
 
     build()
-    sync()
+    publish(opts)
     invalidate(opts)
   end
 
@@ -18,10 +20,22 @@ defmodule Mix.Tasks.Web.Docs.Publish do
     Mix.Task.run("docs")
   end
 
-  defp sync do
-    docs_path = "s3://repo-oban-pro/docs/web"
+  defp publish(opts) do
+    version =
+      :oban_web
+      |> Application.spec(:vsn)
+      |> to_string()
 
-    Mix.shell().cmd("aws s3 sync doc #{docs_path} --cache-control 'public; max-age=604800'")
+    paths =
+      if Keyword.fetch!(opts, :current) do
+        [@bucket_prefix, Path.join(@bucket_prefix, version)]
+      else
+        [Path.join(@bucket_prefix, version)]
+      end
+
+    for path <- paths do
+      Mix.shell().cmd("aws s3 sync doc #{path} --cache-control 'public; max-age=604800'")
+    end
   end
 
   defp invalidate(opts) do
