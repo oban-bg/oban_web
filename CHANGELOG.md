@@ -8,6 +8,21 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.2 — 2022-06-27
+
+### Bug Fixes
+
+- [Jobs Detail] Correct duration formatting for milliseconds
+
+  Negative numbers displayed with much larger values than they should have
+  because they lacked an `abs` call. In addition, the lack of padding caused 5ms
+  to look like 500ms.
+
+- [Resolver] Loosen resolver check to avoid compliation issues
+
+  The interplay of router compilation and code reloading could cause "invalid
+  :resolver" errors during recompliation during development.
+
 ## v2.9.1 — 2022-03-03
 
 ### Bug Fixes
