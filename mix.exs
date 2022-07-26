@@ -54,7 +54,7 @@ defmodule Oban.Web.MixProject do
       {:esbuild, "~> 0.3", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.21", only: [:dev], runtime: false},
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
-      {:oban_pro, "~> 0.9", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 0.12", repo: :oban, only: [:test, :dev]},
       {:floki, "~> 0.26", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
     ]

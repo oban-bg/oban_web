@@ -117,7 +117,14 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   end
 
   defp global_limit(gossip) do
-    Enum.find_value(gossip, "-", & &1["global_limit"])
+    gossip
+    |> Enum.map(& &1["global_limit"])
+    |> Enum.filter(&is_map/1)
+    |> List.first()
+    |> case do
+      %{"allowed" => allowed} -> allowed
+      _ -> "-"
+    end
   end
 
   defp rate_limit(gossip) do
@@ -143,7 +150,8 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           |> Time.diff(curr_time, :second)
           |> abs()
 
-        remaining = prev_total * div(period - ellapsed, period) + curr_total
+        weight = div(max(period - ellapsed, 0), period)
+        remaining = prev_total * weight + curr_total
 
         period_in_words = Timing.to_words(period, relative: false)
 

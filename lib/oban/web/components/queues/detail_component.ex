@@ -5,7 +5,6 @@ defmodule Oban.Web.Queues.DetailComponent do
   import Oban.Web.Helpers.QueueHelper
 
   alias Oban.Config
-  alias Oban.Queue.BasicEngine
   alias Oban.Web.Queues.DetailInsanceComponent
 
   @impl Phoenix.LiveComponent
@@ -279,7 +278,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Handlers
 
-  @integer_inputs ~w(local_limit global_limit rate_limit_allowed rate_limit_period)
+  @integer_inputs ~w(local_limit global_limit_allowed rate_limit_allowed rate_limit_period)
 
   @impl Phoenix.LiveComponent
   def handle_event("form-change", %{"_target" => "rate_limit_partition_fields"} = params, socket) do
@@ -320,9 +319,9 @@ defmodule Oban.Web.Queues.DetailComponent do
   def handle_event("global-update", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    limit = params["global_limit"]
+    limit = String.to_integer(params["global_limit"])
 
-    send(self(), {:scale_queue, socket.assigns.queue, global_limit: limit})
+    send(self(), {:scale_queue, socket.assigns.queue, global_limit: %{allowed: limit}})
 
     inputs = %{socket.assigns.inputs | global_limit: limit}
 
@@ -469,7 +468,14 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   defp global_limit(gossip) do
-    Enum.find_value(gossip, & &1["global_limit"])
+    gossip
+    |> Enum.map(& &1["global_limit"])
+    |> Enum.filter(&is_map/1)
+    |> List.first()
+    |> case do
+      %{"allowed" => allowed} -> allowed
+      _ -> nil
+    end
   end
 
   defp rate_limit_allowed(gossip) do
@@ -535,5 +541,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Pro Helpers
 
-  defp missing_pro?(%Config{engine: engine}), do: engine == BasicEngine
+  defp missing_pro?(%Config{engine: engine}) do
+    engine in [Oban.Queue.BasicEngine, Oban.Engines.Basic]
+  end
 end

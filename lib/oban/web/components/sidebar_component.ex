@@ -254,13 +254,13 @@ defmodule Oban.Web.SidebarComponent do
         execu: Map.get(execu_counts, queue, 0),
         limit: Map.get(total_limits, queue, 0),
         paused?: Map.get(pause_states, queue, true),
-        global?: Enum.any?(gossip, &(&1["queue"] == queue and is_integer(&1["global_limit"]))),
+        global?: Enum.any?(gossip, &(&1["queue"] == queue and is_map(&1["global_limit"]))),
         rate_limited?: Enum.any?(gossip, &(&1["queue"] == queue and is_map(&1["rate_limit"])))
       }
     end)
   end
 
-  defp payload_limit(%{"global_limit" => limit}) when is_integer(limit), do: {:global, limit}
+  defp payload_limit(%{"global_limit" => %{"allowed" => limit}}), do: {:global, limit}
   defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: {:local, limit}
   defp payload_limit(%{"limit" => limit}) when is_integer(limit), do: {:local, limit}
   defp payload_limit(_payload), do: {:local, 0}

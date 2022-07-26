@@ -13,9 +13,11 @@ defmodule Oban.Web.SidebarComponentTest do
   end
 
   test "displaying summarized queue details" do
+    global = %{"allowed" => 8}
+
     gossip = [
-      build_gossip(queue: "alpha", node: "web.1", global_limit: 8),
-      build_gossip(queue: "alpha", node: "web.2", global_limit: 8),
+      build_gossip(queue: "alpha", node: "web.1", global_limit: global),
+      build_gossip(queue: "alpha", node: "web.2", global_limit: global),
       build_gossip(queue: "gamma", node: "web.1", local_limit: 5),
       build_gossip(queue: "gamma", node: "web.2", local_limit: 5, paused: true)
     ]

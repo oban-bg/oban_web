@@ -4,7 +4,7 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   import Phoenix.LiveViewTest
 
   alias Oban.Config
-  alias Oban.Queue.BasicEngine
+  alias Oban.Engines.Basic
   alias Oban.Web.Queues.DetailComponent, as: Component
 
   @queue "alpha"
@@ -42,7 +42,7 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   end
 
   test "disabling advanced features when SmartEngine isn't available" do
-    conf = Config.new(engine: BasicEngine, repo: Repo)
+    conf = Config.new(engine: Basic, repo: Repo)
     html = render_component(Component, assigns(conf: conf), router: Router)
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
