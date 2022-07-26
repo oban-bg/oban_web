@@ -8,6 +8,22 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.3 — 2022-07-26
+
+Most fixes in this release are targeted at the recent Oban Pro v0.12 release.
+_Users on earler versions of Pro, or without Pro, don't need to upgrade._
+
+### Bug Fixes
+
+- [Jobs Sidebar] Correctly display global symbol and current limit
+
+- [Queues Page] Correctly display the current global limit
+
+- [Queues Page] Prevent displaying negative rate limits
+
+  Gaps between execution that exceed the configured period, within one or more
+  partitions, could result in an incorrect, negative rate limit.
+
 ## v2.9.2 — 2022-06-27
 
 ### Bug Fixes
