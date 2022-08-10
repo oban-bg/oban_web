@@ -8,6 +8,15 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.4 — 2022-08-10
+
+### Bug Fixes
+
+- [Queues Page] Correctly display the current global limit in expanded queues.
+
+- [Queues Page] Correctly parse and format rate limits that use the new unix
+  timestamp format.
+
 ## v2.9.3 — 2022-07-26
 
 Most fixes in this release are targeted at the recent Oban Pro v0.12 release.
