@@ -11,7 +11,7 @@ defmodule Oban.Web.Queues.ChildRowComponent do
       <td rel="executing" class="py-3 text-right tabular"><%= length(@gossip["running"]) %></td>
       <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 text-right tabular"><%= Map.get(@gossip, "local_limit", "-") %></td>
-      <td rel="global" class="py-3 text-right tabular"><%= Map.get(@gossip, "global_limit", "-") %></td>
+      <td rel="global" class="py-3 text-right tabular"><%= global_limit_to_words([@gossip]) %></td>
       <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@gossip]) %></td>
       <td rel="started" class="py-3 text-right tabular"><%= started_at([@gossip]) %></td>
       <td class="py-3 pr-3 flex justify-end">

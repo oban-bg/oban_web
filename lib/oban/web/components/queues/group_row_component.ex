@@ -34,7 +34,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       <td rel="executing" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= executing_count(@gossip) %></td>
       <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= local_limit(@gossip) %></td>
-      <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= global_limit(@gossip) %></td>
+      <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= global_limit_to_words(@gossip) %></td>
       <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= rate_limit_to_words(@gossip) %></td>
       <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= started_at(@gossip) %></td>
 
@@ -111,17 +111,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
     |> case do
       {min, min} -> min
       {min, max} -> "#{min}..#{max}"
-    end
-  end
-
-  defp global_limit(gossip) do
-    gossip
-    |> Enum.map(& &1["global_limit"])
-    |> Enum.filter(&is_map/1)
-    |> List.first()
-    |> case do
-      %{"allowed" => allowed} -> allowed
-      _ -> "-"
     end
   end
 

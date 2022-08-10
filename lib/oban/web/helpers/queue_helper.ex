@@ -33,6 +33,23 @@ defmodule Oban.Web.Helpers.QueueHelper do
     |> Enum.sum()
   end
 
+  @doc """
+  Extract the allowed value from a global limit.
+  """
+  def global_limit_to_words(gossip) do
+    gossip
+    |> Enum.map(& &1["global_limit"])
+    |> Enum.filter(&is_map/1)
+    |> List.first()
+    |> case do
+      %{"allowed" => allowed} -> allowed
+      _ -> "-"
+    end
+  end
+
+  @doc """
+  Calculate the estimated rate limit as words.
+  """
   def rate_limit_to_words(gossip) do
     gossip
     |> Enum.map(& &1["rate_limit"])
