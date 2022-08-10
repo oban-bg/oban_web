@@ -3,8 +3,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
-  alias Oban.Web.Timing
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -37,7 +35,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= local_limit(@gossip) %></td>
       <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= global_limit(@gossip) %></td>
-      <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= rate_limit(@gossip) %></td>
+      <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= rate_limit_to_words(@gossip) %></td>
       <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular"><%= started_at(@gossip) %></td>
 
       <td class="py-3 pr-3 flex justify-end">
@@ -124,41 +122,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
     |> case do
       %{"allowed" => allowed} -> allowed
       _ -> "-"
-    end
-  end
-
-  defp rate_limit(gossip) do
-    gossip
-    |> Enum.map(& &1["rate_limit"])
-    |> Enum.reject(&is_nil/1)
-    |> case do
-      [head_limit | _rest] = rate_limits ->
-        %{"allowed" => allowed, "period" => period, "window_time" => time} = head_limit
-
-        {prev_total, curr_total} =
-          rate_limits
-          |> Enum.flat_map(& &1["windows"])
-          |> Enum.reduce({0, 0}, fn %{"prev_count" => pcnt, "curr_count" => ccnt}, {pacc, cacc} ->
-            {pacc + pcnt, cacc + ccnt}
-          end)
-
-        curr_time = Time.truncate(Time.utc_now(), :second)
-
-        ellapsed =
-          time
-          |> Time.from_iso8601!()
-          |> Time.diff(curr_time, :second)
-          |> abs()
-
-        weight = div(max(period - ellapsed, 0), period)
-        remaining = prev_total * weight + curr_total
-
-        period_in_words = Timing.to_words(period, relative: false)
-
-        "#{remaining}/#{allowed} per #{period_in_words}"
-
-      [] ->
-        "-"
     end
   end
 

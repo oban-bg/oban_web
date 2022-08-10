@@ -3,8 +3,6 @@ defmodule Oban.Web.Queues.ChildRowComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
-  alias Oban.Web.Timing
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -14,7 +12,7 @@ defmodule Oban.Web.Queues.ChildRowComponent do
       <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 text-right tabular"><%= Map.get(@gossip, "local_limit", "-") %></td>
       <td rel="global" class="py-3 text-right tabular"><%= Map.get(@gossip, "global_limit", "-") %></td>
-      <td rel="rate" class="py-3 text-right tabular"><%= rate_limit([@gossip]) %></td>
+      <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@gossip]) %></td>
       <td rel="started" class="py-3 text-right tabular"><%= started_at([@gossip]) %></td>
       <td class="py-3 pr-3 flex justify-end">
         <.pause_button
@@ -47,39 +45,5 @@ defmodule Oban.Web.Queues.ChildRowComponent do
     counts
     |> Map.get("available", 0)
     |> integer_to_estimate()
-  end
-
-  defp rate_limit(gossip) do
-    gossip
-    |> Enum.map(& &1["rate_limit"])
-    |> Enum.reject(&is_nil/1)
-    |> case do
-      [head_limit | _rest] = rate_limits ->
-        %{"allowed" => allowed, "period" => period, "window_time" => time} = head_limit
-
-        {prev_total, curr_total} =
-          rate_limits
-          |> Enum.flat_map(& &1["windows"])
-          |> Enum.reduce({0, 0}, fn %{"prev_count" => pcnt, "curr_count" => ccnt}, {pacc, cacc} ->
-            {pacc + pcnt, cacc + ccnt}
-          end)
-
-        curr_time = Time.truncate(Time.utc_now(), :second)
-
-        ellapsed =
-          time
-          |> Time.from_iso8601!()
-          |> Time.diff(curr_time, :second)
-          |> abs()
-
-        remaining = prev_total * div(period - ellapsed, period) + curr_total
-
-        period_in_words = Timing.to_words(period, relative: false)
-
-        "#{remaining}/#{allowed} per #{period_in_words}"
-
-      [] ->
-        "-"
-    end
   end
 end

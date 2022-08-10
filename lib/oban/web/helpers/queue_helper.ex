@@ -32,4 +32,44 @@ defmodule Oban.Web.Helpers.QueueHelper do
     |> Enum.map(&length(&1["running"]))
     |> Enum.sum()
   end
+
+  def rate_limit_to_words(gossip) do
+    gossip
+    |> Enum.map(& &1["rate_limit"])
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [head_limit | _rest] = rate_limits ->
+        %{"allowed" => allowed, "period" => period, "window_time" => time} = head_limit
+
+        {prev_total, curr_total} =
+          rate_limits
+          |> Enum.flat_map(& &1["windows"])
+          |> Enum.reduce({0, 0}, fn %{"prev_count" => pcnt, "curr_count" => ccnt}, {pacc, cacc} ->
+            {pacc + pcnt, cacc + ccnt}
+          end)
+
+        ellapsed = unix_now() - time_to_unix(time)
+        weight = div(max(period - ellapsed, 0), period)
+        remaining = prev_total * weight + curr_total
+
+        period_in_words = Timing.to_words(period, relative: false)
+
+        "#{remaining}/#{allowed} per #{period_in_words}"
+
+      [] ->
+        "-"
+    end
+  end
+
+  defp unix_now, do: DateTime.to_unix(DateTime.utc_now(), :second)
+
+  defp time_to_unix(unix) when is_integer(unix) do
+    unix
+  end
+
+  defp time_to_unix(time) do
+    Date.utc_today()
+    |> DateTime.new!(Time.from_iso8601!(time))
+    |> DateTime.to_unix(:second)
+  end
 end
