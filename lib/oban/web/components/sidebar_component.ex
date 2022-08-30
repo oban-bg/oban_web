@@ -183,7 +183,7 @@ defmodule Oban.Web.SidebarComponent do
           Map.put(params, key, value)
       end
 
-    oban_path(page, params)
+    oban_path(page, Map.delete(params, "id"))
   end
 
   # Effects

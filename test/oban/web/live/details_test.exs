@@ -34,6 +34,17 @@ defmodule Oban.Web.Live.DetailsTest do
     refute has_element?(live, "#job-details")
   end
 
+  test "navigating with the sidebar from the details view", %{live: live} do
+    job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+    open_state(live, "available")
+    open_details(live, job)
+    open_state(live, "available")
+
+    refute has_element?(live, "#job-details")
+    refute page_title(live) =~ "WorkerA (#{job.id})"
+  end
+
   test "cancelling a job from the detail view", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
