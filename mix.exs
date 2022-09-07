@@ -46,23 +46,26 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.11"},
+      {:oban, "~> 2.13"},
       {:oban_met, "~> 0.1", path: "../oban_met"},
       {:phoenix, "~> 1.6"},
-      {:phoenix_html, "~> 3.1"},
+      {:phoenix_html, "~> 3.2"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_live_view, "~> 0.17.4"},
-      {:esbuild, "~> 0.3", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.21", only: [:dev], runtime: false},
+      {:phoenix_live_view, "~> 0.17.11"},
+      {:esbuild, "~> 0.5", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.28", only: [:dev], runtime: false},
+      {:tailwind, "~> 0.1", only: [:dev], runtime: false},
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
       {:oban_pro, "~> 0.12", repo: :oban, only: [:test, :dev]},
-      {:floki, "~> 0.26", only: [:test]},
+      {:floki, "~> 0.33", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
     ]
   end
 
   defp aliases do
     [
+      "assets.build": ["tailwind default", "esbuild default"],
+      "assets.watch": ["tailwind watch"],
       release: [
         "cmd git tag v#{@version}",
         "cmd git push",

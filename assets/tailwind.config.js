@@ -1,7 +1,6 @@
 const colors = require("tailwindcss/colors");
 
 module.exports = {
-  mode: "jit",
   darkMode: "class",
   theme: {
     fontFamily: {
@@ -27,7 +26,7 @@ module.exports = {
       white: "#fff",
       blue: colors.sky,
       cyan: colors.cyan,
-      gray: colors.coolGray,
+      gray: colors.gray,
       green: colors.emerald,
       indigo: colors.indigo,
       orange: colors.orange,
@@ -38,7 +37,7 @@ module.exports = {
       yellow: colors.amber
     }
   },
-  purge: ["../lib/**/*.*ex"],
+  content: ["../lib/**/*.*ex"],
   variants: {
     display: ["group-hover"]
   },

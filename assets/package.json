@@ -8,13 +8,5 @@
     "phoenix_live_view": "file:../deps/phoenix_live_view",
     "tippy.js": "^6.3.7",
     "topbar": "^1.0.1"
-  },
-  "devDependencies": {
-    "@tailwindcss/forms": "^0.2",
-    "@tailwindcss/typography": "^0.4",
-    "autoprefixer": "^10.2.0",
-    "postcss": "^8.3.5",
-    "postcss-import": "^14.0.2",
-    "tailwindcss": "^2.2.4"
   }
 }

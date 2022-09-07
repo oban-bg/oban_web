@@ -1,7 +1,28 @@
 import Config
 
 if config_env() == :dev do
-  config :esbuild, :version, "0.12.18"
+  config :esbuild,
+    version: "0.14.41",
+    default: [
+      args: ~w(
+        assets/js/app.js
+        --bundle
+        --minify
+        --outdir=priv/static/
+      )
+    ]
+
+  config :tailwind,
+    version: "3.1.6",
+    default: [
+      args: ~w(
+        --config=tailwind.config.js
+        --minify
+        --input=css/app.css
+        --output=../priv/static/app.css
+      ),
+      cd: Path.expand("../assets", __DIR__),
+    ]
 end
 
 config :logger, level: :warn
