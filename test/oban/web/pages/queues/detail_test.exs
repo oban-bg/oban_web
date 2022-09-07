@@ -3,16 +3,12 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
   import Phoenix.LiveViewTest
 
+  alias Oban.Met
   alias Oban.Notifiers.PG
   alias Oban.Pro.Queue.SmartEngine
-  alias Oban.Web.Plugins.Stats
 
   setup do
-    start_supervised_oban!(
-      engine: SmartEngine,
-      notifier: PG,
-      plugins: [Stats]
-    )
+    start_supervised_oban!(engine: SmartEngine, notifier: PG)
 
     :ok = Oban.Notifier.listen([:signal])
 

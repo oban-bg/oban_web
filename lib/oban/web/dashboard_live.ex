@@ -1,7 +1,6 @@
 defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
-  alias Oban.Web.Plugins.Stats
   alias Oban.Web.{LayoutComponent, RefreshComponent}
   alias Oban.Web.{JobsPage, QueuesPage}
 
@@ -14,8 +13,6 @@ defmodule Oban.Web.DashboardLive do
 
     conf = await_config(oban)
     page = resolve_page(params)
-
-    :ok = Stats.activate(oban)
 
     Process.put(:routing, {socket, path_helper})
 

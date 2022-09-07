@@ -3,9 +3,9 @@ defmodule Oban.Web.JobsPage do
 
   use Oban.Web, :live_component
 
+  alias Oban.Met
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
-  alias Oban.Web.Plugins.Stats
   alias Oban.Web.{Page, Query, SidebarComponent, Telemetry}
 
   @flash_timing 5_000
@@ -68,8 +68,8 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
     |> assign_new(:selected, &MapSet.new/0)
-    |> assign_new(:gossip, fn -> Stats.all_gossip(socket.assigns.conf.name) end)
-    |> assign_new(:counts, fn -> Stats.all_counts(socket.assigns.conf.name) end)
+    |> assign_new(:gossip, fn -> Met.all_checks(socket.assigns.conf.name) end)
+    |> assign_new(:counts, fn -> Met.all_gauges(socket.assigns.conf.name) end)
   end
 
   @impl Page
@@ -84,8 +84,8 @@ defmodule Oban.Web.JobsPage do
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
-      gossip: Stats.all_gossip(socket.assigns.conf.name),
-      counts: Stats.all_counts(socket.assigns.conf.name),
+      gossip: Met.all_checks(socket.assigns.conf.name),
+      counts: Met.all_gauges(socket.assigns.conf.name),
       selected: selected
     )
   end

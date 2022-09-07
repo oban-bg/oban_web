@@ -3,10 +3,8 @@ defmodule Oban.Web.Live.FilteringTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.Plugins.Stats
-
   setup do
-    start_supervised_oban!(plugins: [Stats])
+    start_supervised_oban!()
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
@@ -178,12 +176,6 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   defp refresh(live) do
-    Oban
-    |> Oban.Registry.whereis({:plugin, Stats})
-    |> send(:refresh)
-
-    Process.sleep(10)
-
     send(live.pid, :refresh)
   end
 end

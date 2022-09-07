@@ -3,10 +3,8 @@ defmodule Oban.Web.Live.IsolationTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.Plugins.Stats
-
   setup do
-    start_supervised_oban!(name: ObanPrivate, prefix: "private", plugins: [Stats])
+    start_supervised_oban!(name: ObanPrivate, prefix: "private")
 
     {:ok, live, _html} = live(build_conn(), "/oban-private")
 

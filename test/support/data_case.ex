@@ -25,7 +25,7 @@ defmodule Oban.Web.DataCase do
     end
   end
 
-  def start_supervised_oban!(opts) do
+  def start_supervised_oban!(opts \\ []) do
     opts =
       opts
       |> Keyword.put_new(:name, Oban)
@@ -66,11 +66,7 @@ defmodule Oban.Web.DataCase do
   def gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
-    meta_json = build_gossip(meta_opts)
-
-    name
-    |> Oban.Registry.whereis({:plugin, Oban.Web.Plugins.Stats})
-    |> send({:notification, :gossip, meta_json})
+    Oban.Notifier.notify(name, %{checks: [build_gossip(meta_opts)]})
 
     Process.sleep(5)
   end

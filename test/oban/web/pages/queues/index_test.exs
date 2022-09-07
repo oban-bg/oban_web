@@ -3,10 +3,8 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.Plugins.Stats
-
   setup do
-    start_supervised_oban!(plugins: [{Stats, interval: 10}])
+    start_supervised_oban!()
 
     {:ok, live, _html} = live(build_conn(), "/oban/queues")
 

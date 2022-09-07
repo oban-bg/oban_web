@@ -3,14 +3,12 @@ defmodule Oban.Web.Live.RebootingTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.Plugins.Stats
-
   test "waiting for oban config while mounting during a restart" do
     task =
       Task.async(fn ->
         Process.sleep(25)
 
-        {:ok, _} = Oban.start_link(name: Oban, repo: Repo, plugins: [Stats])
+        {:ok, _} = Oban.start_link(name: Oban, repo: Repo)
 
         receive do
           :mounted -> :ok

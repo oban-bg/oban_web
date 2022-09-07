@@ -53,23 +53,10 @@ Now fetch your dependencies:
 $ mix deps.get
 ```
 
-This will fetch both `oban_web` and `oban_pro`, if you haven't already installed
-`oban_pro`.
+This will fetch both `oban_web` and `oban_met`, if you haven't already installed
+`oban_met` through `oban_pro`.
 
-The `Gossip` plugin and the `Stats` plugin are necessary for the dashboard to
-function properly. Add them to your Oban configuration in `config.exs`:
-
-```elixir
-config :my_app, Oban,
-  repo: MyApp.Repo,
-  queues: [alpha: 10, gamma: 10, delta: 10],
-  plugins: [
-    Oban.Plugins.Gossip,
-    Oban.Web.Plugins.Stats
-  ]
-```
-
-After configuration you can mount the dashboard within your application's
+After fetching the package you can mount the dashboard within your application's
 `router.ex`:
 
 ```elixir
