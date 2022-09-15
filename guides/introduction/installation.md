@@ -36,7 +36,7 @@ mix hex.repo add oban https://getoban.pro/repo \
 
 You'll also need to authenticate on any other development machines, build
 servers and CI/CD instances. There are also guides to help with building
-[Docker Images][di], authenticating on [Gigalixir][gi] and [Heroku][he].
+[Docker Images][do], authenticating on [Gigalixir][gi] and [Heroku][he].
 
 ## Configuration
 
