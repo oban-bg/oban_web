@@ -49,6 +49,22 @@ defmodule Oban.Web.TelemetryTest do
       :telemetry.detach("oban_web-logger")
     end
 
+    test "disabling encoding on the default logger" do
+      :ok = Telemetry.attach_default_logger(encode: false, level: :warn)
+
+      logged =
+        capture_log(fn ->
+          Telemetry.action(:pause_queue, @socket, [queue: "alpha"], fn -> :ok end)
+
+          Logger.flush()
+        end)
+
+      assert logged =~ ~s(source: "oban_web")
+      assert logged =~ ~s(event: "action:stop")
+    after
+        :telemetry.detach("oban_web-logger")
+    end
+
     test "logging exceptions safely" do
       :ok = Telemetry.attach_default_logger(:warn)
 
