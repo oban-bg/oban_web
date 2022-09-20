@@ -3,13 +3,24 @@ defmodule Oban.Web.Telemetry do
 
   require Logger
 
-  def attach_default_logger(level \\ :info) do
+  def attach_default_logger(opts \\ [encode: true, level: :info])
+
+  def attach_default_logger(level) when is_atom(level) do
+    attach_default_logger(level: level)
+  end
+
+  def attach_default_logger(opts) when is_list(opts) do
     events = [
       [:oban_web, :action, :stop],
       [:oban_web, :action, :exception]
     ]
 
-    :telemetry.attach_many("oban_web-logger", events, &__MODULE__.handle_event/4, level)
+    opts =
+      opts
+      |> Keyword.put_new(:encode, true)
+      |> Keyword.put_new(:level, :info)
+
+    :telemetry.attach_many("oban_web-logger", events, &__MODULE__.handle_event/4, opts)
   end
 
   def action(name, socket, meta, fun) do
@@ -27,19 +38,27 @@ defmodule Oban.Web.Telemetry do
     end)
   end
 
-  def handle_event([:oban_web, :action, event], measure, meta, level) do
+  def handle_event([:oban_web, :action, event], measure, meta, opts) do
+    level = Keyword.fetch!(opts, :level)
+
     Logger.log(level, fn ->
       {conf, meta} = Map.pop(meta, :conf)
       {user, meta} = Map.pop(meta, :user)
 
-      meta
-      |> Map.take([:queue, :limit, :job_ids, :kind])
-      |> Map.put(:user, inspect_user(user))
-      |> Map.put(:oban_name, inspect_config(conf))
-      |> Map.put(:duration, System.convert_time_unit(measure.duration, :native, :microsecond))
-      |> Map.put(:event, "action:#{event}")
-      |> Map.put(:source, "oban_web")
-      |> Jason.encode_to_iodata!()
+      output =
+        meta
+        |> Map.take([:queue, :limit, :job_ids, :kind])
+        |> Map.put(:user, inspect_user(user))
+        |> Map.put(:oban_name, inspect_config(conf))
+        |> Map.put(:duration, System.convert_time_unit(measure.duration, :native, :microsecond))
+        |> Map.put(:event, "action:#{event}")
+        |> Map.put(:source, "oban_web")
+
+      if Keyword.fetch!(opts, :encode) do
+        Jason.encode_to_iodata!(output)
+      else
+        output
+      end
     end)
   end
 
