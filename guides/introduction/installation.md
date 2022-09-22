@@ -32,11 +32,26 @@ mix hex.repo add oban https://getoban.pro/repo \
   --auth-key $OBAN_LICENSE_KEY
 ```
 
-#### Authenticating Other Systems
+Now your local environment is configured to pull from the `oban` repo!
 
-You'll also need to authenticate on any other development machines, build
-servers and CI/CD instances. There are also guides to help with building
-[Docker Images][do], authenticating on [Gigalixir][gi] and [Heroku][he].
+#### Authenticating For Production
+
+There are individual guides to help with building [Docker Images][di],
+authenticating on [Gigalixir][gi], and [Heroku][he].
+
+#### Authenticating For CI
+
+You'll also need to authenticate on any other development machines, build servers and
+CI/CD instances. For example, to authorize for GitHub Actions (or any other YAML
+based CI service) using `secrets` storage:
+
+```yaml
+- name: Authorize Oban
+  run: |
+    mix hex.repo add oban https://getoban.pro/repo \
+      --fetch-public-key ${{secrets.oban_key_fingerprint}} \
+      --auth-key ${{secrets.oban_license_key}}
+```
 
 ## Configuration
 
@@ -103,6 +118,6 @@ If you need any help, stop by the #oban channel in [Elixir Slack][sla].
 [sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html
 [oi]: installation.html
-[do]: https://getoban.pro/docs/pro/docker.html
+[di]: https://getoban.pro/docs/pro/docker.html
 [gi]: https://getoban.pro/docs/pro/gigalixir.html
 [he]: https://getoban.pro/docs/pro/heroku.html
