@@ -55,8 +55,8 @@ def start(_type, _args) do
     {Oban, oban_opts()}
   ]
 
-  Oban.Telemetry.attach_default_logger(:info)
-  Oban.Web.Telemetry.attach_default_logger(:info)
+  Oban.Telemetry.attach_default_logger(level: :info)
+  Oban.Web.Telemetry.attach_default_logger(level: :info)
 
   Supervisor.start_link(children, [strategy: :one_for_one, name: MyApp.Supervisor])
 end
@@ -75,6 +75,16 @@ Here is an example of the JSON output for an `action:stop` event:
   "user":1818
 }
 ```
+
+There is also an `encoded` option if you'd prefer structured logging without
+automatic JSON encoding:
+
+```elixir
+Oban.Telemetry.attach_default_logger(encoded: false, level: :info)
+Oban.Web.Telemetry.attach_default_logger(encoded: false, level: :info)
+```
+
+## Log Metadata
 
 Event metadata is passed through directly along with these constant fields:
 
