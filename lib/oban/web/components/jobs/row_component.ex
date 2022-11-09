@@ -23,8 +23,10 @@ defmodule Oban.Web.Jobs.RowComponent do
         do: "bg-blue-100 dark:bg-blue-400 dark:bg-opacity-25",
         else: "hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25"
 
+    assigns = assign(assigns, hidden_class: hidden_class, select_class: select_class)
+
     ~H"""
-    <tr id={"job-#{@job.id}"} class={"#{hidden_class} #{select_class}"}>
+    <tr id={"job-#{@job.id}"} class={"#{@hidden_class} #{@select_class}"}>
       <td class="pl-3 py-3">
         <button rel="toggle-select" class="block" phx-click="toggle-select" phx-target={@myself}>
           <%= if @selected? do %>

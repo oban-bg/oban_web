@@ -69,13 +69,15 @@ defmodule Oban.Web.SidebarComponent do
         do: "border-blue-500",
         else: "border-transparent"
 
+    assigns = assign(assigns, active_class: active_class)
+
     ~H"""
     <%= live_patch(
         to: filter_link(@page, :nodes, @node.name, @params),
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
         <%= String.downcase(@node.name) %>
       </span>
@@ -108,13 +110,15 @@ defmodule Oban.Web.SidebarComponent do
         Map.put(params, :sort_dir, "asc")
       end
 
+    assigns = assign(assigns, active_class: active_class, params: params)
+
     ~H"""
     <%= live_patch(
-        to: filter_link(@page, :state, @state.name, params),
+        to: filter_link(@page, :state, @state.name, @params),
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate"><%= @state.name %></span>
       <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular"><%= integer_to_estimate(@state.count) %></span>
     <% end %>
@@ -127,13 +131,15 @@ defmodule Oban.Web.SidebarComponent do
         do: "border-blue-500",
         else: "border-transparent"
 
+    assigns = assign(assigns, active_class: active_class)
+
     ~H"""
     <%= live_patch(
         to: filter_link(@page, :queues, @queue.name, @params),
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
         <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}><%= @queue.name %></span>
 
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
