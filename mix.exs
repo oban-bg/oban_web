@@ -51,6 +51,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix_html, "~> 3.1"},
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_live_view, ">= 0.17.4 and < 0.19.0"},
+      {:phoenix_view, "~> 2.0"},
       {:esbuild, "~> 0.3", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.21", only: [:dev], runtime: false},
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
