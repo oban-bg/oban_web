@@ -56,8 +56,9 @@ defmodule Oban.Web.MixProject do
       {:esbuild, "~> 0.5", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.28", only: [:dev], runtime: false},
       {:tailwind, "~> 0.1", only: [:dev], runtime: false},
+      {:lys_publish, "~> 0.1", only: [:dev], runtime: false, path: "../lys_publish"},
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
-      {:oban_pro, "~> 0.12", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 0.12", only: [:test, :dev], repo: :oban},
       {:floki, "~> 0.33", only: [:test]},
       {:stream_data, "~> 0.5", only: [:test]}
     ]
@@ -72,7 +73,7 @@ defmodule Oban.Web.MixProject do
         "cmd git push",
         "cmd git push --tags",
         "hex.publish package --yes",
-        "hex.build"
+        "lys.publish"
       ],
       "test.reset": ["ecto.drop -r Oban.Web.Repo", "test.setup"],
       "test.setup": ["ecto.create -r Oban.Web.Repo --quiet", "ecto.migrate -r Oban.Web.Repo"],
