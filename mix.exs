@@ -1,7 +1,7 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.9.5"
+  @version "2.9.6"
 
   def project do
     [

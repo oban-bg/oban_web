@@ -8,7 +8,18 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.6 — 2022-11-28
+
+### Enhancements
+
+- [Web] Enhance compatibility with LiveView v0.18 and Phoenix v1.7.
+
+  * Require `phoenix_view` for compatibility with Phoenix v1.7 and prior versions.
+  * Address LiveView v0.18 compilation warnings regarding local variables.
+
 ## v2.9.5 — 2022-09-23
+
+### Enhancements
 
 - [Web] Expand version requirements to allow Phoenix Live View `0.18`
 
@@ -16,6 +27,8 @@ recorded jobs display the job's return value directly in the details page.
 
   `Telemetry.attach_default_logger/1` now supports an `:encoded` option to
   use structured logging rather than automatic JSON encoding.
+
+### Bug Fixes
 
 - [Web] Clear `id` param when navigating away from detail view
 
