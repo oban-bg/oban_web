@@ -4,6 +4,9 @@ on: push
 
 jobs:
   ci:
+    env:
+      MIX_ENV: test
+
     strategy:
       fail-fast: false
       matrix:
@@ -11,7 +14,7 @@ jobs:
           - pair:
               elixir: '1.12'
               otp: '24.1'
-              postgres: '9.6-alpine'
+              postgres: '10.19-alpine'
             exclude_tags: 'search'
           - pair:
               elixir: '1.12'
@@ -65,10 +68,6 @@ jobs:
 
       - name: Run mix format
         run: mix format --check-formatted
-        if: ${{ matrix.lint }}
-
-      - name: Run mix deps.unlock
-        run: mix deps.unlock --check-unused
         if: ${{ matrix.lint }}
 
       - name: Run mix deps.compile
