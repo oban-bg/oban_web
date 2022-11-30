@@ -1,1 +1,19 @@
-<%= @inner_content %>
+<meta name="live-transport" content={@live_transport} />
+<meta name="live-path" content={@live_path} />
+
+<main class="p-4 min-h-screen flex flex-col">
+  <%= if live_flash(@flash, :info) do %>
+    <.notify flash={@flash} />
+  <% end %>
+
+  <header class="flex items-center">
+    <.logo />
+    <.tabs socket={@socket} page={@page.name} />
+    <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
+    <.dark_toggle />
+  </header>
+
+  <%= @inner_content %>
+
+  <.footer />
+</main>

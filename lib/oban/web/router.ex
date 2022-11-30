@@ -71,7 +71,10 @@ defmodule Oban.Web.Router do
       opts[:csp_nonce_assign_key]
     ]
 
-    session_opts = [session: {__MODULE__, :__session__, session_args}]
+    session_opts = [
+      session: {__MODULE__, :__session__, session_args},
+      root_layout: {Oban.Web.Layouts, :root}
+    ]
 
     {session_name, session_opts, as: session_name}
   end

@@ -1,7 +1,6 @@
 defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
-  alias Oban.Web.{LayoutComponent, RefreshComponent}
   alias Oban.Web.{JobsPage, QueuesPage}
 
   @impl Phoenix.LiveView
@@ -31,28 +30,17 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
-    <meta name="live-transport" content={@live_transport} />
-    <meta name="live-path" content={@live_path} />
-
-    <main class="p-4 min-h-screen flex flex-col">
-      <%= if live_flash(@flash, :info) do %>
-        <LayoutComponent.notify flash={@flash} />
-      <% end %>
-
-      <header class="flex items-center">
-        <LayoutComponent.logo />
-        <LayoutComponent.tabs socket={@socket} page={@page.name} />
-
-        <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
-
-        <LayoutComponent.dark_toggle />
-      </header>
-
-      <%= render_page(@page, assigns) %>
-
-      <LayoutComponent.footer />
-    </main>
+    <%= render_page(@page, assigns) %>
     """
+  end
+
+  defp render_page(page, assigns) do
+    assigns =
+      assigns
+      |> Map.put(:id, "page")
+      |> Map.drop([:csp_nonces, :live_path, :live_transport, :refresh, :timer])
+
+    live_component(page.comp, assigns)
   end
 
   @impl Phoenix.LiveView
@@ -147,15 +135,6 @@ defmodule Oban.Web.DashboardLive do
   defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsPage}
   defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesPage}
   defp resolve_page(_params), do: %{name: :jobs, comp: JobsPage}
-
-  defp render_page(page, assigns) do
-    assigns =
-      assigns
-      |> Map.put(:id, "page")
-      |> Map.drop([:csp_nonces, :live_path, :live_transport, :refresh, :timer])
-
-    live_component(page.comp, assigns)
-  end
 
   ## Refresh Helpers
 
