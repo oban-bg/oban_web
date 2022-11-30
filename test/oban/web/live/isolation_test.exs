@@ -1,5 +1,5 @@
 defmodule Oban.Web.Live.IsolationTest do
-  use Oban.Web.DataCase
+  use Oban.Web.Case
 
   import Phoenix.LiveViewTest
 

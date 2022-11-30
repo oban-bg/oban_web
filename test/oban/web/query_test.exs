@@ -1,5 +1,5 @@
 defmodule Oban.Web.QueryTest do
-  use Oban.Web.DataCase, async: true
+  use Oban.Web.Case, async: true
 
   alias Oban.{Config, Job}
   alias Oban.Web.{Query, Repo}

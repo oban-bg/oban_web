@@ -1,5 +1,5 @@
 defmodule Oban.Web.Live.BulkOperationsTest do
-  use Oban.Web.DataCase
+  use Oban.Web.Case
 
   import Phoenix.LiveViewTest
 

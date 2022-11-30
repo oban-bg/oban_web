@@ -1,9 +1,8 @@
 defmodule Oban.Web.Pages.Queues.DetailTest do
-  use Oban.Web.DataCase
+  use Oban.Web.Case
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Met
   alias Oban.Notifiers.PG
   alias Oban.Pro.Queue.SmartEngine
 

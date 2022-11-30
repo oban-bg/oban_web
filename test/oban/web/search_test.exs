@@ -1,5 +1,5 @@
 defmodule Oban.Web.SearchTest do
-  use Oban.Web.DataCase, async: true
+  use Oban.Web.Case, async: true
 
   alias Oban.Web.Search
 

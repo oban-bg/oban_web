@@ -1,4 +1,4 @@
-defmodule Oban.Web.DataCase do
+defmodule Oban.Web.Case do
   @moduledoc false
 
   use ExUnit.CaseTemplate
@@ -15,10 +15,10 @@ defmodule Oban.Web.DataCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Oban.Web.DataCase
+      import Oban.Web.Case
 
       alias Oban.Job
-      alias Oban.Web.{Beat, Repo}
+      alias Oban.Web.Repo
       alias Oban.Web.Test.Router
 
       @endpoint Oban.Web.Endpoint
@@ -124,12 +124,10 @@ defmodule Oban.Web.DataCase do
       |> Floki.text()
   end
 
-  setup tags do
-    :ok = Sandbox.checkout(Oban.Web.Repo)
+  setup context do
+    pid = Sandbox.start_owner!(Repo, shared: not context[:async])
 
-    unless tags[:async] do
-      Sandbox.mode(Oban.Web.Repo, {:shared, self()})
-    end
+    on_exit(fn -> Sandbox.stop_owner(pid) end)
 
     :ok
   end
