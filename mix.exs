@@ -55,6 +55,7 @@ defmodule Oban.Web.MixProject do
 
       {:esbuild, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
+      {:faker, "~> 0.17", only: :dev},
       {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.2", only: :dev},
