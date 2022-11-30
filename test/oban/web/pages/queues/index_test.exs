@@ -4,7 +4,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
   import Phoenix.LiveViewTest
 
   setup do
-    start_supervised_oban!()
+    start_supervised_oban!(name: Oban)
 
     {:ok, live, _html} = live(build_conn(), "/oban/queues")
 

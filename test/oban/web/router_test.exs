@@ -40,7 +40,6 @@ defmodule Oban.Web.RouterTest do
 
       assert session_name == :oban_dashboard
       assert route_opts[:as] == :oban_dashboard
-      assert session_opts[:root_layout] == {Oban.Web.LayoutView, :app}
     end
 
     test "passing the transport through to the session" do

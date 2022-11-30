@@ -5,6 +5,7 @@ defmodule Oban.Web.Case do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.Job
+  alias Oban.Pro.Testing
   alias Oban.Web.Repo
 
   using do
@@ -26,19 +27,9 @@ defmodule Oban.Web.Case do
   end
 
   def start_supervised_oban!(opts \\ []) do
-    opts =
-      opts
-      |> Keyword.put_new(:name, Oban)
-      |> Keyword.put_new(:repo, Repo)
-      |> Keyword.put_new(:shutdown_grace_period, 1)
-
-    pid = start_supervised!({Oban, opts})
-
-    for pid <- Registry.select(Oban.Registry, [{{{:_, {:plugin, :_}}, :"$2", :_}, [], [:"$2"]}]) do
-      Sandbox.allow(Repo, self(), pid)
-    end
-
-    pid
+    opts
+    |> Keyword.put_new(:repo, Repo)
+    |> Testing.start_supervised_oban!()
   end
 
   # Factory Helpers
@@ -66,7 +57,7 @@ defmodule Oban.Web.Case do
   def gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
-    Oban.Notifier.notify(name, %{checks: [build_gossip(meta_opts)]})
+    Oban.Notifier.notify(name, :gossip, %{metrics: [build_gossip(meta_opts)]})
 
     Process.sleep(5)
   end
