@@ -9,8 +9,8 @@
   <header class="flex items-center">
     <.logo />
     <.tabs socket={@socket} page={@page.name} />
-    <.live_component module={RefreshComponent} id="refresh" refresh={@refresh} />
-    <.dark_toggle />
+    <.live_component module={Refresh} id="refresh" refresh={@refresh} />
+    <.live_component module={Theme} id="theme" />
   </header>
 
   <%= @inner_content %>

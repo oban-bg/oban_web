@@ -45,6 +45,7 @@ defmodule Oban.Web do
       import Phoenix.LiveView.Helpers
 
       alias Phoenix.LiveView.JS
+      alias Oban.Web.Components.Icons
     end
   end
 

@@ -22,8 +22,8 @@ module.exports = {
     colors: {
       transparent: "transparent",
       current: "currentColor",
-      black: "#000",
-      white: "#fff",
+      black: colors.black,
+      white: colors.white,
       blue: colors.sky,
       cyan: colors.cyan,
       gray: colors.gray,
@@ -34,7 +34,8 @@ module.exports = {
       red: colors.red,
       teal: colors.teal,
       violet: colors.violet,
-      yellow: colors.amber
+      yellow: colors.amber,
+      slate: colors.slate
     }
   },
   content: ["../lib/**/*.*ex"],

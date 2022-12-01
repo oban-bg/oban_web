@@ -16,7 +16,10 @@
     <style phx-track-static nonce={@csp_nonces.style}><%= raw(render("app.css")) %></style>
 
     <script nonce={@csp_nonces.script}>
-      if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      const wantsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+      const noPreference = !("theme" in localStorage)
+
+      if ((localStorage.theme === "dark") || (localStorage.theme === "system" && wantsDark) || (noPreference && wantsDark)) {
         document.documentElement.classList.add("dark")
       } else {
         document.documentElement.classList.remove("dark")
@@ -28,5 +31,7 @@
     <%= @inner_content %>
   </body>
 
-  <script defer phx-track-static type="text/javascript" nonce={@csp_nonces.script}><%= raw(render("app.js")) %></script>
+  <script phx-track-static type="text/javascript" nonce={@csp_nonces.script}>
+    <%= raw(render("app.js")) %>
+  </script>
 </html>

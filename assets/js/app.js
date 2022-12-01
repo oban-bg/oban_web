@@ -36,9 +36,20 @@ Hooks.ToggleRefresh = {
   }
 }
 
-Hooks.ToggleDarkMode = {
-  setMode() {
-    if (localStorage.theme === "dark" || (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+Hooks.RestoreTheme = {
+  mounted() {
+    this.pushEventTo("#theme-selector", "restore", {
+      theme: localStorage.getItem("theme")
+    })
+  }
+}
+
+Hooks.ChangeTheme = {
+  applyTheme() {
+    const wantsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    const noPreference = !("theme" in localStorage)
+
+    if ((localStorage.theme === "dark") || (localStorage.theme === "system" && wantsDark) || (noPreference && wantsDark)) {
       document.documentElement.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
@@ -46,15 +57,17 @@ Hooks.ToggleDarkMode = {
   },
 
   mounted() {
+    let elem = this;
+
     this.el.addEventListener("click", _event => {
-      localStorage.theme = localStorage.theme === "dark" ? "light" : "dark";
+      const theme = this.el.getAttribute("value")
 
-      this.setMode();
+      localStorage.theme = theme
+
+      this.applyTheme()
+
+      elem.pushEventTo("#theme-selector", "restore", {theme: theme})
     })
-
-    const content = this.el.getAttribute("data-title");
-
-    tippy(this.el, { arrow: roundArrow, content: content, delay: [500, null] });
   }
 }
 

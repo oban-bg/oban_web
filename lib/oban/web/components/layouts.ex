@@ -3,7 +3,7 @@ defmodule Oban.Web.Layouts do
 
   import Oban.Web.Helpers
 
-  alias Oban.Web.RefreshComponent
+  alias Oban.Web.Components.{Refresh, Theme}
 
   js_path = Path.join(__DIR__, "../../../../priv/static/app.js")
   css_path = Path.join(__DIR__, "../../../../priv/static/app.css")
@@ -86,10 +86,10 @@ defmodule Oban.Web.Layouts do
     ~H"""
     <button
       id="dark-toggle"
-      class="ml-3 p-2 relative text-blue-800 dark:text-gray-50 bg-blue-200 dark:bg-blue-300 dark:bg-opacity-25 rounded-full focus:outline-none hover:text-blue-600 dark:hover:text-gray-300 hidden md:block"
+      class="ml-3 relative text-slate-500 dark:text-slate-400 rounded-full focus:outline-none hover:text-slate-600 dark:hover:text-slate-300 hidden md:block"
       data-title="Toggle dark mode"
       phx-hook="ToggleDarkMode">
-      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+      <Icons.moon />
     </button>
     """
   end
@@ -118,8 +118,7 @@ defmodule Oban.Web.Layouts do
   end
 
   defp link_class(page, page) do
-    "font-medium text-sm rounded-md px-3 py-2 bg-blue-200 text-blue-800 dark:text-gray-200 dark:bg-blue-300 dark:bg-opacity-25"
-  end
+    "font-medium text-sm rounded-md px-3 py-2 bg-blue-200 text-blue-800 dark:text-gray-200 dark:bg-blue-300 dark:bg-opacity-25" end
 
   defp link_class(_pag, _exp) do
     "font-medium text-sm rounded-md px-3 py-2 text-gray-600 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-300"

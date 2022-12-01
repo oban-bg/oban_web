@@ -1,7 +1,5 @@
-defmodule Oban.Web.RefreshComponent do
+defmodule Oban.Web.Components.Refresh do
   use Oban.Web, :live_component
-
-  alias Phoenix.LiveView.JS
 
   @refresh_options %{1 => "1s", 2 => "2s", 5 => "5s", 15 => "15s", 60 => "1m", -1 => "Off"}
 
