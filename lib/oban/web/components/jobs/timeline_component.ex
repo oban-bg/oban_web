@@ -27,16 +27,35 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   def render(assigns) do
     ~H"""
-    <div id={"timeline-for-#{@state}"} class="w-1/4 flex flex-col" data-title={timestamp_title(@state, @job)} phx-hook="Tippy">
+    <div
+      id={"timeline-for-#{@state}"}
+      class="w-1/4 flex flex-col"
+      data-title={timestamp_title(@state, @job)}
+      phx-hook="Tippy"
+    >
       <span class={"flex self-center justify-center items-center h-16 w-16 transition-colors duration-200 rounded-full #{timeline_class(@state, @job)}"}>
         <%= if timeline_icon(@state, @job) == :checkmark do %>
-          <svg class="h-12 w-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+          <svg class="h-12 w-12" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            >
+            </path>
+          </svg>
         <% end %>
         <%= if timeline_icon(@state, @job) == :spinner do %>
-          <svg class="h-12 w-12 animate-spin" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1a.9.9 0 110 1.8 7.2 7.2 0 107.2 7.2.9.9 0 111.8 0 9 9 0 11-9-9z" fill-rule="nonzero"/></svg>
+          <svg class="h-12 w-12 animate-spin" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              d="M10 1a.9.9 0 110 1.8 7.2 7.2 0 107.2 7.2.9.9 0 111.8 0 9 9 0 11-9-9z"
+              fill-rule="nonzero"
+            />
+          </svg>
         <% end %>
       </span>
-      <span class="block text-sm text-center font-semibold mt-2"><%= timestamp_name(@state, @job) %></span>
+      <span class="block text-sm text-center font-semibold mt-2">
+        <%= timestamp_name(@state, @job) %>
+      </span>
       <span class="block text-sm text-center tabular"><%= timeline_time(@state, @job) %></span>
     </div>
     """

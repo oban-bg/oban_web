@@ -23,7 +23,8 @@ defmodule Oban.Web.JobsPage do
         gossip={@gossip}
         page={:jobs}
         params={without_defaults(@params, @default_params)}
-        socket={@socket} />
+        socket={@socket}
+      />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -34,14 +35,28 @@ defmodule Oban.Web.JobsPage do
               job={@detailed}
               module={DetailComponent}
               params={without_defaults(Map.delete(@params, "id"), @default_params)}
-              resolver={@resolver} />
+              resolver={@resolver}
+            />
           <% else %>
             <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-              <.live_component id="header" module={HeaderComponent} params={@params} jobs={@jobs} counts={@counts} selected={@selected} />
+              <.live_component
+                id="header"
+                module={HeaderComponent}
+                params={@params}
+                jobs={@jobs}
+                counts={@counts}
+                selected={@selected}
+              />
               <.live_component id="search" module={SearchComponent} params={@params} />
             </div>
 
-            <.live_component id="bulk_action" module={BulkActionComponent} access={@access} jobs={@jobs} selected={@selected} />
+            <.live_component
+              id="bulk_action"
+              module={BulkActionComponent}
+              access={@access}
+              jobs={@jobs}
+              selected={@selected}
+            />
 
             <.live_component
               id="jobs-table"
@@ -49,7 +64,8 @@ defmodule Oban.Web.JobsPage do
               jobs={@jobs}
               params={@params}
               resolver={@resolver}
-              selected={@selected} />
+              selected={@selected}
+            />
           <% end %>
         </div>
       </div>

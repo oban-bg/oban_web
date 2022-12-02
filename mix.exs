@@ -52,19 +52,18 @@ defmodule Oban.Web.MixProject do
       {:phoenix_html, "~> 3.2"},
       {:phoenix_pubsub, "~> 2.0"},
       {:phoenix_live_view, "~> 0.18.3"},
-
       {:esbuild, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:faker, "~> 0.17", only: :dev},
-      {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"},
+      {:lys_publish, "~> 0.1",
+       only: :dev, runtime: false, optional: true, path: "../lys_publish"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.2", only: :dev},
       {:tailwind, "~> 0.1", only: :dev, runtime: false},
-
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
       {:oban_pro, "~> 0.12", only: [:test, :dev], repo: :oban, path: "../oban_pro"},
       {:floki, "~> 0.33", only: [:test]},
-      {:stream_data, "~> 0.5", only: [:test]},
+      {:stream_data, "~> 0.5", only: [:test]}
     ]
   end
 

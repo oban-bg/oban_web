@@ -7,8 +7,11 @@ defmodule Oban.Web.Queues.ChildRowComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <tr id={queue_id(@queue, @gossip["node"])} class="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-black dark:bg-opacity-25">
-      <td rel="node" colspan="2"class="py-3 font-medium text-right"><%= node_name(@gossip) %></td>
+    <tr
+      id={queue_id(@queue, @gossip["node"])}
+      class="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-black dark:bg-opacity-25"
+    >
+      <td rel="node" colspan="2" class="py-3 font-medium text-right"><%= node_name(@gossip) %></td>
       <td rel="executing" class="py-3 text-right tabular"><%= length(@gossip["running"]) %></td>
       <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
       <td rel="local" class="py-3 text-right tabular"><%= Map.get(@gossip, "local_limit", "-") %></td>
@@ -20,7 +23,8 @@ defmodule Oban.Web.Queues.ChildRowComponent do
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
           myself={@myself}
-          paused={@gossip["paused"]} />
+          paused={@gossip["paused"]}
+        />
       </td>
     </tr>
     """

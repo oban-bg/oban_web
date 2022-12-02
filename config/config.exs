@@ -21,7 +21,7 @@ if config_env() == :dev do
         --input=css/app.css
         --output=../priv/static/app.css
       ),
-      cd: Path.expand("../assets", __DIR__),
+      cd: Path.expand("../assets", __DIR__)
     ]
 end
 

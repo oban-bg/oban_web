@@ -20,7 +20,8 @@ defmodule Oban.Web.QueuesPage do
         gossip={@gossip}
         page={:queues}
         params={without_defaults(@params, @default_params)}
-        socket={@socket} />
+        socket={@socket}
+      />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -32,11 +33,17 @@ defmodule Oban.Web.QueuesPage do
               counts={@counts}
               gossip={@gossip}
               module={DetailComponent}
-              queue={@detail} />
+              queue={@detail}
+            />
           <% else %>
-            <div id="queues-header" class="flex items-center border-b border-gray-200 dark:border-gray-700 space-x-2 px-3 py-6">
+            <div
+              id="queues-header"
+              class="flex items-center border-b border-gray-200 dark:border-gray-700 space-x-2 px-3 py-6"
+            >
               <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
-              <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">(<%= queues_count(@gossip) %>)</h3>
+              <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">
+                (<%= queues_count(@gossip) %>)
+              </h3>
             </div>
 
             <.live_component
@@ -46,7 +53,8 @@ defmodule Oban.Web.QueuesPage do
               counts={@counts}
               gossip={@gossip}
               expanded={@expanded}
-              params={@params} />
+              params={@params}
+            />
           <% end %>
         </div>
       </div>

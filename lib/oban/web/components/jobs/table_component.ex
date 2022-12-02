@@ -23,20 +23,32 @@ defmodule Oban.Web.Jobs.TableComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <table id="jobs-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+    <table
+      id="jobs-table"
+      class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+    >
       <thead>
         <tr class="text-gray-500 dark:text-gray-400">
           <th scope="col" class="w-10"></th>
           <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3">
             <Sort.link label="worker" params={@params} socket={@socket} page={:jobs} justify="start" />
           </th>
-          <th scope="col" class="w-32 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-32 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="queue" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
-          <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="attempt" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
-          <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="time" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-10"></th>
@@ -52,13 +64,28 @@ defmodule Oban.Web.Jobs.TableComponent do
               job={job}
               resolver={@resolver}
               selected={@selected}
-              socket={@socket} />
+              socket={@socket}
+            />
           <% end %>
         <% else %>
           <tr>
             <td colspan="6" class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
               <div class="flex items-center justify-center space-x-2">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
                 <span>No jobs match the current set of filters.</span>
               </div>
             </td>
@@ -70,15 +97,23 @@ defmodule Oban.Web.Jobs.TableComponent do
         <tr>
           <td colspan="6" class="py-6">
             <div class="flex items-center justify-center space-x-2">
-              <button type="button"
+              <button
+                type="button"
                 class={"font-semibold text-sm mr-6 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{activity_class(@show_less?)}"}
                 phx-target={@myself}
-                phx-click="load_less">Show Less</button>
+                phx-click="load_less"
+              >
+                Show Less
+              </button>
 
-              <button type="button"
+              <button
+                type="button"
                 class={"font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{activity_class(@show_more?)}"}
                 phx-target={@myself}
-                phx-click="load_more">Show More</button>
+                phx-click="load_more"
+              >
+                Show More
+              </button>
             </div>
           </td>
         </tr>

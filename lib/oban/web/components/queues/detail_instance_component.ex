@@ -32,10 +32,16 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
           myself={@myself}
-          paused={@paused} />
+          paused={@paused}
+        />
       </td>
       <td class="pr-3 py-3">
-        <form id={"#{@gossip["node"]}-form"} class="flex space-x-3" phx-target={@myself} phx-submit="update">
+        <form
+          id={"#{@gossip["node"]}-form"}
+          class="flex space-x-3"
+          phx-target={@myself}
+          phx-submit="update"
+        >
           <input type="hidden" name="node" value={@gossip["node"]} />
 
           <Core.number_input
@@ -43,13 +49,15 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
             name="local_limit"
             value={@local_limit}
             disabled={not can?(:scale_queues, @access)}
-            myself={@myself} />
+            myself={@myself}
+          />
 
-            <button
-              class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @local_limit == @gossip["local_limit"], do: "opacity-30 pointer-events-none"}"}
-              type="submit">
-              Scale
-            </button>
+          <button
+            class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @local_limit == @gossip["local_limit"], do: "opacity-30 pointer-events-none"}"}
+            type="submit"
+          >
+            Scale
+          </button>
         </form>
       </td>
     </tr>

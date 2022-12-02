@@ -62,7 +62,7 @@ defmodule Oban.Web.TelemetryTest do
       assert logged =~ ~s(source: "oban_web")
       assert logged =~ ~s(event: "action:stop")
     after
-        :telemetry.detach("oban_web-logger")
+      :telemetry.detach("oban_web-logger")
     end
 
     test "logging exceptions safely" do

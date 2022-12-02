@@ -21,31 +21,64 @@ defmodule Oban.Web.Queues.TableComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <table id="queues-table" class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+    <table
+      id="queues-table"
+      class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700"
+    >
       <thead>
         <tr class="text-gray-500 dark:text-gray-400">
-          <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
+          <th
+            scope="col"
+            class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4"
+          >
             <Sort.link label="name" params={@params} socket={@socket} page={:queues} justify="start" />
           </th>
-          <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="nodes" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="exec" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="avail" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="local" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="global" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
-          <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <Sort.link label="rate limit" params={@params} socket={@socket} page={:queues} justify="end" />
+          <th
+            scope="col"
+            class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
+            <Sort.link
+              label="rate limit"
+              params={@params}
+              socket={@socket}
+              page={:queues}
+              justify="end"
+            />
           </th>
-          <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
+          <th
+            scope="col"
+            class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+          >
             <Sort.link label="started" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-5"></th>
@@ -56,30 +89,46 @@ defmodule Oban.Web.Queues.TableComponent do
         <%= if Enum.any?(@queues) do %>
           <%= for row_tuple <- @queues do %>
             <%= case row_tuple do %>
-            <% {:group, queue, counts, gossip, expanded} -> %>
-              <.live_component
-                id={queue}
-                module={GroupRowComponent}
-                queue={queue}
-                expanded={expanded}
-                counts={counts}
-                gossip={gossip}
-                access={@access} />
-            <% {:child, queue, counts, gossip} -> %>
-              <.live_component
-                id={"#{gossip["queue"]}-#{gossip["node"]}"}
-                module={ChildRowComponent}
-                queue={queue}
-                counts={counts}
-                gossip={gossip}
-                access={@access} />
+              <% {:group, queue, counts, gossip, expanded} -> %>
+                <.live_component
+                  id={queue}
+                  module={GroupRowComponent}
+                  queue={queue}
+                  expanded={expanded}
+                  counts={counts}
+                  gossip={gossip}
+                  access={@access}
+                />
+              <% {:child, queue, counts, gossip} -> %>
+                <.live_component
+                  id={"#{gossip["queue"]}-#{gossip["node"]}"}
+                  module={ChildRowComponent}
+                  queue={queue}
+                  counts={counts}
+                  gossip={gossip}
+                  access={@access}
+                />
             <% end %>
           <% end %>
         <% else %>
           <tr>
             <td colspan="9" class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
               <div class="flex items-center justify-center space-x-2">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <svg
+                  class="w-8 h-8"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  >
+                  </path>
+                </svg>
                 <span>No queues match the current set of filters.</span>
               </div>
             </td>
