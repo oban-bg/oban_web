@@ -1,7 +1,7 @@
 defmodule Oban.Web.Queues.TableComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.SortComponent
+  alias Oban.Web.Components.Sort
   alias Oban.Web.Queues.{ChildRowComponent, GroupRowComponent}
 
   @impl Phoenix.LiveComponent
@@ -25,28 +25,28 @@ defmodule Oban.Web.Queues.TableComponent do
       <thead>
         <tr class="text-gray-500 dark:text-gray-400">
           <th scope="col" class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4">
-            <SortComponent.link label="name" params={@params} socket={@socket} page={:queues} justify="start" />
+            <Sort.link label="name" params={@params} socket={@socket} page={:queues} justify="start" />
           </th>
           <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="nodes" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="nodes" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="exec" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="exec" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="avail" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="avail" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="local" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="local" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="global" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="global" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="rate limit" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="rate limit" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="started" params={@params} socket={@socket} page={:queues} justify="end" />
+            <Sort.link label="started" params={@params} socket={@socket} page={:queues} justify="end" />
           </th>
           <th scope="col" class="w-5"></th>
         </tr>

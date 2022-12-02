@@ -3,7 +3,7 @@ defmodule Oban.Web.Layouts do
 
   import Oban.Web.Helpers
 
-  alias Oban.Web.Components.{Refresh, Theme}
+  alias Oban.Web.Live.{Refresh, Theme}
 
   js_path = Path.join(__DIR__, "../../../../priv/static/app.js")
   css_path = Path.join(__DIR__, "../../../../priv/static/app.css")

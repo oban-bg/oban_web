@@ -1,4 +1,4 @@
-defmodule Oban.Web.Components.FormComponent do
+defmodule Oban.Web.Components.Core do
   @moduledoc false
 
   use Phoenix.Component

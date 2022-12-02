@@ -1,7 +1,7 @@
-defmodule Oban.Web.SidebarComponentTest do
+defmodule Oban.Web.Live.RefreshTest do
   use Oban.Web.Case, async: true
 
-  alias Oban.Web.Components.Refresh
+  alias Oban.Web.Live.Refresh
 
   test "rendering the refresh selector with children" do
     html = render_component(Refresh, refresh: 1, myself: "id")

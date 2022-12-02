@@ -1,4 +1,4 @@
-defmodule Oban.Web.Components.Theme do
+defmodule Oban.Web.Live.Theme do
   use Oban.Web, :live_component
 
   @impl Phoenix.LiveComponent

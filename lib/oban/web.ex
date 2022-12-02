@@ -37,15 +37,13 @@ defmodule Oban.Web do
   defp html_helpers do
     quote do
       use Phoenix.HTML
-
       use Phoenix.Component
 
-      import Oban.Web.Components.FormComponent
       import Oban.Web.Helpers
       import Phoenix.LiveView.Helpers
 
-      alias Phoenix.LiveView.JS
       alias Oban.Web.Components.Icons
+      alias Phoenix.LiveView.JS
     end
   end
 

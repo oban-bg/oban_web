@@ -1,11 +1,20 @@
 Application.put_env(:oban_web, Oban.Web.Endpoint,
+  check_origin: false,
   http: [port: 4002],
   live_view: [signing_salt: "eX7TFPY6Y/+XQ1o2pOUW3DjgAoXGTAdX"],
+  render_errors: [formats: [html: Oban.Web.ErrorHTML], layout: false],
   secret_key_base: "jAu3udxm+8tIRDXLLKo+EupAlEvdLsnNG82O8e9nqylpBM9gP8AjUnZ4PWNttztU",
   server: false,
-  check_origin: false,
   url: [host: "localhost"]
 )
+
+defmodule Oban.Web.ErrorHTML do
+  use Phoenix.HTML
+
+  def render(template, _assigns) do
+    Phoenix.Controller.status_message_from_template(template)
+  end
+end
 
 defmodule Oban.Web.Test.Router do
   use Phoenix.Router

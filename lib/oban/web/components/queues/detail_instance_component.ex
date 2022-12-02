@@ -3,6 +3,8 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
+  alias Oban.Web.Components.Core
+
   @impl Phoenix.LiveComponent
   def update(%{local_limit: local_limit}, socket) do
     {:ok, assign(socket, local_limit: local_limit)}
@@ -26,7 +28,7 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
       <td class="text-right py-3"><%= executing_count(@gossip) %></td>
       <td class="text-right py-3"><%= started_at(@gossip) %></td>
       <td class="pl-9 py-3">
-        <.pause_button
+        <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
           myself={@myself}
@@ -36,7 +38,7 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
         <form id={"#{@gossip["node"]}-form"} class="flex space-x-3" phx-target={@myself} phx-submit="update">
           <input type="hidden" name="node" value={@gossip["node"]} />
 
-          <.number_input
+          <Core.number_input
             label={false}
             name="local_limit"
             value={@local_limit}

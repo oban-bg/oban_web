@@ -1,10 +1,8 @@
-defmodule Oban.Web.SidebarComponentTest do
+defmodule Oban.Web.Live.SidebarTest do
   use Oban.Web.Case, async: true
 
-  import Phoenix.LiveViewTest
-
   alias Oban.Config
-  alias Oban.Web.SidebarComponent, as: Component
+  alias Oban.Web.Live.Sidebar
 
   setup do
     Process.put(:routing, :nowhere)
@@ -22,7 +20,7 @@ defmodule Oban.Web.SidebarComponentTest do
       build_gossip(queue: "gamma", node: "web.2", local_limit: 5, paused: true)
     ]
 
-    html = render_component(Component, assigns(gossip: gossip), router: Router)
+    html = render_component(Sidebar, assigns(gossip: gossip), router: Router)
 
     assert has_fragment?(html, "#queue-alpha [rel=limit]", 8)
     assert has_fragment?(html, "#queue-alpha [rel=is-global]")

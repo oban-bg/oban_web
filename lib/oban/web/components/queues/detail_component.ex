@@ -1,10 +1,10 @@
 defmodule Oban.Web.Queues.DetailComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Components.FormComponent
   import Oban.Web.Helpers.QueueHelper
 
   alias Oban.Config
+  alias Oban.Web.Components.Core
   alias Oban.Web.Queues.DetailInsanceComponent
 
   @impl Phoenix.LiveComponent
@@ -115,7 +115,7 @@ defmodule Oban.Web.Queues.DetailComponent do
               <span class="text-base font-medium">Local</span>
             </h3>
 
-            <.number_input
+            <Core.number_input
               disabled={not can?(:scale_queues, @access)}
               label="Limit"
               myself={@myself}
@@ -151,7 +151,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   myself={@myself} />
               </div>
 
-              <.number_input
+              <Core.number_input
                 disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_limit)}
                 label="Limit"
                 myself={@myself}
@@ -190,7 +190,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
               <div class="flex w-full space-x-3 mb-6">
                 <div class="w-1/2">
-                  <.number_input
+                  <Core.number_input
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed)}
                     label="Allowed"
                     myself={@myself}
@@ -199,7 +199,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </div>
 
                 <div class="w-1/2">
-                  <.number_input
+                  <Core.number_input
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_limit_allowed) }
                     label="Period"
                     myself={@myself}

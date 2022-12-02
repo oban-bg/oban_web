@@ -5,7 +5,8 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.{Met, Notifier}
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
-  alias Oban.Web.{Page, SidebarComponent, Telemetry}
+  alias Oban.Web.Live.Sidebar
+  alias Oban.Web.{Page, Telemetry}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -13,7 +14,7 @@ defmodule Oban.Web.QueuesPage do
     <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <.live_component
         id="sidebar"
-        module={SidebarComponent}
+        module={Sidebar}
         sections={[:nodes]}
         counts={@counts}
         gossip={@gossip}

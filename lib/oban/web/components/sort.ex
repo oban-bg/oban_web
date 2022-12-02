@@ -1,4 +1,4 @@
-defmodule Oban.Web.SortComponent do
+defmodule Oban.Web.Components.Sort do
   @moduledoc false
 
   use Phoenix.Component

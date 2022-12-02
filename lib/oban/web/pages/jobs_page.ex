@@ -6,7 +6,8 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
-  alias Oban.Web.{Page, Query, SidebarComponent, Telemetry}
+  alias Oban.Web.Live.Sidebar
+  alias Oban.Web.{Page, Query, Telemetry}
 
   @flash_timing 5_000
 
@@ -16,7 +17,7 @@ defmodule Oban.Web.JobsPage do
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <.live_component
         id="sidebar"
-        module={SidebarComponent}
+        module={Sidebar}
         sections={~w(nodes states queues)a}
         counts={@counts}
         gossip={@gossip}

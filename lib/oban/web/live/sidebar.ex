@@ -1,7 +1,5 @@
-defmodule Oban.Web.SidebarComponent do
+defmodule Oban.Web.Live.Sidebar do
   use Oban.Web, :live_component
-
-  alias Phoenix.LiveView.JS
 
   @impl Phoenix.LiveComponent
   def render(assigns) do

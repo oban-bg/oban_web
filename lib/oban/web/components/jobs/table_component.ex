@@ -1,8 +1,8 @@
 defmodule Oban.Web.Jobs.TableComponent do
   use Oban.Web, :live_component
 
+  alias Oban.Web.Components.Sort
   alias Oban.Web.Jobs.RowComponent
-  alias Oban.Web.SortComponent
 
   @inc_limit 20
   @max_limit 200
@@ -28,16 +28,16 @@ defmodule Oban.Web.Jobs.TableComponent do
         <tr class="text-gray-500 dark:text-gray-400">
           <th scope="col" class="w-10"></th>
           <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3">
-            <SortComponent.link label="worker" params={@params} socket={@socket} page={:jobs} justify="start" />
+            <Sort.link label="worker" params={@params} socket={@socket} page={:jobs} justify="start" />
           </th>
           <th scope="col" class="w-32 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="queue" params={@params} socket={@socket} page={:jobs} justify="end" />
+            <Sort.link label="queue" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="attempt" params={@params} socket={@socket} page={:jobs} justify="end" />
+            <Sort.link label="attempt" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1">
-            <SortComponent.link label="time" params={@params} socket={@socket} page={:jobs} justify="end" />
+            <Sort.link label="time" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
           <th scope="col" class="w-10"></th>
         </tr>

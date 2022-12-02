@@ -1,6 +1,7 @@
 defmodule Oban.Web.Queues.ChildRowComponent do
   use Oban.Web, :live_component
 
+  alias Oban.Web.Components.Core
   import Oban.Web.Helpers.QueueHelper
 
   @impl Phoenix.LiveComponent
@@ -15,7 +16,7 @@ defmodule Oban.Web.Queues.ChildRowComponent do
       <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@gossip]) %></td>
       <td rel="started" class="py-3 text-right tabular"><%= started_at([@gossip]) %></td>
       <td class="py-3 pr-3 flex justify-end">
-        <.pause_button
+        <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
           myself={@myself}

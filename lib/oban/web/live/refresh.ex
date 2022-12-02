@@ -1,4 +1,4 @@
-defmodule Oban.Web.Components.Refresh do
+defmodule Oban.Web.Live.Refresh do
   use Oban.Web, :live_component
 
   @options [
