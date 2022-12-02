@@ -3,65 +3,47 @@ defmodule Oban.Web.Components.Theme do
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, :theme, "unknown")}
+    {:ok, assign(socket, :theme, "system")}
   end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="ml-3 relative" id="theme-selector" phx-hook="RestoreTheme">
+    <div class="relative" id="theme-selector" phx-hook="RestoreTheme">
       <button
-        id="dark-toggle"
-        class="text-slate-500 dark:text-slate-400 focus:outline-none hover:text-slate-600 dark:hover:text-slate-300 hidden md:block"
-        aria-haspopup="listbox"
         aria-expanded="true"
+        aria-haspopup="listbox"
         aria-labelledby="listbox-label"
+        class="text-slate-500 dark:text-slate-400 focus:outline-none hover:text-slate-600 dark:hover:text-slate-300 hidden md:block"
         data-title="Toggle theme"
+        id="theme-menu-toggle"
         phx-hook="Tippy"
         phx-click={JS.toggle(to: "#theme-menu")}
         type="button"
       >
-        <%= case @theme do %>
-          <% "light" -> %>
-            <Icons.sun />
-          <% "dark" -> %>
-            <Icons.moon />
-          <% "system" -> %>
-            <Icons.computer_desktop />
-          <% _ -> %>
-            <span class="block w-6 h-6"></span>
-        <% end %>
+        <.theme_icon theme={@theme} />
       </button>
 
       <ul
+        class="hidden absolute z-50 top-full right-0 mt-2 w-32 py-1 overflow-hidden rounded-lg shadow-lg text-sm font-semibold bg-white dark:bg-slate-800 focus:outline-none"
         id="theme-menu"
-        class="hidden absolute z-50 top-full right-0 mt-4 overflow-hidden rounded-lg shadow-lg w-36 py-1 text-sm font-semibold bg-white dark:bg-slate-800"
-        tabindex="-1"
         role="listbox"
+        tabindex="-1"
       >
-        <.option value="light" current={@theme}>
-          <Icons.sun />
-        </.option>
-
-        <.option value="dark" current={@theme}>
-          <Icons.moon />
-        </.option>
-
-        <.option value="system" current={@theme}>
-          <Icons.computer_desktop />
-        </.option>
+        <%= for theme <- ~w(light dark system) do %>
+          <.option value={theme} theme={@theme} />
+        <% end %>
       </ul>
     </div>
     """
   end
 
-  attr :current, :string, required: true
+  attr :theme, :string, required: true
   attr :value, :string, required: true
-  slot :inner_block, required: true
 
   defp option(assigns) do
     class =
-      if assigns.current == assigns.value do
+      if assigns.theme == assigns.value do
         "text-blue-500 dark:text-blue-400"
       else
         "text-slate-500 dark:text-slate-400 "
@@ -78,9 +60,24 @@ defmodule Oban.Web.Components.Theme do
       role="option"
       value={@value}
     >
-      <%= render_slot(@inner_block) %>
+      <.theme_icon theme={@value} />
       <span class="capitalize text-slate-800 dark:text-slate-200"><%= @value %></span>
     </li>
+    """
+  end
+
+  attr :theme, :string, required: true
+
+  defp theme_icon(assigns) do
+    ~H"""
+    <%= case @theme do %>
+      <% "light" -> %>
+        <Icons.sun />
+      <% "dark" -> %>
+        <Icons.moon />
+      <% "system" -> %>
+        <Icons.computer_desktop />
+    <% end %>
     """
   end
 

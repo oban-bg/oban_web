@@ -22,25 +22,34 @@ window.addEventListener("phx:page-loading-stop", (info) => {
 
 let Hooks = {}
 
-Hooks.ToggleRefresh = {
+Hooks.Refresher = {
   mounted() {
-    let elem = this;
+    const targ = "#refresh-selector"
+    const elem = this
 
     document.addEventListener("visibilitychange", _event => {
       if (document.visibilityState === "visible") {
-        elem.pushEventTo("#refresh", "resume-refresh", {})
+        elem.pushEventTo(targ, "resume-refresh", {})
       } else {
-        elem.pushEventTo("#refresh", "pause-refresh", {})
+        elem.pushEventTo(targ, "pause-refresh", {})
       }
+    })
+
+    if ("refresh" in localStorage) {
+      elem.pushEventTo(targ, "select-refresh", {value: localStorage.refresh})
+    }
+
+    this.el.querySelectorAll("[role='option']").forEach(option => {
+      option.addEventListener("click", _event => {
+        localStorage.refresh = option.getAttribute("value")
+      })
     });
   }
 }
 
 Hooks.RestoreTheme = {
   mounted() {
-    this.pushEventTo("#theme-selector", "restore", {
-      theme: localStorage.getItem("theme")
-    })
+    this.pushEventTo("#theme-selector", "restore", {theme: localStorage.theme})
   }
 }
 

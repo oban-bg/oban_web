@@ -1,5 +1,5 @@
 defmodule Oban.Web.Components.Icons do
-  use Oban.Web, :live_component
+  use Oban.Web, :html
 
   attr :rest, :global, default: %{
     "stroke-width": "1.5",
@@ -38,10 +38,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
-  def arrow_path(assigns) do
+  def clock(assigns) do
     ~H"""
     <.svg_outline {@rest}>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def check(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </.svg_outline>
     """
   end
@@ -52,6 +62,16 @@ defmodule Oban.Web.Components.Icons do
     ~H"""
     <.svg_outline {@rest}>
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def pause_circle(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
     </.svg_outline>
     """
   end

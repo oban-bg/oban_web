@@ -9,8 +9,11 @@
   <header class="flex items-center">
     <.logo />
     <.tabs socket={@socket} page={@page.name} />
-    <.live_component module={Refresh} id="refresh" refresh={@refresh} />
-    <.live_component module={Theme} id="theme" />
+
+    <div class="ml-auto flex items-center space-x-4">
+      <.live_component module={Refresh} id="refresh" refresh={@refresh} />
+      <.live_component module={Theme} id="theme" />
+    </div>
   </header>
 
   <%= @inner_content %>

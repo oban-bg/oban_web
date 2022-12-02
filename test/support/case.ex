@@ -17,6 +17,7 @@ defmodule Oban.Web.Case do
       import Ecto.Changeset
       import Ecto.Query
       import Oban.Web.Case
+      import Phoenix.LiveViewTest
 
       alias Oban.Job
       alias Oban.Web.Repo
