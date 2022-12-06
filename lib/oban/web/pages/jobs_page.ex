@@ -6,7 +6,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
   alias Oban.Web.Jobs.SearchComponent
-  alias Oban.Web.Live.Sidebar
+  alias Oban.Web.Live.{Chart, Sidebar}
   alias Oban.Web.{Page, Query, Telemetry}
 
   @flash_timing 5_000
@@ -27,6 +27,8 @@ defmodule Oban.Web.JobsPage do
       />
 
       <div class="flex-grow">
+        <.live_component id="chart" conf={@conf} module={Chart} system_time={@system_time} />
+
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
             <.live_component
@@ -87,6 +89,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:selected, &MapSet.new/0)
     |> assign_new(:gossip, fn -> Met.checks(socket.assigns.conf.name) end)
     |> assign_new(:counts, fn -> Met.latest(socket.assigns.conf.name) end)
+    |> assign_new(:system_time, fn -> System.system_time(:second) end)
   end
 
   @impl Page
@@ -101,9 +104,16 @@ defmodule Oban.Web.JobsPage do
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
+<<<<<<< HEAD
       gossip: Met.checks(socket.assigns.conf.name),
       counts: Met.latest(socket.assigns.conf.name),
       selected: selected
+=======
+      gossip: Met.all_checks(socket.assigns.conf.name),
+      counts: Met.all_gauges(socket.assigns.conf.name),
+      selected: selected,
+      system_time: System.system_time(:second)
+>>>>>>> 4ea16e1 (Begin metrics powered timeseries charts component)
     )
   end
 
