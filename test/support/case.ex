@@ -28,9 +28,23 @@ defmodule Oban.Web.Case do
   end
 
   def start_supervised_oban!(opts \\ []) do
-    opts
-    |> Keyword.put_new(:repo, Repo)
-    |> Testing.start_supervised_oban!()
+    opts =
+      opts
+      |> Keyword.put_new(:name, Oban)
+      |> Keyword.put_new(:repo, Repo)
+
+    name = Testing.start_supervised_oban!(opts)
+    conf = Oban.config(name)
+
+    start_supervised!({Oban.Met, conf: conf})
+
+    name
+  end
+
+  def flush_reporter do
+    Oban
+    |> Oban.Registry.whereis(Oban.Met.Reporter)
+    |> send(:report)
   end
 
   # Factory Helpers
@@ -58,7 +72,7 @@ defmodule Oban.Web.Case do
   def gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
-    Oban.Notifier.notify(name, :gossip, %{metrics: [build_gossip(meta_opts)]})
+    Oban.Notifier.notify(name, :gossip, %{checks: [build_gossip(meta_opts)]})
 
     Process.sleep(5)
   end

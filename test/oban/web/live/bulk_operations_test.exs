@@ -12,9 +12,12 @@ defmodule Oban.Web.Live.BulkOperationsTest do
   end
 
   test "cancelling selected jobs", %{live: live} do
-    job_1 = insert_job!([ref: 1], state: "available", worker: WorkerA)
-    _job_ = insert_job!([ref: 2], state: "available", worker: WorkerB)
-    job_3 = insert_job!([ref: 3], state: "available", worker: WorkerC)
+    [job_1, _job, job_3] =
+      Oban.insert_all([
+        Job.new(%{ref: 1}, state: "available", worker: WorkerA),
+        Job.new(%{ref: 2}, state: "available", worker: WorkerB),
+        Job.new(%{ref: 3}, state: "available", worker: WorkerC)
+      ])
 
     click_state(live, "available")
     select_jobs(live, [job_1, job_3])
@@ -25,9 +28,12 @@ defmodule Oban.Web.Live.BulkOperationsTest do
   end
 
   test "deleting selected jobs", %{live: live} do
-    job_1 = insert_job!([ref: 1], state: "available", worker: WorkerA)
-    _job_ = insert_job!([ref: 2], state: "available", worker: WorkerB)
-    job_3 = insert_job!([ref: 3], state: "available", worker: WorkerC)
+    [job_1, _job, job_3] =
+      Oban.insert_all([
+        Job.new(%{ref: 1}, state: "available", worker: WorkerA),
+        Job.new(%{ref: 2}, state: "available", worker: WorkerB),
+        Job.new(%{ref: 3}, state: "available", worker: WorkerC)
+      ])
 
     click_state(live, "available")
     select_jobs(live, [job_1, job_3])

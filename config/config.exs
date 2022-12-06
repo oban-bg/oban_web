@@ -30,6 +30,8 @@ config :logger, :console, format: "[$level] $message\n"
 
 config :phoenix, json_library: Jason, stacktrace_depth: 20
 
+config :oban_met, auto_start: false
+
 config :oban_web, ecto_repos: [Oban.Web.Repo]
 
 config :oban_web, Oban.Web.Repo,

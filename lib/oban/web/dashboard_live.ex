@@ -10,7 +10,8 @@ defmodule Oban.Web.DashboardLive do
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
-    conf = await_config(oban)
+    conf = await_init([oban], :supervisor)
+    _met = await_init([oban, Oban.Met], :met)
     page = resolve_page(params)
 
     Process.put(:routing, {socket, path_helper})
@@ -110,24 +111,40 @@ defmodule Oban.Web.DashboardLive do
 
   ## Mount Helpers
 
-  defp await_config(oban_name, timeout \\ 15_000) do
-    Oban.config(oban_name)
-  rescue
-    exception in [RuntimeError] ->
-      handler = fn _event, _timing, %{conf: conf}, pid ->
-        send(pid, {:conf, conf})
-      end
+  defp await_init([oban_name | _] = args, proc, timeout \\ 15_000) do
+    case apply(Oban.Registry, :whereis, args) do
+      nil ->
+        ref = make_ref()
 
-      :telemetry.attach("oban-await-config", [:oban, :supervisor, :init], handler, self())
+        :telemetry.attach(
+          ref,
+          [:oban, proc, :init],
+          &__MODULE__.relay_init/4,
+          {args, self()}
+        )
 
-      receive do
-        {:conf, %{name: ^oban_name} = conf} ->
-          conf
-      after
-        timeout -> reraise(exception, __STACKTRACE__)
-      end
-  after
-    :telemetry.detach("oban-await-config")
+        receive do
+          {^args, %{name: ^oban_name} = conf} ->
+            :telemetry.detach(ref)
+
+            # Sleep briefly to prevent race conditions between init and child process
+            # initialization.
+            Process.sleep(5)
+
+            conf
+        after
+          timeout ->
+            raise RuntimeError, "no config registered for #{inspect(oban_name)} instance"
+        end
+
+      pid when is_pid(pid) ->
+        Oban.config(oban_name)
+    end
+  end
+
+  @doc false
+  def relay_init(_event, _timing, %{conf: conf}, {args, pid}) do
+    send(pid, {args, conf})
   end
 
   ## Render Helpers

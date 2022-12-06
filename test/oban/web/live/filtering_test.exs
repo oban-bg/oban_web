@@ -14,17 +14,24 @@ defmodule Oban.Web.Live.FilteringTest do
   test "viewing jobs by state", %{live: live} do
     now = DateTime.utc_now()
 
-    insert_job!([ref: 1], worker: AvailableWorker, state: "available")
-    insert_job!([ref: 2], worker: ScheduledWorker, state: "scheduled")
-    insert_job!([ref: 3], worker: RetryableWorker, state: "retryable")
-    insert_job!([ref: 4], worker: CancelledWorker, state: "cancelled", cancelled_at: now)
-    insert_job!([ref: 5], worker: DiscardedWorker, state: "discarded", discarded_at: now)
-    insert_job!([ref: 6], worker: CompletedWorker, state: "completed", completed_at: now)
+    changesets = [
+      Job.new(%{ref: 1}, worker: AvailableWorker, state: "available"),
+      Job.new(%{ref: 2}, worker: ScheduledWorker, state: "scheduled"),
+      Job.new(%{ref: 3}, worker: RetryableWorker, state: "retryable"),
+      Job.new(%{ref: 4}, worker: CancelledWorker, state: "cancelled", cancelled_at: now),
+      Job.new(%{ref: 5}, worker: DiscardedWorker, state: "discarded", discarded_at: now),
+      Job.new(%{ref: 6}, worker: CompletedWorker, state: "completed", completed_at: now)
+    ]
+
+    Oban.insert_all(changesets)
+
+    flush_reporter()
 
     for state <- ~w(available scheduled retryable cancelled discarded completed) do
       title = String.capitalize(state)
 
       click_state(live, state)
+
       assert has_job?(live, "#{title}Worker")
       assert has_element?(live, "#jobs-header", "(1/1 #{title})")
     end
@@ -73,9 +80,15 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   test "filtering jobs by queue", %{live: live} do
-    insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
-    insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
-    insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
+    changesets = [
+      Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
+      Job.new(%{ref: 2}, queue: "delta", worker: DeltaWorker),
+      Job.new(%{ref: 3}, queue: "gamma", worker: GammaWorker)
+    ]
+
+    Oban.insert_all(changesets)
+
+    flush_reporter()
 
     click_state(live, "available")
     click_queue(live, "delta")

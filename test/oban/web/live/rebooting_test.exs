@@ -8,7 +8,8 @@ defmodule Oban.Web.Live.RebootingTest do
       Task.async(fn ->
         Process.sleep(25)
 
-        {:ok, _} = Oban.start_link(name: Oban, repo: Repo)
+        {:ok, _} = Oban.start_link(repo: Repo, peer: Oban.Peers.Global, notifier: Oban.Notifiers.PG)
+        {:ok, _} = Oban.Met.start_link(conf: Oban.config())
 
         receive do
           :mounted -> :ok

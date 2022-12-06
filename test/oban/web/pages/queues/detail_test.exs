@@ -4,7 +4,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
   import Phoenix.LiveViewTest
 
   setup do
-    start_supervised_oban!(name: Oban)
+    start_supervised_oban!()
 
     :ok = Oban.Notifier.listen([:signal])
 
@@ -18,10 +18,6 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     on_exit(fn -> :telemetry.detach(__MODULE__) end)
 
     :ok
-  end
-
-  def handle_event([:oban_web, :action, _event], _measure, meta, pid) do
-    send(pid, {:action, meta})
   end
 
   test "viewing details for an inoperative queue" do
@@ -126,6 +122,12 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert has_element?(live, "#local-form [name=local_limit][value=6]")
     assert has_element?(live, "#web-1-form [name=local_limit][value=4]")
     assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
+  end
+
+  # Helpers
+
+  def handle_event([:oban_web, :action, _event], _measure, meta, pid) do
+    send(pid, {:action, meta})
   end
 
   defp render_details(queue) do
