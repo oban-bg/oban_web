@@ -15,7 +15,7 @@ defmodule Oban.Web.Search do
     quote do
       fragment(
         """
-        jsonb_to_tsvector(?, '["all"]') @@ websearch_to_tsquery(?)
+        jsonb_to_tsvector(? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
         """,
         unquote(column),
         unquote(terms)
