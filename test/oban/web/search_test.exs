@@ -12,6 +12,7 @@ defmodule Oban.Web.SearchTest do
     assert_matches([1], "id:#{job_1.id}")
     assert_matches([2], "id:#{job_2.id}")
     assert_matches([1, 2], "id:#{job_1.id},#{job_2.id}")
+    assert_matches([], "id:")
   end
 
   test "searching in worker, tags, args and meta by default" do
@@ -33,6 +34,7 @@ defmodule Oban.Web.SearchTest do
     assert_matches([2], "video in:args")
     assert_matches([3], "audio in:meta")
     assert_matches([4], "audio in:tags")
+    assert_matches([], "audio in:")
 
     assert_matches([1, 2], "myapp in:args,worker")
     assert_matches([2, 4], "video in:args,tags")
@@ -64,6 +66,7 @@ defmodule Oban.Web.SearchTest do
     assert_matches([0, 1], "priority:0,1")
     assert_matches([0, 1, 2], "priority:0,1,2,3")
     assert_matches([], "priority:3")
+    assert_matches([], "priority:")
 
     assert_matches([2], "video priority:2")
   end
