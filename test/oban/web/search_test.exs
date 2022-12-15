@@ -24,6 +24,13 @@ defmodule Oban.Web.SearchTest do
     assert_matches([1, 2, 3, 4], "video")
   end
 
+  test "ignoring the meta recorded column" do
+    insert_job!(%{ref: 1}, meta: %{recorded: "video"})
+    insert_job!(%{ref: 2}, meta: %{searched: "video"})
+
+    assert_matches([2], "video")
+  end
+
   test "constraining search using the in:field qualifier" do
     insert_job!(%{ref: 1}, worker: MyApp.Video)
     insert_job!(%{ref: 2, mode: "video", domain: "myapp"})
