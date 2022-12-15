@@ -9,13 +9,13 @@ defmodule Oban.Web.Search do
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
-  @empty {[{:args, []}, {:meta, []}, {:tags, []}, {:worker, []}], []}
+  @empty {[{:args, []}, {:meta, []}, {:worker, []}], []}
 
   defmacrop json_search(column, terms) do
     quote do
       fragment(
         """
-        jsonb_to_tsvector(? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
+        jsonb_to_tsvector('english', ? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
         """,
         unquote(column),
         unquote(terms)
@@ -27,7 +27,7 @@ defmodule Oban.Web.Search do
     quote do
       fragment(
         """
-        jsonb_to_tsvector(? #> ?, '["all"]') @@ websearch_to_tsquery(?)
+        jsonb_to_tsvector('english', ? #> ?, '["all"]') @@ websearch_to_tsquery(?)
         """,
         unquote(column),
         unquote(path),

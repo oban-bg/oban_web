@@ -2,15 +2,37 @@
 
 The search bar supports basic and advanced syntax to whittle down jobs based on
 multiple fields. Without any qualifiers, your terms are matched against
-`worker`, `tags`, `args` and `meta` fields using loose matching or `tsquery`
-checks, as appropriate.
+`worker`, `args` and `meta` fields using loose matching or `tsquery` checks, as
+appropriate.
 
 For more advanced syntax, check the sections below.
 
 _Note: Multi-field advanced searching is only supported for PostgreSQL 11+. For
 older versions, only the `worker` is searched_
 
-## Qualifier Syntax
+## Syntax
+
+Here are a few non-trivial examples that combine the available syntax and
+demonstrate what's possible:
+
+Search for "alpha" only in the `worker` column:
+
+`alpha in:worker`
+
+Search for "alpha", and _not_ "omega" in `tags` and `worker` columns:
+
+`alpha -omega in:tags,meta`
+
+Search for "alpha" and _not_ "omega" in `tags` column with a high priority:
+
+`alpha not omega in:tags priority:0`
+
+Search for the phrase "super alpha" in `tags` and "pro" under the `account.plan`
+keys of the `args` column:
+
+`"super alpha" in:tags pro in:args.account.plan`
+
+### Qualifiers
 
 With the `in:` qualifier you can restrict your search to the `worker`, `args`,
 `meta`, `tags`, or any combination of these.
@@ -26,7 +48,7 @@ To search through multiple fields, join them together with a comma. For example:
 * `foo in:tags,meta,args`
 * `foo in:worker,tags`
 
-## Nested Syntax
+### Nested Fields
 
 For the `jsonb` fields, `args` and `meta`, you can also use "dot" path syntax to
 restrict search to nested data.
@@ -39,7 +61,7 @@ Naturally, you can combine path syntax with multi-field syntax:
 * `foo in:args.batch_id,meta.worker_id`
 * `foo in:args.user.plan,tags`
 
-## Id Search
+### ID Matches
 
 The `id:` qualifier restricts results to one or more jobs by id. Filter down to
 multiple jobs by separating ids with a comma:
@@ -47,7 +69,7 @@ multiple jobs by separating ids with a comma:
 * `id:123`
 * `id:123,124,125`
 
-## Priority Search
+### Priority Filtering
 
 The `priority` field is searchable as well. Use `priority:` and any combination
 of values between `0` and `3` to filter jobs by priority:
@@ -56,7 +78,7 @@ of values between `0` and `3` to filter jobs by priority:
 * `priority:0,1`
 * `priority:0,1,2,3`
 
-## Quoted Terms
+### Quoted Terms
 
 If your search query contains whitespace, you will need to surround it with
 quotation marks. For example:
@@ -64,7 +86,7 @@ quotation marks. For example:
 * `"foo bar"`
 * `alpha not "foo bar"`
 
-## Exclude Syntax
+### Excluding Terms
 
 You can exclude results containing a certain word, using the `not` syntax. The
 `not` operator can only be used for `args`, `meta` and `tags`. It does not work
@@ -73,7 +95,7 @@ for `worker`.
 * `not alpha`
 * `foo -bar in:tags`
 
-## Considerations
+### Considerations
 
 You can't use the following wildcard characters as part of your search query:
 
@@ -81,12 +103,30 @@ You can't use the following wildcard characters as part of your search query:
 
 The search will stripe these symbols and ignore them.
 
-## Advanced Examples
+## Performance
 
-Here are a few examples that combine the available syntax and demonstrate what's
-possible:
+Full text queries may be prohibitively slow for large tables, especially for
+states like `completed` that may have a lot of jobs. To boost full text query
+performance you can add optional `gin` indexes for `args`, `meta`, or `tags`
+columns:
 
-* `alpha in:worker`
-* `alpha -omega in:tags,meta`
-* `alpha not omega in:tags priority:0`
-* `alpha not "super alpha" in:tags pro in:args.account.plan`
+```sql
+-- Args
+CREATE INDEX index_oban_jobs_gin_on_args
+ON oban_jobs
+USING gin (jsonb_to_tsvector('english', args, '["all"]'));
+
+-- Meta
+CREATE INDEX index_oban_jobs_gin_on_meta
+ON oban_jobs
+USING gin (jsonb_to_tsvector('english', meta, '["all"]'));
+
+-- Tags
+CREATE INDEX index_oban_jobs_gin_on_tags
+ON oban_jobs
+USING gin (array_to_tsvector(tags));
+```
+
+Remember, creating and maintaining indexes places additional burden on your
+database. Before adding indexes, investigate using the focused search options
+shown earlier in this guide.

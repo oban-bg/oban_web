@@ -15,13 +15,12 @@ defmodule Oban.Web.SearchTest do
     assert_matches([], "id:")
   end
 
-  test "searching in worker, tags, args and meta by default" do
+  test "searching in worker, args and meta by default" do
     insert_job!(%{ref: 1}, worker: MyApp.Video)
     insert_job!(%{ref: 2, mode: "video"})
-    insert_job!(%{ref: 3}, tags: ["audio", "video"])
-    insert_job!(%{ref: 4}, meta: %{mode: "video"})
+    insert_job!(%{ref: 3}, meta: %{mode: "video"})
 
-    assert_matches([1, 2, 3, 4], "video")
+    assert_matches([1, 2, 3], "video")
   end
 
   test "ignoring the meta recorded column" do
