@@ -98,7 +98,7 @@ defmodule Oban.Web.Search do
     |> Enum.map(&prep_terms/1)
   end
 
-  defp parse(["priority:" <> priorities | tail], ctx, acc) do
+  defp parse(["priority:" <> priorities | tail], ctx, acc) when byte_size(priorities) > 0 do
     priorities =
       priorities
       |> String.split(",")
@@ -107,7 +107,7 @@ defmodule Oban.Web.Search do
     parse(tail, @empty, [{:priority, priorities}, ctx | acc])
   end
 
-  defp parse(["id:" <> ids | tail], ctx, acc) do
+  defp parse(["id:" <> ids | tail], ctx, acc) when byte_size(ids) > 0 do
     ids =
       ids
       |> String.split(",")
