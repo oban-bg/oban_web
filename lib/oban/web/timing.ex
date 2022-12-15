@@ -150,19 +150,37 @@ defmodule Oban.Web.Timing do
       "-"
 
       iex> at = DateTime.utc_now()
-      ...> Oban.Web.Timing.queue_time(%{attempted_at: at, scheduled_at: at})
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at, inserted_at: at, scheduled_at: at})
       "00:00.000"
 
       iex> at_at = DateTime.utc_now()
       ...> sc_at = DateTime.add(at_at, -60)
-      ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, scheduled_at: sc_at})
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, inserted_at: sc_at, scheduled_at: sc_at})
+      "01:00.000"
+
+      iex> at_at = DateTime.utc_now()
+      ...> sc_at = DateTime.add(at_at, -60)
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, inserted_at: sc_at, scheduled_at: sc_at})
+      "01:00.000"
+
+      iex> at_at = DateTime.utc_now()
+      ...> in_at = DateTime.add(at_at, -60)
+      ...> sc_at = DateTime.add(at_at, -90)
+      ...> Oban.Web.Timing.queue_time(%{attempted_at: at_at, inserted_at: in_at, scheduled_at: sc_at})
       "01:00.000"
   """
   def queue_time(%{attempted_at: nil}), do: @empty_time
 
   def queue_time(job) do
+    scheduled_or_inserted =
+      if DateTime.compare(job.scheduled_at, job.inserted_at) == :gt do
+        job.scheduled_at
+      else
+        job.inserted_at
+      end
+
     job.attempted_at
-    |> DateTime.diff(job.scheduled_at, :millisecond)
+    |> DateTime.diff(scheduled_or_inserted, :millisecond)
     |> to_duration(:millisecond)
   end
 
