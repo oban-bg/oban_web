@@ -84,6 +84,39 @@ config :my_app, Oban,
   ]
 ```
 
+### Advanced Configuration
+
+Some applications have dedicated `web` and `worker` nodes, where only the
+`worker` nodes execute jobs. In that arrangement, the `web` node won't run any
+queues, but it still needs to insert jobs, run `Oban` commands, and host the
+dasbhoard.
+
+The ideal, minimal, configuration only includes the `Stats` plugin and declares
+that a `web` node shouldn't be the leader with `peer: false`:
+
+```elixir
+# Web Config
+config :my_app, Oban,
+  peer: false,
+  plugins: [Oban.Web.Plugins.Stats],
+  queues: []
+```
+
+Conversely, workers need to broadcast queue activity through `Gossip`, but they
+don't need to run `Stats` for the dashboard:
+
+```elixir
+# Worker Config
+config :my_app, Oban,
+  plugins: [
+    Oban.Plugins.Gossip,
+    ...
+  ],
+  queues: [...]
+```
+
+## Mounting the Dashboard
+
 After configuration you can mount the dashboard within your application's
 `router.ex`:
 
@@ -103,21 +136,26 @@ end
 ```
 
 Here we're using `"/oban"` as the mount point, but it can be anywhere you like.
+For more advanced usage, the [mounting guide][mo] explains how you can run
+multiple dashboards or customize the connection.
+
 After you've verified that the dashboard is loading you'll probably want to
 restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
+
+## Installation Complete!
 
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 
-### Trouble installing? Have questions?
-
-If you need any help, stop by the #oban channel in [Elixir Slack][sla].
+Continue on to the [customizing guide][cu] to learn about resolvers for
+setting defaults, authorization controls, and custom formatting.
 
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
-[sla]: https://elixir-slackin.herokuapp.com
 [ba]: https://hexdocs.pm/basic_auth/readme.html
-[oi]: installation.html
 [di]: https://getoban.pro/docs/pro/docker.html
 [gi]: https://getoban.pro/docs/pro/gigalixir.html
 [he]: https://getoban.pro/docs/pro/heroku.html
+[cu]: customizing.html
+[oi]: installation.html
+[mo]: mounting.html
