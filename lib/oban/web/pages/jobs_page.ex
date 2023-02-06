@@ -16,10 +16,10 @@ defmodule Oban.Web.JobsPage do
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <.live_component
         id="sidebar"
+        conf={@conf}
         module={Sidebar}
         sections={~w(nodes states queues)a}
         counts={@counts}
-        gossip={@gossip}
         page={:jobs}
         params={without_defaults(@params, @default_params)}
         socket={@socket}
@@ -92,8 +92,8 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
     |> assign_new(:selected, &MapSet.new/0)
-    |> assign_new(:gossip, fn -> Met.checks(socket.assigns.conf.name) end)
-    |> assign_new(:counts, fn -> Met.latest(socket.assigns.conf.name) end)
+    |> assign_new(:gossip, fn -> Metrics.checks(socket.assigns.conf.name) end)
+    |> assign_new(:counts, fn -> Metrics.state_counts(socket.assigns.conf.name) end)
     |> assign_new(:system_time, fn -> System.system_time(:second) end)
   end
 
@@ -109,8 +109,8 @@ defmodule Oban.Web.JobsPage do
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
-      gossip: Met.checks(socket.assigns.conf.name),
-      counts: Met.latest(socket.assigns.conf.name),
+      gossip: Metrics.checks(socket.assigns.conf.name),
+      counts: Metrics.state_counts(socket.assigns.conf.name),
       selected: selected
       selected: selected,
       system_time: System.system_time(:second)

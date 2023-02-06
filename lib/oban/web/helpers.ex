@@ -187,7 +187,7 @@ defmodule Oban.Web.Helpers do
   def formatted_tags(%Job{tags: tags}), do: Enum.join(tags, ", ")
 
   @doc """
-  A normalized globally unique combination of instance and node names.
+  A normalized, globally unique combination of instance and node names.
   """
   def node_name(%{"node" => node, "name" => name}), do: node_name(node, name)
 

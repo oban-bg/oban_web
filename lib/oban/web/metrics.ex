@@ -46,12 +46,4 @@ defmodule Oban.Web.Metrics do
     end)
     |> Enum.map(fn {queue, counts} -> Map.put(counts, "name", queue) end)
   end
-
-  @doc """
-  Retrieve :executing guages for active nodes.
-  """
-  @spec node_counts(Oban.name()) :: [map()]
-  def node_counts(oban_name) do
-    Met.latest(oban_name, :executing, group: "node")
-  end
 end
