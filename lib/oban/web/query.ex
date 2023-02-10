@@ -183,12 +183,20 @@ defmodule Oban.Web.Query do
     order_by(query, [j], {^dir, j.scheduled_at})
   end
 
+  defp order(query, :time, "cancelled", dir) do
+    order_by(query, [j], {^dir, j.cancelled_at})
+  end
+
+  defp order(query, :time, "completed", dir) do
+    order_by(query, [j], {^dir, j.completed_at})
+  end
+
   defp order(query, :time, "executing", dir) do
     order_by(query, [j], {^dir, j.attempted_at})
   end
 
-  defp order(query, :time, _state, dir) do
-    order_by(query, [j], {^dir, j.attempted_at})
+  defp order(query, :time, "discarded", dir) do
+    order_by(query, [j], {^dir, j.discarded_at})
   end
 
   defp order(query, :worker, _state, dir) do

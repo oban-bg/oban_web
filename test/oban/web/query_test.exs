@@ -7,6 +7,7 @@ defmodule Oban.Web.QueryTest do
   @conf Config.new(repo: Repo)
 
   describe "all_jobs/2" do
+    @tag :search
     test "searching for jobs by worker" do
       job_a = insert(MyApp.Alpha)
       job_b = insert(MyApp.Delta)
@@ -31,16 +32,22 @@ defmodule Oban.Web.QueryTest do
       assert search_ids("keaton and shannon") == []
     end
 
-    @tag :search
-    test "searching for jobs by tags" do
-      job_a = insert(Alpha, %{}, tags: ["gamma"])
-      job_b = insert(Alpha, %{}, tags: ["gamma", "delta"])
-      job_c = insert(Alpha, %{}, tags: ["delta", "kappa", "omega"])
+    test "ordering fields by state" do
+      ago = fn sec -> DateTime.add(DateTime.utc_now(), -sec) end
 
-      assert search_ids("gamma") == [job_a.id, job_b.id]
-      assert search_ids("delta") == [job_b.id, job_c.id]
-      assert search_ids("delta and gamma") == [job_b.id]
-      assert search_ids("delta or kappa") == [job_b.id, job_c.id]
+      job_a = insert(Alpha, %{}, state: "cancelled", cancelled_at: ago.(4))
+      job_b = insert(Alpha, %{}, state: "cancelled", cancelled_at: ago.(6))
+      job_c = insert(Alpha, %{}, state: "cancelled", cancelled_at: ago.(1))
+
+      assert [job_b.id, job_a.id, job_c.id] ==
+               @conf
+               |> Query.all_jobs(%{state: "cancelled"})
+               |> Enum.map(& &1.id)
+
+      assert [job_c.id, job_a.id, job_b.id] ==
+               @conf
+               |> Query.all_jobs(%{state: "cancelled", sort_dir: "desc"})
+               |> Enum.map(& &1.id)
     end
   end
 
