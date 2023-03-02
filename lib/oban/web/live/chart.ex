@@ -6,12 +6,9 @@ defmodule Oban.Web.Live.Chart do
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     timeslice =
-      Metrics.timeslice(
-        assigns.conf.name,
-        assigns.params.state,
-        by: 1,
-        lookback: div(1080, 10)
-      )
+      assigns.conf.name
+      |> Metrics.timeslice(assigns.params.state, by: 1, lookback: div(1080, 10))
+      |> Enum.reverse()
 
     max =
       timeslice
@@ -62,7 +59,7 @@ defmodule Oban.Web.Live.Chart do
             fill="none"
           />
 
-          <g class="fill-slate-500">
+          <g class="fill-slate-600">
             <%= for {slice, index} <- Enum.with_index(@timeslice) do %>
               <.col
                 index={index}
@@ -92,7 +89,7 @@ defmodule Oban.Web.Live.Chart do
     <rect
       x={@total_width - 10 - @index * 10}
       y={@total_height - @height}
-      width="10"
+      width="9"
       height={@height}
     />
     """

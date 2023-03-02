@@ -83,7 +83,7 @@ defmodule Oban.Web.JobsPage do
   @impl Page
   def handle_mount(socket) do
     default = fn ->
-      %{limit: 20, sort_by: "time", sort_dir: "desc", state: "executing", terms: nil}
+      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing", terms: nil}
     end
 
     socket
@@ -111,7 +111,6 @@ defmodule Oban.Web.JobsPage do
       jobs: jobs,
       gossip: Metrics.checks(socket.assigns.conf.name),
       counts: Metrics.state_counts(socket.assigns.conf.name),
-      selected: selected
       selected: selected,
       system_time: System.system_time(:second)
     )

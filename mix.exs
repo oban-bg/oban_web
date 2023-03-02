@@ -64,18 +64,12 @@ defmodule Oban.Web.MixProject do
 
       # Tooling
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
-<<<<<<< HEAD
       {:floki, "~> 0.33", only: [:test, :dev]},
 
       # Docs and Publishing
       {:esbuild, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
-=======
-      {:oban_pro, "~> 0.13", only: [:test, :dev], repo: :oban},
-      {:floki, "~> 0.33", only: [:test]},
-      {:stream_data, "~> 0.5", only: [:test]}
->>>>>>> 784236e (Upgrade to production oban and pro releases)
     ]
   end
 
