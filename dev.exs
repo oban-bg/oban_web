@@ -379,7 +379,7 @@ end
 # Phoenix
 
 defmodule WebDev.Router do
-  use Phoenix.Router
+  use Phoenix.Router, helpers: false
 
   import Oban.Web.Router
 
@@ -414,6 +414,7 @@ end
 # Configuration
 
 Application.put_env(:oban_web, WebDev.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   check_origin: false,
   debug_errors: true,
   http: [port: 4000],

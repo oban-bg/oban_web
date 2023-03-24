@@ -46,24 +46,30 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:oban, "~> 2.14.0-dev", github: "sorentwo/oban", override: true},
-      {:oban_met, "~> 0.1", path: "../oban_met"},
-      {:phoenix, "1.7.0-rc.0", override: true},
+      {:phoenix, "1.7.0"},
       {:phoenix_html, "~> 3.2"},
       {:phoenix_pubsub, "~> 2.0"},
-      {:phoenix_live_view, "~> 0.18.3"},
+      {:phoenix_live_view, "~> 0.18.18"},
+
+      # Oban
+      {:oban, "~> 2.14", override: true},
+      {:oban_met, "~> 0.1", path: "../oban_met"},
+      {:oban_pro, "~> 0.13", repo: :oban},
+
+      # Dev Server
+      {:bandit, "~> 0.7", only: :dev},
+      {:faker, "~> 0.17", only: :dev},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:tailwind, "~> 0.1", only: :dev, runtime: false},
+
+      # Tooling
+      {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
+      {:floki, "~> 0.33", only: [:test, :dev]},
+
+      # Docs and Publishing
       {:esbuild, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
-      {:faker, "~> 0.17", only: :dev},
-      {:lys_publish, "~> 0.1",
-       only: :dev, runtime: false, optional: true, path: "../lys_publish"},
-      {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:plug_cowboy, "~> 2.2", only: :dev},
-      {:tailwind, "~> 0.1", only: :dev, runtime: false},
-      {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
-      {:oban_pro, "~> 0.12", only: [:test, :dev], repo: :oban, path: "../oban_pro"},
-      {:floki, "~> 0.33", only: [:test]},
-      {:stream_data, "~> 0.5", only: [:test]}
+      {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
     ]
   end
 
