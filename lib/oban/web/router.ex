@@ -140,10 +140,6 @@ defmodule Oban.Web.Router do
     end
   end
 
-  defp validate_opt!({:default_refresh, _refresh}) do
-    IO.warn("The :default_refresh option is deprecated, use a Resolver callback module instead")
-  end
-
   defp validate_opt!({:resolver, resolver}) do
     unless is_atom(resolver) and not is_nil(resolver) do
       raise ArgumentError, """
