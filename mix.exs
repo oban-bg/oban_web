@@ -52,9 +52,9 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "~> 0.18.18"},
 
       # Oban
-      {:oban, "~> 2.14", override: true},
+      {:oban, "~> 2.14", override: true, path: "../oban"},
       {:oban_met, "~> 0.1", path: "../oban_met"},
-      {:oban_pro, "~> 0.13", repo: :oban},
+      {:oban_pro, "~> 0.13", path: "../oban_pro"},
 
       # Dev Server
       {:bandit, "~> 0.7", only: :dev},

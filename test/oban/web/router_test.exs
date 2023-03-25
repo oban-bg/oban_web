@@ -36,7 +36,7 @@ defmodule Oban.Web.RouterTest do
 
   describe "__options__" do
     test "setting default options in the router module" do
-      {session_name, session_opts, route_opts} = Router.__options__([])
+      {session_name, session_opts, route_opts} = Router.__options__("/oban", [])
 
       assert session_name == :oban_dashboard
       assert route_opts[:as] == :oban_dashboard
@@ -87,25 +87,25 @@ defmodule Oban.Web.RouterTest do
 
     test "validating oban name values" do
       assert_raise ArgumentError, ~r/invalid :oban_name/, fn ->
-        Router.__options__(oban_name: "MyApp.Oban")
+        Router.__options__("/oban", oban_name: "MyApp.Oban")
       end
     end
 
     test "validating socket_path values" do
       assert_raise ArgumentError, ~r/invalid :socket_path/, fn ->
-        Router.__options__(socket_path: :live)
+        Router.__options__("/oban", socket_path: :live)
       end
     end
 
     test "validating transport values" do
       assert_raise ArgumentError, ~r/invalid :transport/, fn ->
-        Router.__options__(transport: "webpoll")
+        Router.__options__("/oban", transport: "webpoll")
       end
     end
 
     test "validating resolve_user values" do
       assert_raise ArgumentError, ~r/invalid :resolver/, fn ->
-        Router.__options__(resolver: nil)
+        Router.__options__("/oban", resolver: nil)
       end
     end
   end
@@ -117,7 +117,7 @@ defmodule Oban.Web.RouterTest do
   end
 
   defp options_to_session(conn, opts) do
-    {_name, sess_opts, _opts} = Router.__options__(opts)
+    {_name, sess_opts, _opts} = Router.__options__("/oban", opts)
 
     {Router, :__session__, session_opts} = Keyword.get(sess_opts, :session)
 

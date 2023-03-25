@@ -34,11 +34,20 @@ defmodule Oban.Web.Router do
       end
   """
   defmacro oban_dashboard(path, opts \\ []) do
+    opts =
+      if Macro.quoted_literal?(opts) do
+        Macro.prewalk(opts, &expand_alias(&1, __CALLER__))
+      else
+        opts
+      end
+
     quote bind_quoted: binding() do
+      prefix = Phoenix.Router.scoped_path(__MODULE__, path)
+
       scope path, alias: false, as: false do
         import Phoenix.LiveView.Router, only: [live: 4, live_session: 3]
 
-        {session_name, session_opts, route_opts} = Oban.Web.Router.__options__(opts)
+        {session_name, session_opts, route_opts} = Oban.Web.Router.__options__(prefix, opts)
 
         live_session session_name, session_opts do
           live "/", Oban.Web.DashboardLive, :home, route_opts
@@ -49,21 +58,22 @@ defmodule Oban.Web.Router do
     end
   end
 
+  defp expand_alias({:__aliases__, _, _} = alias, env) do
+    Macro.expand(alias, %{env | function: {:oban_dashboard, 2}})
+  end
+
+  defp expand_alias(other, _env), do: other
+
   @doc false
-  def __options__(opts) do
+  def __options__(prefix, opts) do
     opts = Keyword.merge(@default_opts, opts)
 
     Enum.each(opts, &validate_opt!/1)
 
     session_name = Keyword.get(opts, :as, :oban_dashboard)
 
-    path_helper =
-      [session_name, :path]
-      |> Enum.join("_")
-      |> String.to_atom()
-
     session_args = [
-      path_helper,
+      prefix,
       opts[:oban_name],
       opts[:resolver],
       opts[:socket_path],
@@ -80,13 +90,13 @@ defmodule Oban.Web.Router do
   end
 
   @doc false
-  def __session__(conn, path_helper, oban, resolver, live_path, live_transport, csp_key) do
+  def __session__(conn, prefix, oban, resolver, live_path, live_transport, csp_key) do
     user = resolve_with_fallback(resolver, :resolve_user, [conn])
 
     csp_keys = expand_csp_nonce_keys(csp_key)
 
     %{
-      "path_helper" => path_helper,
+      "prefix" => prefix,
       "oban" => oban,
       "user" => user,
       "resolver" => resolver,

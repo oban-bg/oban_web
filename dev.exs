@@ -411,6 +411,14 @@ defmodule WebDev.Endpoint do
   plug WebDev.Router
 end
 
+defmodule WebDev.ErrorHTML do
+  use Phoenix.HTML
+
+  def render(template, _assigns) do
+    Phoenix.Controller.status_message_from_template(template)
+  end
+end
+
 # Configuration
 
 Application.put_env(:oban_web, WebDev.Endpoint,
@@ -420,6 +428,7 @@ Application.put_env(:oban_web, WebDev.Endpoint,
   http: [port: 4000],
   live_view: [signing_salt: "eX7TFPY6Y/+XQ1o2pOUW3DjgAoXGTAdX"],
   pubsub_server: WebDev.PubSub,
+  render_errors: [formats: [html: WebDev.ErrorHTML], layout: false],
   secret_key_base: "jAu3udxm+8tIRDXLLKo+EupAlEvdLsnNG82O8e9nqylpBM9gP8AjUnZ4PWNttztU",
   url: [host: "localhost"],
   watchers: [
@@ -429,13 +438,15 @@ Application.put_env(:oban_web, WebDev.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/oban/web/components/.*(ex)$"
+      ~r"lib/oban/web/components/.*(ex)$",
+      ~r"lib/oban/web/live/.*(ex)$"
     ]
   ]
 )
 
 Application.put_env(:oban_web, WebDev.Repo, url: "postgres://localhost:5432/oban_web_dev")
 Application.put_env(:phoenix, :serve_endpoints, true)
+Application.put_env(:phoenix, :persistent, true)
 
 oban_opts = [
   engine: Oban.Pro.Queue.SmartEngine,
@@ -459,10 +470,10 @@ oban_opts = [
   ]
 ]
 
-supervise = fn ->
+Task.async(fn ->
   children = [
-    {WebDev.Repo, []},
     {Phoenix.PubSub, [name: WebDev.PubSub, adapter: Phoenix.PubSub.PG2]},
+    {WebDev.Repo, []},
     {Oban, oban_opts},
     {WebDev.Generator, []},
     {WebDev.Endpoint, []}
@@ -475,8 +486,4 @@ supervise = fn ->
   Ecto.Migrator.run(WebDev.Repo, [{0, WebDev.Migration0}], :up, all: true)
 
   Process.sleep(:infinity)
-end
-
-supervise
-|> Task.async()
-|> Task.await(:infinity)
+end)

@@ -6,7 +6,7 @@ defmodule Oban.Web.DashboardLive do
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
     %{"oban" => oban, "refresh" => refresh} = session
-    %{"path_helper" => path_helper, "resolver" => resolver} = session
+    %{"prefix" => prefix, "resolver" => resolver} = session
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
@@ -14,7 +14,7 @@ defmodule Oban.Web.DashboardLive do
     _met = await_init([oban, Oban.Met], :met)
     page = resolve_page(params)
 
-    Process.put(:routing, {socket, path_helper})
+    Process.put(:routing, {socket, prefix})
 
     socket =
       socket
@@ -134,7 +134,7 @@ defmodule Oban.Web.DashboardLive do
             conf
         after
           timeout ->
-            raise RuntimeError, "no config registered for #{inspect(oban_name)} instance"
+            raise RuntimeError, "no config registered for #{inspect(args)} instance"
         end
 
       pid when is_pid(pid) ->

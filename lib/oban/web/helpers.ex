@@ -3,38 +3,25 @@ defmodule Oban.Web.Helpers do
 
   alias Oban.Job
   alias Oban.Web.{AccessError, Resolver, Timing}
+  alias Phoenix.VerifiedRoutes
 
   # Routing Helpers
 
   @doc """
   Construct a path to a dashboard page with optional params.
 
-  Routing is based on a socket and path helper tuple stored in the process
-  dictionary. Proper routing can be disabled for testing by setting the value to
-  `:nowhere`.
+  Routing is based on a socket and prefix tuple stored in the process dictionary. Proper routing
+  can be disabled for testing by setting the value to `:nowhere`.
   """
-  def oban_path(args) when is_list(args) do
-    case Process.get(:routing) do
-      {socket, path_helper} ->
-        apply(socket.router.__helpers__(), path_helper, [socket | args])
+  def oban_path(route, params \\ %{})
 
-      :nowhere ->
-        "/"
-
-      nil ->
-        raise RuntimeError, "nothing stored in the :routing key"
-    end
+  def oban_path(route, params) when is_list(route) do
+    route
+    |> Enum.join("/")
+    |> oban_path(params)
   end
 
-  def oban_path(page) when is_atom(page) do
-    oban_path([:index, page])
-  end
-
-  def oban_path(page, %{id: id}) when is_atom(page) do
-    oban_path([:show, page, id])
-  end
-
-  def oban_path(page, params) when is_atom(page) and is_map(params) do
+  def oban_path(route, params) do
     params =
       params
       |> Enum.reject(fn {_, val} -> is_nil(val) end)
@@ -43,7 +30,16 @@ defmodule Oban.Web.Helpers do
         {key, val} -> {key, val}
       end)
 
-    oban_path([:index, page, params])
+    case Process.get(:routing) do
+      {socket, prefix} ->
+        VerifiedRoutes.unverified_path(socket, socket.router, "#{prefix}/#{route}", params)
+
+      :nowhere ->
+        "/"
+
+      nil ->
+        raise RuntimeError, "nothing stored in the :routing key"
+    end
   end
 
   @doc """

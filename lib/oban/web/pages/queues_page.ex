@@ -71,14 +71,14 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
     |> assign_new(:expanded, &MapSet.new/0)
-    |> assign_new(:gossip, fn -> Met.all_checks(socket.assigns.conf.name) end)
-    |> assign_new(:counts, fn -> Met.all_gauges(socket.assigns.conf.name) end)
+    |> assign_new(:gossip, fn -> Met.checks(socket.assigns.conf.name) end)
+    |> assign_new(:counts, fn -> Met.latest(socket.assigns.conf.name) end)
   end
 
   @impl Page
   def handle_refresh(socket) do
-    gossip = Met.all_checks(socket.assigns.conf.name)
-    counts = Met.all_gauges(socket.assigns.conf.name)
+    gossip = Met.checks(socket.assigns.conf.name)
+    counts = Met.latest(socket.assigns.conf.name)
 
     assign(socket, counts: counts, gossip: gossip)
   end

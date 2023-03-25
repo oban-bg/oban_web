@@ -47,7 +47,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         </button>
 
         <%= live_patch(@queue,
-          to: oban_path(:queues, %{id: @queue}),
+          to: oban_path([:queues, @queue]),
           "aria-label": "View and configure #{@queue} details",
           class:
             "block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500",
