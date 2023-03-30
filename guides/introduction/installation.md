@@ -117,8 +117,20 @@ config :my_app, Oban,
 
 ## Mounting the Dashboard
 
-After configuration you can mount the dashboard within your application's
-`router.ex`:
+Oban Web is compatible with Phoenix 1.6 and 1.7, and therefore requires route
+helpers to function properly. Ensure you have routing helpers enabled for your
+application:
+
+```elixir
+def router do
+  quote do
+    use Phoenix.Router, helpers: true
+
+    ...
+```
+
+With helpers enabled and Oban configured you're ready to mount the dashboard
+within your application's `router.ex`:
 
 ```elixir
 # lib/my_app_web/router.ex
