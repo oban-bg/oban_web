@@ -8,11 +8,6 @@ module.exports = {
       mono: ["Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"]
     },
     extend: {
-      colors: {
-        gray: {
-          950: "#0D1320"
-        }
-      },
       spacing: {
         "72": "18rem",
         "84": "21rem",

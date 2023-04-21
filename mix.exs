@@ -58,16 +58,16 @@ defmodule Oban.Web.MixProject do
 
       # Dev Server
       {:bandit, "~> 0.7", only: :dev},
+      {:esbuild, "~> 0.7", only: :dev, runtime: false},
       {:faker, "~> 0.17", only: :dev},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:tailwind, "~> 0.1", only: :dev, runtime: false},
+      {:tailwind, "~> 0.2", only: :dev, runtime: false},
 
       # Tooling
       {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.33", only: [:test, :dev]},
 
       # Docs and Publishing
-      {:esbuild, "~> 0.5", only: :dev, runtime: false},
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
       {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
     ]
