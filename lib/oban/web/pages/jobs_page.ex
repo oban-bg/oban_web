@@ -19,20 +19,21 @@ defmodule Oban.Web.JobsPage do
         conf={@conf}
         module={Sidebar}
         sections={~w(nodes states queues)a}
-        counts={@counts}
         page={:jobs}
         params={without_defaults(@params, @default_params)}
         socket={@socket}
       />
 
       <div class="flex-grow">
-        <.live_component
-          id="chart"
-          conf={@conf}
-          module={Chart}
-          params={@params}
-          system_time={@system_time}
-        />
+        <!--
+          <.live_component
+            id="chart"
+            conf={@conf}
+            module={Chart}
+            params={@params}
+            system_time={@system_time}
+          />
+        -->
 
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
@@ -51,7 +52,6 @@ defmodule Oban.Web.JobsPage do
                 module={HeaderComponent}
                 params={@params}
                 jobs={@jobs}
-                counts={@counts}
                 selected={@selected}
               />
               <.live_component id="search" module={SearchComponent} params={@params} />
@@ -92,8 +92,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
     |> assign_new(:selected, &MapSet.new/0)
-    |> assign_new(:gossip, fn -> Metrics.checks(socket.assigns.conf.name) end)
-    |> assign_new(:counts, fn -> Metrics.state_counts(socket.assigns.conf.name) end)
+    |> assign_new(:checks, fn -> Metrics.checks(socket.assigns.conf.name) end)
     |> assign_new(:system_time, fn -> System.system_time(:second) end)
   end
 
@@ -109,8 +108,7 @@ defmodule Oban.Web.JobsPage do
     assign(socket,
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
-      gossip: Metrics.checks(socket.assigns.conf.name),
-      counts: Metrics.state_counts(socket.assigns.conf.name),
+      checks: Metrics.checks(socket.assigns.conf.name),
       selected: selected,
       system_time: System.system_time(:second)
     )

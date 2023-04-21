@@ -115,19 +115,6 @@ defmodule Oban.Web.Query do
     :ok
   end
 
-  @doc false
-  def queue_state_counts(_conf, []), do: []
-
-  def queue_state_counts(%Config{} = conf, [_ | _] = states) do
-    query =
-      Job
-      |> where([j], j.state in ^states)
-      |> group_by([j], [j.queue, j.state])
-      |> select([j], {j.queue, j.state, count(j.id)})
-
-    Repo.all(conf, query, timeout: :timer.seconds(20))
-  end
-
   # Helpers
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)

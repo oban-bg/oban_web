@@ -27,23 +27,4 @@ defmodule Oban.Web.Metrics do
 
     # this is where we apply the padding to fill out the time
   end
-
-  @doc """
-  Retrieve gauges for all job states (which is typically all gauges).
-
-  This mimics the output of the legacy `Stats.all_counts/1` function.
-  """
-  @spec state_counts(Oban.name()) :: [map()]
-  def state_counts(oban_name) do
-    base = Map.new(@states, &{&1, 0})
-
-    @states
-    |> Enum.map(&{&1, Met.latest(oban_name, &1, group: "queue")})
-    |> Enum.reduce(%{}, fn {state, queues}, acc ->
-      Enum.reduce(queues, acc, fn {queue, value}, sub_acc ->
-        Map.update(sub_acc, queue, %{base | state => value}, &Map.put(&1, state, value))
-      end)
-    end)
-    |> Enum.map(fn {queue, counts} -> Map.put(counts, "name", queue) end)
-  end
 end

@@ -8,74 +8,63 @@ defmodule Oban.Web.Helpers.SidebarHelper do
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   def nodes(oban_name) do
-    counts = Met.latest(oban_name, :executing, group: "node")
+    oban_name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn check, acc ->
+      nname = node_name(check["name"], check["node"])
+      count = length(check["running"])
+      limit = check["local_limit"] || check["limit"]
 
-    limits =
-      oban_name
-      |> Met.checks()
-      |> Enum.reduce(%{}, fn %{"name" => name} = check, acc ->
-        limit = check["limit"] || check["local_limit"]
-
-        Map.update(acc, name, limit, &(&1 + limit))
-      end)
-
-    counts
-    |> Enum.sort()
-    |> Enum.map(fn {node, exec} ->
-      %{name: node_name(oban_name, node), count: exec, limit: Map.get(limits, node, 0)}
+      acc
+      |> Map.put_new(nname, %{name: nname, count: 0, limit: 0})
+      |> update_in([nname, :count], &(&1 + count))
+      |> update_in([nname, :limit], &(&1 + limit))
     end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
   end
 
   def states(oban_name) do
-    Enum.map(@ordered_states, fn state ->
-      count =
-        oban_name
-        |> Met.latest(state)
-        |> Map.get("all", 0)
+    counts = Met.latest(oban_name, :full_count, group: "state")
 
-      %{name: state, count: count}
-    end)
+    for state <- @ordered_states do
+      %{name: state, count: Map.get(counts, state, 0)}
+    end
   end
 
   def queues(oban_name) do
-    checks = Met.checks(oban_name)
-    avail_counts = Met.latest(oban_name, :available, group: "queue")
-    execu_counts = Met.latest(oban_name, :executing, group: "queue")
+    avail_counts =
+      Met.latest(oban_name, :full_count, group: "queue", filters: [state: "available"])
 
-    total_limits =
-      Enum.reduce(checks, %{}, fn payload, acc ->
-        case payload_limit(payload) do
-          {:global, limit} ->
-            Map.put(acc, payload["queue"], limit)
+    execu_counts =
+      Met.latest(oban_name, :full_count, group: "queue", filters: [state: "executing"])
 
-          {:local, limit} ->
-            Map.update(acc, payload["queue"], limit, &(&1 + limit))
-        end
-      end)
-
-    pause_states =
-      Enum.reduce(checks, %{}, fn %{"paused" => paused, "queue" => queue}, acc ->
-        Map.update(acc, queue, paused, &(&1 or paused))
-      end)
-
-    [avail_counts, execu_counts, total_limits]
-    |> Enum.flat_map(&Map.keys/1)
-    |> :lists.usort()
-    |> Enum.map(fn queue ->
-      %{
+    oban_name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn %{"queue" => queue} = check, acc ->
+      empty = %{
         name: queue,
         avail: Map.get(avail_counts, queue, 0),
         execu: Map.get(execu_counts, queue, 0),
-        limit: Map.get(total_limits, queue, 0),
-        paused?: Map.get(pause_states, queue, true),
-        global?: Enum.any?(checks, &(&1["queue"] == queue and is_map(&1["global_limit"]))),
-        rate_limited?: Enum.any?(checks, &(&1["queue"] == queue and is_map(&1["rate_limit"])))
+        limit: 0,
+        paused?: false,
+        global?: false,
+        rate_limited?: false
       }
+
+      acc
+      |> Map.put_new(queue, empty)
+      |> update_in([queue, :limit], &check_limit(&1, check))
+      |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
+      |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))
+      |> update_in([queue, :paused?], &(&1 or check["paused"]))
     end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
   end
 
-  defp payload_limit(%{"global_limit" => %{"allowed" => limit}}), do: {:global, limit}
-  defp payload_limit(%{"local_limit" => limit}) when is_integer(limit), do: {:local, limit}
-  defp payload_limit(%{"limit" => limit}) when is_integer(limit), do: {:local, limit}
-  defp payload_limit(_payload), do: {:local, 0}
+  defp check_limit(_total, %{"global_limit" => %{"allowed" => limit}}), do: limit
+  defp check_limit(total, %{"local_limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, %{"limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, _payload), do: total
 end

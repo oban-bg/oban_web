@@ -15,7 +15,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
      assign(
        socket,
        numerator: Enum.count(jobs),
-       denominator: state_count(assigns.counts, assigns.params),
+       denominator: 10, # state_count(assigns.counts, assigns.params),
        select_mode: select_mode,
        state: get_in(assigns, [:params, :state]) || "executing"
      )}

@@ -453,7 +453,6 @@ Application.put_env(:phoenix, :persistent, true)
 oban_opts = [
   engine: Oban.Pro.Queue.SmartEngine,
   repo: WebDev.Repo,
-  notifier: Oban.Notifiers.PG,
   queues: [
     analysis: 20,
     default: 30,
@@ -472,7 +471,6 @@ oban_opts = [
 ]
 
 Task.async(fn ->
-
   children = [
     {Phoenix.PubSub, [name: WebDev.PubSub, adapter: Phoenix.PubSub.PG2]},
     {WebDev.Repo, []},
@@ -482,9 +480,6 @@ Task.async(fn ->
   ]
 
   Ecto.Adapters.Postgres.storage_up(WebDev.Repo.config())
-
-  Node.connect(:"worker1@local") |> IO.inspect(label: "connect 1")
-  Node.connect(:"worker2@local") |> IO.inspect(label: "connect 2")
 
   {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
 
