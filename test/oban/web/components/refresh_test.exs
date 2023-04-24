@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.RefreshTest do
+defmodule Oban.Web.Components.RefreshTest do
   use Oban.Web.Case, async: true
 
   alias Oban.Web.Live.Refresh

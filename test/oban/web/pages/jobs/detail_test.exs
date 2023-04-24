@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.DetailsTest do
+defmodule Oban.Web.Pages.Jobs.DetailTest do
   use Oban.Web.Case
 
   import Phoenix.LiveViewTest

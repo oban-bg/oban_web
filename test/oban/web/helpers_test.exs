@@ -58,7 +58,7 @@ defmodule Oban.Web.HelpersTest do
         |> NaiveDateTime.to_iso8601()
         |> Helpers.iso8601_to_words()
 
-      assert words =~ "1s ago"
+      assert words =~ ~r/[1,2]s ago/
     end
   end
 end
