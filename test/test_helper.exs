@@ -1,5 +1,7 @@
 Application.ensure_all_started(:postgrex)
 
+Application.put_env(:oban_met, :auto_start, false)
+
 Application.put_env(:oban_web, Oban.Web.Endpoint,
   check_origin: false,
   http: [port: 4002],
@@ -27,7 +29,7 @@ defmodule Oban.Web.Test.Router do
     plug :fetch_session
   end
 
-  scope "/stuff", ThisWontBeUsed, as: :this_wont_be_used do
+  scope "/", ThisWontBeUsed, as: :this_wont_be_used do
     pipe_through :browser
 
     oban_dashboard "/oban"

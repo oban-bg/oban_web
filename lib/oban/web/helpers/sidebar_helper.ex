@@ -11,7 +11,7 @@ defmodule Oban.Web.Helpers.SidebarHelper do
     oban_name
     |> Met.checks()
     |> Enum.reduce(%{}, fn check, acc ->
-      nname = node_name(check["name"], check["node"])
+      nname = node_name(check["node"], check["name"])
       count = length(check["running"])
       limit = check["local_limit"] || check["limit"]
 
@@ -42,18 +42,20 @@ defmodule Oban.Web.Helpers.SidebarHelper do
     oban_name
     |> Met.checks()
     |> Enum.reduce(%{}, fn %{"queue" => queue} = check, acc ->
-      empty = %{
-        name: queue,
-        avail: Map.get(avail_counts, queue, 0),
-        execu: Map.get(execu_counts, queue, 0),
-        limit: 0,
-        paused?: false,
-        global?: false,
-        rate_limited?: false
-      }
+      empty = fn ->
+        %{
+          name: queue,
+          avail: Map.get(avail_counts, queue, 0),
+          execu: Map.get(execu_counts, queue, 0),
+          limit: 0,
+          paused?: false,
+          global?: false,
+          rate_limited?: false
+        }
+      end
 
       acc
-      |> Map.put_new(queue, empty)
+      |> Map.put_new_lazy(queue, empty)
       |> update_in([queue, :limit], &check_limit(&1, check))
       |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
       |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))

@@ -14,10 +14,9 @@ defmodule Oban.Web.QueuesPage do
     <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <.live_component
         id="sidebar"
+        conf={@conf}
         module={Sidebar}
         sections={[:nodes]}
-        counts={@counts}
-        gossip={@gossip}
         page={:queues}
         params={without_defaults(@params, @default_params)}
         socket={@socket}
@@ -72,7 +71,7 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:default_params, default)
     |> assign_new(:expanded, &MapSet.new/0)
     |> assign_new(:gossip, fn -> Met.checks(socket.assigns.conf.name) end)
-    |> assign_new(:counts, fn -> Met.latest(socket.assigns.conf.name) end)
+    |> assign_new(:counts, fn -> Met.latest(socket.assigns.conf.name, :full_counts) end)
   end
 
   @impl Page

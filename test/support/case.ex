@@ -4,7 +4,7 @@ defmodule Oban.Web.Case do
   use ExUnit.CaseTemplate
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Oban.Job
+  alias Oban.{Job, Notifier}
   alias Oban.Pro.Testing
   alias Oban.Web.Repo
 
@@ -41,10 +41,21 @@ defmodule Oban.Web.Case do
     name
   end
 
-  def flush_reporter do
-    Oban
+  def flush_reporter(oban_name \\ Oban) do
+    Notifier.listen(oban_name, :gossip)
+
+    oban_name
     |> Oban.Registry.whereis(Oban.Met.Reporter)
-    |> send(:report)
+    |> send(:checkpoint)
+
+    receive do
+      {:notification, :gossip, _} ->
+        Process.sleep(10)
+
+        :ok
+    after
+      250 -> raise "reporter failed to flush"
+    end
   end
 
   # Factory Helpers
@@ -72,7 +83,7 @@ defmodule Oban.Web.Case do
   def gossip(meta_opts) do
     name = Keyword.get(meta_opts, :name, Oban)
 
-    Oban.Notifier.notify(name, :gossip, %{checks: [build_gossip(meta_opts)]})
+    Notifier.notify(name, :gossip, %{checks: [build_gossip(meta_opts)]})
 
     Process.sleep(5)
   end

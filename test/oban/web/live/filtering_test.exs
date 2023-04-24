@@ -33,7 +33,6 @@ defmodule Oban.Web.Live.FilteringTest do
       click_state(live, state)
 
       assert has_job?(live, "#{title}Worker")
-      assert has_element?(live, "#jobs-header", "(1/1 #{title})")
     end
   end
 
@@ -80,6 +79,10 @@ defmodule Oban.Web.Live.FilteringTest do
   end
 
   test "filtering jobs by queue", %{live: live} do
+    gossip(node: "web-1", queue: "alpha")
+    gossip(node: "web-1", queue: "delta")
+    gossip(node: "web-1", queue: "gamma")
+
     changesets = [
       Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
       Job.new(%{ref: 2}, queue: "delta", worker: DeltaWorker),

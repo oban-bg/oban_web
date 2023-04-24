@@ -1,14 +1,15 @@
 defmodule Oban.Web.Live.Chart do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Metrics
+  alias Oban.Met
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     timeslice =
       assigns.conf.name
-      |> Metrics.timeslice(assigns.params.state, by: 1, lookback: div(1080, 10))
-      |> Enum.reverse()
+      |> Met.timeslice(:exec_counts, by: 1, lookback: div(1080, 10))
+      |> Enum.group_by(&elem(&1, 0), &Tuple.delete_at(&1, 0))
+      |> Enum.sort(:asc)
 
     max =
       timeslice
@@ -86,12 +87,7 @@ defmodule Oban.Web.Live.Chart do
     assigns = assign(assigns, height: height)
 
     ~H"""
-    <rect
-      x={@total_width - 10 - @index * 10}
-      y={@total_height - @height}
-      width="9"
-      height={@height}
-    />
+    <rect x={@total_width - 10 - @index * 10} y={@total_height - @height} width="9" height={@height} />
     """
   end
 
