@@ -124,6 +124,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def no_symbol(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def pause_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -141,7 +155,11 @@ defmodule Oban.Web.Components.Icons do
   def plus_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </.svg_outline>
     """
   end
@@ -151,7 +169,11 @@ defmodule Oban.Web.Components.Icons do
   def minus_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </.svg_outline>
     """
   end
