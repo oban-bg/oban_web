@@ -109,7 +109,7 @@ defmodule Oban.Web.Layouts do
     ~H"""
     <button
       id="dark-toggle"
-      class="ml-3 relative text-slate-500 dark:text-slate-400 rounded-full focus:outline-none hover:text-slate-600 dark:hover:text-slate-300 hidden md:block"
+      class="ml-3 relative text-gray-500 dark:text-gray-400 rounded-full focus:outline-none hover:text-gray-600 dark:hover:text-gray-300 hidden md:block"
       data-title="Toggle dark mode"
       phx-hook="ToggleDarkMode"
     >

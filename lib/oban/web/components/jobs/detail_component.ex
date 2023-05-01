@@ -208,37 +208,44 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Queue
-            </span> <%= @job.queue %>
+            </span>
+            <%= @job.queue %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Attempt
-            </span> <%= @job.attempt %> of <%= @job.max_attempts %>
+            </span>
+            <%= @job.attempt %> of <%= @job.max_attempts %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Priority
-            </span> <%= @job.priority %>
+            </span>
+            <%= @job.priority %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Tags
-            </span> <%= formatted_tags(@job) %>
+            </span>
+            <%= formatted_tags(@job) %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Node
-            </span> <%= attempted_by(@job) %>
+            </span>
+            <%= attempted_by(@job) %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Queue Time
-            </span> <%= Timing.queue_time(@job) %>
+            </span>
+            <%= Timing.queue_time(@job) %>
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Run Time
-            </span> <%= Timing.run_time(@job) %>
+            </span>
+            <%= Timing.run_time(@job) %>
           </div>
         </div>
       </div>

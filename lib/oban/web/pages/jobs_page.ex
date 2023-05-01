@@ -34,7 +34,6 @@ defmodule Oban.Web.JobsPage do
             system_time={@system_time}
           />
         -->
-
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
             <.live_component

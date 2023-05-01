@@ -35,7 +35,7 @@ defmodule Oban.Web.Live.Chart do
         <g fill="currentColor" transform="translate(0, 10)">
           <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
             <line
-              class="text-slate-800"
+              class="text-gray-800"
               stroke="currentColor"
               y1={index * div(@height, @guides)}
               y2={index * div(@height, @guides)}
@@ -43,7 +43,7 @@ defmodule Oban.Web.Live.Chart do
               x2={@width + 24}
             />
             <text
-              class="text-slate-400 text-xs tabular"
+              class="text-gray-400 text-xs tabular"
               y={index * div(@height, @guides) + @guides - 1}
             >
               <%= label %>
@@ -53,14 +53,14 @@ defmodule Oban.Web.Live.Chart do
 
         <g transform="translate(24, 10)">
           <rect
-            class="text-slate-700"
+            class="text-gray-700"
             width={@width}
             height={@height}
             stroke="currentColor"
             fill="none"
           />
 
-          <g class="fill-slate-600">
+          <g class="fill-gray-600">
             <%= for {slice, index} <- Enum.with_index(@timeslice) do %>
               <.col
                 index={index}
@@ -74,7 +74,7 @@ defmodule Oban.Web.Live.Chart do
         </g>
       </svg>
 
-      <span class="text-slate-500 dark:text-slate-400">
+      <span class="text-gray-500 dark:text-gray-400">
         <Icons.adjustments_vertical />
       </span>
     </div>

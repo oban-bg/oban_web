@@ -14,7 +14,7 @@ defmodule Oban.Web.Live.Theme do
         aria-expanded="true"
         aria-haspopup="listbox"
         aria-labelledby="listbox-label"
-        class="text-slate-500 dark:text-slate-400 focus:outline-none hover:text-slate-600 dark:hover:text-slate-300 hidden md:block"
+        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-300 hidden md:block"
         data-title="Toggle theme"
         id="theme-menu-toggle"
         phx-hook="Tippy"
@@ -25,7 +25,7 @@ defmodule Oban.Web.Live.Theme do
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-32 py-1 overflow-hidden rounded-lg shadow-lg text-sm font-semibold bg-white dark:bg-slate-800 focus:outline-none"
+        class="hidden absolute z-50 top-full right-0 mt-2 w-32 py-1 overflow-hidden rounded-lg shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
         id="theme-menu"
         role="listbox"
         tabindex="-1"
@@ -46,14 +46,15 @@ defmodule Oban.Web.Live.Theme do
       if assigns.theme == assigns.value do
         "text-blue-500 dark:text-blue-400"
       else
-        "text-slate-500 dark:text-slate-400 "
+        "text-gray-500 dark:text-gray-400 "
       end
 
     assigns = assign(assigns, :class, class)
 
     ~H"""
     <li
-      class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-slate-50 hover:dark:bg-slate-600/30 #{@class}"}
+      class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-gray-50
+      hover:dark:bg-gray-600/30 #{@class}"}
       id={"select-theme-#{@value}"}
       phx-click-away={JS.hide(to: "#theme-menu")}
       phx-hook="ChangeTheme"
@@ -61,7 +62,7 @@ defmodule Oban.Web.Live.Theme do
       value={@value}
     >
       <.theme_icon theme={@value} />
-      <span class="capitalize text-slate-800 dark:text-slate-200"><%= @value %></span>
+      <span class="capitalize text-gray-800 dark:text-gray-200"><%= @value %></span>
     </li>
     """
   end
