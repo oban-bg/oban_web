@@ -114,22 +114,7 @@ defmodule Oban.Web.Queues.TableComponent do
           <tr>
             <td colspan="9" class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
               <div class="flex items-center justify-center space-x-2">
-                <svg
-                  class="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
-                <span>No queues match the current set of filters.</span>
+                <Icons.queue_list /> <span>No active queues.</span>
               </div>
             </td>
           </tr>

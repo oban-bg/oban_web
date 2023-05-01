@@ -3,6 +3,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   use Phoenix.Component
 
+  alias Oban.Web.Components.Icons
   alias Oban.Web.Timing
 
   @empty_time "—"
@@ -35,14 +36,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     >
       <span class={"flex self-center justify-center items-center h-16 w-16 transition-colors duration-200 rounded-full #{timeline_class(@state, @job)}"}>
         <%= if timeline_icon(@state, @job) == :checkmark do %>
-          <svg class="h-12 w-12" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clip-rule="evenodd"
-            >
-            </path>
-          </svg>
+          <Icons.check class="w-12 h-12" />
         <% end %>
         <%= if timeline_icon(@state, @job) == :spinner do %>
           <svg class="h-12 w-12 animate-spin" fill="currentColor" viewBox="0 0 20 20">

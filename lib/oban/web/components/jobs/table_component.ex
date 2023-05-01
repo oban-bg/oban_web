@@ -47,11 +47,10 @@ defmodule Oban.Web.Jobs.TableComponent do
           </th>
           <th
             scope="col"
-            class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
+            class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1 pr-3"
           >
             <Sort.link label="time" params={@params} socket={@socket} page={:jobs} justify="end" />
           </th>
-          <th scope="col" class="w-10"></th>
         </tr>
       </thead>
 

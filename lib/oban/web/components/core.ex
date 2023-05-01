@@ -3,6 +3,8 @@ defmodule Oban.Web.Components.Core do
 
   use Phoenix.Component
 
+  alias Oban.Web.Components.Icons
+
   @doc """
   A numerical input with increment and decrement buttons.
   """
@@ -42,16 +44,7 @@ defmodule Oban.Web.Components.Core do
             phx-target={@myself}
             phx-value-field={@name}
           >
-            <svg
-              class="w-3 h-3 text-gray-600 dark:text-gray-200"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7">
-              </path>
-            </svg>
+            <Icons.chevron_up class="w-3 h-3 text-gray-600 dark:text-gray-200" />
           </button>
 
           <button
@@ -64,16 +57,7 @@ defmodule Oban.Web.Components.Core do
             phx-target={@myself}
             phx-value-field={@name}
           >
-            <svg
-              class="w-3 h-3 text-gray-600 dark:text-gray-200"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
-              </path>
-            </svg>
+            <Icons.chevron_down class="w-3 h-3 text-gray-600 dark:text-gray-200" />
           </button>
         </div>
       </div>
@@ -99,44 +83,9 @@ defmodule Oban.Web.Components.Core do
       phx-hook="Tippy"
     >
       <%= if @paused do %>
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-          >
-          </path>
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          >
-          </path>
-        </svg>
+        <Icons.pause_circle class="w-5 h-5" />
       <% else %>
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          >
-          </path>
-        </svg>
+        <Icons.play_circle class="w-5 h-5" />
       <% end %>
     </button>
     """

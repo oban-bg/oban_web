@@ -56,14 +56,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     <div id="queue-details">
       <div class="flex justify-between items-center px-3 py-6">
         <%= live_patch to: oban_path(:queues), id: "back-link", class: "flex items-center hover:text-blue-500", "data-title": "Back to queues", "phx-hook": "Tippy" do %>
-          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fill-rule="evenodd"
-              d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
-              clip-rule="evenodd"
-            >
-            </path>
-          </svg>
+          <Icons.arrow_left class="w-5 h-5" />
           <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
         <% end %>
       </div>
@@ -85,42 +78,14 @@ defmodule Oban.Web.Queues.DetailComponent do
           <tr class="text-lg text-gray-800 dark:text-gray-100 tabular">
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
-                <svg
-                  class="w-4 h-4 text-gray-600 dark:text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  >
-                  </path>
-                </svg>
+                <Icons.clock class="w-4 h-5 text-gray-600 dark:text-gray-300" />
                 <span><%= started_at(@gossip) %></span>
               </div>
             </td>
 
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
-                <svg
-                  class="w-4 h-4 text-gray-600 dark:text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  >
-                  </path>
-                </svg>
+                <Icons.cog class="w-4 h-5 text-gray-600 dark:text-gray-300" />
                 <span><%= executing_count(@gossip) %></span>
               </div>
             </td>
@@ -128,21 +93,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             <%= for state <- ~w(available scheduled retryable cancelled discarded completed) do %>
               <td class="pb-6 px-3">
                 <div class="flex items-center space-x-2">
-                  <svg
-                    class="w-4 h-4 text-gray-600 dark:text-gray-300"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                    >
-                    </path>
-                  </svg>
+                  <Icons.square_stack class="w-4 h-5 text-gray-600 dark:text-gray-300" />
                   <span><%= integer_to_estimate(@counts[state]) %></span>
                 </div>
               </td>
@@ -153,15 +104,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
       <div>
         <div class="flex items-center pl-3 py-6">
-          <svg
-            class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z">
-            </path>
-          </svg>
+          <Icons.adjustments_horizontal class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400" />
           <h3 class="font-medium text-base">Global Configuration</h3>
         </div>
 
@@ -174,19 +117,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             phx-submit="local-submit"
           >
             <h3 class="flex items-center mb-4">
-              <svg
-                class="w-5 h-5 mr-1 text-gray-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                  clip-rule="evenodd"
-                >
-                </path>
-              </svg>
+              <Icons.map_pin class="w-5 h-5 mr-1 text-gray-500" />
               <span class="text-base font-medium">Local</span>
             </h3>
 
@@ -224,19 +155,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             }>
               <div class="flex items-center justify-between mb-4">
                 <h3 class="flex items-center">
-                  <svg
-                    class="w-5 h-5 mr-1 text-gray-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z"
-                      clip-rule="evenodd"
-                    >
-                    </path>
-                  </svg>
+                  <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
                   <span class="text-base font-medium">Global</span>
                 </h3>
 
@@ -283,19 +202,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             }>
               <div class="flex items-center justify-between mb-4">
                 <h3 class="flex items-center">
-                  <svg
-                    class="w-5 h-5 mr-1 text-gray-600 dark:text-gray-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M12 13a1 1 0 100 2h5a1 1 0 001-1V9a1 1 0 10-2 0v2.586l-4.293-4.293a1 1 0 00-1.414 0L8 9.586 3.707 5.293a1 1 0 00-1.414 1.414l5 5a1 1 0 001.414 0L11 9.414 14.586 13H12z"
-                      clip-rule="evenodd"
-                    >
-                    </path>
-                  </svg>
+                  <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
                   <span class="text-base font-medium">Rate Limit</span>
                 </h3>
 
@@ -378,21 +285,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
       <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
         <div class="flex items-center pl-3 py-6">
-          <svg
-            class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-            >
-            </path>
-          </svg>
+          <Icons.square_2x2 class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400" />
           <h3 class="font-medium text-base">Instances</h3>
         </div>
 
@@ -596,23 +489,13 @@ defmodule Oban.Web.Queues.DetailComponent do
           class={"#{if @enabled, do: "opacity-0 ease-out duration-100", else: "opacity-100 ease-in duration-200"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"}
           aria-hidden="true"
         >
-          <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
-            <path
-              d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+          <Icons.x_mark class="h-3 w-3 text-gray-400" />
         </span>
         <span
           class={"#{if @enabled, do: "opacity-100 ease-in duration-200", else: "opacity-0 ease-out duration-100"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"}
           aria-hidden="true"
         >
-          <svg class="h-3 w-3 text-blue-500" fill="currentColor" viewBox="0 0 12 12">
-            <path d="M3.707 5.293a1 1 0 00-1.414 1.414l1.414-1.414zM5 8l-.707.707a1 1 0 001.414 0L5 8zm4.707-3.293a1 1 0 00-1.414-1.414l1.414 1.414zm-7.414 2l2 2 1.414-1.414-2-2-1.414 1.414zm3.414 2l4-4-1.414-1.414-4 4 1.414 1.414z" />
-          </svg>
+          <Icons.check class="h-3 w-3 text-blue-500" />
         </span>
       </span>
     </button>
@@ -623,21 +506,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     ~H"""
     <div class="flex items-center justify-end mt-4 space-x-2">
       <%= if @locked do %>
-        <svg
-          class="w-5 h-5 text-gray-600 dark:text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-          >
-          </path>
-        </svg>
+        <Icons.lock_closed class="w-5 h-5 text-gray-600 dark:text-gray-400" />
       <% end %>
 
       <button
@@ -659,22 +528,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     >
       Requires
       <a href="https://getoban.pro" class="text-blue-500 font-semibold">
-        Oban Pro
-        <svg
-          class="w-3 h-3 inline-block align-text-top"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-          >
-          </path>
-        </svg>
+        Oban Pro <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block align-text-top" />
       </a>
     </span>
     """
