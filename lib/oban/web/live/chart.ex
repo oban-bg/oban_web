@@ -7,7 +7,7 @@ defmodule Oban.Web.Live.Chart do
   def update(assigns, socket) do
     timeslice =
       assigns.conf.name
-      |> Met.timeslice(:exec_counts, by: 1, lookback: div(1080, 10))
+      |> Met.timeslice(:exec_count, by: 1, lookback: 90)
       |> Enum.group_by(&elem(&1, 0), &Tuple.delete_at(&1, 0))
       |> Enum.sort(:asc)
 
@@ -15,51 +15,60 @@ defmodule Oban.Web.Live.Chart do
       timeslice
       |> Enum.map(fn {_ts, vals} -> slice_total(vals) end)
       |> Enum.max()
-      |> max(20)
 
     guides =
       max
       |> div(20)
       |> min(5)
-      |> max(3)
+      |> max(4)
 
     {:ok,
-     assign(socket, height: 140, guides: guides, max: max, timeslice: timeslice, width: 1080)}
+     assign(socket, height: 180, guides: guides, max: max, timeslice: timeslice, width: 1100)}
   end
+
+  # <g fill="none" font-size="10" text-anchor="end">
+  #   <g class="tick" transform="translate(0, 175.5)">
+  #     <line x2="1110" />
+  #     <text x="-3" dy="0.32em">0</text>
+  #   </g>
+  # </g>
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="w-full flex">
-      <svg class="w-full" height="160">
-        <g fill="currentColor" transform="translate(0, 10)">
+    <div class="bg-white dark:bg-gray-900 rounded-md shadow-md overflow-hidden w-full mb-3">
+      <div class="flex justify-between p-3">
+        <h3 class="dark:text-gray-200 text-sm font-semibold">Executed by State</h3>
+        <div class="flex space-x-2 text-gray-400">
+          <Icons.chart_bar_square />
+          <Icons.calendar_days />
+          <Icons.rectangle_group />
+        </div>
+      </div>
+
+      <svg class="w-full" height="200">
+        <g fill="currentColor" transform="translate(0, 10)" text-anchor="end">
           <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
             <line
-              class="text-gray-800"
+              class="text-gray-300 dark:text-gray-700"
               stroke="currentColor"
-              y1={index * div(@height, @guides)}
-              y2={index * div(@height, @guides)}
-              x1="24"
-              x2={@width + 24}
+              stroke-dasharray="4,4"
+              y1={@height - index * div(@height, @guides)}
+              y2={@height - index * div(@height, @guides)}
+              x1="42"
+              x2={@width + 20}
             />
             <text
-              class="text-gray-400 text-xs tabular"
-              y={index * div(@height, @guides) + @guides - 1}
+              class="text-gray-400 text-sm tabular"
+              x="36"
+              y={@height + 8 - (index * div(@height, @guides) + @guides)}
             >
-              <%= label %>
+              <%= if index == 0, do: "", else: label %>
             </text>
           <% end %>
         </g>
 
         <g transform="translate(24, 10)">
-          <rect
-            class="text-gray-700"
-            width={@width}
-            height={@height}
-            stroke="currentColor"
-            fill="none"
-          />
-
           <g class="fill-gray-600">
             <%= for {slice, index} <- Enum.with_index(@timeslice) do %>
               <.col
@@ -73,12 +82,16 @@ defmodule Oban.Web.Live.Chart do
           </g>
         </g>
       </svg>
-
-      <span class="text-gray-500 dark:text-gray-400">
-        <Icons.adjustments_vertical />
-      </span>
     </div>
     """
+  end
+
+  @doc false
+  def guide_values(max, total) when max > 0 and total > 1 do
+    top = ceil(max * 1.25 / 10) * 10
+    step = div(top, total)
+
+    for num <- 0..top//step, do: integer_to_estimate(num)
   end
 
   defp col(assigns) do
@@ -97,11 +110,5 @@ defmodule Oban.Web.Live.Chart do
 
   defp slice_total(slice) when is_list(slice) do
     Enum.reduce(slice, 0, fn {count, _label}, acc -> acc + count end)
-  end
-
-  defp guide_values(max, total) do
-    top = ceil(max * 1.10 / 10) * 10
-
-    top..0//div(top, -total)
   end
 end

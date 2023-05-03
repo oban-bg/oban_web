@@ -25,15 +25,14 @@ defmodule Oban.Web.JobsPage do
       />
 
       <div class="flex-grow">
-        <!--
-          <.live_component
-            id="chart"
-            conf={@conf}
-            module={Chart}
-            params={@params}
-            system_time={@system_time}
-          />
-        -->
+        <.live_component
+          id="chart"
+          conf={@conf}
+          module={Chart}
+          params={@params}
+          system_time={@system_time}
+        />
+
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
             <.live_component

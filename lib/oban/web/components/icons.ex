@@ -138,6 +138,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def calendar_days(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def bars_arrow_down(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -178,6 +192,20 @@ defmodule Oban.Web.Components.Icons do
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def chart_bar_square(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z"
       />
     </.svg_outline>
     """
@@ -289,11 +317,7 @@ defmodule Oban.Web.Components.Icons do
   def clock(assigns) do
     ~H"""
     <.svg_outline {@rest}>
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </.svg_outline>
     """
   end
@@ -571,6 +595,20 @@ defmodule Oban.Web.Components.Icons do
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def rectangle_group(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
       />
     </.svg_outline>
     """
