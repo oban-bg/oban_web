@@ -76,7 +76,7 @@ defmodule Oban.Web.Layouts do
 
   def tabs(assigns) do
     ~H"""
-    <nav class="ml-8 flex space-x-2">
+    <nav class="flex space-x-2">
       <%= for page <- [:jobs, :queues] do %>
         <%= live_redirect(String.capitalize(to_string(page)),
           to: oban_path(page),
@@ -129,11 +129,13 @@ defmodule Oban.Web.Layouts do
     """
   end
 
-  defp link_class(page, page) do
-    "font-medium text-sm rounded-md px-3 py-2 bg-blue-200 text-blue-800 dark:text-gray-200 dark:bg-blue-300 dark:bg-opacity-25"
-  end
+  defp link_class(curr, page) do
+    base = "font-medium text-sm rounded-md px-3 py-2"
 
-  defp link_class(_pag, _exp) do
-    "font-medium text-sm rounded-md px-3 py-2 text-gray-600 dark:text-gray-100 hover:text-gray-800 dark:hover:text-gray-300"
+    if curr == page do
+      base <> " text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-800"
+    else
+      base <> " text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+    end
   end
 end

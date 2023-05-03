@@ -7,7 +7,10 @@
   <% end %>
 
   <header class="flex items-center">
-    <.logo />
+    <div class="md:w-84 mr-3">
+      <.logo />
+    </div>
+
     <.tabs socket={@socket} page={@page.name} />
 
     <div class="ml-auto flex items-center space-x-4">
