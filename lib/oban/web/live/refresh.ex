@@ -23,23 +23,19 @@ defmodule Oban.Web.Live.Refresh do
         aria-haspopup="listbox"
         aria-expanded="true"
         aria-labelledby="listbox-label"
-        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-300 hidden md:block"
+        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:flex"
         data-title="Change refresh rate"
         id="refresh-menu-toggle"
         phx-hook="Tippy"
         phx-click={JS.toggle(to: "#refresh-menu")}
         type="button"
       >
-        <%= if @refresh == -1 do %>
-          <Icons.pause_circle />
-        <% else %>
-          <Icons.clock />
-        <% end %>
+        <Icons.clock />
+        <span class="ml-1 leading-6 text-sm"><%= :proplists.get_value(@refresh, @options) %></span>
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-18 py-1 overflow-hidden rounded-lg
-        shadow-lg ring-1 ring-blue-400 ring-opacity-5 text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
+        class="hidden absolute z-50 top-full right-0 mt-2 w-18 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
         id="refresh-menu"
         role="listbox"
         tabindex="-1"

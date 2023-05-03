@@ -14,7 +14,7 @@ defmodule Oban.Web.Live.Theme do
         aria-expanded="true"
         aria-haspopup="listbox"
         aria-labelledby="listbox-label"
-        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-300 hidden md:block"
+        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:block"
         data-title="Toggle theme"
         id="theme-menu-toggle"
         phx-hook="Tippy"
@@ -25,7 +25,7 @@ defmodule Oban.Web.Live.Theme do
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-32 py-1 overflow-hidden rounded-lg shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
+        class="hidden absolute z-50 top-full right-0 mt-2 w-32 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
         id="theme-menu"
         role="listbox"
         tabindex="-1"
