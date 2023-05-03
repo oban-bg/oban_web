@@ -11,15 +11,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         true -> :none
       end
 
-    {:ok,
-     assign(
-       socket,
-       numerator: Enum.count(jobs),
-       # state_count(assigns.counts, assigns.params),
-       denominator: 10,
-       select_mode: select_mode,
-       state: get_in(assigns, [:params, :state]) || "executing"
-     )}
+    {:ok, assign(socket, count: MapSet.size(selected), select_mode: select_mode)}
   end
 
   def render(assigns) do
@@ -27,7 +19,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
     <div id="jobs-header" class="flex items-center">
       <button
         id="toggle-select"
-        class="block text-gray-400 hover:text-blue-500"
+        class="mt-0.5 text-gray-400 hover:text-blue-500"
         data-title="Select All"
         phx-target={@myself}
         phx-click="toggle-select"
@@ -44,19 +36,14 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         <% end %>
       </button>
 
-      <h2 class="text-lg dark:text-gray-200 leading-4 font-bold ml-2">Jobs</h2>
-      <h3 class="text-lg ml-2 text-gray-500 leading-4 font-normal tabular">
-        (<%= @numerator %>/<%= integer_to_delimited(@denominator) %> <%= String.capitalize(@state) %>)
-      </h3>
+      <h2 class="text-lg dark:text-gray-200 font-bold ml-2">Jobs</h2>
+
+      <%= if @count > 0 do %>
+        <h3 class="text-md ml-2 text-gray-500 font-normal tabular">(<%= @count %> Selected)</h3>
+      <% end %>
     </div>
     """
   end
-
-  def state_count(counts, %{state: state}) do
-    Enum.reduce(counts, 0, &(Map.get(&1, state, 0) + &2))
-  end
-
-  def state_count(_stats, _params), do: 0
 
   def handle_event("toggle-select", _params, socket) do
     if socket.assigns.select_mode == :none do
