@@ -26,13 +26,6 @@ defmodule Oban.Web.Live.Chart do
      assign(socket, height: 180, guides: guides, max: max, timeslice: timeslice, width: 1100)}
   end
 
-  # <g fill="none" font-size="10" text-anchor="end">
-  #   <g class="tick" transform="translate(0, 175.5)">
-  #     <line x2="1110" />
-  #     <text x="-3" dy="0.32em">0</text>
-  #   </g>
-  # </g>
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -47,26 +40,21 @@ defmodule Oban.Web.Live.Chart do
       </div>
 
       <svg class="w-full" height="200">
-        <g fill="currentColor" transform="translate(0, 10)" text-anchor="end">
-          <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
+        <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
+          <g
+            fill="currentColor"
+            transform={"translate(42, #{@height + 10 - index * div(@height, @guides - 1)})"}
+            text-anchor="end"
+          >
             <line
               class="text-gray-300 dark:text-gray-700"
               stroke="currentColor"
               stroke-dasharray="4,4"
-              y1={@height - index * div(@height, @guides)}
-              y2={@height - index * div(@height, @guides)}
-              x1="42"
-              x2={@width + 20}
+              x2={@width - 20}
             />
-            <text
-              class="text-gray-400 text-sm tabular"
-              x="36"
-              y={@height + 8 - (index * div(@height, @guides) + @guides)}
-            >
-              <%= if index == 0, do: "", else: label %>
-            </text>
-          <% end %>
-        </g>
+            <text class="text-gray-600 text-xs tabular" x="-4" dy="0.32em"><%= label %></text>
+          </g>
+        <% end %>
 
         <g transform="translate(24, 10)">
           <g class="fill-gray-600">
@@ -89,13 +77,13 @@ defmodule Oban.Web.Live.Chart do
   @doc false
   def guide_values(max, total) when max > 0 and total > 1 do
     top = ceil(max * 1.25 / 10) * 10
-    step = div(top, total)
+    step = div(top, total - 1)
 
     for num <- 0..top//step, do: integer_to_estimate(num)
   end
 
   defp col(assigns) do
-    height = trunc(slice_total(assigns.slice) / assigns.max * assigns.total_height - 10)
+    height = trunc(slice_total(assigns.slice) / assigns.max * assigns.total_height)
 
     assigns = assign(assigns, height: height)
 
