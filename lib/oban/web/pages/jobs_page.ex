@@ -31,9 +31,9 @@ defmodule Oban.Web.JobsPage do
           module={Chart}
           params={@params}
           series={:exec_count}
-          group={:state}
-          slice="1s"
-          system_time={@system_time}
+          group="state"
+          period="1s"
+          os_time={@os_time}
         />
 
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -93,7 +93,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
     |> assign_new(:selected, &MapSet.new/0)
-    |> assign_new(:system_time, fn -> System.system_time(:second) end)
+    |> assign_new(:os_time, fn -> System.os_time(:second) end)
   end
 
   @impl Page
@@ -109,7 +109,7 @@ defmodule Oban.Web.JobsPage do
       detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
       jobs: jobs,
       selected: selected,
-      system_time: System.system_time(:second)
+      os_time: System.os_time(:second)
     )
   end
 

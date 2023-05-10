@@ -14,6 +14,14 @@ defmodule Oban.Web.Live.Chart do
     {0, 0, "scheduled"}
   ]
 
+  @states_palette %{
+    "cancelled" => "fill-violet-400",
+    "completed" => "fill-cyan-400",
+    "discarded" => "fill-pink-400",
+    "retryable" => "fill-yellow-300",
+    "scheduled" => "fill-green-400"
+  }
+
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     lookback = 108
@@ -25,12 +33,12 @@ defmodule Oban.Web.Live.Chart do
         assigns.series,
         by: step,
         lookback: lookback,
-        group: "state"
+        group: assigns.group
       )
 
     {slices, max} =
       Enum.reduce(0..lookback, {[], 0}, fn idx, {acc, oldmax} ->
-        tstamp = assigns.system_time - idx * step
+        tstamp = assigns.os_time - idx * step
 
         slices =
           timeslice
@@ -45,9 +53,9 @@ defmodule Oban.Web.Live.Chart do
 
     socket =
       socket
-      |> assign(height: 180, width: 1100)
-      |> assign(guides: 5, max: max, slices: slices)
-      |> assign(group: assigns.group, series: assigns.series, slice: assigns.slice)
+      |> assign(height: 180, width: 1100, guides: 5)
+      |> assign(max: max, slices: slices)
+      |> assign(group: assigns.group, period: assigns.period, series: assigns.series)
 
     {:ok, socket}
   end
@@ -58,16 +66,19 @@ defmodule Oban.Web.Live.Chart do
     <div class="bg-white dark:bg-gray-900 rounded-md shadow-md overflow-hidden w-full mb-3">
       <div class="flex items-center justify-between p-3">
         <h3 class="flex items-center text-gray-900 dark:text-gray-200 text-base font-semibold">
-          <Icons.chevron_down class="w-5 h-5 mr-2" /> Executed
-          <span class="text-gray-600 dark:text-gray-400 font-light ml-1">(Past 90s, by State)</span>
+          <Icons.chevron_down class="w-5 h-5 mr-2" />
+          <%= metric_label(@series) %>
+          <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
+            (<%= @period %> by <%= String.capitalize(@group) %>)
+          </span>
         </h3>
 
         <div class="flex space-x-2">
           <Core.dropdown_button
-            name="metric"
-            title="Change metric"
-            selected="executed"
-            options={~w(exec full wait)}
+            name="series"
+            title="Change series"
+            selected={@series}
+            options={~w(exec_count full_count exec_time wait_time)a}
           >
             <Icons.chart_bar_square />
           </Core.dropdown_button>
@@ -76,7 +87,7 @@ defmodule Oban.Web.Live.Chart do
             name="period"
             title="Change period"
             selected="1s"
-            options={~w(1s 5m 1h)}
+            options={~w(1s 5s 10s 30s 1m 2m)}
           >
             <Icons.clock />
           </Core.dropdown_button>
@@ -93,32 +104,34 @@ defmodule Oban.Web.Live.Chart do
           <Core.dropdown_button
             name="ntile"
             title="Change percentile"
-            selected="95"
-            options={~w(99 95 75 50)}
+            selected="p95"
+            options={~w(p99 p95 p75 p50)}
           >
             <Icons.receipt_percent />
           </Core.dropdown_button>
         </div>
       </div>
 
-      <svg class="w-full" height="200">
-        <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
-          <g
-            fill="currentColor"
-            transform={"translate(42, #{@height + 10 - index * div(@height, @guides - 1)})"}
-            text-anchor="end"
-          >
-            <line
-              class="text-gray-300 dark:text-gray-700"
-              stroke="currentColor"
-              stroke-dasharray="4,4"
-              x2={@width - 20}
+      <svg id="chart" class="w-full" height={@height + 35}>
+        <g id="chart-y" transform="translate(42, 0)">
+          <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
+            <.guide
+              height={@height}
+              index={index}
+              label={label}
+              total={@guides - 1}
+              width={@width - 20}
             />
-            <text class="text-gray-600 text-xs tabular" x="-4" dy="0.32em"><%= label %></text>
-          </g>
-        <% end %>
+          <% end %>
+        </g>
 
-        <g transform="translate(24, 10)">
+        <g id="chart-x" transform={"translate(42, #{@height + 25})"}>
+          <%= for {index, tstamp, _total, _values} <- @slices, Integer.mod(tstamp, 10) == 0 do %>
+            <.tick index={index} total={10} tstamp={tstamp} width={@width - 20} />
+          <% end %>
+        </g>
+
+        <g id="chart-d" transform="translate(24, 10)">
           <%= for {index, tstamp, total, values} <- @slices do %>
             <.col
               index={index}
@@ -136,6 +149,11 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
+  defp metric_label(:exec_count), do: "Executed"
+  defp metric_label(:full_count), do: "Total"
+  defp metric_label(:exec_time), do: "Execution Time"
+  defp metric_label(:wait_time), do: "Queue Time"
+
   @doc false
   def guide_values(max, total) when max > 0 and total > 1 do
     top = ceil(max * 1.10 / 10) * 10
@@ -146,15 +164,42 @@ defmodule Oban.Web.Live.Chart do
 
   def guide_values(0, total), do: guide_values(@default_guides_max, total)
 
-  @states_palette %{
-    "cancelled" => "fill-violet-400",
-    "completed" => "fill-cyan-400",
-    "discarded" => "fill-pink-400",
-    "retryable" => "fill-yellow-300",
-    "scheduled" => "fill-green-400"
-  }
+  defp guide(assigns) do
+    ~H"""
+    <g transform={"translate(0, #{@height + 10 - @index * div(@height, @total)})"} text-anchor="end">
+      <line
+        class="text-gray-300 dark:text-gray-700"
+        stroke="currentColor"
+        stroke-dasharray="4,4"
+        x2={@width}
+      />
+      <text fill="currentColor" class="text-gray-600 text-xs tabular" x="-4" dy="0.32em">
+        <%= @label %>
+      </text>
+    </g>
+    """
+  end
 
-  defp color_for(:states, _index, label), do: Map.fetch!(@states_palette, label)
+  defp tick(assigns) do
+    assigns =
+      assign(
+        assigns,
+        datetime: DateTime.from_unix!(assigns.tstamp),
+        x: assigns.width - 10 - assigns.index * 10
+      )
+
+    ~H"""
+    <g transform={"translate(#{@x}, 0)"}>
+      <line class="text-gray-300 dark:text-gray-700" stroke="currentColor" y1={-15} y2={-10} />
+
+      <%= if @datetime.second == 0 and @x in 20..@width - 20 do %>
+        <text fill="currentColor" class="text-gray-600 text-xs tabular" text-anchor="middle" y="2">
+          <%= Calendar.strftime(@datetime, "%H:%M") %>
+        </text>
+      <% end %>
+    </g>
+    """
+  end
 
   defp col(assigns) do
     inner_height = trunc(assigns.total / assigns.max * assigns.total_height * 0.9)
@@ -192,4 +237,6 @@ defmodule Oban.Web.Live.Chart do
 
     stack
   end
+
+  defp color_for(:states, _index, label), do: Map.fetch!(@states_palette, label)
 end

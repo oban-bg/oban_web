@@ -158,7 +158,9 @@ defmodule Oban.Web.Components.Core do
         <span class="block w-5 h-5"></span>
       <% end %>
 
-      <span class="text-gray-800 dark:text-gray-200"><%= @value %></span>
+      <span class="capitalize text-gray-800 dark:text-gray-200">
+        <%= @value |> to_string() |> String.replace("_", " ") %>
+      </span>
     </li>
     """
   end
