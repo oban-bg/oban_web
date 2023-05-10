@@ -15,7 +15,7 @@ defmodule Oban.Web.Live.Theme do
         aria-haspopup="listbox"
         aria-labelledby="listbox-label"
         class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:block"
-        data-title="Toggle theme"
+        data-title="Change theme"
         id="theme-menu-toggle"
         phx-hook="Tippy"
         phx-click={JS.toggle(to: "#theme-menu")}
@@ -53,8 +53,7 @@ defmodule Oban.Web.Live.Theme do
 
     ~H"""
     <li
-      class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-gray-50
-      hover:dark:bg-gray-600/30 #{@class}"}
+      class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
       id={"select-theme-#{@value}"}
       phx-click-away={JS.hide(to: "#theme-menu")}
       phx-hook="ChangeTheme"

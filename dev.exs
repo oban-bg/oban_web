@@ -6,11 +6,11 @@ defmodule WebDev.Generator do
   use GenServer
 
   @min_delay 100
-  @max_delay 90_000
+  @max_delay 45_000
   @min_sleep 300
-  @max_sleep 60_000
+  @max_sleep 30_000
   @min_jobs 1
-  @max_jobs 4
+  @max_jobs 8
   @max_schedule 120
   @delay_chance 30
   @raise_chance 15
@@ -111,7 +111,7 @@ defmodule Oban.Workers.AvatarProcessor do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(500, 5000)
+  def perform(_job), do: Generator.random_sleep(500, 5_000)
 end
 
 defmodule Oban.Workers.BotCleaner do
@@ -206,7 +206,7 @@ defmodule Oban.Workers.MailingListSyncer do
   def perform(_job), do: Generator.random_sleep()
 
   @impl Worker
-  def timeout(_job), do: :timer.seconds(30)
+  def timeout(_job), do: :timer.seconds(20)
 end
 
 defmodule Oban.Workers.PricingAnalyzer do
@@ -278,7 +278,13 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep()
+  def perform(_job) do
+    if :rand.uniform() < 0.75 do
+      Generator.random_sleep()
+    else
+      {:cancel, "no longer neaded"}
+    end
+  end
 end
 
 defmodule Oban.Workers.ReceiptMailer do

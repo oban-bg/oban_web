@@ -36,7 +36,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         <% end %>
       </button>
 
-      <h2 class="text-lg dark:text-gray-200 font-bold ml-2">Jobs</h2>
+      <h2 class="dark:text-gray-200 text-base font-semibold ml-2">Jobs</h2>
 
       <%= if @count > 0 do %>
         <h3 class="text-md ml-2 text-gray-500 font-normal tabular">(<%= @count %> Selected)</h3>

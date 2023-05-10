@@ -96,6 +96,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def arrow_path_rounded(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def arrow_right_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -317,7 +331,11 @@ defmodule Oban.Web.Components.Icons do
   def clock(assigns) do
     ~H"""
     <.svg_outline {@rest}>
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </.svg_outline>
     """
   end
@@ -602,6 +620,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def receipt_percent(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def rectangle_group(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -609,6 +641,20 @@ defmodule Oban.Web.Components.Icons do
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def server_stack(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"
       />
     </.svg_outline>
     """

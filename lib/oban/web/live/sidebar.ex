@@ -9,6 +9,8 @@ defmodule Oban.Web.Live.Sidebar do
     <div id="sidebar" class="mr-3 mt-4">
       <%= if :nodes in @sections do %>
         <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
+          <:icon><Icons.server_stack class="w-5 h-5 mr-1" /></:icon>
+
           <%= for node <- nodes(@conf.name) do %>
             <.node_row node={node} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -17,6 +19,8 @@ defmodule Oban.Web.Live.Sidebar do
 
       <%= if :states in @sections do %>
         <.section id="states" name="States" headers={~w(Count)}>
+          <:icon><Icons.square_stack class="w-5 h-5 mr-1" /></:icon>
+
           <%= for state <- states(@conf.name) do %>
             <.state_row state={state} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -25,6 +29,8 @@ defmodule Oban.Web.Live.Sidebar do
 
       <%= if :queues in @sections do %>
         <.section id="queues" name="Queues" headers={~w(Mode Limit Exec Avail)}>
+          <:icon><Icons.queue_list class="w-5 h-5 mr-1" /></:icon>
+
           <%= for queue <- queues(@conf.name) do %>
             <.queue_row queue={queue} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -34,6 +40,11 @@ defmodule Oban.Web.Live.Sidebar do
     """
   end
 
+  slot :icon
+  attr :id, :string, required: true
+  attr :name, :string, required: true
+  attr :headers, :list, required: true
+
   defp section(assigns) do
     ~H"""
     <div
@@ -41,7 +52,9 @@ defmodule Oban.Web.Live.Sidebar do
       class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84"
     >
       <header class="group flex justify-between items-center border-b border-gray-300 dark:border-gray-700 px-3 py-3">
-        <span class="dark:text-gray-200 font-bold"><%= @name %></span>
+        <span class="dark:text-gray-200 font-bold flex items-center">
+          <%= render_slot(@icon) %> <%= @name %>
+        </span>
 
         <div class="flex group-hover:hidden">
           <%= for header <- @headers do %>

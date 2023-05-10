@@ -30,7 +30,7 @@ defmodule Oban.Web.Live.Refresh do
         phx-click={JS.toggle(to: "#refresh-menu")}
         type="button"
       >
-        <Icons.clock />
+        <Icons.arrow_path_rounded />
         <span class="ml-1 leading-6 text-sm"><%= :proplists.get_value(@refresh, @options) %></span>
       </button>
 

@@ -3,6 +3,7 @@ defmodule Oban.Web.Components.Core do
 
   use Phoenix.Component
 
+  alias Phoenix.LiveView.JS
   alias Oban.Web.Components.Icons
 
   @doc """
@@ -88,6 +89,77 @@ defmodule Oban.Web.Components.Core do
         <Icons.play_circle class="w-5 h-5" />
       <% end %>
     </button>
+    """
+  end
+
+  slot :inner_block, required: true
+  attr :name, :string, required: true
+  attr :options, :list, required: true
+  attr :selected, :any, required: true
+  attr :title, :string, required: true
+
+  def dropdown_button(assigns) do
+    ~H"""
+    <div class="relative" id={"#{@name}-selector"}>
+      <button
+        aria-expanded="true"
+        aria-haspopup="listbox"
+        aria-labelledby="listbox-label"
+        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
+        data-title={@title}
+        id={"#{@name}-menu-toggle"}
+        phx-hook="Tippy"
+        phx-click={JS.toggle(to: "##{@name}-menu")}
+        type="button"
+      >
+        <%= render_slot(@inner_block) %>
+      </button>
+
+      <ul
+        class="hidden absolute z-50 top-full right-0 mt-2 w-32 overflow-hidden border border-gray-100 dark:border-gray-800 rounded-md shadow-md text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
+        id={"#{@name}-menu"}
+        role="listbox"
+        tabindex="-1"
+      >
+        <%= for option <- @options do %>
+          <.option name={@name} value={option} selected={@selected} />
+        <% end %>
+      </ul>
+    </div>
+    """
+  end
+
+  attr :name, :any, required: true
+  attr :value, :any, required: true
+  attr :selected, :any, required: true
+
+  defp option(assigns) do
+    class =
+      if assigns.selected == assigns.value do
+        "text-blue-500 dark:text-blue-400"
+      else
+        "text-gray-500 dark:text-gray-400 "
+      end
+
+    assigns = assign(assigns, :class, class)
+
+    ~H"""
+    <li
+      class={"block w-full py-1 px-2 flex items-center cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
+      id={"select-#{@name}-#{@value}"}
+      role="option"
+      value={@value}
+      phx-click={"select-#{@name}"}
+      phx-click-away={JS.hide(to: "##{@name}-menu")}
+    >
+      <%= if @value == @selected do %>
+        <Icons.check class="w-5 h-5" />
+      <% else %>
+        <span class="block w-5 h-5"></span>
+      <% end %>
+
+      <span class="text-gray-800 dark:text-gray-200"><%= @value %></span>
+    </li>
     """
   end
 end
