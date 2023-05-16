@@ -63,7 +63,7 @@ defmodule Oban.Web.Live.Chart do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="bg-white dark:bg-gray-900 rounded-md shadow-md overflow-hidden w-full mb-3">
+    <div class="bg-white dark:bg-gray-900 rounded-md shadow-md w-full mb-3">
       <div class="flex items-center justify-between p-3">
         <h3 class="flex items-center text-gray-900 dark:text-gray-200 text-base font-semibold">
           <Icons.chevron_down class="w-5 h-5 mr-2" />
@@ -73,7 +73,7 @@ defmodule Oban.Web.Live.Chart do
           </span>
         </h3>
 
-        <div class="flex space-x-2">
+        <div id="chart-c" class="flex space-x-2">
           <Core.dropdown_button
             name="series"
             title="Change series"
@@ -112,7 +112,12 @@ defmodule Oban.Web.Live.Chart do
         </div>
       </div>
 
-      <svg id="chart" class="w-full" height={@height + 35}>
+      <svg
+        id="chart"
+        class="w-full overflow-visible relative z-10"
+        height={@height + 35}
+        phx-hook="Chart"
+      >
         <g id="chart-y" transform="translate(42, 0)">
           <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
             <.guide
@@ -144,10 +149,27 @@ defmodule Oban.Web.Live.Chart do
             />
           <% end %>
         </g>
+
+        <g id="chart-tooltip" transform="translate(-100000)">
+          <polygon class="fill-gray-800" points="0,8 8,0 16,8" transform="translate(52, 0)" />
+          <rect rel="rect" class="fill-gray-800" height="112" width="120" rx="4" y="8" />
+          <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="6" y="26">
+            00:00:00
+          </text>
+
+          <%= for {label, color} <- states_palette() do %>
+            <g rel={label}>
+              <circle class={color} cy="-4" r="4" />
+              <text class="fill-gray-300 text-xs tabular capitalize" x="8">Cancelled</text>
+            </g>
+          <% end %>
+        </g>
       </svg>
     </div>
     """
   end
+
+  defp states_palette, do: @states_palette
 
   defp metric_label(:exec_count), do: "Executed"
   defp metric_label(:full_count), do: "Total"
@@ -167,13 +189,8 @@ defmodule Oban.Web.Live.Chart do
   defp guide(assigns) do
     ~H"""
     <g transform={"translate(0, #{@height + 10 - @index * div(@height, @total)})"} text-anchor="end">
-      <line
-        class="text-gray-300 dark:text-gray-700"
-        stroke="currentColor"
-        stroke-dasharray="4,4"
-        x2={@width}
-      />
-      <text fill="currentColor" class="text-gray-600 text-xs tabular" x="-4" dy="0.32em">
+      <line class="stroke-gray-300 dark:text-gray-700" stroke-dasharray="4,4" x2={@width} />
+      <text class="fill-gray-600 text-xs tabular" x="-4" dy="0.32em">
         <%= @label %>
       </text>
     </g>
@@ -190,10 +207,10 @@ defmodule Oban.Web.Live.Chart do
 
     ~H"""
     <g transform={"translate(#{@x}, 0)"}>
-      <line class="text-gray-300 dark:text-gray-700" stroke="currentColor" y1={-15} y2={-10} />
+      <line class="stroke-gray-300 dark:text-gray-700" y1={-15} y2={-10} />
 
       <%= if @datetime.second == 0 and @x in 20..@width - 20 do %>
-        <text fill="currentColor" class="text-gray-600 text-xs tabular" text-anchor="middle" y="2">
+        <text class="fill-gray-600 text-xs tabular" text-anchor="middle" y="2">
           <%= Calendar.strftime(@datetime, "%H:%M") %>
         </text>
       <% end %>
@@ -208,11 +225,17 @@ defmodule Oban.Web.Live.Chart do
     assigns = assign(assigns, inner_height: inner_height, offset: offset)
 
     ~H"""
-    <g class="group" id={"col-#{@tstamp}"} transform={"translate(#{@offset}, 0)"}>
+    <g
+      class="group"
+      id={"col-#{@tstamp}"}
+      transform={"translate(#{@offset}, 0)"}
+      data-offset={@offset}
+      data-tstamp={@tstamp}
+    >
       <rect class="fill-transparent group-hover:fill-gray-200" width="9" height={@total_height} />
 
-      <%= for {y, height, color} <- build_stack(@values, @total, @inner_height, @total_height) do %>
-        <rect class={color} width="9" y={y} height={height} />
+      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @inner_height, @total_height) do %>
+        <rect class={color} width="9" y={y} height={height} data-label={label} data-value={value} />
       <% end %>
     </g>
     """
@@ -231,7 +254,7 @@ defmodule Oban.Web.Live.Chart do
             color = color_for(:states, idx, label)
             y = total_height - height - prev_y
 
-            {[{y, height, color} | acc], prev_y + height, idx + 1}
+            {[{value, label, y, height, color} | acc], prev_y + height, idx + 1}
         end
       end)
 
