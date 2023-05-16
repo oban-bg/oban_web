@@ -98,7 +98,7 @@ Hooks.Chart = {
     const toolXOffset = 32
     const textHeight = 16
     const textPadding = 2
-    const baseLabelX = 10
+    const baseLabelX = 12
     const baseLabelY = 42
     const timeOpts = { hour12: false, timeStyle: "long" }
 

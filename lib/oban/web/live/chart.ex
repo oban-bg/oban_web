@@ -53,7 +53,7 @@ defmodule Oban.Web.Live.Chart do
 
     socket =
       socket
-      |> assign(height: 180, width: 1100, guides: 5)
+      |> assign(closed?: false, height: 180, width: 1100, guides: 5)
       |> assign(max: max, slices: slices)
       |> assign(group: assigns.group, period: assigns.period, series: assigns.series)
 
@@ -66,7 +66,15 @@ defmodule Oban.Web.Live.Chart do
     <div class="bg-white dark:bg-gray-900 rounded-md shadow-md w-full mb-3">
       <div class="flex items-center justify-between p-3">
         <h3 class="flex items-center text-gray-900 dark:text-gray-200 text-base font-semibold">
-          <Icons.chevron_down class="w-5 h-5 mr-2" />
+          <button
+            id="chart-toggle"
+            data-title="Toggle charts"
+            phx-click={toggle_chart()}
+            phx-hook="Tippy"
+          >
+            <Icons.chevron_right class={"w-5 h-5 mr-2 transition-transform rotate-90"} />
+          </button>
+
           <%= metric_label(@series) %>
           <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
             (<%= @period %> by <%= String.capitalize(@group) %>)
@@ -151,22 +159,29 @@ defmodule Oban.Web.Live.Chart do
         </g>
 
         <g id="chart-tooltip" transform="translate(-100000)">
-          <polygon class="fill-gray-800" points="0,8 8,0 16,8" transform="translate(52, 0)" />
-          <rect rel="rect" class="fill-gray-800" height="112" width="120" rx="4" y="8" />
-          <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="6" y="26">
+          <polygon class="fill-gray-900" points="0,8 8,0 16,8" transform="translate(52, 0)" />
+          <rect rel="rect" class="fill-gray-900" height="112" width="120" rx="6" y="8" />
+          <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="8" y="26">
             00:00:00
           </text>
 
           <%= for {label, color} <- states_palette() do %>
             <g rel={label}>
               <circle class={color} cy="-4" r="4" />
-              <text class="fill-gray-300 text-xs tabular capitalize" x="8">Cancelled</text>
+              <text class="fill-gray-300 text-xs tabular capitalize" x="10">Cancelled</text>
             </g>
           <% end %>
         </g>
       </svg>
     </div>
     """
+  end
+
+  defp toggle_chart(js \\ %JS{}) do
+    js
+    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
+    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
   end
 
   defp states_palette, do: @states_palette
