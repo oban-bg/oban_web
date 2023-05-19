@@ -45,8 +45,10 @@ defmodule Oban.Web.HelpersTest do
       assert Helpers.integer_to_estimate(1150) == "1.2k"
       assert Helpers.integer_to_estimate(1949) == "1.9k"
       assert Helpers.integer_to_estimate(1950) == "2k"
-      assert Helpers.integer_to_estimate(10_949) == "10.9k"
+      assert Helpers.integer_to_estimate(10_949) == "11k"
       assert Helpers.integer_to_estimate(10_950) == "11k"
+      assert Helpers.integer_to_estimate(150_499) == "150k"
+      assert Helpers.integer_to_estimate(150_500) == "151k"
     end
   end
 

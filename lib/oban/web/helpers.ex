@@ -155,6 +155,19 @@ defmodule Oban.Web.Helpers do
 
   def integer_to_estimate(number) when number < 1000, do: to_string(number)
 
+  def integer_to_estimate(number) when number < 10_000 do
+    power = 3
+    mult = Integer.pow(10, power)
+    base = floor(number / mult)
+    part = round(rem(number, mult) / Integer.pow(10, power - 1))
+
+    case part do
+      0 -> "#{base}k"
+      10 -> "#{base + 1}k"
+      _ -> "#{base}.#{part}k"
+    end
+  end
+
   def integer_to_estimate(number) when is_integer(number) do
     {power, suffix} =
       cond do
@@ -164,14 +177,9 @@ defmodule Oban.Web.Helpers do
       end
 
     mult = floor(:math.pow(10, power))
-    base = floor(number / mult)
-    part = round(rem(number, mult) / round(:math.pow(10, power - 1)))
+    base = round(number / mult)
 
-    case part do
-      0 -> "#{base}#{suffix}"
-      10 -> "#{base + 1}#{suffix}"
-      _ -> "#{base}.#{part}#{suffix}"
-    end
+    "#{base}#{suffix}"
   end
 
   @doc """
