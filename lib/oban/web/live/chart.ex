@@ -42,7 +42,8 @@ defmodule Oban.Web.Live.Chart do
         socket.assigns.series,
         by: step,
         lookback: back,
-        group: socket.assigns.group
+        group: socket.assigns.group,
+        since: snap_timestamp(System.system_time(:second), step)
       )
 
     {slices, max} =
