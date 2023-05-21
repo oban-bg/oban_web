@@ -30,9 +30,6 @@ defmodule Oban.Web.JobsPage do
           conf={@conf}
           module={Chart}
           params={@params}
-          series={:exec_count}
-          group="state"
-          period="1s"
           os_time={@os_time}
         />
 

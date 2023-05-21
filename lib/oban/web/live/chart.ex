@@ -15,30 +15,39 @@ defmodule Oban.Web.Live.Chart do
   ]
 
   @states_palette %{
+    "available" => "fill-teal-400",
     "cancelled" => "fill-violet-400",
     "completed" => "fill-cyan-400",
-    "discarded" => "fill-pink-400",
-    "retryable" => "fill-yellow-300",
+    "discarded" => "fill-orange-400",
+    "executing" => "fill-pink-300",
+    "retryable" => "fill-yellow-400",
     "scheduled" => "fill-green-400"
   }
 
   @impl Phoenix.LiveComponent
+  def mount(socket) do
+    {:ok, assign(socket, group: "state", period: "1s", series: :exec_count)}
+  end
+
+  @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    lookback = 108
-    step = 1
+    rows = 108
+    step = period_to_step(socket.assigns.period)
+    back = rows * step
+    time = snap_timestamp(assigns.os_time, step)
 
     timeslice =
       Met.timeslice(
         assigns.conf.name,
-        assigns.series,
+        socket.assigns.series,
         by: step,
-        lookback: lookback,
-        group: assigns.group
+        lookback: back,
+        group: socket.assigns.group
       )
 
     {slices, max} =
-      Enum.reduce(0..lookback, {[], 0}, fn idx, {acc, oldmax} ->
-        tstamp = assigns.os_time - idx * step
+      Enum.reduce(0..(rows - 1), {[], 0}, fn idx, {acc, oldmax} ->
+        tstamp = time - idx * step
 
         slices =
           timeslice
@@ -54,11 +63,20 @@ defmodule Oban.Web.Live.Chart do
     socket =
       socket
       |> assign(closed?: false, height: 180, width: 1100, guides: 5)
-      |> assign(max: max, slices: slices)
-      |> assign(group: assigns.group, period: assigns.period, series: assigns.series)
+      |> assign(max: max, slices: slices, step: step)
 
     {:ok, socket}
   end
+
+  defp period_to_step("1s"), do: 1
+  defp period_to_step("5s"), do: 5
+  defp period_to_step("10s"), do: 10
+  defp period_to_step("30s"), do: 30
+  defp period_to_step("1m"), do: 60
+  defp period_to_step("2m"), do: 120
+
+  defp snap_timestamp(unix, step) when rem(unix, step) == 0, do: unix
+  defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -72,7 +90,7 @@ defmodule Oban.Web.Live.Chart do
             phx-click={toggle_chart()}
             phx-hook="Tippy"
           >
-            <Icons.chevron_right class={"w-5 h-5 mr-2 transition-transform rotate-90"} />
+            <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
           </button>
 
           <%= metric_label(@series) %>
@@ -86,7 +104,8 @@ defmodule Oban.Web.Live.Chart do
             name="series"
             title="Change series"
             selected={@series}
-            options={~w(exec_count full_count exec_time wait_time)a}
+            options={~w(exec_count full_count exec_time wait_time)}
+            target={@myself}
           >
             <Icons.chart_bar_square />
           </Core.dropdown_button>
@@ -94,8 +113,9 @@ defmodule Oban.Web.Live.Chart do
           <Core.dropdown_button
             name="period"
             title="Change period"
-            selected="1s"
+            selected={@period}
             options={~w(1s 5s 10s 30s 1m 2m)}
+            target={@myself}
           >
             <Icons.clock />
           </Core.dropdown_button>
@@ -139,8 +159,8 @@ defmodule Oban.Web.Live.Chart do
         </g>
 
         <g id="chart-x" transform={"translate(42, #{@height + 25})"}>
-          <%= for {index, tstamp, _total, _values} <- @slices, Integer.mod(tstamp, 10) == 0 do %>
-            <.tick index={index} total={10} tstamp={tstamp} width={@width - 20} />
+          <%= for {index, tstamp, _total, _values} <- @slices, tick_at_time?(tstamp, @step) do %>
+            <.tick index={index} tstamp={tstamp} width={@width - 20} />
           <% end %>
         </g>
 
@@ -177,19 +197,27 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
-  defp toggle_chart(js \\ %JS{}) do
-    js
-    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
-    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
+  defp tick_at_time?(unix, step) when step < 10, do: Integer.mod(unix, 10) == 0
+  defp tick_at_time?(unix, step) when step < 60, do: Integer.mod(unix, 100) == 0
+  defp tick_at_time?(unix, _step), do: Integer.mod(unix, 1000) == 0
+
+  # Events
+
+  @impl Phoenix.LiveComponent
+  def handle_event("select-series", %{"choice" => series}, socket) do
+    Process.send_after(self(), :refresh, 50)
+
+    {:noreply, assign(socket, series: String.to_existing_atom(series))}
   end
 
-  defp states_palette, do: @states_palette
+  @impl Phoenix.LiveComponent
+  def handle_event("select-period", %{"choice" => period}, socket) do
+    Process.send_after(self(), :refresh, 50)
 
-  defp metric_label(:exec_count), do: "Executed"
-  defp metric_label(:full_count), do: "Total"
-  defp metric_label(:exec_time), do: "Execution Time"
-  defp metric_label(:wait_time), do: "Queue Time"
+    {:noreply, assign(socket, period: period)}
+  end
+
+  # Guides
 
   @doc false
   def guide_values(max, total) when max > 0 and total > 1 do
@@ -200,6 +228,30 @@ defmodule Oban.Web.Live.Chart do
   end
 
   def guide_values(0, total), do: guide_values(@default_guides_max, total)
+
+  # JS Commands
+
+  defp toggle_chart(js \\ %JS{}) do
+    js
+    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
+    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
+  end
+
+  # Label Helpers
+
+  defp metric_label(:exec_count), do: "Executed"
+  defp metric_label(:full_count), do: "Total"
+  defp metric_label(:exec_time), do: "Execution Time"
+  defp metric_label(:wait_time), do: "Queue Time"
+
+  # Palette Helpers
+
+  defp states_palette, do: @states_palette
+
+  defp color_for(:states, _index, label), do: Map.fetch!(@states_palette, label)
+
+  # Components
 
   defp guide(assigns) do
     ~H"""
@@ -269,12 +321,11 @@ defmodule Oban.Web.Live.Chart do
             color = color_for(:states, idx, label)
             y = total_height - height - prev_y
 
-            {[{value, label, y, height, color} | acc], prev_y + height, idx + 1}
+            {[{integer_to_estimate(value), label, y, height, color} | acc], prev_y + height,
+             idx + 1}
         end
       end)
 
     stack
   end
-
-  defp color_for(:states, _index, label), do: Map.fetch!(@states_palette, label)
 end

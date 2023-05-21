@@ -97,6 +97,7 @@ defmodule Oban.Web.Components.Core do
   attr :options, :list, required: true
   attr :selected, :any, required: true
   attr :title, :string, required: true
+  attr :target, :any, default: "myself"
 
   def dropdown_button(assigns) do
     ~H"""
@@ -122,7 +123,7 @@ defmodule Oban.Web.Components.Core do
         tabindex="-1"
       >
         <%= for option <- @options do %>
-          <.option name={@name} value={option} selected={@selected} />
+          <.option name={@name} value={option} selected={@selected} target={@target} />
         <% end %>
       </ul>
     </div>
@@ -132,6 +133,7 @@ defmodule Oban.Web.Components.Core do
   attr :name, :any, required: true
   attr :value, :any, required: true
   attr :selected, :any, required: true
+  attr :target, :any
 
   defp option(assigns) do
     class =
@@ -148,11 +150,12 @@ defmodule Oban.Web.Components.Core do
       class={"block w-full py-1 px-2 flex items-center cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
       id={"select-#{@name}-#{@value}"}
       role="option"
-      value={@value}
       phx-click={"select-#{@name}"}
       phx-click-away={JS.hide(to: "##{@name}-menu")}
+      phx-target={@target}
+      phx-value-choice={@value}
     >
-      <%= if @value == @selected do %>
+      <%= if to_string(@value) == to_string(@selected) do %>
         <Icons.check class="w-5 h-5" />
       <% else %>
         <span class="block w-5 h-5"></span>
