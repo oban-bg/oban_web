@@ -6,14 +6,6 @@ defmodule Oban.Web.Live.Chart do
 
   @default_guides_max 20
 
-  @empty_states [
-    {0, 0, "cancelled"},
-    {0, 0, "completed"},
-    {0, 0, "discarded"},
-    {0, 0, "retryable"},
-    {0, 0, "scheduled"}
-  ]
-
   @states_palette %{
     "available" => "fill-teal-400",
     "cancelled" => "fill-violet-400",
@@ -24,6 +16,24 @@ defmodule Oban.Web.Live.Chart do
     "scheduled" => "fill-green-400"
   }
 
+  @queues_palette %{
+    "analysis" => "fill-violet-400",
+    "default" => "fill-cyan-400",
+    "events" => "fill-yellow-400",
+    "exports" => "fill-green-400",
+    "mailers" => "fill-orange-400",
+    "media" => "fill-teal-400"
+  }
+
+  @period_to_step %{
+    "1s" => 1,
+    "5s" => 5,
+    "10s" => 10,
+    "30s" => 30,
+    "1m" => 60,
+    "2m" => 120
+  }
+
   @impl Phoenix.LiveComponent
   def mount(socket) do
     {:ok, assign(socket, group: "state", period: "1s", series: :exec_count)}
@@ -32,7 +42,7 @@ defmodule Oban.Web.Live.Chart do
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     rows = 108
-    step = period_to_step(socket.assigns.period)
+    step = Map.fetch!(@period_to_step, socket.assigns.period)
     back = rows * step
     time = snap_timestamp(assigns.os_time, step)
 
@@ -41,8 +51,8 @@ defmodule Oban.Web.Live.Chart do
         assigns.conf.name,
         socket.assigns.series,
         by: step,
-        lookback: back,
         group: socket.assigns.group,
+        lookback: back,
         since: snap_timestamp(System.system_time(:second), step)
       )
 
@@ -53,7 +63,6 @@ defmodule Oban.Web.Live.Chart do
         slices =
           timeslice
           |> Enum.filter(&(elem(&1, 0) == idx))
-          |> Enum.concat(@empty_states)
           |> then(&:lists.ukeysort(3, &1))
 
         total = Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
@@ -61,20 +70,21 @@ defmodule Oban.Web.Live.Chart do
         {[{idx, tstamp, total, slices} | acc], max(total, oldmax)}
       end)
 
+    palette =
+      if socket.assigns.group == "state" do
+        @states_palette
+      else
+        # temporary
+        @queues_palette
+      end
+
     socket =
       socket
       |> assign(closed?: false, height: 180, width: 1100, guides: 5)
-      |> assign(max: max, slices: slices, step: step)
+      |> assign(max: max, palette: palette, slices: slices, step: step)
 
     {:ok, socket}
   end
-
-  defp period_to_step("1s"), do: 1
-  defp period_to_step("5s"), do: 5
-  defp period_to_step("10s"), do: 10
-  defp period_to_step("30s"), do: 30
-  defp period_to_step("1m"), do: 60
-  defp period_to_step("2m"), do: 120
 
   defp snap_timestamp(unix, step) when rem(unix, step) == 0, do: unix
   defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
@@ -103,7 +113,7 @@ defmodule Oban.Web.Live.Chart do
         <div id="chart-c" class="flex space-x-2">
           <Core.dropdown_button
             name="series"
-            title="Change series"
+            title="Change metric series"
             selected={@series}
             options={~w(exec_count full_count exec_time wait_time)}
             target={@myself}
@@ -113,7 +123,7 @@ defmodule Oban.Web.Live.Chart do
 
           <Core.dropdown_button
             name="period"
-            title="Change period"
+            title="Change slice period"
             selected={@period}
             options={~w(1s 5s 10s 30s 1m 2m)}
             target={@myself}
@@ -123,9 +133,10 @@ defmodule Oban.Web.Live.Chart do
 
           <Core.dropdown_button
             name="group"
-            title="Change group"
-            selected="state"
+            title="Change metric grouping"
+            selected={@group}
             options={~w(state queue node worker)}
+            target={@myself}
           >
             <Icons.rectangle_group />
           </Core.dropdown_button>
@@ -170,29 +181,31 @@ defmodule Oban.Web.Live.Chart do
             <.col
               index={index}
               max={@max}
+              palette={@palette}
+              total={total}
               total_height={@height}
               total_width={@width}
-              total={total}
               tstamp={tstamp}
               values={values}
             />
           <% end %>
         </g>
 
-        <g id="chart-tooltip" transform="translate(-100000)">
-          <polygon class="fill-gray-900" points="0,8 8,0 16,8" transform="translate(52, 0)" />
-          <rect rel="rect" class="fill-gray-900" height="112" width="120" rx="6" y="8" />
-          <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="8" y="26">
-            00:00:00
-          </text>
+        <g id="chart-tooltip-wrapper" phx-update="ignore"></g>
 
-          <%= for {label, color} <- states_palette() do %>
-            <g rel={label}>
-              <circle class={color} cy="-4" r="4" />
-              <text class="fill-gray-300 text-xs tabular capitalize" x="10">Cancelled</text>
-            </g>
-          <% end %>
-        </g>
+        <defs>
+          <g rel="chart-tooltip">
+            <polygon rel="arrow" class="fill-gray-900" points="0,8 8,0 16,8" transform="translate(52, 0)" />
+            <rect rel="rect" class="fill-gray-900" height="112" width="120" rx="6" y="8" />
+            <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="8" y="26">0</text>
+            <g rel="labs"></g>
+          </g>
+
+          <g rel="chart-tooltip-label">
+            <circle cy="-4" r="4" />
+            <text class="fill-gray-300 text-xs tabular capitalize" x="10">0</text>
+          </g>
+        </defs>
       </svg>
     </div>
     """
@@ -205,10 +218,10 @@ defmodule Oban.Web.Live.Chart do
   # Events
 
   @impl Phoenix.LiveComponent
-  def handle_event("select-series", %{"choice" => series}, socket) do
+  def handle_event("select-group", %{"choice" => group}, socket) do
     Process.send_after(self(), :refresh, 50)
 
-    {:noreply, assign(socket, series: String.to_existing_atom(series))}
+    {:noreply, assign(socket, group: group)}
   end
 
   @impl Phoenix.LiveComponent
@@ -216,6 +229,13 @@ defmodule Oban.Web.Live.Chart do
     Process.send_after(self(), :refresh, 50)
 
     {:noreply, assign(socket, period: period)}
+  end
+
+  @impl Phoenix.LiveComponent
+  def handle_event("select-series", %{"choice" => series}, socket) do
+    Process.send_after(self(), :refresh, 50)
+
+    {:noreply, assign(socket, series: String.to_existing_atom(series))}
   end
 
   # Guides
@@ -245,12 +265,6 @@ defmodule Oban.Web.Live.Chart do
   defp metric_label(:full_count), do: "Total"
   defp metric_label(:exec_time), do: "Execution Time"
   defp metric_label(:wait_time), do: "Queue Time"
-
-  # Palette Helpers
-
-  defp states_palette, do: @states_palette
-
-  defp color_for(:states, _index, label), do: Map.fetch!(@states_palette, label)
 
   # Components
 
@@ -302,16 +316,16 @@ defmodule Oban.Web.Live.Chart do
     >
       <rect class="fill-transparent group-hover:fill-gray-200" width="9" height={@total_height} />
 
-      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @inner_height, @total_height) do %>
+      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @inner_height, @total_height, @palette) do %>
         <rect class={color} width="9" y={y} height={height} data-label={label} data-value={value} />
       <% end %>
     </g>
     """
   end
 
-  defp build_stack(_values, 0, _inner, _total), do: []
+  defp build_stack(_values, 0, _inner, _total, _palette), do: []
 
-  defp build_stack(values, total_count, inner_height, total_height) do
+  defp build_stack(values, total_count, inner_height, total_height, palette) do
     {stack, _y, _idx} =
       Enum.reduce(values, {[], 0, 0}, fn {_chk, value, label}, {acc, prev_y, idx} ->
         case value / total_count * inner_height do
@@ -319,11 +333,11 @@ defmodule Oban.Web.Live.Chart do
             {acc, prev_y, idx + 1}
 
           height ->
-            color = color_for(:states, idx, label)
+            estimate = integer_to_estimate(value)
             y = total_height - height - prev_y
+            color = Map.get(palette, label, "color-gray-400")
 
-            {[{integer_to_estimate(value), label, y, height, color} | acc], prev_y + height,
-             idx + 1}
+            {[{estimate, label, y, height, color} | acc], prev_y + height, idx + 1}
         end
       end)
 

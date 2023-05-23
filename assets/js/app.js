@@ -102,11 +102,16 @@ Hooks.Chart = {
     const baseLabelY = 42
     const timeOpts = { hour12: false, timeStyle: "long" }
 
-    const tooltip = this.el.querySelector("#chart-tooltip")
     const datacol = this.el.querySelector("#chart-d")
-    const tooltxt = tooltip.querySelector("[rel='date']")
-    const toolrct = tooltip.querySelector("[rel='rect']")
-    const tlabels = [...tooltip.querySelectorAll("g")]
+    const wrapper = this.el.querySelector("#chart-tooltip-wrapper")
+    const tooltip = this.el.querySelector("[rel='chart-tooltip']").cloneNode(true)
+    const toollab = this.el.querySelector("[rel='chart-tooltip-label']")
+    const tiptext = tooltip.querySelector("[rel='date']")
+    const tiprect = tooltip.querySelector("[rel='rect']")
+    const tiplabs = tooltip.querySelector("[rel='labs']")
+
+    tooltip.setAttribute("display", "none")
+    wrapper.appendChild(tooltip)
 
     datacol.addEventListener("mouseenter", () => {
       tooltip.setAttribute("display", "visible")
@@ -119,31 +124,34 @@ Hooks.Chart = {
     datacol.addEventListener("mouseover", event => {
       const parent = event.target.parentElement
       const offset = parent.getAttribute("data-offset") - toolXOffset
-      const trects = parent.querySelectorAll("rect[data-value]")
+      const trects = [...parent.querySelectorAll("rect[data-value]")]
       const tstamp = parent.getAttribute("data-tstamp") * 1000
       const tevent = new Date(tstamp)
 
       tooltip.setAttribute("transform", `translate(${offset},${toolY})`)
-      tooltxt.childNodes[0].nodeValue = tevent.toLocaleTimeString("en-US", timeOpts)
-
-      tlabels.forEach(el => el.setAttribute("display", "none"));
+      tiptext.childNodes[0].nodeValue = tevent.toLocaleTimeString("en-US", timeOpts)
+      tiplabs.replaceChildren()
 
       let y = baseLabelY
 
-      trects.forEach(el => {
+      trects.reverse().forEach(el => {
         const label = el.getAttribute("data-label")
         const value = el.getAttribute("data-value")
-        const group = tlabels.find(tlab => tlab.getAttribute("rel") === label)
+        const group = toollab.cloneNode(true)
+        const gcirc = group.querySelector("circle")
         const gtext = group.querySelector("text").childNodes[0]
 
         gtext.nodeValue = `${label} ${value}`
+        gcirc.setAttribute("class", el.getAttribute("class"))
         group.setAttribute("display", "visible")
         group.setAttribute("transform", `translate(${baseLabelX}, ${y})`)
 
-        y += textHeight;
+        tiplabs.appendChild(group)
+
+        y += textHeight
       })
 
-      toolrct.setAttribute("height", y - textHeight + textPadding);
+      tiprect.setAttribute("height", y - textHeight + textPadding);
     })
   }
 }
