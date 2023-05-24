@@ -30,7 +30,8 @@ module.exports = {
       teal: colors.teal,
       violet: colors.violet,
       yellow: colors.amber,
-      slate: colors.slate
+      slate: colors.slate,
+      zinc: colors.zinc
     }
   },
   content: ["../lib/**/*.*ex"],

@@ -4,9 +4,20 @@ defmodule Oban.Web.Live.Chart do
   alias Oban.Met
   alias Oban.Web.Components.Core
 
+  @default_color "fill-zinc-400"
   @default_guides_max 20
 
-  @states_palette %{
+  @color_palette ~w(
+    fill-cyan-400
+    fill-violet-400
+    fill-yellow-400
+    fill-green-400
+    fill-orange-400
+    fill-teal-400
+    fill-pink-300
+  )
+
+  @state_palette %{
     "available" => "fill-teal-400",
     "cancelled" => "fill-violet-400",
     "completed" => "fill-cyan-400",
@@ -14,15 +25,6 @@ defmodule Oban.Web.Live.Chart do
     "executing" => "fill-pink-300",
     "retryable" => "fill-yellow-400",
     "scheduled" => "fill-green-400"
-  }
-
-  @queues_palette %{
-    "analysis" => "fill-violet-400",
-    "default" => "fill-cyan-400",
-    "events" => "fill-yellow-400",
-    "exports" => "fill-green-400",
-    "mailers" => "fill-orange-400",
-    "media" => "fill-teal-400"
   }
 
   @period_to_step %{
@@ -72,10 +74,13 @@ defmodule Oban.Web.Live.Chart do
 
     palette =
       if socket.assigns.group == "state" do
-        @states_palette
+        @state_palette
       else
-        # temporary
-        @queues_palette
+        timeslice
+        |> Enum.map(&elem(&1, 2))
+        |> :lists.usort()
+        |> Enum.zip(@color_palette)
+        |> Map.new()
       end
 
     socket =
@@ -195,7 +200,12 @@ defmodule Oban.Web.Live.Chart do
 
         <defs>
           <g rel="chart-tooltip">
-            <polygon rel="arrow" class="fill-gray-900" points="0,8 8,0 16,8" transform="translate(52, 0)" />
+            <polygon
+              rel="arrow"
+              class="fill-gray-900"
+              points="0,8 8,0 16,8"
+              transform="translate(52, 0)"
+            />
             <rect rel="rect" class="fill-gray-900" height="112" width="120" rx="6" y="8" />
             <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="8" y="26">0</text>
             <g rel="labs"></g>
@@ -335,7 +345,7 @@ defmodule Oban.Web.Live.Chart do
           height ->
             estimate = integer_to_estimate(value)
             y = total_height - height - prev_y
-            color = Map.get(palette, label, "color-gray-400")
+            color = Map.get(palette, label, @default_color)
 
             {[{estimate, label, y, height, color} | acc], prev_y + height, idx + 1}
         end
