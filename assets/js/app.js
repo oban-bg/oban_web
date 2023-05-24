@@ -96,6 +96,8 @@ Hooks.Chart = {
   mounted() {
     const toolY = 192
     const toolXOffset = 32
+    const toolXWidth = 120
+    const toolXPad = 20
     const textHeight = 16
     const textPadding = 2
     const baseLabelX = 12
@@ -115,6 +117,20 @@ Hooks.Chart = {
 
     datacol.addEventListener("mouseenter", () => {
       tooltip.setAttribute("display", "visible")
+
+      const bleed = window.visualViewport.width - event.clientX - toolXWidth / 2 - toolXPad
+
+      if (bleed < 0) {
+        const translate = `translate(${bleed})`
+
+        tiprect.setAttribute("transform", translate)
+        tiptext.setAttribute("transform", translate)
+        tiplabs.setAttribute("transform", translate)
+      } else {
+        tiprect.removeAttribute("transform")
+        tiptext.removeAttribute("transform")
+        tiplabs.removeAttribute("transform")
+      }
     })
 
     datacol.addEventListener("mouseleave", () => {
