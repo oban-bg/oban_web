@@ -200,12 +200,7 @@ defmodule Oban.Web.Live.Chart do
 
         <defs>
           <g rel="chart-tooltip">
-            <polygon
-              rel="arrow"
-              class="fill-gray-900"
-              points="0,8 8,0 16,8"
-              transform="translate(52, 0)"
-            />
+            <polygon rel="arrw" class="fill-gray-900" points="0,8 8,0 16,8" />
             <rect rel="rect" class="fill-gray-900" height="112" width="120" rx="6" y="8" />
             <text rel="date" class="fill-gray-100 text-xs font-semibold tabular" x="8" y="26">0</text>
             <g rel="labs"></g>

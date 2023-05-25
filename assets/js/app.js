@@ -95,30 +95,71 @@ Hooks.Tippy = {
 Hooks.Chart = {
   mounted() {
     const toolY = 192
-    const toolXOffset = 32
-    const toolXWidth = 120
-    const toolXPad = 20
+    const toolPad = 16
+    const toolXOffset = 28
+    const toolBleed = 10
     const textHeight = 16
     const textPadding = 2
     const baseLabelX = 12
     const baseLabelY = 42
+    const baseToolWidth = 120
     const timeOpts = { hour12: false, timeStyle: "long" }
 
     const datacol = this.el.querySelector("#chart-d")
     const wrapper = this.el.querySelector("#chart-tooltip-wrapper")
     const tooltip = this.el.querySelector("[rel='chart-tooltip']").cloneNode(true)
     const toollab = this.el.querySelector("[rel='chart-tooltip-label']")
+    const tiparrw = tooltip.querySelector("[rel='arrw']")
     const tiptext = tooltip.querySelector("[rel='date']")
     const tiprect = tooltip.querySelector("[rel='rect']")
     const tiplabs = tooltip.querySelector("[rel='labs']")
 
-    tooltip.setAttribute("display", "none")
+    tooltip.setAttribute("transform", `translate(-100000,${toolY})`)
     wrapper.appendChild(tooltip)
 
-    datacol.addEventListener("mouseenter", () => {
-      tooltip.setAttribute("display", "visible")
+    datacol.addEventListener("mouseleave", () => {
+      tooltip.setAttribute("transform", `translate(-100000,${toolY})`)
+    })
 
-      const bleed = window.visualViewport.width - event.clientX - toolXWidth / 2 - toolXPad
+    datacol.addEventListener("mouseover", event => {
+      const parent = event.target.parentElement
+
+      // Replace timestamp
+      const tstamp = parent.getAttribute("data-tstamp") * 1000
+      const tevent = new Date(tstamp)
+
+      tiptext.childNodes[0].nodeValue = tevent.toLocaleTimeString("en-US", timeOpts)
+
+      // Replace labels
+      const trects = [...parent.querySelectorAll("rect[data-value]")]
+      let y = baseLabelY
+
+      tiplabs.replaceChildren()
+
+      trects.reverse().forEach(el => {
+        const label = el.getAttribute("data-label")
+        const value = el.getAttribute("data-value")
+        const group = toollab.cloneNode(true)
+        const gcirc = group.querySelector("circle")
+        const gtext = group.querySelector("text").childNodes[0]
+
+        gtext.nodeValue = `${label} ${value}`
+        gcirc.setAttribute("class", el.getAttribute("class"))
+        group.setAttribute("transform", `translate(${baseLabelX}, ${y})`)
+
+        tiplabs.appendChild(group)
+
+        y += textHeight
+      })
+
+      // Resize tooltip elements
+      const labsWidth = 2 * Math.round(tiplabs.getBBox().width / 2)
+      const toolWidth = Math.max(baseToolWidth, labsWidth + toolPad)
+      const bleed = window.visualViewport.width - event.clientX - toolWidth / 2 - toolBleed
+
+      tiparrw.setAttribute("transform", `translate(${toolWidth / 2 - 8})`)
+      tiprect.setAttribute("height", y - textHeight + textPadding);
+      tiprect.setAttribute("width", toolWidth)
 
       if (bleed < 0) {
         const translate = `translate(${bleed})`
@@ -131,43 +172,11 @@ Hooks.Chart = {
         tiptext.removeAttribute("transform")
         tiplabs.removeAttribute("transform")
       }
-    })
 
-    datacol.addEventListener("mouseleave", () => {
-      tooltip.setAttribute("display", "none")
-    })
-
-    datacol.addEventListener("mouseover", event => {
-      const parent = event.target.parentElement
-      const offset = parent.getAttribute("data-offset") - toolXOffset
-      const trects = [...parent.querySelectorAll("rect[data-value]")]
-      const tstamp = parent.getAttribute("data-tstamp") * 1000
-      const tevent = new Date(tstamp)
+      // Make tooltip visible
+      const offset = parent.getAttribute("data-offset") - (toolWidth / 2) + toolXOffset
 
       tooltip.setAttribute("transform", `translate(${offset},${toolY})`)
-      tiptext.childNodes[0].nodeValue = tevent.toLocaleTimeString("en-US", timeOpts)
-      tiplabs.replaceChildren()
-
-      let y = baseLabelY
-
-      trects.reverse().forEach(el => {
-        const label = el.getAttribute("data-label")
-        const value = el.getAttribute("data-value")
-        const group = toollab.cloneNode(true)
-        const gcirc = group.querySelector("circle")
-        const gtext = group.querySelector("text").childNodes[0]
-
-        gtext.nodeValue = `${label} ${value}`
-        gcirc.setAttribute("class", el.getAttribute("class"))
-        group.setAttribute("display", "visible")
-        group.setAttribute("transform", `translate(${baseLabelX}, ${y})`)
-
-        tiplabs.appendChild(group)
-
-        y += textHeight
-      })
-
-      tiprect.setAttribute("height", y - textHeight + textPadding);
     })
   }
 }
