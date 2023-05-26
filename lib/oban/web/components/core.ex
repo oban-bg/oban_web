@@ -97,6 +97,7 @@ defmodule Oban.Web.Components.Core do
   attr :options, :list, required: true
   attr :selected, :any, required: true
   attr :title, :string, required: true
+  attr :disabled, :boolean, default: false
   attr :target, :any, default: "myself"
 
   def dropdown_button(assigns) do
@@ -106,8 +107,9 @@ defmodule Oban.Web.Components.Core do
         aria-expanded="true"
         aria-haspopup="listbox"
         aria-labelledby="listbox-label"
-        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
+        class="text-gray-500 dark:text-gray-400 disabled:text-gray-400 disabled:dark:text-gray-600 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
         data-title={@title}
+        disabled={@disabled}
         id={"#{@name}-menu-toggle"}
         phx-hook="Tippy"
         phx-click={JS.toggle(to: "##{@name}-menu")}

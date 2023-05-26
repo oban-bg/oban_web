@@ -108,7 +108,6 @@ defmodule Oban.Web.Live.Chart do
           >
             <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
           </button>
-
           <%= metric_label(@series) %>
           <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
             (<%= @period %> by <%= String.capitalize(@group) %>)
@@ -140,7 +139,7 @@ defmodule Oban.Web.Live.Chart do
             name="group"
             title="Change metric grouping"
             selected={@group}
-            options={~w(state queue node worker)}
+            options={groups_for_series(@series)}
             target={@myself}
           >
             <Icons.rectangle_group />
@@ -148,18 +147,20 @@ defmodule Oban.Web.Live.Chart do
 
           <Core.dropdown_button
             name="ntile"
+            disabled={@series in ~w(exec_count full_count)a}
             title="Change percentile"
             selected="p95"
             options={~w(p99 p95 p75 p50)}
+            target={@myself}
           >
-            <Icons.receipt_percent />
+            <Icons.percent_square />
           </Core.dropdown_button>
         </div>
       </div>
 
       <svg
         id="chart"
-        class="w-full overflow-visible relative z-10"
+        class="w-full overflow-visible relative z-10 cursor-crosshair"
         height={@height + 35}
         phx-hook="Chart"
       >
@@ -216,6 +217,14 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
+  defp groups_for_series(:full_count), do: ~w(state queue)
+  defp groups_for_series(_series), do: ~w(state queue node worker)
+
+  defp metric_label(:exec_count), do: "Executed"
+  defp metric_label(:full_count), do: "Total"
+  defp metric_label(:exec_time), do: "Execution Time"
+  defp metric_label(:wait_time), do: "Queue Time"
+
   defp tick_at_time?(unix, step) when step < 10, do: Integer.mod(unix, 10) == 0
   defp tick_at_time?(unix, step) when step < 60, do: Integer.mod(unix, 100) == 0
   defp tick_at_time?(unix, _step), do: Integer.mod(unix, 1000) == 0
@@ -224,23 +233,30 @@ defmodule Oban.Web.Live.Chart do
 
   @impl Phoenix.LiveComponent
   def handle_event("select-group", %{"choice" => group}, socket) do
-    Process.send_after(self(), :refresh, 50)
-
-    {:noreply, assign(socket, group: group)}
+    {:noreply, assign_with_refresh(socket, group: group)}
   end
 
   @impl Phoenix.LiveComponent
   def handle_event("select-period", %{"choice" => period}, socket) do
-    Process.send_after(self(), :refresh, 50)
-
-    {:noreply, assign(socket, period: period)}
+    {:noreply, assign_with_refresh(socket, period: period)}
   end
 
   @impl Phoenix.LiveComponent
   def handle_event("select-series", %{"choice" => series}, socket) do
+    assigns =
+      if series == "full_count" and socket.assigns.group in ~w(node worker) do
+        [series: :full_count, group: "state"]
+      else
+        [series: String.to_existing_atom(series)]
+      end
+
+    {:noreply, assign_with_refresh(socket, assigns)}
+  end
+
+  defp assign_with_refresh(socket, assigns) do
     Process.send_after(self(), :refresh, 50)
 
-    {:noreply, assign(socket, series: String.to_existing_atom(series))}
+    assign(socket, assigns)
   end
 
   # Guides
@@ -255,28 +271,12 @@ defmodule Oban.Web.Live.Chart do
 
   def guide_values(0, total), do: guide_values(@default_guides_max, total)
 
-  # JS Commands
-
-  defp toggle_chart(js \\ %JS{}) do
-    js
-    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
-    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
-  end
-
-  # Label Helpers
-
-  defp metric_label(:exec_count), do: "Executed"
-  defp metric_label(:full_count), do: "Total"
-  defp metric_label(:exec_time), do: "Execution Time"
-  defp metric_label(:wait_time), do: "Queue Time"
-
   # Components
 
   defp guide(assigns) do
     ~H"""
     <g transform={"translate(0, #{@height + 10 - @index * div(@height, @total)})"} text-anchor="end">
-      <line class="stroke-gray-300 dark:text-gray-700" stroke-dasharray="4,4" x2={@width} />
+      <line class="stroke-gray-300 dark:text-gray-700" stroke-dasharray="3,3" x2={@width} />
       <text class="fill-gray-600 text-xs tabular" x="-4" dy="0.32em">
         <%= @label %>
       </text>
@@ -347,5 +347,14 @@ defmodule Oban.Web.Live.Chart do
       end)
 
     stack
+  end
+
+  # JS Commands
+
+  defp toggle_chart(js \\ %JS{}) do
+    js
+    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
+    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
   end
 end

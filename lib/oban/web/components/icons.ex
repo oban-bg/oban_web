@@ -536,6 +536,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def percent_square(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        d="M6 4h12.5a2 2 0 0 1 2 2v12.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 13 9-9m-6.313 2.125a.563.563 0 1 1-1.125 0 .563.563 0 0 1 1.126 0Zm4.75 4.75a.562.562 0 1 1-1.124 0 .562.562 0 0 1 1.124 0Z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def play_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -613,20 +627,6 @@ defmodule Oban.Web.Components.Icons do
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-      />
-    </.svg_outline>
-    """
-  end
-
-  attr :rest, :global
-
-  def receipt_percent(assigns) do
-    ~H"""
-    <.svg_outline {@rest}>
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
       />
     </.svg_outline>
     """
