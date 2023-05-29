@@ -4,10 +4,11 @@ defmodule Oban.Web.Live.Chart do
   alias Oban.Met
   alias Oban.Web.Components.Core
 
-  @default_color "fill-zinc-400"
+  @stack_series ~w(exec_count full_count)a
+
   @default_guides_max 20
 
-  @color_palette ~w(
+  @fill_palette ~w(
     fill-cyan-400
     fill-violet-400
     fill-yellow-400
@@ -17,15 +18,18 @@ defmodule Oban.Web.Live.Chart do
     fill-pink-300
   )
 
-  @state_palette %{
-    "available" => "fill-teal-400",
-    "cancelled" => "fill-violet-400",
-    "completed" => "fill-cyan-400",
-    "discarded" => "fill-orange-400",
-    "executing" => "fill-pink-300",
-    "retryable" => "fill-yellow-400",
-    "scheduled" => "fill-green-400"
-  }
+  @stroke_palette ~w(
+    stroke-cyan-400
+    stroke-violet-400
+    stroke-yellow-400
+    stroke-green-400
+    stroke-orange-400
+    stroke-teal-400
+    stroke-pink-300
+  )
+
+  # Purposefully ordered to match certain palette colors
+  @states ~w(completed cancelled retryable scheduled discarded available executing)
 
   @period_to_step %{
     "1s" => 1,
@@ -47,45 +51,33 @@ defmodule Oban.Web.Live.Chart do
     step = Map.fetch!(@period_to_step, socket.assigns.period)
     back = rows * step
     time = snap_timestamp(assigns.os_time, step)
+    since = snap_timestamp(System.system_time(:second), step)
+
+    %{group: group, series: series} = socket.assigns
 
     timeslice =
-      Met.timeslice(
-        assigns.conf.name,
-        socket.assigns.series,
+      Met.timeslice(assigns.conf.name, series,
         by: step,
-        group: socket.assigns.group,
+        group: group,
         lookback: back,
-        since: snap_timestamp(System.system_time(:second), step)
+        since: since
       )
 
-    {slices, max} =
-      Enum.reduce(0..(rows - 1), {[], 0}, fn idx, {acc, oldmax} ->
-        tstamp = time - idx * step
+    {slices, max} = interp_slices(series, timeslice, rows, step, time)
+    palette = build_palette(series, group, timeslice)
+    default = if series in @stack_series, do: "fill-zinc-400", else: "stroke-zinc-400"
 
-        slices =
-          timeslice
-          |> Enum.filter(&(elem(&1, 0) == idx))
-          |> then(&:lists.ukeysort(3, &1))
-
-        total = Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
-
-        {[{idx, tstamp, total, slices} | acc], max(total, oldmax)}
-      end)
-
-    palette =
-      if socket.assigns.group == "state" do
-        @state_palette
-      else
-        timeslice
-        |> Enum.map(&elem(&1, 2))
-        |> :lists.usort()
-        |> Enum.zip(@color_palette)
-        |> Map.new()
-      end
+    opts = %{
+      default_color: default,
+      height: 180,
+      max: max,
+      palette: palette,
+      width: 1100
+    }
 
     socket =
       socket
-      |> assign(closed?: false, height: 180, width: 1100, guides: 5)
+      |> assign(height: 180, width: 1100, guides: 5, opts: opts)
       |> assign(max: max, palette: palette, slices: slices, step: step)
 
     {:ok, socket}
@@ -93,6 +85,51 @@ defmodule Oban.Web.Live.Chart do
 
   defp snap_timestamp(unix, step) when rem(unix, step) == 0, do: unix
   defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
+
+  defp interp_slices(series, timeslice, rows, step, time) when series in @stack_series do
+    Enum.reduce(0..(rows - 1), {[], 0}, fn idx, {acc, oldmax} ->
+      tstamp = time - idx * step
+
+      slices =
+        timeslice
+        |> Enum.filter(&(elem(&1, 0) == idx))
+        |> then(&:lists.ukeysort(3, &1))
+
+      total = Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
+
+      {[{idx, tstamp, total, slices} | acc], max(total, oldmax)}
+    end)
+  end
+
+  defp interp_slices(_series, timeslice, _rows, _step, _time) do
+    Enum.reduce(timeslice, {%{}, 0}, fn {stamp, value, label}, {acc, oldmax} ->
+      ms =
+        value
+        |> trunc()
+        |> System.convert_time_unit(:native, :millisecond)
+
+      update = &[{stamp, ms} | &1]
+
+      {Map.update(acc, label, [{stamp, ms}], update), max(ms, oldmax)}
+    end)
+  end
+
+  defp build_palette(series, group, timeslice) do
+    palette = if series in @stack_series, do: @fill_palette, else: @stroke_palette
+
+    labels =
+      if group == "state" do
+        @states
+      else
+        timeslice
+        |> Enum.map(&elem(&1, 2))
+        |> :lists.usort()
+      end
+
+    labels
+    |> Enum.zip(palette)
+    |> Map.new()
+  end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -183,18 +220,23 @@ defmodule Oban.Web.Live.Chart do
         </g>
 
         <g id="chart-d" transform="translate(24, 10)">
-          <%= for {index, tstamp, total, values} <- @slices do %>
-            <.col
-              index={index}
-              max={@max}
-              palette={@palette}
-              total={total}
-              total_height={@height}
-              total_width={@width}
-              tstamp={tstamp}
-              values={values}
-            />
-          <% end %>
+          <.stack
+            :for={{index, tstamp, total, values} <- @slices}
+            :if={@series in ~w(exec_count full_count)a}
+            index={index}
+            opts={@opts}
+            total={total}
+            tstamp={tstamp}
+            values={values}
+          />
+
+          <.line
+            :for={{label, values} <- @slices}
+            :if={@series in ~w(exec_time wait_time)a}
+            opts={@opts}
+            label={label}
+            values={values}
+          />
         </g>
 
         <g id="chart-tooltip-wrapper" phx-update="ignore"></g>
@@ -305,11 +347,8 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
-  defp col(assigns) do
-    inner_height = trunc(assigns.total / assigns.max * assigns.total_height * 0.9)
-    offset = assigns.total_width - 10 - assigns.index * 10
-
-    assigns = assign(assigns, inner_height: inner_height, offset: offset)
+  defp stack(assigns) do
+    assigns = assign(assigns, offset: assigns.opts.width - 10 - assigns.index * 10)
 
     ~H"""
     <g
@@ -319,28 +358,30 @@ defmodule Oban.Web.Live.Chart do
       data-offset={@offset}
       data-tstamp={@tstamp}
     >
-      <rect class="fill-transparent group-hover:fill-gray-200" width="9" height={@total_height} />
+      <rect class="fill-transparent group-hover:fill-gray-200" width="9" height={@opts.height} />
 
-      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @inner_height, @total_height, @palette) do %>
+      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @opts) do %>
         <rect class={color} width="9" y={y} height={height} data-label={label} data-value={value} />
       <% end %>
     </g>
     """
   end
 
-  defp build_stack(_values, 0, _inner, _total, _palette), do: []
+  defp build_stack(_values, 0, _opts), do: []
 
-  defp build_stack(values, total_count, inner_height, total_height, palette) do
+  defp build_stack(values, total, opts) do
+    inner_height = trunc(total / opts.max * opts.height * 0.9)
+
     {stack, _y, _idx} =
       Enum.reduce(values, {[], 0, 0}, fn {_chk, value, label}, {acc, prev_y, idx} ->
-        case value / total_count * inner_height do
+        case value / total * inner_height do
           0.0 ->
             {acc, prev_y, idx + 1}
 
           height ->
             estimate = integer_to_estimate(value)
-            y = total_height - height - prev_y
-            color = Map.get(palette, label, @default_color)
+            y = opts.height - height - prev_y
+            color = color_for(label, opts)
 
             {[{estimate, label, y, height, color} | acc], prev_y + height, idx + 1}
         end
@@ -348,6 +389,27 @@ defmodule Oban.Web.Live.Chart do
 
     stack
   end
+
+  defp line(assigns) do
+    assigns = assign(assigns, points: build_points(assigns.values, assigns.opts))
+
+    ~H"""
+    <g class="group" id={"line-#{@label}"}>
+      <polyline points={@points} fill="none" class={color_for(@label, @opts)} stroke-width="2" />
+    </g>
+    """
+  end
+
+  defp build_points(values, %{max: max, height: height, width: width}) do
+    for {index, value} <- values, into: "" do
+      x = width - 10 - index * 10
+      y = height - trunc(value / max * height * 0.9)
+
+      "#{x},#{y} "
+    end
+  end
+
+  defp color_for(label, opts), do: Map.get(opts.palette, label, opts.default_color)
 
   # JS Commands
 
