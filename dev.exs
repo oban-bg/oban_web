@@ -111,7 +111,7 @@ defmodule Oban.Workers.AvatarProcessor do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(500, 5_000)
+  def perform(_job), do: Generator.random_sleep(300, 3_000)
 end
 
 defmodule Oban.Workers.BotCleaner do
@@ -131,7 +131,7 @@ defmodule Oban.Workers.BotCleaner do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_sleep()
+    Generator.random_sleep(1_000, 4_000)
 
     if :rand.uniform() > 0.75 do
       {:ok, %{bots_cleaned: :rand.uniform(30)}}
@@ -173,7 +173,7 @@ defmodule Oban.Workers.ExportGenerator do
   end
 
   @impl Oban.Pro.Worker
-  def process(_job), do: Generator.random_sleep()
+  def process(_job), do: Generator.random_sleep(1_200, 8_000)
 
   @doc false
   def enc_key, do: "3qvMCmkaKR3t/6DB8Lg6p8l+nO5V014GFpbUV5HdrkU="
@@ -203,7 +203,7 @@ defmodule Oban.Workers.MailingListSyncer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep()
+  def perform(_job), do: Generator.random_sleep(400, 2_500)
 
   @impl Worker
   def timeout(_job), do: :timer.seconds(20)
@@ -231,7 +231,7 @@ defmodule Oban.Workers.PricingAnalyzer do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_sleep()
+    Generator.random_sleep(2_500, 20_000)
 
     {:ok,
      %{
@@ -258,7 +258,7 @@ defmodule Oban.Workers.PushNotifier do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep()
+  def perform(_job), do: Generator.random_sleep(300, 5_000)
 
   @impl Worker
   def backoff(_job), do: 30
@@ -280,7 +280,7 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
   @impl Worker
   def perform(_job) do
     if :rand.uniform() < 0.75 do
-      Generator.random_sleep()
+      Generator.random_sleep(4_000, 15_000)
     else
       {:cancel, "no longer neaded"}
     end
@@ -316,7 +316,7 @@ defmodule Oban.Workers.SyntaxAnalyzer do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: _}), do: Generator.random_sleep()
+  def process(%Job{args: _}), do: Generator.random_sleep(2_000, 12_000)
 end
 
 defmodule Oban.Workers.TranscriptionAnalyzer do
@@ -333,7 +333,7 @@ defmodule Oban.Workers.TranscriptionAnalyzer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep()
+  def perform(_job), do: Generator.random_sleep(2_500, 14_000)
 end
 
 defmodule Oban.Workers.VideoProcessor do
@@ -355,7 +355,7 @@ defmodule Oban.Workers.VideoProcessor do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: %__MODULE__{}}), do: Generator.random_sleep()
+  def process(%Job{args: %__MODULE__{}}), do: Generator.random_sleep(1_000, 20_000)
 end
 
 # Repo
