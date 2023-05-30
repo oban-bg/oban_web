@@ -4,9 +4,18 @@ defmodule Oban.Web.Live.Chart do
   alias Oban.Met
   alias Oban.Web.Components.Core
 
-  @stack_series ~w(exec_count full_count)a
-
+  # TODO: Pull this from options
   @default_guides_max 20
+
+  @default_opts %{
+    height_clamp: 0.9,
+    guides: 5,
+    height: 180,
+    columns: 108,
+    width: 1100
+  }
+
+  # Full color classes listed for Tailwind
 
   @fill_palette ~w(
     fill-cyan-400
@@ -28,108 +37,81 @@ defmodule Oban.Web.Live.Chart do
     stroke-pink-300
   )
 
-  # Purposefully ordered to match certain palette colors
-  @states ~w(completed cancelled retryable scheduled discarded available executing)
-
-  @period_to_step %{
-    "1s" => 1,
-    "5s" => 5,
-    "10s" => 10,
-    "30s" => 30,
-    "1m" => 60,
-    "2m" => 120
-  }
+  @stack_series ~w(exec_count full_count)a
+  @lines_series ~w(exec_time wait_time)a
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, group: "state", period: "1s", series: :exec_count)}
+    socket =
+      socket
+      |> assign_new(:group, fn -> List.first(groups()) end)
+      |> assign_new(:ntile, fn -> List.first(ntiles()) end)
+      |> assign_new(:period, fn -> List.first(periods()) end)
+      |> assign_new(:series, fn -> List.first(series()) end)
+      |> assign(opts: @default_opts)
+
+    {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    rows = 108
-    step = Map.fetch!(@period_to_step, socket.assigns.period)
-    back = rows * step
-    time = snap_timestamp(assigns.os_time, step)
-    since = snap_timestamp(System.system_time(:second), step)
+    %{group: group, ntile: ntile, period: period} = socket.assigns
+    %{opts: opts, series: series} = socket.assigns
 
-    %{group: group, series: series} = socket.assigns
+    step = period_to_step(period)
+    os_time = snap_timestamp(assigns.os_time, step)
 
-    timeslice =
+    slices =
       Met.timeslice(assigns.conf.name, series,
         by: step,
         group: group,
-        lookback: back,
-        since: since
+        lookback: opts.columns * step,
+        ntile: ntile_to_float(ntile),
+        since: snap_timestamp(System.system_time(:second), step)
       )
 
-    {slices, max} = interp_slices(series, timeslice, rows, step, time)
-    palette = build_palette(series, group, timeslice)
-    default = if series in @stack_series, do: "fill-zinc-400", else: "stroke-zinc-400"
+    max = build_max(slices, series)
 
-    opts = %{
-      default_color: default,
-      height: 180,
-      max: max,
-      palette: palette,
-      width: 1100
-    }
+    opts =
+      Map.merge(opts, %{
+        default_color: "zinc-400",
+        palette: build_palette(series, group, slices)
+      })
 
-    socket =
-      socket
-      |> assign(height: 180, width: 1100, guides: 5, opts: opts)
-      |> assign(max: max, palette: palette, slices: slices, step: step)
-
-    {:ok, socket}
+    {:ok, assign(socket, max: max, opts: opts, step: step, time: os_time, slices: slices)}
   end
 
   defp snap_timestamp(unix, step) when rem(unix, step) == 0, do: unix
   defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
 
-  defp interp_slices(series, timeslice, rows, step, time) when series in @stack_series do
-    Enum.reduce(0..(rows - 1), {[], 0}, fn idx, {acc, oldmax} ->
-      tstamp = time - idx * step
+  # Lookups
 
-      slices =
-        timeslice
-        |> Enum.filter(&(elem(&1, 0) == idx))
-        |> then(&:lists.ukeysort(3, &1))
+  def groups, do: ~w(state queue node worker)
+  def ntiles, do: ~w(max p99 p95 p75 p50)
+  def periods, do: ~w(1s 5s 10s 30s 1m 2m)
+  def series, do: ~w(exec_count full_count exec_time wait_time)a
+  def states, do: ~w(completed cancelled retryable scheduled discarded available executing)
 
-      total = Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
+  defp groups_for_series(:full_count), do: ~w(state queue)
+  defp groups_for_series(_series), do: groups()
 
-      {[{idx, tstamp, total, slices} | acc], max(total, oldmax)}
-    end)
-  end
+  defp metric_label(:exec_count), do: "Executed"
+  defp metric_label(:full_count), do: "Total"
+  defp metric_label(:exec_time), do: "Execution Time"
+  defp metric_label(:wait_time), do: "Queue Time"
 
-  defp interp_slices(_series, timeslice, _rows, _step, _time) do
-    Enum.reduce(timeslice, {%{}, 0}, fn {stamp, value, label}, {acc, oldmax} ->
-      ms =
-        value
-        |> trunc()
-        |> System.convert_time_unit(:native, :millisecond)
+  defp ntile_to_float("max"), do: 1.0
+  defp ntile_to_float("p99"), do: 0.99
+  defp ntile_to_float("p95"), do: 0.95
+  defp ntile_to_float("p75"), do: 0.75
+  defp ntile_to_float("p50"), do: 0.50
 
-      update = &[{stamp, ms} | &1]
-
-      {Map.update(acc, label, [{stamp, ms}], update), max(ms, oldmax)}
-    end)
-  end
-
-  defp build_palette(series, group, timeslice) do
-    palette = if series in @stack_series, do: @fill_palette, else: @stroke_palette
-
-    labels =
-      if group == "state" do
-        @states
-      else
-        timeslice
-        |> Enum.map(&elem(&1, 2))
-        |> :lists.usort()
-      end
-
-    labels
-    |> Enum.zip(palette)
-    |> Map.new()
-  end
+  defp period_to_step("1s"), do: 1
+  defp period_to_step("5s"), do: 5
+  defp period_to_step("10s"), do: 10
+  defp period_to_step("30s"), do: 30
+  defp period_to_step("1m"), do: 60
+  defp period_to_step("2m"), do: 120
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -156,7 +138,7 @@ defmodule Oban.Web.Live.Chart do
             name="series"
             title="Change metric series"
             selected={@series}
-            options={~w(exec_count full_count exec_time wait_time)}
+            options={series()}
             target={@myself}
           >
             <Icons.chart_bar_square />
@@ -166,7 +148,7 @@ defmodule Oban.Web.Live.Chart do
             name="period"
             title="Change slice period"
             selected={@period}
-            options={~w(1s 5s 10s 30s 1m 2m)}
+            options={periods()}
             target={@myself}
           >
             <Icons.clock />
@@ -186,8 +168,8 @@ defmodule Oban.Web.Live.Chart do
             name="ntile"
             disabled={@series in ~w(exec_count full_count)a}
             title="Change percentile"
-            selected="p95"
-            options={~w(p99 p95 p75 p50)}
+            selected={@ntile}
+            options={ntiles()}
             target={@myself}
           >
             <Icons.percent_square />
@@ -198,48 +180,52 @@ defmodule Oban.Web.Live.Chart do
       <svg
         id="chart"
         class="w-full overflow-visible relative z-10 cursor-crosshair"
-        height={@height + 35}
+        height={@opts.height + 35}
         phx-hook="Chart"
       >
         <g id="chart-y" transform="translate(42, 0)">
-          <%= for {label, index} <- Enum.with_index(guide_values(@max, @guides)) do %>
+          <%= for {label, index} <- Enum.with_index(guide_values(@max, @opts.guides)) do %>
             <.guide
-              height={@height}
+              height={@opts.height}
               index={index}
               label={label}
-              total={@guides - 1}
-              width={@width - 20}
+              total={@opts.guides - 1}
+              width={@opts.width - 20}
             />
           <% end %>
         </g>
 
-        <g id="chart-x" transform={"translate(42, #{@height + 25})"}>
-          <%= for {index, tstamp, _total, _values} <- @slices, tick_at_time?(tstamp, @step) do %>
-            <.tick index={index} tstamp={tstamp} width={@width - 20} />
-          <% end %>
+        <g id="chart-x" transform={"translate(42, #{@opts.height + 25})"}>
+          <.tick
+            :for={{index, tstamp} <- build_ticks(@time, @step, @opts)}
+            index={index}
+            tstamp={tstamp}
+            width={@opts.width - 20}
+          />
         </g>
 
         <g id="chart-d" transform="translate(24, 10)">
-          <.stack
-            :for={{index, tstamp, total, values} <- @slices}
-            :if={@series in ~w(exec_count full_count)a}
-            index={index}
-            opts={@opts}
-            total={total}
-            tstamp={tstamp}
-            values={values}
-          />
+          <%= if stack_mode?(@series) do %>
+            <.stack
+              :for={{index, tstamp, stacks} <- build_stacks(@slices, @step, @time, @max, @opts)}
+              index={index}
+              opts={@opts}
+              stacks={stacks}
+              tstamp={tstamp}
+            />
+          <% end %>
 
-          <.line
-            :for={{label, values} <- @slices}
-            :if={@series in ~w(exec_time wait_time)a}
-            opts={@opts}
-            label={label}
-            values={values}
-          />
+          <%= if lines_mode?(@series) do %>
+            <.lines
+              :for={{stacks, points} <- [build_lines(@slices, @step, @time, @max, @opts)]}
+              opts={@opts}
+              points={points}
+              stacks={stacks}
+            />
+          <% end %>
         </g>
 
-        <g id="chart-tooltip-wrapper" phx-update="ignore"></g>
+        <g id="chart-t" phx-update="ignore"></g>
 
         <defs>
           <g rel="chart-tooltip">
@@ -259,18 +245,6 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
-  defp groups_for_series(:full_count), do: ~w(state queue)
-  defp groups_for_series(_series), do: ~w(state queue node worker)
-
-  defp metric_label(:exec_count), do: "Executed"
-  defp metric_label(:full_count), do: "Total"
-  defp metric_label(:exec_time), do: "Execution Time"
-  defp metric_label(:wait_time), do: "Queue Time"
-
-  defp tick_at_time?(unix, step) when step < 10, do: Integer.mod(unix, 10) == 0
-  defp tick_at_time?(unix, step) when step < 60, do: Integer.mod(unix, 100) == 0
-  defp tick_at_time?(unix, _step), do: Integer.mod(unix, 1000) == 0
-
   # Events
 
   @impl Phoenix.LiveComponent
@@ -278,12 +252,14 @@ defmodule Oban.Web.Live.Chart do
     {:noreply, assign_with_refresh(socket, group: group)}
   end
 
-  @impl Phoenix.LiveComponent
+  def handle_event("select-ntile", %{"choice" => ntile}, socket) do
+    {:noreply, assign_with_refresh(socket, ntile: ntile)}
+  end
+
   def handle_event("select-period", %{"choice" => period}, socket) do
     {:noreply, assign_with_refresh(socket, period: period)}
   end
 
-  @impl Phoenix.LiveComponent
   def handle_event("select-series", %{"choice" => series}, socket) do
     assigns =
       if series == "full_count" and socket.assigns.group in ~w(node worker) do
@@ -296,7 +272,7 @@ defmodule Oban.Web.Live.Chart do
   end
 
   defp assign_with_refresh(socket, assigns) do
-    Process.send_after(self(), :refresh, 50)
+    Process.send_after(self(), :refresh, 100)
 
     assign(socket, assigns)
   end
@@ -315,6 +291,12 @@ defmodule Oban.Web.Live.Chart do
 
   # Components
 
+  attr :height, :integer
+  attr :index, :integer
+  attr :label, :string
+  attr :total, :integer
+  attr :width, :integer
+
   defp guide(assigns) do
     ~H"""
     <g transform={"translate(0, #{@height + 10 - @index * div(@height, @total)})"} text-anchor="end">
@@ -326,12 +308,16 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
+  attr :index, :integer
+  attr :tstamp, :integer
+  attr :width, :integer
+
   defp tick(assigns) do
     assigns =
       assign(
         assigns,
         datetime: DateTime.from_unix!(assigns.tstamp),
-        x: assigns.width - 10 - assigns.index * 10
+        x: offset_for(assigns.index, assigns.width)
       )
 
     ~H"""
@@ -347,8 +333,13 @@ defmodule Oban.Web.Live.Chart do
     """
   end
 
+  attr :index, :integer
+  attr :opts, :map
+  attr :stacks, :list
+  attr :tstamp, :integer
+
   defp stack(assigns) do
-    assigns = assign(assigns, offset: assigns.opts.width - 10 - assigns.index * 10)
+    assigns = assign(assigns, offset: offset_for(assigns.index, assigns.opts.width))
 
     ~H"""
     <g
@@ -360,54 +351,169 @@ defmodule Oban.Web.Live.Chart do
     >
       <rect class="fill-transparent group-hover:fill-gray-200" width="9" height={@opts.height} />
 
-      <%= for {value, label, y, height, color} <- build_stack(@values, @total, @opts) do %>
+      <%= for {value, label, y, height, color} <- @stacks do %>
         <rect class={color} width="9" y={y} height={height} data-label={label} data-value={value} />
       <% end %>
     </g>
     """
   end
 
-  defp build_stack(_values, 0, _opts), do: []
+  defp lines(assigns) do
+    ~H"""
+    <.line_poly :for={{label, points} <- @points} label={label} opts={@opts} points={points} />
 
-  defp build_stack(values, total, opts) do
-    inner_height = trunc(total / opts.max * opts.height * 0.9)
-
-    {stack, _y, _idx} =
-      Enum.reduce(values, {[], 0, 0}, fn {_chk, value, label}, {acc, prev_y, idx} ->
-        case value / total * inner_height do
-          0.0 ->
-            {acc, prev_y, idx + 1}
-
-          height ->
-            estimate = integer_to_estimate(value)
-            y = opts.height - height - prev_y
-            color = color_for(label, opts)
-
-            {[{estimate, label, y, height, color} | acc], prev_y + height, idx + 1}
-        end
-      end)
-
-    stack
+    <.line_desc
+      :for={{index, stamp, stack} <- @stacks}
+      index={index}
+      opts={@opts}
+      stamp={stamp}
+      stack={stack}
+    />
+    """
   end
 
-  defp line(assigns) do
-    assigns = assign(assigns, points: build_points(assigns.values, assigns.opts))
+  defp line_desc(assigns) do
+    assigns = assign(assigns, offset: offset_for(assigns.index, assigns.opts.width))
 
     ~H"""
-    <g class="group" id={"line-#{@label}"}>
+    <g
+      class="group"
+      id={"col-#{@stamp}"}
+      transform={"translate(#{@offset}, 0)"}
+      data-offset={@offset}
+      data-tstamp={@stamp}
+    >
+      <rect class="fill-transparent" width="10" height={@opts.height} />
+
+      <line
+        class="stroke-transparent group-hover:stroke-gray-200"
+        stroke-width="2"
+        y1={@opts.height}
+      />
+
+      <%= for {value, label} <- @stack do %>
+        <desc class={color_for(label, @opts)} data-label={label} data-value={value} />
+      <% end %>
+    </g>
+    """
+  end
+
+  defp line_poly(assigns) do
+    ~H"""
+    <g class="group" id={"poly-#{@label}"}>
       <polyline points={@points} fill="none" class={color_for(@label, @opts)} stroke-width="2" />
     </g>
     """
   end
 
-  defp build_points(values, %{max: max, height: height, width: width}) do
-    for {index, value} <- values, into: "" do
-      x = width - 10 - index * 10
-      y = height - trunc(value / max * height * 0.9)
+  # Building
 
-      "#{x},#{y} "
+  defp build_max(slices, series) when series in @stack_series do
+    slices
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.reduce(0, fn {_, vals}, acc -> max(acc, Enum.sum(vals)) end)
+  end
+
+  defp build_max(slices, _series) do
+    Enum.reduce(slices, 0, &max(&2, to_ms(elem(&1, 1))))
+  end
+
+  defp build_palette(series, group, timeslice) do
+    palette = if stack_mode?(series), do: @fill_palette, else: @stroke_palette
+
+    labels =
+      if group == "state" do
+        states()
+      else
+        timeslice
+        |> Enum.map(&elem(&1, 2))
+        |> :lists.usort()
+      end
+
+    labels
+    |> Enum.zip(palette)
+    |> Map.new()
+  end
+
+  def build_ticks(time, step, opts) do
+    for index <- 0..(opts.columns - 1),
+        stamp = time - index * step,
+        tick_at_time?(stamp, step) do
+      {index, stamp}
     end
   end
+
+  defp tick_at_time?(unix, step) when step < 10, do: Integer.mod(unix, 10) == 0
+  defp tick_at_time?(unix, step) when step < 60, do: Integer.mod(unix, 100) == 0
+  defp tick_at_time?(unix, _step), do: Integer.mod(unix, 1000) == 0
+
+  defp build_stacks(slices, step, time, max, opts) do
+    Enum.reduce(0..(opts.columns - 1), [], fn index, acc ->
+      stamp = time - index * step
+
+      stuff =
+        slices
+        |> Enum.filter(&(elem(&1, 0) == index))
+        |> then(&:lists.ukeysort(3, &1))
+
+      total = Enum.reduce(stuff, 0, &(elem(&1, 1) + &2))
+      inner = trunc(total / max * opts.height * opts.height_clamp)
+
+      {stack, _y, _idx} =
+        Enum.reduce(stuff, {[], 0, 0}, fn {_chk, value, label}, {acc, prev_y, idx} ->
+          case trunc(value / total * inner) do
+            0.0 ->
+              {acc, prev_y, idx + 1}
+
+            height ->
+              color = color_for(label, opts)
+              display = integer_to_estimate(value)
+              y = opts.height - height - prev_y
+
+              {[{display, label, y, height, color} | acc], prev_y + height, idx + 1}
+          end
+        end)
+
+      [{index, stamp, stack} | acc]
+    end)
+  end
+
+  defp build_lines(slices, step, time, max, opts) do
+    Enum.reduce(0..(opts.columns - 1), {[], %{}}, fn index, {stacks, points} ->
+      stamp = time - index * step
+
+      stuff =
+        slices
+        |> Enum.filter(&(elem(&1, 0) == index))
+        |> Enum.map(fn {_, value, label} -> {to_ms(value), label} end)
+
+      x = offset_for(index, opts.width)
+
+      points =
+        Enum.reduce(stuff, points, fn {value, label}, acc ->
+          y = opts.height - trunc(value / max * opts.height * opts.height_clamp)
+          point = "#{x},#{y} "
+
+          Map.update(acc, label, [point], &[point | &1])
+        end)
+
+      {[{index, stamp, stuff} | stacks], points}
+    end)
+  end
+
+  defp to_ms(value) do
+    value
+    |> trunc()
+    |> System.convert_time_unit(:native, :millisecond)
+  end
+
+  defp lines_mode?(series), do: series in @lines_series
+
+  defp stack_mode?(series), do: series in @stack_series
+
+  # Formatting
+
+  defp offset_for(index, width), do: width - 10 - index * 10
 
   defp color_for(label, opts), do: Map.get(opts.palette, label, opts.default_color)
 

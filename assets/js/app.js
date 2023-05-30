@@ -106,7 +106,7 @@ Hooks.Chart = {
     const timeOpts = { hour12: false, timeStyle: "long" }
 
     const datacol = this.el.querySelector("#chart-d")
-    const wrapper = this.el.querySelector("#chart-tooltip-wrapper")
+    const wrapper = this.el.querySelector("#chart-t")
     const tooltip = this.el.querySelector("[rel='chart-tooltip']").cloneNode(true)
     const toollab = this.el.querySelector("[rel='chart-tooltip-label']")
     const tiparrw = tooltip.querySelector("[rel='arrw']")
@@ -131,12 +131,12 @@ Hooks.Chart = {
       tiptext.childNodes[0].nodeValue = tevent.toLocaleTimeString("en-US", timeOpts)
 
       // Replace labels
-      const trects = [...parent.querySelectorAll("rect[data-value]")]
+      const elems = [...parent.querySelectorAll("[data-value]")]
       let y = baseLabelY
 
       tiplabs.replaceChildren()
 
-      trects.reverse().forEach(el => {
+      elems.reverse().forEach(el => {
         const label = el.getAttribute("data-label")
         const value = el.getAttribute("data-value")
         const group = toollab.cloneNode(true)
@@ -144,7 +144,7 @@ Hooks.Chart = {
         const gtext = group.querySelector("text").childNodes[0]
 
         gtext.nodeValue = `${label} ${value}`
-        gcirc.setAttribute("class", el.getAttribute("class"))
+        gcirc.setAttribute("class", el.getAttribute("class").replace("stroke", "fill"))
         group.setAttribute("transform", `translate(${baseLabelX}, ${y})`)
 
         tiplabs.appendChild(group)
