@@ -184,15 +184,14 @@ defmodule Oban.Web.Live.Chart do
         phx-hook="Chart"
       >
         <g id="chart-y" transform="translate(42, 0)">
-          <%= for {label, index} <- Enum.with_index(guide_values(@max, @opts.guides)) do %>
-            <.guide
-              height={@opts.height}
-              index={index}
-              label={label}
-              total={@opts.guides - 1}
-              width={@opts.width - 20}
-            />
-          <% end %>
+          <.guide
+            :for={{label, index} <- build_guides(@max, @series, @opts)}
+            height={@opts.height}
+            index={index}
+            label={label}
+            total={@opts.guides - 1}
+            width={@opts.width - 20}
+          />
         </g>
 
         <g id="chart-x" transform={"translate(42, #{@opts.height + 25})"}>
@@ -284,7 +283,7 @@ defmodule Oban.Web.Live.Chart do
     top = ceil(max * 1.10 / 10) * 10
     step = div(top, total - 1)
 
-    for num <- 0..top//step, do: integer_to_estimate(num)
+    for num <- 0..top//step, do: num
   end
 
   def guide_values(0, total), do: guide_values(@default_guides_max, total)
@@ -385,14 +384,10 @@ defmodule Oban.Web.Live.Chart do
     >
       <rect class="fill-transparent" width="10" height={@opts.height} />
 
-      <line
-        class="stroke-transparent group-hover:stroke-gray-200"
-        stroke-width="2"
-        y1={@opts.height}
-      />
+      <line class="stroke-transparent group-hover:stroke-gray-200" stroke-width="2" y1={@opts.height} />
 
       <%= for {value, label} <- @stack do %>
-        <desc class={color_for(label, @opts)} data-label={label} data-value={value} />
+        <desc class={color_for(label, @opts)} data-label={label} data-value={format_μs(value)} />
       <% end %>
     </g>
     """
@@ -415,7 +410,7 @@ defmodule Oban.Web.Live.Chart do
   end
 
   defp build_max(slices, _series) do
-    Enum.reduce(slices, 0, &max(&2, to_ms(elem(&1, 1))))
+    Enum.reduce(slices, 0, &max(&2, to_μs(elem(&1, 1))))
   end
 
   defp build_palette(series, group, timeslice) do
@@ -433,6 +428,20 @@ defmodule Oban.Web.Live.Chart do
     labels
     |> Enum.zip(palette)
     |> Map.new()
+  end
+
+  defp build_guides(max, series, opts) do
+    convert =
+      if stack_mode?(series) do
+        &integer_to_estimate/1
+      else
+        &format_μs/1
+      end
+
+    max
+    |> guide_values(opts.guides)
+    |> Enum.map(convert)
+    |> Enum.with_index()
   end
 
   def build_ticks(time, step, opts) do
@@ -485,7 +494,7 @@ defmodule Oban.Web.Live.Chart do
       stuff =
         slices
         |> Enum.filter(&(elem(&1, 0) == index))
-        |> Enum.map(fn {_, value, label} -> {to_ms(value), label} end)
+        |> Enum.map(fn {_, value, label} -> {to_μs(value), label} end)
 
       x = offset_for(index, opts.width)
 
@@ -501,12 +510,6 @@ defmodule Oban.Web.Live.Chart do
     end)
   end
 
-  defp to_ms(value) do
-    value
-    |> trunc()
-    |> System.convert_time_unit(:native, :millisecond)
-  end
-
   defp lines_mode?(series), do: series in @lines_series
 
   defp stack_mode?(series), do: series in @stack_series
@@ -516,6 +519,28 @@ defmodule Oban.Web.Live.Chart do
   defp offset_for(index, width), do: width - 10 - index * 10
 
   defp color_for(label, opts), do: Map.get(opts.palette, label, opts.default_color)
+
+  defp to_μs(value) do
+    value
+    |> trunc()
+    |> System.convert_time_unit(:native, :microsecond)
+  end
+
+  defp format_μs(duration) do
+    cond do
+      duration > 1_000_000 ->
+        [duration |> div(1_000_000) |> Integer.to_string(), "s"]
+
+      duration > 1000 ->
+        [duration |> div(1000) |> Integer.to_string(), "ms"]
+
+      duration == 0 ->
+        "0"
+
+      true ->
+        [Integer.to_string(duration), "µs"]
+    end
+  end
 
   # JS Commands
 
