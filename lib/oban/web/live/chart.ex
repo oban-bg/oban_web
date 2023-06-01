@@ -86,10 +86,12 @@ defmodule Oban.Web.Live.Chart do
   defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
 
   defp params_to_filters(params) do
-    params
-    |> Map.take(~w(nodes queues)a)
-    |> Keyword.new()
-    |> IO.inspect()
+    for {key, vals} <- params, key in ~w(nodes queues)a do
+      case key do
+        :nodes -> {:node, vals}
+        :queues -> {:queue, vals}
+      end
+    end
   end
 
   # Lookups

@@ -51,7 +51,7 @@ defmodule Oban.Web.Live.Sidebar do
       id={@id}
       class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84"
     >
-      <header class="group flex justify-between items-center border-b border-gray-300 dark:border-gray-700 px-3 py-3">
+      <header class="group flex justify-between items-center border-b border-gray-300 dark:border-gray-700 pr-3 py-3">
         <span class="dark:text-gray-200 font-bold flex items-center">
           <%= render_slot(@icon) %> <%= @name %>
         </span>
