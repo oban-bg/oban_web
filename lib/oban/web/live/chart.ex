@@ -64,6 +64,7 @@ defmodule Oban.Web.Live.Chart do
     slices =
       Met.timeslice(assigns.conf.name, series,
         by: step,
+        filters: params_to_filters(assigns.params),
         group: group,
         lookback: opts.columns * step,
         ntile: ntile_to_float(ntile),
@@ -83,6 +84,13 @@ defmodule Oban.Web.Live.Chart do
 
   defp snap_timestamp(unix, step) when rem(unix, step) == 0, do: unix
   defp snap_timestamp(unix, step), do: snap_timestamp(unix + 1, step)
+
+  defp params_to_filters(params) do
+    params
+    |> Map.take(~w(nodes queues)a)
+    |> Keyword.new()
+    |> IO.inspect()
+  end
 
   # Lookups
 
@@ -406,11 +414,11 @@ defmodule Oban.Web.Live.Chart do
   defp build_max(slices, series) when series in @stack_series do
     slices
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-    |> Enum.reduce(0, fn {_, vals}, acc -> max(acc, Enum.sum(vals)) end)
+    |> Enum.reduce(1, fn {_, vals}, acc -> max(acc, Enum.sum(vals)) end)
   end
 
   defp build_max(slices, _series) do
-    Enum.reduce(slices, 0, &max(&2, to_μs(elem(&1, 1))))
+    Enum.reduce(slices, 1, &max(&2, to_μs(elem(&1, 1))))
   end
 
   defp build_palette(series, group, timeslice) do
