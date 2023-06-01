@@ -8,6 +8,12 @@ Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
 enforced structure now display an indicator on the details page. What's more,
 recorded jobs display the job's return value directly in the details page.
 
+## v2.9.7 — 2023-06-01
+
+### Enhancements
+
+- [Web] Relax version constraint to allow LiveView v0.19
+
 ## v2.9.6 — 2022-11-28
 
 ### Enhancements
