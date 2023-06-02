@@ -10,7 +10,7 @@ defmodule WebDev.Generator do
   @min_sleep 300
   @max_sleep 30_000
   @min_jobs 1
-  @max_jobs 8
+  @max_jobs 15
   @max_schedule 120
   @delay_chance 30
   @raise_chance 15
@@ -39,11 +39,15 @@ defmodule WebDev.Generator do
 
   @spec random_sleep(integer(), integer()) :: :ok
   def random_sleep(min \\ @min_sleep, max \\ @max_sleep) do
-    maybe_raise!()
+    if :rand.uniform(100) < @raise_chance do
+      Process.sleep(min)
 
-    min..max
-    |> Enum.random()
-    |> Process.sleep()
+      raise RuntimeError, "Something went wrong!"
+    else
+      min..max
+      |> Enum.random()
+      |> Process.sleep()
+    end
   end
 
   # Callbacks
