@@ -4,6 +4,21 @@ defmodule Oban.Web.Timing do
   @empty_time "-"
 
   @doc """
+  Snap unix time to an even value for a given increment.
+
+      iex> Oban.Web.Timing.snap(1685707957, 1)
+      1685707957
+
+      iex> Oban.Web.Timing.snap(1685707957, 5)
+      1685707960
+
+      iex> Oban.Web.Timing.snap(1685707957, 30)
+      1685707980
+  """
+  def snap(unix, step) when rem(unix, step) == 0, do: unix
+  def snap(unix, step), do: snap(unix + 1, step)
+
+  @doc """
   Format ellapsed seconds into a timer format of "MM:SS" or "HH:MM:SS".
 
       iex> Oban.Web.Timing.to_duration(0)
