@@ -114,9 +114,15 @@ Hooks.Tippy = {
 // fill-pink-300
 
 const STACK_OPTS = {
+  animation: false,
   maintainAspectRatio: false,
   interaction: {
     mode: "index",
+  },
+  layout: {
+    padding: {
+      bottom: 4,
+    },
   },
   plugins: {
     legend: {
@@ -127,11 +133,44 @@ const STACK_OPTS = {
     x: {
       stacked: true,
       grid: {
-        display: false
+        display: false,
+        drawTicks: true,
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+        padding: 3,
+        callback: function (val, index) {
+          const label = this.getLabelForValue(val).replace(/\s[A-Z]+$/, "");
+
+          return index % 4 === 0 ? label : "";
+        },
       },
     },
     y: {
       stacked: true,
+      ticks: {
+        callback: function (value, index, _ticks) {
+          if (index % 2 !== 0) return;
+
+          if (value < 1000) {
+            return value;
+          } else {
+            const log = Math.max(Math.floor(Math.log10(value)), 5)
+            const mult = Math.pow(10, log - 2)
+            const base = Math.floor(value / mult)
+            const part = Math.round((value % mult) / Math.pow(10, log - 3))
+
+            if (part === 0) {
+              return `${base}k`
+            } else if (part === 10) {
+              return `${base + 1}k`
+            } else {
+              return `${base}.${part}k`
+            }
+          }
+        }
+      }
     },
   },
 };
@@ -148,23 +187,33 @@ const LINES_OPTS = {
   },
   scales: {
     x: {
-      display: false,
+      grid: {
+        display: false,
+      },
+      ticks: {
+        maxRotation: 0,
+        minRotation: 0,
+      },
     },
   },
-}
+};
 
 Hooks.Chart = {
-  mounted() {
-    let date = new Date();
+  buildLabels(cols, time, step) {
+    let date = new Date(time * 1000);
 
+    const labels = [...Array(cols).keys()].map((_index) => {
+      date = new Date(date.getTime() - 1000);
+
+      return date.toLocaleTimeString("en-US", { hour12: false, timeStyle: "long" });
+    });
+
+    return labels.reverse();
+  },
+
+  mounted() {
     const data = {
-      labels: [...Array(100).keys()].map((x) => {
-        date = new Date(date.getTime() - x * 1000);
-        return date.toLocaleTimeString("en-US", {
-          hour12: false,
-          timeStyle: "short",
-        });
-      }),
+      labels: [],
       datasets: [
         {
           label: "completed",
@@ -206,7 +255,19 @@ Hooks.Chart = {
 
     const chart = new Chart(this.el, { type: "bar", options: STACK_OPTS, data: data });
 
-    this.handleEvent("chart-update", ({ points }) => {
+    this.handleEvent("chart-update", ({ cols, points, step, time }) => {
+      const labels = Hooks.Chart.buildLabels(cols, time, step);
+
+      chart.data.labels.splice(0, labels.length);
+      chart.data.labels.push(...labels);
+
+      // Update all of the existing datasets
+      // If we have a new dataset, append it to datasets entirely
+      // How do we know when to drop old datasets?
+      //   - When they are empty?
+      //   - When the group or series changes?
+      //   - It needs to be both times, otherwise they'll be stale
+
       chart.data.datasets.forEach((dataset) => {
         const data = [points[dataset.label]].flat();
 

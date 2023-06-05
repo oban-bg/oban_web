@@ -43,7 +43,7 @@ defmodule Oban.Web.Live.Chart do
       |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
       |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols)} end)
 
-    update = %{labels: labels, points: points, series: series, time: time}
+    update = %{cols: cols, labels: labels, points: points, series: series, step: step, time: time}
 
     socket =
       socket

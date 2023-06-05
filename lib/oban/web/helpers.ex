@@ -176,7 +176,7 @@ defmodule Oban.Web.Helpers do
         true -> {9, "b"}
       end
 
-    mult = floor(:math.pow(10, power))
+    mult = Integer.pow(10, power)
     base = round(number / mult)
 
     "#{base}#{suffix}"
