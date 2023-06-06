@@ -13,50 +13,27 @@ defmodule Oban.Web.Live.Chart do
       |> assign_new(:ntile, fn -> List.first(ntiles()) end)
       |> assign_new(:period, fn -> List.first(periods()) end)
       |> assign_new(:series, fn -> List.first(series()) end)
-      |> assign(init: true)
+      |> assign(last_os_time: 0, max_cols: 100)
 
     {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    %{group: group, ntile: ntile, period: period, series: series} = socket.assigns
+    step = period_to_step(socket.assigns.period)
+    os_time = Timing.snap(assigns.os_time, step)
+    socket = assign(socket, conf: assigns.conf, params: assigns.params)
+    points = points(os_time, socket.assigns)
+    update = %{group: socket.assigns.group, points: points}
 
-    step = period_to_step(period)
-    time = Timing.snap(System.system_time(:second), step)
-    cols = if socket.assigns.init, do: 100, else: 1
-
-    labels = Met.labels(assigns.conf.name, group, since: time)
-
-    opts = [
-      by: step,
-      filters: params_to_filters(assigns.params),
-      group: group,
-      lookback: cols * step,
-      ntile: ntile_to_float(ntile),
-      since: time
-    ]
-
-    points =
-      assigns.conf.name
-      |> Met.timeslice(series, opts)
-      |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
-      |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols)} end)
-
-    update = %{cols: cols, labels: labels, points: points, series: series, step: step, time: time}
+    event = if socket.assigns.last_os_time == 0, do: "chart-change", else: "chart-update"
 
     socket =
       socket
-      |> assign(conf: assigns.conf, init: false)
-      |> push_event("chart-update", update)
+      |> assign(last_os_time: os_time)
+      |> push_event(event, update)
 
     {:ok, socket}
-  end
-
-  defp interpolate(slices, steps) do
-    lookup = Map.new(slices)
-
-    for index <- 0..(steps - 1), do: Map.get(lookup, index, 0)
   end
 
   @impl Phoenix.LiveComponent
@@ -123,37 +100,83 @@ defmodule Oban.Web.Live.Chart do
         </div>
       </div>
 
-      <div class="cursor-crosshair pl-5 pr-3" style="height: 200px">
+      <div id="chart" class="cursor-crosshair pl-5 pr-3" style="height: 200px">
         <canvas id="chart-canvas" phx-update="ignore" phx-hook="Chart"></canvas>
       </div>
     </div>
     """
   end
 
+  # Data
+
+  defp points(os_time, assigns) do
+    step = period_to_step(assigns.period)
+    sy_time = Timing.snap(System.system_time(:second), step)
+
+    cols =
+      (os_time - assigns.last_os_time)
+      |> div(step)
+      |> min(assigns.max_cols)
+
+    opts = [
+      by: step,
+      filters: params_to_filters(assigns.params),
+      group: assigns.group,
+      lookback: cols * step,
+      ntile: ntile_to_float(assigns.ntile),
+      since: sy_time
+    ]
+
+    assigns.conf.name
+    |> Met.timeslice(assigns.series, opts)
+    |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
+    |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, os_time)} end)
+  end
+
+  defp interpolate(slices, cols, time) do
+    lookup = Map.new(slices)
+
+    for index <- 0..(cols - 1) do
+      x = time - index
+      y = Map.get(lookup, index, nil)
+
+      %{x: to_string(x), y: y}
+    end
+  end
+
   # Events
 
   @impl Phoenix.LiveComponent
   def handle_event("select-group", %{"choice" => group}, socket) do
-    {:noreply, assign(socket, init: true, group: group)}
+    {:noreply, push_change(socket, group: group)}
   end
 
   def handle_event("select-ntile", %{"choice" => ntile}, socket) do
-    {:noreply, assign(socket, init: true, ntile: ntile)}
+    {:noreply, push_change(socket, ntile: ntile)}
   end
 
   def handle_event("select-period", %{"choice" => period}, socket) do
-    {:noreply, assign(socket, init: true, period: period)}
+    {:noreply, push_change(socket, period: period)}
   end
 
   def handle_event("select-series", %{"choice" => series}, socket) do
     assigns =
       if series == "full_count" and socket.assigns.group in ~w(node worker) do
-        [init: true, group: "state", series: :full_count]
+        [group: "state", series: :full_count]
       else
-        [init: true, series: String.to_existing_atom(series)]
+        [series: String.to_existing_atom(series)]
       end
 
-    {:noreply, assign(socket, assigns)}
+    {:noreply, push_change(socket, assigns)}
+  end
+
+  defp push_change(socket, change) do
+    os_time = socket.assigns.last_os_time
+    socket = assign(socket, change)
+    points = points(os_time, Map.put(socket.assigns, :last_os_time, 0))
+    update = %{group: socket.assigns.group, points: points}
+
+    push_event(socket, "chart-change", update)
   end
 
   # Lookups
