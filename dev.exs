@@ -37,16 +37,25 @@ defmodule WebDev.Generator do
     GenServer.start_link(__MODULE__, opts, name: name)
   end
 
-  @spec random_sleep(integer(), integer()) :: :ok
-  def random_sleep(min \\ @min_sleep, max \\ @max_sleep) do
-    if :rand.uniform(100) < @raise_chance do
-      Process.sleep(min)
+  @spec random_perform(integer(), integer()) :: :ok
+  def random_perform(min \\ @min_sleep, max \\ @max_sleep) do
+    chance = :rand.uniform(100)
 
-      raise RuntimeError, "Something went wrong!"
-    else
-      min..max
-      |> Enum.random()
-      |> Process.sleep()
+    cond do
+      chance in 0..10 ->
+        Process.sleep(min * chance)
+
+        {:snooze, chance}
+
+      chance in 11..25 ->
+        Process.sleep(min * chance)
+
+        raise RuntimeError, "Something went wrong!"
+
+      true ->
+        min..max
+        |> Enum.random()
+        |> Process.sleep()
     end
   end
 
@@ -81,10 +90,6 @@ defmodule WebDev.Generator do
     Process.send_after(self(), {:generate, worker}, delay)
   end
 
-  defp maybe_raise!(chance \\ @raise_chance) do
-    if :rand.uniform(100) < chance, do: raise(RuntimeError, "Something went wrong!")
-  end
-
   defp weighted_schedule(opts) do
     if :rand.uniform(100) < @delay_chance do
       Keyword.put(opts, :schedule_in, :rand.uniform(@max_schedule))
@@ -115,7 +120,7 @@ defmodule Oban.Workers.AvatarProcessor do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(300, 3_000)
+  def perform(_job), do: Generator.random_perform(300, 3_000)
 end
 
 defmodule Oban.Workers.BotCleaner do
@@ -135,7 +140,7 @@ defmodule Oban.Workers.BotCleaner do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_sleep(1_000, 4_000)
+    Generator.random_perform(1_000, 4_000)
 
     if :rand.uniform() > 0.75 do
       {:ok, %{bots_cleaned: :rand.uniform(30)}}
@@ -158,7 +163,7 @@ defmodule Oban.Workers.DigestMailer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(100, 5_000)
+  def perform(_job), do: Generator.random_perform(100, 5_000)
 end
 
 defmodule Oban.Workers.ExportGenerator do
@@ -177,7 +182,7 @@ defmodule Oban.Workers.ExportGenerator do
   end
 
   @impl Oban.Pro.Worker
-  def process(_job), do: Generator.random_sleep(1_200, 8_000)
+  def process(_job), do: Generator.random_perform(1_200, 8_000)
 
   @doc false
   def enc_key, do: "3qvMCmkaKR3t/6DB8Lg6p8l+nO5V014GFpbUV5HdrkU="
@@ -207,7 +212,7 @@ defmodule Oban.Workers.MailingListSyncer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(400, 2_500)
+  def perform(_job), do: Generator.random_perform(400, 2_500)
 
   @impl Worker
   def timeout(_job), do: :timer.seconds(20)
@@ -235,7 +240,7 @@ defmodule Oban.Workers.PricingAnalyzer do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_sleep(2_500, 20_000)
+    Generator.random_perform(2_500, 20_000)
 
     {:ok,
      %{
@@ -262,7 +267,7 @@ defmodule Oban.Workers.PushNotifier do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(300, 5_000)
+  def perform(_job), do: Generator.random_perform(300, 5_000)
 
   @impl Worker
   def backoff(_job), do: 30
@@ -284,7 +289,7 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
   @impl Worker
   def perform(_job) do
     if :rand.uniform() < 0.75 do
-      Generator.random_sleep(4_000, 15_000)
+      Generator.random_perform(4_000, 15_000)
     else
       {:cancel, "no longer neaded"}
     end
@@ -304,7 +309,7 @@ defmodule Oban.Workers.ReceiptMailer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(400, 6_000)
+  def perform(_job), do: Generator.random_perform(400, 6_000)
 end
 
 defmodule Oban.Workers.SyntaxAnalyzer do
@@ -320,7 +325,7 @@ defmodule Oban.Workers.SyntaxAnalyzer do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: _}), do: Generator.random_sleep(2_000, 12_000)
+  def process(%Job{args: _}), do: Generator.random_perform(2_000, 12_000)
 end
 
 defmodule Oban.Workers.TranscriptionAnalyzer do
@@ -337,7 +342,7 @@ defmodule Oban.Workers.TranscriptionAnalyzer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_sleep(2_500, 14_000)
+  def perform(_job), do: Generator.random_perform(2_500, 14_000)
 end
 
 defmodule Oban.Workers.VideoProcessor do
@@ -359,7 +364,7 @@ defmodule Oban.Workers.VideoProcessor do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: %__MODULE__{}}), do: Generator.random_sleep(1_000, 20_000)
+  def process(%Job{args: %__MODULE__{}}), do: Generator.random_perform(1_000, 20_000)
 end
 
 # Repo
