@@ -5,8 +5,7 @@ import { LiveSocket } from "phoenix_live_view";
 import tippy, { roundArrow } from "tippy.js";
 import topbar from "topbar";
 
-Chart.defaults.font.size = 12;
-Chart.defaults.font.family = "Inter var";
+const Hooks = {};
 
 // Topbar ---
 
@@ -29,9 +28,7 @@ window.addEventListener("phx:page-loading-stop", (info) => {
   topbar.hide();
 });
 
-// Hooks ---
-
-const Hooks = {};
+// Refresher ---
 
 Hooks.Refresher = {
   mounted() {
@@ -57,6 +54,8 @@ Hooks.Refresher = {
     });
   },
 };
+
+// Theme ---
 
 Hooks.RestoreTheme = {
   mounted() {
@@ -97,6 +96,8 @@ Hooks.ChangeTheme = {
   },
 };
 
+// Tooltips ---
+
 Hooks.Tippy = {
   mounted() {
     const content = this.el.getAttribute("data-title");
@@ -105,9 +106,43 @@ Hooks.Tippy = {
   },
 };
 
-const STACK_OPTS = {
+// Charts ---
+
+Chart.defaults.font.size = 12;
+Chart.defaults.font.family = "Inter var";
+
+const CYAN = "#22d3ee"; // cyan-400
+const EMERALD = "#34d399"; // emerald-400
+const ORANGE = "#fb923c"; // orange-400
+const ROSE = "#fb7185"; // rose-400
+const TEAL = "#2dd4bf"; // teal-500
+const VIOLET = "#a78bfa"; // violet-400
+const YELLOW = "#facc15"; // yellow-400
+
+const OTHER_PALETTE = [
+  CYAN,
+  VIOLET,
+  YELLOW,
+  EMERALD,
+  ORANGE,
+  TEAL,
+  ROSE,
+]
+
+const STATE_PALETTE = {
+  available: TEAL,
+  completed: CYAN,
+  cancelled: VIOLET,
+  discarded: ROSE,
+  executing: ORANGE,
+  retryable: YELLOW,
+  scheduled: EMERALD,
+};
+
+const BASIC_OPTS = {
   animation: false,
   maintainAspectRatio: false,
+  normalized: true,
   interaction: {
     mode: "index",
   },
@@ -130,6 +165,10 @@ const STACK_OPTS = {
       },
     },
   },
+}
+
+const STACK_OPTS = {
+  ...BASIC_OPTS,
   scales: {
     x: {
       stacked: true,
@@ -179,15 +218,7 @@ const STACK_OPTS = {
 };
 
 const LINES_OPTS = {
-  maintainAspectRatio: false,
-  interaction: {
-    mode: "index",
-  },
-  plugins: {
-    legend: {
-      display: false,
-    },
-  },
+  ...BASIC_OPTS,
   scales: {
     x: {
       grid: {
@@ -196,82 +227,70 @@ const LINES_OPTS = {
       ticks: {
         maxRotation: 0,
         minRotation: 0,
+        padding: 3,
+        callback: function (value, index) {
+          if (index % 4 === 0) {
+            const date = new Date(parseInt(this.getLabelForValue(value)) * 1000);
+
+            return date.toLocaleTimeString("en-US", { hour12: false, timeStyle: "medium" });
+          }
+        },
+      },
+    },
+    y: {
+      ticks: {
+        callback: function (value, index, _ticks) {
+          if (index % 2 !== 0) return;
+
+          const milliseconds = value / 1e6;
+          const seconds = value / 1e9;
+          const minutes = value / 6e10;
+          const hours = value / 3.6e12;
+
+          if (hours >= 1) {
+            return `${hours.toFixed(1)}h`;
+          } else if (minutes >= 1) {
+            return `${minutes.toFixed(1)}m`;
+          } else if (seconds >= 1) {
+            return `${seconds.toFixed(1)}s`;
+          } else if (milliseconds >= 1000) {
+            return `${milliseconds.toFixed(1)}ms`;
+          } else {
+            return `${milliseconds.toFixed(0)}ms`;
+          }
+        },
       },
     },
   },
 };
 
-const CYAN = "#22d3ee"; // cyan-400
-const EMERALD = "#34d399"; // emerald-400
-const ORANGE = "#fb923c"; // orange-400
-const ROSE = "#fb7185"; // rose-400
-const TEAL = "#2dd4bf"; // teal-500
-const VIOLET = "#a78bfa"; // violet-400
-const YELLOW = "#facc15"; // yellow-400
-
-const OTHER_PALETTE = [
-  CYAN,
-  VIOLET,
-  YELLOW,
-  EMERALD,
-  ORANGE,
-  TEAL,
-  ROSE,
-]
-
-const STATE_PALETTE = {
-  available: TEAL,
-  completed: CYAN,
-  cancelled: VIOLET,
-  discarded: ROSE,
-  executing: ORANGE,
-  retryable: YELLOW,
-  scheduled: EMERALD,
-};
-
 Hooks.Chart = {
-  initDataset(label, color, data = []) {
-    return {
-      backgroundColor: color,
-      barThickness: 9,
-      borderColor: color,
-      data: data,
-      label: label,
-    };
-  },
-
   mounted() {
-    const chart = new Chart(this.el, { type: "bar", options: STACK_OPTS, data: {}});
+    let chart = null;
 
-    this.handleEvent("chart-change", ({ group, points }) => {
+    this.handleEvent("chart-change", ({ group, points, series }) => {
+      const [type, opts] = /_count/.test(series) ? ["bar", STACK_OPTS] : ["line", LINES_OPTS];
+
+      if (chart === null) {
+        chart = new Chart(this.el, { type: type, options: opts });
+      } else if (chart.config.type !== type) {
+        chart.destroy()
+        chart = new Chart(this.el, { type: type, options: opts });
+      }
+
       const datasets = Object.entries(points).map(([label, data], index) => {
         const color = group === "state" ? STATE_PALETTE[label] : OTHER_PALETTE[index];
 
-        return this.initDataset(label, color, data);
+        return {
+          backgroundColor: color,
+          barThickness: 9,
+          borderColor: color,
+          data: data.reverse(),
+          label: label,
+        };
       });
 
       chart.data.datasets = datasets;
-      chart.update();
-    });
-
-    this.handleEvent("chart-update", ({ points }) => {
-      // TODO: Append missing datasets (needed for workers or nodes)
-      // TODO: Replace previous data point when x overlaps
-      const [sample] = Object.values(points);
-      const [{ x }] = sample;
-
-      chart.data.datasets.forEach((dataset) => {
-        const data = points[dataset.label];
-
-        if (data !== undefined) {
-          dataset.data.splice(0, data.length);
-          dataset.data.push(...data);
-        } else {
-          dataset.data.splice(0, sample.length);
-          dataset.data.push({ x: x, y: null });
-        }
-      });
-
       chart.update();
     });
   },

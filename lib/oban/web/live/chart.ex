@@ -24,14 +24,12 @@ defmodule Oban.Web.Live.Chart do
     os_time = Timing.snap(assigns.os_time, step)
     socket = assign(socket, conf: assigns.conf, params: assigns.params)
     points = points(os_time, socket.assigns)
-    update = %{group: socket.assigns.group, points: points}
-
-    event = if socket.assigns.last_os_time == 0, do: "chart-change", else: "chart-update"
+    update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
 
     socket =
       socket
       |> assign(last_os_time: os_time)
-      |> push_event(event, update)
+      |> push_event("chart-change", update)
 
     {:ok, socket}
   end
@@ -111,12 +109,8 @@ defmodule Oban.Web.Live.Chart do
 
   defp points(os_time, assigns) do
     step = period_to_step(assigns.period)
+    cols = assigns.max_cols
     sy_time = Timing.snap(System.system_time(:second), step)
-
-    cols =
-      (os_time - assigns.last_os_time)
-      |> div(step)
-      |> min(assigns.max_cols)
 
     opts = [
       by: step,
@@ -161,10 +155,15 @@ defmodule Oban.Web.Live.Chart do
 
   def handle_event("select-series", %{"choice" => series}, socket) do
     assigns =
-      if series == "full_count" and socket.assigns.group in ~w(node worker) do
-        [group: "state", series: :full_count]
-      else
-        [series: String.to_existing_atom(series)]
+      cond do
+        series == "full_count" and socket.assigns.group in ~w(node worker) ->
+          [ntile: "max", group: "state", series: :full_count]
+
+        series in ~w(exec_time wait_time) ->
+          [ntile: "p95", series: String.to_existing_atom(series)]
+
+        true ->
+          [ntile: "max", series: String.to_existing_atom(series)]
       end
 
     {:noreply, push_change(socket, assigns)}
@@ -174,7 +173,7 @@ defmodule Oban.Web.Live.Chart do
     os_time = socket.assigns.last_os_time
     socket = assign(socket, change)
     points = points(os_time, Map.put(socket.assigns, :last_os_time, 0))
-    update = %{group: socket.assigns.group, points: points}
+    update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
 
     push_event(socket, "chart-change", update)
   end
