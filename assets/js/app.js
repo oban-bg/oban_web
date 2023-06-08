@@ -1,9 +1,21 @@
 import "phoenix_html";
-import Chart from "chart.js/auto";
 import { Socket, LongPoll } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import tippy, { roundArrow } from "tippy.js";
 import topbar from "topbar";
+
+import {
+  BarController,
+  BarElement,
+  CategoryScale,
+  Chart,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from "chart.js";
 
 const Hooks = {};
 
@@ -108,6 +120,18 @@ Hooks.Tippy = {
 
 // Charts ---
 
+Chart.register(
+  BarController,
+  BarElement,
+  CategoryScale,
+  Legend,
+  LineController,
+  LineElement,
+  LinearScale,
+  PointElement,
+  Tooltip,
+);
+
 Chart.defaults.font.size = 12;
 Chart.defaults.font.family = "Inter var";
 
@@ -119,15 +143,7 @@ const TEAL = "#2dd4bf"; // teal-500
 const VIOLET = "#a78bfa"; // violet-400
 const YELLOW = "#facc15"; // yellow-400
 
-const OTHER_PALETTE = [
-  CYAN,
-  VIOLET,
-  YELLOW,
-  EMERALD,
-  ORANGE,
-  TEAL,
-  ROSE,
-]
+const OTHER_PALETTE = [CYAN, VIOLET, YELLOW, EMERALD, ORANGE, TEAL, ROSE];
 
 const STATE_PALETTE = {
   available: TEAL,
@@ -139,7 +155,7 @@ const STATE_PALETTE = {
   scheduled: EMERALD,
 };
 
-const estimateCount = function(value) {
+const estimateCount = function (value) {
   if (value < 1000) {
     return value;
   } else {
@@ -158,7 +174,7 @@ const estimateCount = function(value) {
   }
 };
 
-const estimateNanos = function(value) {
+const estimateNanos = function (value) {
   const milliseconds = value / 1e6;
   const seconds = value / 1e9;
   const minutes = value / 6e10;
@@ -195,27 +211,27 @@ const BASIC_OPTS = {
     },
     tooltip: {
       callbacks: {
-        title: function(context) {
+        title: function (context) {
           const date = new Date(parseInt(context[0].label) * 1000);
 
           return date.toLocaleTimeString("en-US", { hour12: false, timeStyle: "long" });
         },
 
-        label: function(context) {
+        label: function (context) {
           const type = context.chart.options.type;
           const label = context.dataset.label;
           const value = context.parsed.y || 0;
 
           if (type === "line") {
-            return `${label}: ${estimateNanos(value)}`
+            return `${label}: ${estimateNanos(value)}`;
           } else {
-            return `${label}: ${value}`
+            return `${label}: ${value}`;
           }
         },
       },
     },
   },
-}
+};
 
 const STACK_OPTS = {
   ...BASIC_OPTS,
@@ -290,7 +306,7 @@ Hooks.Chart = {
       if (chart === null) {
         chart = new Chart(this.el, { type: type, options: opts });
       } else if (chart.config.type !== type) {
-        chart.destroy()
+        chart.destroy();
         chart = new Chart(this.el, { type: type, options: opts });
       }
 

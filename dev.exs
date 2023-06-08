@@ -13,7 +13,6 @@ defmodule WebDev.Generator do
   @max_jobs 15
   @max_schedule 120
   @delay_chance 30
-  @raise_chance 15
 
   @workers [
     Oban.Workers.AvatarProcessor,
