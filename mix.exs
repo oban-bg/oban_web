@@ -79,6 +79,7 @@ defmodule Oban.Web.MixProject do
       "assets.watch": ["tailwind watch"],
       dev: "run --no-halt dev.exs",
       release: [
+        "assets.build",
         "cmd git tag v#{@version}",
         "cmd git push",
         "cmd git push --tags",

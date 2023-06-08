@@ -24,3 +24,6 @@ oban_web-*.tar
 
 # Ignore downloaded packages
 assets/node_modules
+
+# Ignore compiled css/js
+priv/static/*
