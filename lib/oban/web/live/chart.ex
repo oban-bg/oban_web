@@ -13,23 +13,27 @@ defmodule Oban.Web.Live.Chart do
       |> assign_new(:ntile, fn -> List.first(ntiles()) end)
       |> assign_new(:period, fn -> List.first(periods()) end)
       |> assign_new(:series, fn -> List.first(series()) end)
-      |> assign(last_os_time: 0, max_cols: 100)
+      |> assign(last_os_time: 0, max_cols: 100, visible: true)
 
     {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    step = period_to_step(socket.assigns.period)
-    os_time = Timing.snap(assigns.os_time, step)
-    socket = assign(socket, conf: assigns.conf, params: assigns.params)
-    points = points(os_time, socket.assigns)
-    update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
-
     socket =
-      socket
-      |> assign(last_os_time: os_time)
-      |> push_event("chart-change", update)
+      if socket.assigns.visible do
+        step = period_to_step(socket.assigns.period)
+        os_time = Timing.snap(assigns.os_time, step)
+        socket = assign(socket, conf: assigns.conf, params: assigns.params)
+        points = points(os_time, socket.assigns)
+        update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
+
+        socket
+        |> assign(last_os_time: os_time)
+        |> push_event("chart-change", update)
+      else
+        socket
+      end
 
     {:ok, socket}
   end
@@ -43,7 +47,7 @@ defmodule Oban.Web.Live.Chart do
           <button
             id="chart-toggle"
             data-title="Toggle charts"
-            phx-click={toggle_chart()}
+            phx-click={toggle_chart(@myself)}
             phx-hook="Tippy"
           >
             <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
@@ -169,6 +173,17 @@ defmodule Oban.Web.Live.Chart do
     {:noreply, push_change(socket, assigns)}
   end
 
+  def handle_event("toggle-visible", _params, socket) do
+    socket =
+      if socket.assigns.visible do
+        assign(socket, visible: false)
+      else
+        push_change(socket, visible: true)
+      end
+
+    {:noreply, socket}
+  end
+
   defp push_change(socket, change) do
     os_time = socket.assigns.last_os_time
     socket = assign(socket, change)
@@ -218,10 +233,11 @@ defmodule Oban.Web.Live.Chart do
 
   # JS Commands
 
-  defp toggle_chart(js \\ %JS{}) do
-    js
+  defp toggle_chart(target) do
+    %JS{}
     |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
     |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
     |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
+    |> JS.push("toggle-visible", target: target)
   end
 end
