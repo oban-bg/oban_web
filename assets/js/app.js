@@ -139,6 +139,44 @@ const STATE_PALETTE = {
   scheduled: EMERALD,
 };
 
+const estimateCount = function(value) {
+  if (value < 1000) {
+    return value;
+  } else {
+    const log = Math.max(Math.floor(Math.log10(value)), 5);
+    const mult = Math.pow(10, log - 2);
+    const base = Math.floor(value / mult);
+    const part = Math.round((value % mult) / Math.pow(10, log - 3));
+
+    if (part === 0) {
+      return `${base}k`;
+    } else if (part === 10) {
+      return `${base + 1}k`;
+    } else {
+      return `${base}.${part}k`;
+    }
+  }
+};
+
+const estimateNanos = function(value) {
+  const milliseconds = value / 1e6;
+  const seconds = value / 1e9;
+  const minutes = value / 6e10;
+  const hours = value / 3.6e12;
+
+  if (hours >= 1) {
+    return `${hours.toFixed(1)}h`;
+  } else if (minutes >= 1) {
+    return `${minutes.toFixed(1)}m`;
+  } else if (seconds >= 1) {
+    return `${seconds.toFixed(1)}s`;
+  } else if (milliseconds >= 1000) {
+    return `${milliseconds.toFixed(1)}ms`;
+  } else {
+    return `${milliseconds.toFixed(0)}ms`;
+  }
+};
+
 const BASIC_OPTS = {
   animation: false,
   maintainAspectRatio: false,
@@ -157,10 +195,22 @@ const BASIC_OPTS = {
     },
     tooltip: {
       callbacks: {
-        title: function (context) {
+        title: function(context) {
           const date = new Date(parseInt(context[0].label) * 1000);
 
           return date.toLocaleTimeString("en-US", { hour12: false, timeStyle: "long" });
+        },
+
+        label: function(context) {
+          const type = context.chart.options.type;
+          const label = context.dataset.label;
+          const value = context.parsed.y || 0;
+
+          if (type === "line") {
+            return `${label}: ${estimateNanos(value)}`
+          } else {
+            return `${label}: ${value}`
+          }
         },
       },
     },
@@ -193,24 +243,7 @@ const STACK_OPTS = {
       stacked: true,
       ticks: {
         callback: function (value, index, _ticks) {
-          if (index % 2 !== 0) return;
-
-          if (value < 1000) {
-            return value;
-          } else {
-            const log = Math.max(Math.floor(Math.log10(value)), 5);
-            const mult = Math.pow(10, log - 2);
-            const base = Math.floor(value / mult);
-            const part = Math.round((value % mult) / Math.pow(10, log - 3));
-
-            if (part === 0) {
-              return `${base}k`;
-            } else if (part === 10) {
-              return `${base + 1}k`;
-            } else {
-              return `${base}.${part}k`;
-            }
-          }
+          if (index % 2 === 0) return estimateCount(value);
         },
       },
     },
@@ -240,24 +273,7 @@ const LINES_OPTS = {
     y: {
       ticks: {
         callback: function (value, index, _ticks) {
-          if (index % 2 !== 0) return;
-
-          const milliseconds = value / 1e6;
-          const seconds = value / 1e9;
-          const minutes = value / 6e10;
-          const hours = value / 3.6e12;
-
-          if (hours >= 1) {
-            return `${hours.toFixed(1)}h`;
-          } else if (minutes >= 1) {
-            return `${minutes.toFixed(1)}m`;
-          } else if (seconds >= 1) {
-            return `${seconds.toFixed(1)}s`;
-          } else if (milliseconds >= 1000) {
-            return `${milliseconds.toFixed(1)}ms`;
-          } else {
-            return `${milliseconds.toFixed(0)}ms`;
-          }
+          if (index % 2 === 0) return estimateNanos(value);
         },
       },
     },
