@@ -8,6 +8,11 @@
     "indentStyle": "space",
     "lineWidth": 98
   },
+  "javascript": {
+    "formatter": {
+      "semicolons": "asNeeded"
+    }
+  },
 	"linter": {
 		"enabled": true,
 		"rules": {
