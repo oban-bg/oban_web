@@ -42,7 +42,9 @@ const liveSocket = new LiveSocket(livePath, Socket, {
   params: { _csrf_token: csrfToken },
   hooks: hooks,
   metadata: {
-    keyup: (event, el) => {
+    keydown: (event, el) => {
+      event.preventDefault();
+
       return {
         key: event.key,
         ctrlKey: event.ctrlKey,

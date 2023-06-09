@@ -15,7 +15,14 @@ defmodule Oban.Web.Jobs.SearchComponent do
     assigns = assign(assigns, clear_class: clear_class)
 
     ~H"""
-    <form id="search" phx-target={@myself} phx-change="search" phx-submit="search">
+    <form
+      id="search"
+      phx-change="search"
+      phx-submit="search"
+      phx-target={@myself}
+    >
+      <div phx-key="/" phx-window-keydown={JS.focus_first(to: "#search")}></div>
+
       <div class="relative w-96 rounded-md shadow-sm">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
           <Icons.magnifying_glass class="w-5 h-5" />

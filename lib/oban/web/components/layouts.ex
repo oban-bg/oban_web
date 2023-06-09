@@ -78,29 +78,19 @@ defmodule Oban.Web.Layouts do
     """
   end
 
-  def tabs(assigns) do
+  def nav(assigns) do
     ~H"""
     <nav class="flex space-x-2">
-      <%= for page <- [:jobs, :queues] do %>
-        <%= live_redirect(String.capitalize(to_string(page)),
-          to: oban_path(page),
-          class: link_class(@page, page)
-        ) %>
-      <% end %>
+      <.link
+        :for={page <- [:jobs, :queues]}
+        class={link_class(@page, page)}
+        navigate={oban_path(page)}
+        phx-key={page_shortcut(page)}
+        phx-window-keydown={JS.navigate(oban_path(page))}
+      >
+        <%= String.capitalize(to_string(page)) %>
+      </.link>
     </nav>
-    """
-  end
-
-  def dark_toggle(assigns) do
-    ~H"""
-    <button
-      id="dark-toggle"
-      class="ml-3 relative text-gray-500 dark:text-gray-400 rounded-full focus:outline-none hover:text-gray-600 dark:hover:text-gray-300 hidden md:block"
-      data-title="Toggle dark mode"
-      phx-hook="ToggleDarkMode"
-    >
-      <Icons.moon />
-    </button>
     """
   end
 
@@ -131,6 +121,13 @@ defmodule Oban.Web.Layouts do
       <span class="text-gray-800 dark:text-gray-200 font-semibold">Made by Soren</span>
     </footer>
     """
+  end
+
+  defp page_shortcut(name) do
+    name
+    |> to_string()
+    |> String.first()
+    |> String.upcase()
   end
 
   defp link_class(curr, page) do

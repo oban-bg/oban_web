@@ -45,8 +45,8 @@ defmodule Oban.Web.Live.Shortcuts do
               <h3 class="font-semibold dark:text-gray-200 mb-4">Keyboard Shortcuts</h3>
 
               <dl class="divide-y divide-gray-100 dark:divide-gray-900 text-sm">
-                <.list_item description="Go to jobs" shortcut="gj" />
-                <.list_item description="Go to queues" shortcut="gq" />
+                <.list_item description="Go to jobs" shortcut="J" />
+                <.list_item description="Go to queues" shortcut="Q" />
 
                 <.list_item description="Focus search" shortcut="/" />
                 <.list_item description="Toggle refresh" shortcut="r" />
