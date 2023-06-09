@@ -1,3 +1,5 @@
+import { load, store } from "../lib/settings"
+
 const Refresher = {
   mounted() {
     const targ = "#refresh-selector"
@@ -11,13 +13,15 @@ const Refresher = {
       }
     })
 
-    if ("refresh" in localStorage) {
-      elem.pushEventTo(targ, "select-refresh", { value: localStorage.refresh })
+    const refresh = load("refresh")
+
+    if (refresh) {
+      elem.pushEventTo(targ, "select-refresh", { value: refresh })
     }
 
     this.el.querySelectorAll("[role='option']").forEach((option) => {
       option.addEventListener("click", () => {
-        localStorage.refresh = option.getAttribute("value")
+        store("refresh", option.getAttribute("value"))
       })
     })
   },

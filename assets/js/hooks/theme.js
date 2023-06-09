@@ -1,15 +1,13 @@
+import { load, store } from "../lib/settings"
+
 const THEMES = ["light", "dark", "system"]
 
 const ChangeTheme = {
   applyTheme() {
     const wantsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const noPreference = !("theme" in localStorage)
+    const theme = load("theme")
 
-    if (
-      localStorage.theme === "dark" ||
-      (localStorage.theme === "system" && wantsDark) ||
-      (noPreference && wantsDark)
-    ) {
+    if (theme === "dark" || (theme === "system" && wantsDark) || (!theme && wantsDark)) {
       document.documentElement.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
@@ -20,7 +18,7 @@ const ChangeTheme = {
     this.el.addEventListener("click", () => {
       const theme = this.el.getAttribute("value")
 
-      localStorage.theme = theme
+      store("theme", theme)
 
       this.applyTheme()
 
@@ -31,15 +29,15 @@ const ChangeTheme = {
 
 const RestoreTheme = {
   mounted() {
-    this.pushEventTo("#theme-selector", "restore", {
-      theme: localStorage.theme
-    })
+    if (load("theme")) {
+      this.pushEventTo("#theme-selector", "restore", { theme: load("theme") })
+    }
 
     this.handleEvent("cycle-theme", () => {
-      const index = THEMES.indexOf(localStorage.theme) + 1
+      const index = THEMES.indexOf(load("theme")) + 1
       const theme = THEMES[index % THEMES.length]
 
-      localStorage.theme = theme
+      store("theme", theme)
 
       ChangeTheme.applyTheme()
 

@@ -34,9 +34,7 @@ window.addEventListener("phx:page-loading-stop", (info) => {
 // Mounting ---
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-
 const liveTran = document.querySelector("meta[name='live-transport']").getAttribute("content")
-
 const livePath = document.querySelector("meta[name='live-path']").getAttribute("content")
 
 const liveSocket = new LiveSocket(livePath, Socket, {
@@ -49,10 +47,10 @@ const liveSocket = new LiveSocket(livePath, Socket, {
         key: event.key,
         ctrlKey: event.ctrlKey,
         metaKey: event.metaKey,
-        shiftKey: event.shiftKey
+        shiftKey: event.shiftKey,
       }
-    }
-  }
+    },
+  },
 })
 
 liveSocket.connect()
