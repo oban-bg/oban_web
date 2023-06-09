@@ -103,7 +103,7 @@ defmodule Oban.Web.Live.Chart do
       </div>
 
       <div id="chart" class="cursor-crosshair pl-5 pr-3" style="height: 200px">
-        <canvas id="chart-canvas" phx-update="ignore" phx-hook="Chart"></canvas>
+        <canvas id="chart-canvas" phx-update="ignore" phx-hook="Charter"></canvas>
       </div>
     </div>
     """
