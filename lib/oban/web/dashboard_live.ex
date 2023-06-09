@@ -21,7 +21,7 @@ defmodule Oban.Web.DashboardLive do
       |> assign(conf: conf, params: params, page: page, resolver: resolver)
       |> assign(live_path: live_path, live_transport: live_transport)
       |> assign(csp_nonces: csp_nonces, access: access, user: user)
-      |> assign(refresh: refresh, timer: nil)
+      |> assign(original_refresh: nil, refresh: refresh, timer: nil)
       |> init_schedule_refresh()
       |> page.comp.handle_mount()
 
@@ -63,15 +63,6 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, clear_flash(socket)}
   end
 
-  def handle_info({:update_refresh, refresh}, socket) do
-    socket =
-      socket
-      |> assign(refresh: refresh, original_refresh: nil)
-      |> schedule_refresh()
-
-    {:noreply, socket}
-  end
-
   def handle_info(:pause_refresh, socket) do
     socket =
       if socket.assigns.refresh > 0 do
@@ -84,11 +75,35 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:resume_refresh, socket) do
-    if original = socket.assigns[:original_refresh] do
+    if original = socket.assigns.original_refresh do
       handle_info({:update_refresh, original}, socket)
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_info(:toggle_refresh, socket) do
+    %{original_refresh: original, refresh: refresh} = socket.assigns
+
+    cond do
+      refresh > 0 ->
+        {:noreply, assign(socket, refresh: -1, original_refresh: refresh)}
+
+      is_integer(original) ->
+        handle_info({:update_refresh, original}, socket)
+
+      true ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_info({:update_refresh, refresh}, socket) do
+    socket =
+      socket
+      |> assign(refresh: refresh, original_refresh: nil)
+      |> schedule_refresh()
+
+    {:noreply, socket}
   end
 
   def handle_info(:refresh, socket) do

@@ -18,7 +18,14 @@ defmodule Oban.Web.Live.Refresh do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="relative" id="refresh-selector" phx-hook="Refresher">
+    <div
+      class="relative"
+      id="refresh-selector"
+      phx-key="r"
+      phx-hook="Refresher"
+      phx-target="#refresh-selector"
+      phx-window-keydown={JS.push("toggle-refresh")}
+    >
       <button
         aria-haspopup="listbox"
         aria-expanded="true"
@@ -101,6 +108,12 @@ defmodule Oban.Web.Live.Refresh do
 
   def handle_event("resume-refresh", _params, socket) do
     send(self(), :resume_refresh)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-refresh", _params, socket) do
+    send(self(), :toggle_refresh)
 
     {:noreply, socket}
   end
