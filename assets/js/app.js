@@ -69,10 +69,23 @@ Hooks.Refresher = {
 
 // Theme ---
 
+const THEMES = ["light", "dark", "system"]
+
 Hooks.RestoreTheme = {
   mounted() {
     this.pushEventTo("#theme-selector", "restore", {
-      theme: localStorage.theme,
+      theme: localStorage.theme
+    })
+
+    this.handleEvent("cycle-theme", () => {
+      const index = THEMES.indexOf(localStorage.theme) + 1
+      const theme = THEMES[index % THEMES.length]
+
+      localStorage.theme = theme
+
+      Hooks.ChangeTheme.applyTheme()
+
+      this.pushEventTo("#theme-selector", "restore", { theme: theme })
     })
   },
 }
@@ -94,8 +107,6 @@ Hooks.ChangeTheme = {
   },
 
   mounted() {
-    const elem = this
-
     this.el.addEventListener("click", () => {
       const theme = this.el.getAttribute("value")
 
@@ -103,7 +114,7 @@ Hooks.ChangeTheme = {
 
       this.applyTheme()
 
-      elem.pushEventTo("#theme-selector", "restore", { theme: theme })
+      this.pushEventTo("#theme-selector", "restore", { theme: theme })
     })
   },
 }
@@ -304,6 +315,7 @@ const STACK_OPTS = {
 
 const LINES_OPTS = {
   ...BASIC_OPTS,
+  borderJoinStyle: "round",
   scales: {
     x: {
       grid: {
@@ -377,6 +389,16 @@ const liveSocket = new LiveSocket(livePath, Socket, {
   transport: liveTran === "longpoll" ? LongPoll : WebSocket,
   params: { _csrf_token: csrfToken },
   hooks: Hooks,
+  metadata: {
+    keyup: (event, el) => {
+      return {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey
+      }
+    }
+  }
 })
 
 liveSocket.connect()

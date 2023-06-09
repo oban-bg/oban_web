@@ -9,7 +9,14 @@ defmodule Oban.Web.Live.Theme do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="relative" id="theme-selector" phx-hook="RestoreTheme">
+    <div
+      class="relative"
+      id="theme-selector"
+      phx-hook="RestoreTheme"
+      phx-key="t"
+      phx-target="#theme-selector"
+      phx-window-keydown={JS.push("cycle-theme")}
+    >
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
@@ -84,5 +91,10 @@ defmodule Oban.Web.Live.Theme do
   @impl Phoenix.LiveComponent
   def handle_event("restore", %{"theme" => theme}, socket) do
     {:noreply, assign(socket, :theme, theme)}
+  end
+
+  @impl Phoenix.LiveComponent
+  def handle_event("cycle-theme", _params, socket) do
+    {:noreply, push_event(socket, "cycle-theme", %{})}
   end
 end
