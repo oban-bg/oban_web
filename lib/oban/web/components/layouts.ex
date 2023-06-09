@@ -3,19 +3,23 @@ defmodule Oban.Web.Layouts do
 
   import Oban.Web.Helpers
 
-  alias Oban.Web.Live.{Refresh, Theme}
+  alias Oban.Web.Live.{Refresh, Shortcuts, Theme}
 
-  js_path = Path.join(__DIR__, "../../../../priv/static/app.js")
-  css_path = Path.join(__DIR__, "../../../../priv/static/app.css")
+  @static_path Path.join(__DIR__, "../../../../priv/static")
 
-  @external_resource js_path
-  @external_resource css_path
+  def render(filename) do
+    path = Path.join(@static_path, filename)
 
-  @app_js File.read!(js_path)
-  @app_css File.read!(css_path)
+    case File.read(path) do
+      {:ok, data} ->
+        data
 
-  def render("app.js"), do: @app_js
-  def render("app.css"), do: @app_css
+      {:error, reason} ->
+        IO.warn("Unable to load #{filename}: #{reason}")
+
+        ""
+    end
+  end
 
   embed_templates "layouts/*"
 
