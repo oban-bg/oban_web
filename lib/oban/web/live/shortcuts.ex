@@ -77,25 +77,6 @@ defmodule Oban.Web.Live.Shortcuts do
     """
   end
 
-  # Events
-
-  # - gj (go to jobs)
-  # - gq (go to queues)
-  # - r (toggle refresh)
-  # - t (cycle themes)
-  # - ? (show shortcuts)
-
-  @impl Phoenix.LiveComponent
-  def handle_event("shortcut", %{"key" => "?"}, socket) do
-    IO.puts("KEY")
-
-    {:noreply, socket}
-  end
-
-  def handle_event(_event, _params, socket) do
-    {:noreply, socket}
-  end
-
   # JS
 
   defp show_modal do
