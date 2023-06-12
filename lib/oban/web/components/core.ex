@@ -1,10 +1,5 @@
 defmodule Oban.Web.Components.Core do
-  @moduledoc false
-
-  use Phoenix.Component
-
-  alias Phoenix.LiveView.JS
-  alias Oban.Web.Components.Icons
+  use Oban.Web, :html
 
   @doc """
   A numerical input with increment and decrement buttons.

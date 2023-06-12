@@ -1,11 +1,5 @@
 defmodule Oban.Web.Components.Sort do
-  @moduledoc false
-
-  use Phoenix.Component
-
-  import Oban.Web.Helpers
-
-  alias Oban.Web.Components.Icons
+  use Oban.Web, :html
 
   def link(assigns) do
     ~H"""

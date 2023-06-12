@@ -239,7 +239,7 @@ defmodule Oban.Workers.PricingAnalyzer do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_perform(2_500, 20_000)
+    Generator.random_perform(1_500, 15_000)
 
     {:ok,
      %{
@@ -288,7 +288,7 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
   @impl Worker
   def perform(_job) do
     if :rand.uniform() < 0.75 do
-      Generator.random_perform(4_000, 15_000)
+      Generator.random_perform(2_000, 15_000)
     else
       {:cancel, "no longer neaded"}
     end
@@ -324,7 +324,7 @@ defmodule Oban.Workers.SyntaxAnalyzer do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: _}), do: Generator.random_perform(2_000, 12_000)
+  def process(%Job{args: _}), do: Generator.random_perform(1_000, 10_000)
 end
 
 defmodule Oban.Workers.TranscriptionAnalyzer do
@@ -341,7 +341,7 @@ defmodule Oban.Workers.TranscriptionAnalyzer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_perform(2_500, 14_000)
+  def perform(_job), do: Generator.random_perform(1_500, 10_000)
 end
 
 defmodule Oban.Workers.VideoProcessor do
