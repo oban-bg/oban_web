@@ -3,7 +3,7 @@ defmodule Oban.Web.JobsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, TableComponent}
+  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, Table}
   alias Oban.Web.Jobs.SearchComponent
   alias Oban.Web.Live.{Chart, Sidebar}
   alias Oban.Web.{Page, Query, Telemetry}
@@ -65,7 +65,7 @@ defmodule Oban.Web.JobsPage do
 
             <.live_component
               id="jobs-table"
-              module={TableComponent}
+              module={Table}
               jobs={@jobs}
               params={@params}
               resolver={@resolver}
@@ -81,7 +81,7 @@ defmodule Oban.Web.JobsPage do
   @impl Page
   def handle_mount(socket) do
     default = fn ->
-      %{limit: 20, sort_by: "time", sort_dir: "desc", state: "executing", terms: nil}
+      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing", terms: ""}
     end
 
     socket

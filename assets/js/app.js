@@ -3,12 +3,13 @@ import { Socket, LongPoll } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "topbar"
 
+import { ChangeTheme, RestoreTheme } from "./hooks/theme"
 import Charter from "./hooks/chart"
 import Refresher from "./hooks/refresher"
-import { ChangeTheme, RestoreTheme } from "./hooks/theme"
+import Relativize from "./hooks/relativize"
 import Tippy from "./hooks/tippy"
 
-const hooks = { ChangeTheme, Charter, Refresher, RestoreTheme, Tippy }
+const hooks = { ChangeTheme, Charter, Refresher, Relativize, RestoreTheme, Tippy }
 
 // Topbar ---
 
