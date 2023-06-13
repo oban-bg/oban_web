@@ -62,9 +62,7 @@ defmodule Oban.Web.Query do
       |> limit(^args[:limit])
       |> select(^@list_fields)
 
-    conf
-    |> Repo.all(query)
-    |> Enum.map(&relativize_timestamps/1)
+    Repo.all(conf, query)
   end
 
   @doc false

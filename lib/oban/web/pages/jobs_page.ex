@@ -25,13 +25,7 @@ defmodule Oban.Web.JobsPage do
       />
 
       <div class="flex-grow">
-        <.live_component
-          id="chart"
-          conf={@conf}
-          module={Chart}
-          params={@params}
-          os_time={@os_time}
-        />
+        <.live_component id="chart" conf={@conf} module={Chart} params={@params} os_time={@os_time} />
 
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detailed do %>
@@ -196,12 +190,17 @@ defmodule Oban.Web.JobsPage do
 
   # Selection
 
-  def handle_info({:select_job, job}, socket) do
-    {:noreply, assign(socket, selected: MapSet.put(socket.assigns.selected, job.id))}
-  end
+  def handle_info({:toggle_select, job_id}, socket) do
+    selected = socket.assigns.selected
 
-  def handle_info({:deselect_job, job}, socket) do
-    {:noreply, assign(socket, selected: MapSet.delete(socket.assigns.selected, job.id))}
+    selected =
+      if MapSet.member?(selected, job_id) do
+        MapSet.delete(selected, job_id)
+      else
+        MapSet.put(selected, job_id)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
   end
 
   def handle_info(:select_all, socket) do
