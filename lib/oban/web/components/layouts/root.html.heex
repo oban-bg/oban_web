@@ -21,9 +21,9 @@
 
     <script nonce={@csp_nonces.script}>
       const wantsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-      const noPreference = !("theme" in localStorage)
+      const theme = JSON.parse(localStorage.getItem("oban:theme"));
 
-      if ((localStorage.theme === "dark") || (localStorage.theme === "system" && wantsDark) || (noPreference && wantsDark)) {
+      if (theme === "dark" || (theme === "system" && wantsDark) || (!theme && wantsDark)) {
         document.documentElement.classList.add("dark")
       } else {
         document.documentElement.classList.remove("dark")
