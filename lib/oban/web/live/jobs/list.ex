@@ -14,10 +14,16 @@ defmodule Oban.Web.Jobs.Table do
         Oban.Web.Resolver
       end
 
+    nodes =
+      assigns.conf.name
+      |> Oban.Met.checks()
+      |> Enum.map(& &1["node"])
+      |> MapSet.new()
+
     socket =
       socket
       |> assign(jobs: assigns.jobs, params: assigns.params)
-      |> assign(resolver: resolver, selected: assigns.selected)
+      |> assign(nodes: nodes, resolver: resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
 
@@ -40,6 +46,7 @@ defmodule Oban.Web.Jobs.Table do
           id={"job-#{job.id}"}
           job={job}
           myself={@myself}
+          nodes={@nodes}
           resolver={@resolver}
           selected={@selected}
         />
@@ -92,10 +99,10 @@ defmodule Oban.Web.Jobs.Table do
           <%= @job.queue %>
         </p>
 
-        <.state_icon job={@job} />
+        <.state_icon job={@job} nodes={@nodes} />
 
         <div
-          class="w-12 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
+          class="tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
           data-timestamp={timestamp(@job)}
           data-relative-mode={relative_mode(@job)}
           id={"job-ts-#{@job.id}"}
@@ -127,7 +134,7 @@ defmodule Oban.Web.Jobs.Table do
 
     ~H"""
     <%= cond do %>
-      <% orphaned?(@job) -> %>
+      <% orphaned?(@job, @nodes) -> %>
         <Icons.state_orphaned class={@class} id={@id} phx-hook="Tippy" data-title="Orphaned, host node shut down" />
       <% @job.state == "available" -> %>
         <Icons.state_available class={@class} id={@id} phx-hook="Tippy" data-title="Available" />
@@ -146,8 +153,6 @@ defmodule Oban.Web.Jobs.Table do
     <% end %>
     """
   end
-
-  defp orphaned?(job), do: job.state == "executing" and :rand.uniform() > 0.85
 
   @impl Phoenix.LiveComponent
   def handle_event("toggle-select", %{"id" => id}, socket) do

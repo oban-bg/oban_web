@@ -59,8 +59,9 @@ defmodule Oban.Web.JobsPage do
 
             <.live_component
               id="jobs-table"
-              module={Table}
+              conf={@conf}
               jobs={@jobs}
+              module={Table}
               params={@params}
               resolver={@resolver}
               selected={@selected}

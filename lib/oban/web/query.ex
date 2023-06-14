@@ -18,6 +18,7 @@ defmodule Oban.Web.Query do
     :id,
     :args,
     :attempt,
+    :attempted_by,
     :worker,
     :queue,
     :max_attempts,

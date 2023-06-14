@@ -237,4 +237,16 @@ defmodule Oban.Web.Helpers do
   """
   @spec deletable?(Job.t()) :: boolean()
   def deletable?(%Job{state: state}), do: state != "executing"
+
+  @doc """
+  Whether the job was left in an executing state when the node or producer running it shut down.
+
+  # TODO: This isn't accurate enough. We need to use the UUIDs from all nodes.
+  """
+  def orphaned?(%Job{} = job, %MapSet{} = nodes) do
+    case {job.state, job.attempted_by} do
+      {"executing", [node | _]} -> not MapSet.member?(nodes, node)
+      _ -> false
+    end
+  end
 end
