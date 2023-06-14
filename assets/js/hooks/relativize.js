@@ -44,10 +44,15 @@ const Relavitize = {
 
   mounted() {
     const timestamp = this.el.getAttribute("data-timestamp")
+    const mode = this.el.getAttribute("data-relative-mode") || "words"
 
-    this.interval = window.setInterval(() => {
-      this.el.textContent = toDuration(timestamp)
-    }, 1000)
+    const setter = () => {
+      this.el.textContent = mode === "words" ? toWords(timestamp) : toDuration(timestamp)
+    }
+
+    setter()
+
+    this.interval = window.setInterval(setter, 1000)
   },
 }
 

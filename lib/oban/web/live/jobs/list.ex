@@ -45,24 +45,9 @@ defmodule Oban.Web.Jobs.Table do
         />
       </ul>
 
-      <div class="py-6 flex items-center justify-center space-x-2">
-        <button
-          type="button"
-          class={"font-semibold text-sm mr-6 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{loader_class(@show_less?)}"}
-          phx-target={@myself}
-          phx-click="load-less"
-        >
-          Show Less
-        </button>
-
-        <button
-          type="button"
-          class={"font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{loader_class(@show_more?)}"}
-          phx-target={@myself}
-          phx-click="load-more"
-        >
-          Show More
-        </button>
+      <div class="py-6 flex items-center justify-center space-x-6">
+        <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
+        <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
       </div>
     </div>
     """
@@ -94,33 +79,75 @@ defmodule Oban.Web.Jobs.Table do
           <%= @job.worker %>
         </.link>
 
-        <span class="tabular text-xs text-gray-600" rel="attempts"><%= @job.attempt %> ⁄ <%= @job.max_attempts %></span>
-        <samp
-          class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400"
-          rel="args"
-        >
+        <span class="tabular text-xs text-gray-600" rel="attempts">
+          <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
+        </span>
+        <samp class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400" rel="args">
           <%= format_args(@job, @resolver) %>
         </samp>
       </div>
 
-      <div class="ml-auto py-3 text-xs text-right text-gray-500 dark:text-gray-300">
-        <p class="inline-block p-1 rounded-md bg-gray-100 dark:bg-gray-950">
+      <div class="ml-auto py-3 pr-3 flex items-center space-x-2">
+        <p class="p-1 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
           <%= @job.queue %>
         </p>
-      </div>
 
-      <div
-        class="py-3 pl-6 pr-3 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
-        data-timestamp={DateTime.to_unix(@job.attempted_at, :millisecond)}
-        id={"job-ts-#{@job.id}"}
-        phx-hook="Relativize"
-        phx-update="ignore"
-      >
-        00:00
+        <.state_icon job={@job} />
+
+        <div
+          class="w-12 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
+          data-timestamp={timestamp(@job)}
+          data-relative-mode={relative_mode(@job)}
+          id={"job-ts-#{@job.id}"}
+          phx-hook="Relativize"
+          phx-update="ignore"
+        >
+          00:00
+        </div>
       </div>
     </li>
     """
   end
+
+  defp load_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={"font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{loader_class(@active)}"}
+      phx-target={@myself}
+      phx-click={@click}
+    >
+      <%= @label %>
+    </button>
+    """
+  end
+
+  defp state_icon(assigns) do
+    assigns = assign(assigns, class: "h-4 w-4 text-gray-500", id: "job-status-#{assigns.job.id}")
+
+    ~H"""
+    <%= cond do %>
+      <% orphaned?(@job) -> %>
+        <Icons.state_orphaned class={@class} id={@id} phx-hook="Tippy" data-title="Orphaned, host node shut down" />
+      <% @job.state == "available" -> %>
+        <Icons.state_available class={@class} id={@id} phx-hook="Tippy" data-title="Available" />
+      <% @job.state == "cancelled" -> %>
+        <Icons.state_cancelled class={@class} id={@id} phx-hook="Tippy" data-title="Cancelled" />
+      <% @job.state == "discarded" -> %>
+        <Icons.state_discarded class={@class} id={@id} phx-hook="Tippy" data-title="Discarded" />
+      <% @job.state == "executing" -> %>
+        <Icons.state_executing class={@class} id={@id} phx-hook="Tippy" data-title="Executing" />
+      <% @job.state == "retryable" -> %>
+        <Icons.state_retryable class={@class} id={@id} phx-hook="Tippy" data-title="Retryable" />
+      <% @job.state == "scheduled" -> %>
+        <Icons.state_scheduled class={@class} id={@id} phx-hook="Tippy" data-title="Scheduled" />
+      <% true -> %>
+        <Icons.state_completed class={@class} id={@id} phx-hook="Tippy" data-title="Completed" />
+    <% end %>
+    """
+  end
+
+  defp orphaned?(job), do: job.state == "executing" and :rand.uniform() > 0.85
 
   @impl Phoenix.LiveComponent
   def handle_event("toggle-select", %{"id" => id}, socket) do
@@ -145,13 +172,36 @@ defmodule Oban.Web.Jobs.Table do
     {:noreply, socket}
   end
 
-  # Helpers
+  # Format Helpers
 
   defp format_args(job, resolver, length \\ 98) do
     job
     |> resolver.format_job_args()
     |> truncate(0..length)
   end
+
+  # Time Helpers
+
+  defp timestamp(job) do
+    datetime =
+      case job.state do
+        "available" -> job.scheduled_at
+        "cancelled" -> job.cancelled_at
+        "completed" -> job.completed_at
+        "discarded" -> job.discarded_at
+        "executing" -> job.attempted_at
+        "retryable" -> job.scheduled_at
+        "scheduled" -> job.scheduled_at
+      end
+
+    DateTime.to_unix(datetime, :millisecond)
+  end
+
+  defp relative_mode(job) do
+    if job.state == "executing", do: "duration", else: "words"
+  end
+
+  # Class Helpers
 
   defp select_class(selected, job) do
     if MapSet.member?(selected, job.id) do
