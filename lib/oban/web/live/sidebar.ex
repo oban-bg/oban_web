@@ -9,8 +9,6 @@ defmodule Oban.Web.Live.Sidebar do
     <div id="sidebar" class="mr-3 mt-4">
       <%= if :nodes in @sections do %>
         <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
-          <:icon><Icons.server_stack class="w-5 h-5 mr-1" /></:icon>
-
           <%= for node <- nodes(@conf.name) do %>
             <.node_row node={node} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -19,8 +17,6 @@ defmodule Oban.Web.Live.Sidebar do
 
       <%= if :states in @sections do %>
         <.section id="states" name="States" headers={~w(Count)}>
-          <:icon><Icons.square_stack class="w-5 h-5 mr-1" /></:icon>
-
           <%= for state <- states(@conf.name) do %>
             <.state_row state={state} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -29,8 +25,6 @@ defmodule Oban.Web.Live.Sidebar do
 
       <%= if :queues in @sections do %>
         <.section id="queues" name="Queues" headers={~w(Mode Limit Exec Avail)}>
-          <:icon><Icons.queue_list class="w-5 h-5 mr-1" /></:icon>
-
           <%= for queue <- queues(@conf.name) do %>
             <.queue_row queue={queue} page={@page} params={@params} socket={@socket} />
           <% end %>
@@ -51,30 +45,21 @@ defmodule Oban.Web.Live.Sidebar do
       id={@id}
       class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84"
     >
-      <header class="group flex justify-between items-center border-b border-gray-300 dark:border-gray-700 pr-3 py-3">
-        <span class="dark:text-gray-200 font-bold flex items-center">
-          <%= render_slot(@icon) %> <%= @name %>
-        </span>
+      <header class="flex justify-between items-center border-b border-gray-300 dark:border-gray-700 pr-3 py-3">
+        <button
+          id={"#{@id}-toggle"}
+          class="text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-500"
+          data-title={"Toggle #{@name}"}
+          phx-click={toggle(@id)}
+          phx-hook="Tippy"
+        >
+          <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
+        </button>
 
-        <div class="flex group-hover:hidden">
-          <%= for header <- @headers do %>
-            <div class="text-xs text-gray-600 dark:text-gray-400 uppercase text-right w-10">
-              <%= header %>
-            </div>
-          <% end %>
-        </div>
+        <h3 class="dark:text-gray-200 font-bold"><%= @name %></h3>
 
-        <div class="hidden group-hover:block">
-          <button
-            id={"#{@id}-toggle"}
-            class="block w-5 h-5 text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-500"
-            data-title={"Toggle #{@name}"}
-            phx-click={toggle(@id)}
-            phx-hook="Tippy"
-          >
-            <Icons.minus_circle id={"#{@id}-hide-icon"} class="w-6 h-6 block" />
-            <Icons.plus_circle id={"#{@id}-show-icon"} class="w-6 h-6 hidden" />
-          </button>
+        <div class="ml-auto flex text-xs text-gray-600 dark:text-gray-400 uppercase text-right">
+          <span :for={header <- @headers} class=" w-10"><%= header %></span>
         </div>
       </header>
 
@@ -231,9 +216,10 @@ defmodule Oban.Web.Live.Sidebar do
   end
 
   defp toggle(prefix) do
-    JS.toggle(to: "##{prefix}-hide-icon")
-    |> JS.toggle(to: "##{prefix}-show-icon")
-    |> JS.toggle(to: "##{prefix}-rows")
+    %JS{}
+    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "##{prefix}-rows")
+    |> JS.add_class("rotate-90", to: "##{prefix}-toggle svg:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "##{prefix}-toggle svg.rotate-90")
   end
 
   defp sanitize_name(name) do
