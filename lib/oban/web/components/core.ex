@@ -101,7 +101,6 @@ defmodule Oban.Web.Components.Core do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        aria-labelledby="listbox-label"
         class="text-gray-500 dark:text-gray-400 disabled:text-gray-400 disabled:dark:text-gray-600 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
         data-title={@title}
         disabled={@disabled}

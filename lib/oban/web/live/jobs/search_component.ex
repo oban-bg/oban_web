@@ -23,15 +23,15 @@ defmodule Oban.Web.Jobs.SearchComponent do
     >
       <div phx-key="/" phx-window-keydown={JS.focus_first(to: "#search")}></div>
 
-      <div class="relative w-96 rounded-md shadow-sm">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400 pointer-events-none">
+      <div class="relative w-96">
+        <div class="absolute inset-y-0 left-0 pl-1.5 flex items-center text-gray-500 pointer-events-none">
           <Icons.magnifying_glass class="w-5 h-5" />
         </div>
         <input
           type="search"
           name="terms"
-          class="appearance-none text-sm border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-800 block rounded-md w-full pr-3 py-2.5 pl-10 placeholder-gray-600 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-400 focus:border-blue-400"
-          placeholder="Search"
+          class="appearance-none text-sm border-none block rounded-md shadow-inner w-full pr-3 py-2.5 pl-8 ring-1 ring-inset ring-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-blue-500 focus:bg-blue-100/10"
+          placeholder="Search..."
           value={@terms}
           phx-debounce="1000"
         />

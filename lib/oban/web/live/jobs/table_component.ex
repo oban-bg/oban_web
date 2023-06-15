@@ -1,4 +1,4 @@
-defmodule Oban.Web.Jobs.Table do
+defmodule Oban.Web.Jobs.TableComponent do
   use Oban.Web, :live_component
 
   @inc_limit 20
@@ -33,7 +33,7 @@ defmodule Oban.Web.Jobs.Table do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="jobs-list" class="min-w-full">
+    <div id="jobs-table" class="min-w-full">
       <div :if={Enum.empty?(@jobs)} class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
         <div class="flex items-center justify-center space-x-2">
           <Icons.no_symbol /> <span>No jobs match the current set of filters.</span>

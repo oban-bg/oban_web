@@ -24,7 +24,7 @@ defmodule Oban.Web.Helpers do
   def oban_path(route, params) do
     params =
       params
-      |> Enum.reject(fn {_, val} -> is_nil(val) end)
+      |> Enum.reject(fn {_, val} -> is_nil(val) or val == "" end)
       |> Map.new(fn
         {key, [_ | _] = val} -> {key, Enum.join(val, ",")}
         {key, val} -> {key, val}

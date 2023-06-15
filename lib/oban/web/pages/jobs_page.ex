@@ -3,8 +3,8 @@ defmodule Oban.Web.JobsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent, Table}
-  alias Oban.Web.Jobs.SearchComponent
+  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent}
+  alias Oban.Web.Jobs.{SearchComponent, SortComponent, TableComponent}
   alias Oban.Web.Live.{Chart, Sidebar}
   alias Oban.Web.{Page, Query, Telemetry}
 
@@ -38,19 +38,17 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
-              <.live_component
-                id="header"
-                module={HeaderComponent}
-                params={@params}
-                jobs={@jobs}
-                selected={@selected}
-              />
-              <.live_component id="search" module={SearchComponent} params={@params} />
+            <div class="flex justify-end items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+              <.live_component id="header" module={HeaderComponent} jobs={@jobs} selected={@selected} />
+
+              <div class="ml-auto space-x-3 flex items-center">
+                <.live_component id="search" module={SearchComponent} params={@params} />
+                <.live_component id="sorter" module={SortComponent} params={@params} />
+              </div>
             </div>
 
             <.live_component
-              id="bulk_action"
+              id="jobs-bulk-action"
               module={BulkActionComponent}
               access={@access}
               jobs={@jobs}
@@ -61,7 +59,7 @@ defmodule Oban.Web.JobsPage do
               id="jobs-table"
               conf={@conf}
               jobs={@jobs}
-              module={Table}
+              module={TableComponent}
               params={@params}
               resolver={@resolver}
               selected={@selected}
