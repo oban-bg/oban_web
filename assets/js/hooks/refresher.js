@@ -19,10 +19,8 @@ const Refresher = {
       elem.pushEventTo(targ, "select-refresh", { value: refresh })
     }
 
-    this.el.querySelectorAll("[role='option']").forEach((option) => {
-      option.addEventListener("click", () => {
-        store("refresh", option.getAttribute("value"))
-      })
+    this.handleEvent("update-refresh", ({ refresh }) => {
+      store("refresh", refresh)
     })
   },
 }

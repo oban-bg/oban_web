@@ -19,17 +19,18 @@ function toDuration(timestamp) {
 }
 
 function toWords(timestamp) {
-  const ellapsed = Math.floor(Math.abs(Date.now() - timestamp) / 1000)
+  const ellapsed = Date.now() - timestamp
+  const relative = Math.floor(Math.abs(ellapsed) / 1000)
 
   let distance = ""
 
-  if (ellapsed === 0) distance = "now"
-  else if (ellapsed <= 59) distance = `${ellapsed}s`
-  else if (ellapsed <= 3_599) distance = `${Math.floor(ellapsed / 60)}m`
-  else if (ellapsed <= 86_399) distance = `${Math.floor(ellapsed / 3_600)}h`
-  else if (ellapsed <= 2_591_999) distance = `${Math.floor(ellapsed / 86_400)}d`
-  else if (ellapsed <= 31_535_999) distance = `${Math.floor(ellapsed / 2_592_000)}mo`
-  else distance = `${Math.floor(ellapsed / 31536000)}yr`
+  if (relative === 0) distance = "now"
+  else if (relative <= 59) distance = `${relative}s`
+  else if (relative <= 3_599) distance = `${Math.floor(relative / 60)}m`
+  else if (relative <= 86_399) distance = `${Math.floor(relative / 3_600)}h`
+  else if (relative <= 2_591_999) distance = `${Math.floor(relative / 86_400)}d`
+  else if (relative <= 31_535_999) distance = `${Math.floor(relative / 2_592_000)}mo`
+  else distance = `${Math.floor(relative / 31_536_000)}yr`
 
   if (ellapsed < 0) return `${distance} ago`
   if (ellapsed > 0) return `in ${distance}`
@@ -52,7 +53,9 @@ const Relavitize = {
 
     setter()
 
-    this.interval = window.setInterval(setter, 1000)
+    this.interval = window.setInterval(() => {
+      if (load("refresh") > 0) setter()
+    }, 1000)
   },
 }
 

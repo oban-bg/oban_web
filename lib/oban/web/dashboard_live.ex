@@ -87,7 +87,12 @@ defmodule Oban.Web.DashboardLive do
 
     cond do
       refresh > 0 ->
-        {:noreply, assign(socket, refresh: -1, original_refresh: refresh)}
+        socket =
+          socket
+          |> assign(refresh: -1, original_refresh: refresh)
+          |> push_event("update-refresh", %{refresh: -1})
+
+        {:noreply, socket}
 
       is_integer(original) ->
         handle_info({:update_refresh, original}, socket)
@@ -103,7 +108,7 @@ defmodule Oban.Web.DashboardLive do
       |> assign(refresh: refresh, original_refresh: nil)
       |> schedule_refresh()
 
-    {:noreply, socket}
+    {:noreply, push_event(socket, "update-refresh", %{refresh: refresh})}
   end
 
   def handle_info(:refresh, socket) do

@@ -92,14 +92,6 @@ defmodule Oban.Web.Live.Refresh do
   # Handlers
 
   @impl Phoenix.LiveComponent
-  def handle_event("select-refresh", %{"value" => value}, socket) do
-    value = if is_binary(value), do: String.to_integer(value), else: value
-
-    send(self(), {:update_refresh, value})
-
-    {:noreply, socket}
-  end
-
   def handle_event("pause-refresh", _params, socket) do
     send(self(), :pause_refresh)
 
@@ -108,6 +100,14 @@ defmodule Oban.Web.Live.Refresh do
 
   def handle_event("resume-refresh", _params, socket) do
     send(self(), :resume_refresh)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("select-refresh", %{"value" => value}, socket) do
+    value = if is_binary(value), do: String.to_integer(value), else: value
+
+    send(self(), {:update_refresh, value})
 
     {:noreply, socket}
   end
