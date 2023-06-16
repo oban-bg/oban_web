@@ -51,6 +51,7 @@ defmodule Oban.Web.Jobs.SortComponent do
     ~H"""
     <.link
       class="block w-full flex items-center py-1 px-2 cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30"
+      id={"sort-#{@value}"}
       patch={@link}
       phx-click-away={JS.hide(to: "#sort-menu")}
       phx-click={JS.hide(to: "#sort-menu")}

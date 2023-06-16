@@ -42,14 +42,14 @@ defmodule Oban.Web.Case do
   end
 
   def flush_reporter(oban_name \\ Oban) do
-    Notifier.listen(oban_name, :gossip)
+    Notifier.listen(oban_name, :metrics)
 
     oban_name
     |> Oban.Registry.whereis(Oban.Met.Reporter)
     |> send(:checkpoint)
 
     receive do
-      {:notification, :gossip, _} ->
+      {:notification, :metrics, _} ->
         Process.sleep(10)
 
         :ok

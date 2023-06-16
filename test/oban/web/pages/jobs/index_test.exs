@@ -50,7 +50,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_state(live, "available")
       click_node(live, "web-2_oban")
-      assert_patch(live, jobs_path(nodes: "web-2/oban", sort_dir: "asc", state: "available"))
+      assert_patch(live, jobs_path(nodes: "web-2/oban", state: "available"))
 
       refute has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
@@ -58,10 +58,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_node(live, "web-1_oban")
 
-      assert_patch(
-        live,
-        jobs_path(nodes: "web-1/oban,web-2/oban", sort_dir: "asc", state: "available")
-      )
+      assert_patch(live, jobs_path(nodes: "web-1/oban,web-2/oban", state: "available"))
 
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
@@ -76,7 +73,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(nodes: "web-1/oban"))
 
       click_state(live, "available")
-      assert_patch(live, jobs_path(sort_dir: "asc", state: "available"))
+      assert_patch(live, jobs_path(state: "available"))
     end
 
     test "filtering jobs by queue", %{live: live} do
@@ -102,30 +99,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_job?(live, "GammaWorker")
 
       click_queue(live, "alpha")
-      assert_patch(live, jobs_path(queues: "alpha,delta", sort_dir: "asc", state: "available"))
+      assert_patch(live, jobs_path(queues: "alpha,delta", state: "available"))
 
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
-    end
-
-    test "filtering jobs by worker", %{live: live} do
-      insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker)
-      insert_job!([ref: 2], queue: "delta", worker: DeltaWorker)
-      insert_job!([ref: 3], queue: "gamma", worker: GammaWorker)
-
-      click_state(live, "available")
-
-      assert has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      assert has_job?(live, "GammaWorker")
-
-      live
-      |> element("#jobs-table button[rel='worker-AlphaWorker']")
-      |> render_click()
-
-      assert has_job?(live, "AlphaWorker")
-      refute has_job?(live, "DeltaWorker")
       refute has_job?(live, "GammaWorker")
     end
   end
@@ -138,7 +115,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_state(live, "available")
 
-      for mode <- ~w(worker queue attempt time) do
+      for mode <- ~w(worker queue time) do
         change_sort(live, mode)
 
         assert_patch(
@@ -227,7 +204,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp change_sort(live, mode) do
     live
-    |> element("#jobs-table a[rel=sort]", mode)
+    |> element("#job-sort #sort-#{mode}")
     |> render_click()
   end
 

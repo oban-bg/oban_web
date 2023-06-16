@@ -114,13 +114,6 @@ defmodule Oban.Web.Live.Sidebar do
         assigns.params
       end
 
-    params =
-      if assigns.state.name in ["executing", "cancelled", "completed", "discarded"] do
-        Map.put(params, :sort_dir, "desc")
-      else
-        Map.put(params, :sort_dir, "asc")
-      end
-
     assigns = assign(assigns, active_class: active_class, params: params)
 
     ~H"""

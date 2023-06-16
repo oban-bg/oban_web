@@ -3,16 +3,6 @@ defmodule Oban.Web.DashboardLive do
 
   alias Oban.Web.{JobsPage, QueuesPage}
 
-  defp restore(socket, key, default) do
-    case get_connect_params(socket) do
-      %{"init_state" => state} ->
-        Map.get(state, "oban:" <> key, default)
-
-      nil ->
-        default
-    end
-  end
-
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
     %{"oban" => oban, "prefix" => prefix, "resolver" => resolver} = session
@@ -38,6 +28,16 @@ defmodule Oban.Web.DashboardLive do
       |> page.comp.handle_mount()
 
     {:ok, socket}
+  end
+
+  defp restore(socket, key, default) do
+    case get_connect_params(socket) do
+      %{"init_state" => state} ->
+        Map.get(state, "oban:" <> key, default)
+
+      _ ->
+        default
+    end
   end
 
   @impl Phoenix.LiveView
