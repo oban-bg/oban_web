@@ -2,17 +2,12 @@ defmodule Oban.Web.Live.Theme do
   use Oban.Web, :live_component
 
   @impl Phoenix.LiveComponent
-  def mount(socket) do
-    {:ok, assign(socket, :theme, "system")}
-  end
-
-  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div
       class="relative"
       id="theme-selector"
-      phx-hook="RestoreTheme"
+      phx-hook="Themer"
       phx-key="t"
       phx-target="#theme-selector"
       phx-window-keydown={JS.push("cycle-theme")}
@@ -20,7 +15,6 @@ defmodule Oban.Web.Live.Theme do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        aria-labelledby="listbox-label"
         class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:block"
         data-title="Change theme"
         id="theme-menu-toggle"
@@ -37,14 +31,13 @@ defmodule Oban.Web.Live.Theme do
         role="listbox"
         tabindex="-1"
       >
-        <%= for theme <- ~w(light dark system) do %>
-          <.option value={theme} theme={@theme} />
-        <% end %>
+        <.option :for={theme <- ~w(light dark system)} myself={@myself} theme={@theme} value={theme} />
       </ul>
     </div>
     """
   end
 
+  attr :myself, :any, required: true
   attr :theme, :string, required: true
   attr :value, :string, required: true
 
@@ -63,9 +56,10 @@ defmodule Oban.Web.Live.Theme do
       class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
       id={"select-theme-#{@value}"}
       phx-click-away={JS.hide(to: "#theme-menu")}
-      phx-hook="ChangeTheme"
+      phx-click="update-theme"
+      phx-target={@myself}
+      phx-value-theme={@value}
       role="option"
-      value={@value}
     >
       <.theme_icon theme={@value} />
       <span class="capitalize text-gray-800 dark:text-gray-200"><%= @value %></span>
@@ -89,12 +83,22 @@ defmodule Oban.Web.Live.Theme do
   end
 
   @impl Phoenix.LiveComponent
-  def handle_event("restore", %{"theme" => theme}, socket) do
-    {:noreply, assign(socket, :theme, theme)}
+  def handle_event("update-theme", %{"theme" => theme}, socket) do
+    send(self(), {:update_theme, theme})
+
+    {:noreply, socket}
   end
 
-  @impl Phoenix.LiveComponent
   def handle_event("cycle-theme", _params, socket) do
-    {:noreply, push_event(socket, "cycle-theme", %{})}
+    theme =
+      case socket.assigns.theme do
+        "light" -> "dark"
+        "dark" -> "system"
+        "system" -> "light"
+      end
+
+    send(self(), {:update_theme, theme})
+
+    {:noreply, socket}
   end
 end

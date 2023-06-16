@@ -3,10 +3,19 @@ defmodule Oban.Web.DashboardLive do
 
   alias Oban.Web.{JobsPage, QueuesPage}
 
+  defp restore(socket, key, default) do
+    case get_connect_params(socket) do
+      %{"init_state" => state} ->
+        Map.get(state, "oban:" <> key, default)
+
+      nil ->
+        default
+    end
+  end
+
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
-    %{"oban" => oban, "refresh" => refresh} = session
-    %{"prefix" => prefix, "resolver" => resolver} = session
+    %{"oban" => oban, "prefix" => prefix, "resolver" => resolver} = session
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
 
@@ -16,12 +25,15 @@ defmodule Oban.Web.DashboardLive do
 
     Process.put(:routing, {socket, prefix})
 
+    refresh = restore(socket, "refresh", 1)
+    theme = restore(socket, "theme", "system")
+
     socket =
       socket
       |> assign(conf: conf, params: params, page: page, resolver: resolver)
       |> assign(live_path: live_path, live_transport: live_transport)
       |> assign(csp_nonces: csp_nonces, access: access, user: user)
-      |> assign(original_refresh: nil, refresh: refresh, timer: nil)
+      |> assign(original_refresh: nil, refresh: refresh, timer: nil, theme: theme)
       |> init_schedule_refresh()
       |> page.comp.handle_mount()
 
@@ -109,6 +121,13 @@ defmodule Oban.Web.DashboardLive do
       |> schedule_refresh()
 
     {:noreply, push_event(socket, "update-refresh", %{refresh: refresh})}
+  end
+
+  def handle_info({:update_theme, theme}, socket) do
+    {:noreply,
+     socket
+     |> assign(theme: theme)
+     |> push_event("update-theme", %{theme: theme})}
   end
 
   def handle_info(:refresh, socket) do

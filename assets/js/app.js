@@ -3,13 +3,15 @@ import { Socket, LongPoll } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "topbar"
 
-import { ChangeTheme, RestoreTheme } from "./hooks/theme"
+import { loadAll } from "./lib/settings"
+
 import Charter from "./hooks/chart"
 import Refresher from "./hooks/refresher"
 import Relativize from "./hooks/relativize"
+import Themer from "./hooks/themer"
 import Tippy from "./hooks/tippy"
 
-const hooks = { ChangeTheme, Charter, Refresher, Relativize, RestoreTheme, Tippy }
+const hooks = { Charter, Refresher, Relativize, Themer, Tippy }
 
 // Topbar ---
 
@@ -40,11 +42,11 @@ const livePath = document.querySelector("meta[name='live-path']").getAttribute("
 
 const liveSocket = new LiveSocket(livePath, Socket, {
   transport: liveTran === "longpoll" ? LongPoll : WebSocket,
-  params: { _csrf_token: csrfToken },
+  params: { _csrf_token: csrfToken, init_state: loadAll() },
   hooks: hooks,
   metadata: {
     keydown: (event, el) => {
-      event.preventDefault();
+      if (event.key === "/") event.preventDefault()
 
       return {
         key: event.key,

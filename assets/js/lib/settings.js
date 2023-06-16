@@ -1,27 +1,21 @@
-const PREFIX = "oban:";
+const PREFIX = "oban:"
 
-export function load(key) {
-  try {
-    const json = localStorage.getItem(PREFIX + key);
+export function loadAll() {
+  const values = {}
 
-    if (json) {
-      return JSON.parse(json);
-    }
-  } catch (error) {
-    console.error(
-      `Failed to load from local storage, reason: ${error.message}`
-    );
+  for (const [key, json] of Object.entries(localStorage)) {
+    if (key.startsWith(PREFIX)) values[key] = JSON.parse(json)
   }
 
-  return undefined;
+  return values
+}
+
+export function load(key) {
+  const json = localStorage.getItem(PREFIX + key)
+
+  if (json) return JSON.parse(json)
 }
 
 export function store(key, value) {
-  try {
-    const json = JSON.stringify(value);
-
-    localStorage.setItem(PREFIX + key, json);
-  } catch (error) {
-    console.error(`Failed to write to local storage, reason: ${error.message}`);
-  }
+  localStorage.setItem(PREFIX + key, JSON.stringify(value))
 }
