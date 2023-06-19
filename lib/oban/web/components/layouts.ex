@@ -84,9 +84,9 @@ defmodule Oban.Web.Layouts do
       <.link
         :for={page <- [:jobs, :queues]}
         class={link_class(@page, page)}
+        data-shortcut={JS.navigate(oban_path(page))}
+        id={"nav-#{page}"}
         navigate={oban_path(page)}
-        phx-key={page_shortcut(page)}
-        phx-window-keydown={JS.navigate(oban_path(page))}
       >
         <%= String.capitalize(to_string(page)) %>
       </.link>
@@ -121,13 +121,6 @@ defmodule Oban.Web.Layouts do
       <span class="text-gray-800 dark:text-gray-200 font-semibold">Made by Soren</span>
     </footer>
     """
-  end
-
-  defp page_shortcut(name) do
-    name
-    |> to_string()
-    |> String.first()
-    |> String.upcase()
   end
 
   defp link_class(curr, page) do

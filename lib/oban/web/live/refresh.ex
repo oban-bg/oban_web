@@ -21,10 +21,8 @@ defmodule Oban.Web.Live.Refresh do
     <div
       class="relative"
       id="refresh-selector"
-      phx-key="r"
+      data-shortcut={JS.push("toggle-refresh", target: "#refresh-selector")}
       phx-hook="Refresher"
-      phx-target="#refresh-selector"
-      phx-window-keydown={JS.push("toggle-refresh")}
     >
       <button
         aria-haspopup="listbox"

@@ -16,7 +16,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
 
   def render(assigns) do
     ~H"""
-    <div id="jobs-header" class="flex items-center">
+    <div id="jobs-header" class="w-96 flex-none flex items-center">
       <button
         id="toggle-select"
         class="mt-0.5 text-gray-400 hover:text-blue-500"

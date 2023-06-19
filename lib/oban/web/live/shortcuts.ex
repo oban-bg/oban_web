@@ -12,10 +12,10 @@ defmodule Oban.Web.Live.Shortcuts do
     <div
       id="shortcuts"
       class="relative z-50 hidden"
+      data-shortcut={show_modal()}
+      phx-hook="Shortcuts"
       phx-remove={hide_modal()}
       phx-target={@myself}
-      phx-key="?"
-      phx-window-keydown={show_modal()}
     >
       <div
         id="shortcuts-bg"

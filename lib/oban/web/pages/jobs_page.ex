@@ -40,11 +40,8 @@ defmodule Oban.Web.JobsPage do
           <% else %>
             <div class="flex justify-end items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
               <.live_component id="header" module={HeaderComponent} jobs={@jobs} selected={@selected} />
-
-              <div class="ml-auto space-x-3 flex items-center">
-                <.live_component id="search" module={SearchComponent} params={@params} />
-                <.live_component id="sorter" module={SortComponent} params={@params} />
-              </div>
+              <.live_component id="search" module={SearchComponent} conf={@conf} params={@params} />
+              <.live_component id="sorter" module={SortComponent} params={@params} />
             </div>
 
             <.live_component

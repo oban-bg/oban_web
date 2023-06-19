@@ -7,10 +7,8 @@ defmodule Oban.Web.Live.Theme do
     <div
       class="relative"
       id="theme-selector"
+      data-shortcut={JS.push("cycle-theme", target: "#theme-selector")}
       phx-hook="Themer"
-      phx-key="t"
-      phx-target="#theme-selector"
-      phx-window-keydown={JS.push("cycle-theme")}
     >
       <button
         aria-expanded="true"

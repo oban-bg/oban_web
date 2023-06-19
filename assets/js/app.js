@@ -8,10 +8,11 @@ import { loadAll } from "./lib/settings"
 import Charter from "./hooks/chart"
 import Refresher from "./hooks/refresher"
 import Relativize from "./hooks/relativize"
+import Shortcuts from "./hooks/shortcuts"
 import Themer from "./hooks/themer"
 import Tippy from "./hooks/tippy"
 
-const hooks = { Charter, Refresher, Relativize, Themer, Tippy }
+const hooks = { Charter, Refresher, Relativize, Shortcuts, Themer, Tippy }
 
 // Topbar ---
 
@@ -44,18 +45,6 @@ const liveSocket = new LiveSocket(livePath, Socket, {
   transport: liveTran === "longpoll" ? LongPoll : WebSocket,
   params: { _csrf_token: csrfToken, init_state: loadAll() },
   hooks: hooks,
-  metadata: {
-    keydown: (event, el) => {
-      if (event.key === "/") event.preventDefault()
-
-      return {
-        key: event.key,
-        ctrlKey: event.ctrlKey,
-        metaKey: event.metaKey,
-        shiftKey: event.shiftKey,
-      }
-    },
-  },
 })
 
 liveSocket.connect()
