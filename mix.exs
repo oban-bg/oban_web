@@ -48,13 +48,14 @@ defmodule Oban.Web.MixProject do
       {:jason, "~> 1.2"},
       {:phoenix, "1.7.0"},
       {:phoenix_html, "~> 3.2"},
-      {:phoenix_pubsub, "~> 2.0"},
+      {:phoenix_pubsub, "~> 2.1"},
       {:phoenix_live_view, "~> 0.19.0"},
+      {:postgrex, "~> 0.17"},
 
       # Oban
       {:oban, "~> 2.15"},
       {:oban_met, "~> 0.1", path: "../oban_met"},
-      {:oban_pro, "~> 0.14", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 1.0", repo: :oban, only: [:test, :dev]},
 
       # Dev Server
       {:bandit, "~> 0.7", only: :dev},

@@ -41,7 +41,7 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     assert html =~ "web.2/oban"
   end
 
-  test "disabling advanced features when SmartEngine isn't available" do
+  test "disabling advanced features when Smart engine isn't available" do
     conf = Config.new(engine: Basic, repo: Repo)
     html = render_component(Component, assigns(conf: conf), router: Router)
 

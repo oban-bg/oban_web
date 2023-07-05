@@ -25,7 +25,7 @@ if config_env() == :dev do
     ]
 end
 
-config :logger, level: :warn
+config :logger, level: :warning
 config :logger, :console, format: "[$level] $message\n"
 
 config :phoenix, json_library: Jason, stacktrace_depth: 20

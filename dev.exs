@@ -314,7 +314,12 @@ end
 defmodule Oban.Workers.SyntaxAnalyzer do
   @moduledoc false
 
-  use Oban.Pro.Worker, queue: :analysis, structured: [keys: [:id, :description]]
+  use Oban.Pro.Worker, queue: :analysis
+
+  args_schema do
+    field :id, :uuid
+    field :description, :string
+  end
 
   alias Faker.{Food, UUID}
   alias WebDev.Generator
@@ -347,7 +352,13 @@ end
 defmodule Oban.Workers.VideoProcessor do
   @moduledoc false
 
-  use Oban.Pro.Worker, queue: :media, max_attempts: 5, structured: [keys: [:id, :file, :type]]
+  use Oban.Pro.Worker, queue: :media, max_attempts: 5
+
+  args_schema do
+    field :id, :id
+    field :file, :string
+    field :type, :string
+  end
 
   alias Faker.File
   alias WebDev.Generator
@@ -465,7 +476,7 @@ Application.put_env(:phoenix, :serve_endpoints, true)
 Application.put_env(:phoenix, :persistent, true)
 
 oban_opts = [
-  engine: Oban.Pro.Queue.SmartEngine,
+  engine: Oban.Pro.Engines.Smart,
   repo: WebDev.Repo,
   queues: [
     analysis: 20,
