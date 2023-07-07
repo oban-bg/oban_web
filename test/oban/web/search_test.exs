@@ -12,98 +12,149 @@ defmodule Oban.Web.SearchTest do
     assert_matches([1], "id:#{job_1.id}")
     assert_matches([2], "id:#{job_2.id}")
     assert_matches([1, 2], "id:#{job_1.id},#{job_2.id}")
-    assert_matches([], "id:")
   end
 
-  test "searching in worker, args and meta by default" do
-    insert_job!(%{ref: 1}, worker: MyApp.Video)
-    insert_job!(%{ref: 2, mode: "video"})
-    insert_job!(%{ref: 3}, meta: %{mode: "video"})
+  test "constraining by node" do
+    insert_job!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
+    insert_job!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"])
 
-    assert_matches([1, 2, 3], "video")
+    assert_matches([1], "node:worker.1")
+    assert_matches([2], "node:worker.2")
+    assert_matches([1, 2], "node:worker.1,worker.2")
+    assert_matches([], "node:web.1")
+  end
+
+  test "constraining by priority" do
+    insert_job!(%{ref: 0}, priority: 0)
+    insert_job!(%{ref: 1}, priority: 1)
+    insert_job!(%{ref: 2}, priority: 2)
+
+    assert_matches([0], "priority:0")
+    assert_matches([0, 1], "priority:0,1")
+    assert_matches([0, 1, 2], "priority:0,1,2,3")
+    assert_matches([], "priority:3")
+  end
+
+  test "constraining by queue" do
+    insert_job!(%{ref: 1}, queue: "alpha")
+    insert_job!(%{ref: 2}, queue: "gamma")
+
+    assert_matches([1], "queue:alpha")
+    assert_matches([2], "queue:gamma")
+    assert_matches([1, 2], "queue:alpha,gamma")
+    assert_matches([], "queue:delta")
+  end
+
+  test "constraining by state" do
+    insert_job!(%{ref: 0}, state: "available")
+    insert_job!(%{ref: 1}, state: "available")
+    insert_job!(%{ref: 2}, state: "scheduled")
+    insert_job!(%{ref: 3}, state: "completed")
+
+    assert_matches([0, 1], "state:available")
+    assert_matches([2, 3], "state:scheduled,completed")
+    assert_matches([], "state:executing")
+  end
+
+  test "constraining by tags" do
+    insert_job!(%{ref: 0}, tags: ["audio"])
+    insert_job!(%{ref: 1}, tags: ["audio", "video"])
+    insert_job!(%{ref: 2}, tags: ["video"])
+    
+    assert_matches([0, 1], "tags:audio")
+    assert_matches([1, 2], "tags:video")
+    assert_matches([0, 1, 2], "tags:audio,video")
+    assert_matches([0, 1], "tags:audio,nada")
+    assert_matches([], "tags:nada")
+  end
+
+  test "constraining by worker" do
+    insert_job!(%{ref: 1}, worker: MyApp.VideoA)
+    insert_job!(%{ref: 2}, worker: MyApp.VideoB)
+
+    assert_matches([1], "worker:MyApp.VideoA")
+    assert_matches([2], "worker:MyApp.VideoB")
+    assert_matches([1, 2], "worker:MyApp.VideoA,MyApp.VideoB")
+    assert_matches([], "worker:MyApp.Video")
+  end
+
+  test "searching within args" do
+    insert_job!(%{ref: 0, mode: "video", domain: "myapp"})
+    insert_job!(%{ref: 1, mode: "audio", domain: "myapp"})
+    insert_job!(%{ref: 2, mode: "multi", domain: "myapp"})
+
+    assert_matches([0], "args:video")
+    assert_matches([1], "args:audio")
+    assert_matches([0, 1, 2], "args:myapp")
+    assert_matches([0, 1], ~s(args:"video or audio"))
+  end
+
+  test "searching within args sub-fields" do
+    insert_job!(%{ref: 0, mode: "audio", bar: %{baz: 1}})
+    insert_job!(%{ref: 1, mode: "video", bar: %{baz: 2}})
+    insert_job!(%{ref: 2, mode: "media", bar: %{bat: 3}})
+
+    assert_matches([0], "args.mode:audio")
+    assert_matches([1], "args.mode:video")
+    assert_matches([0, 1], ~s(args.mode:"audio or video"))
+
+    assert_matches([0], "args.bar.baz:1")
+    assert_matches([0, 1], "args.bar:baz")
+    assert_matches([2], "args.bar.bat:3")
+    assert_matches([], "args.bar.bat:4")
+  end
+
+  test "searching within meta" do
+    insert_job!(%{ref: 0}, meta: %{mode: "video", domain: "myapp"})
+    insert_job!(%{ref: 1}, meta: %{mode: "audio", domain: "myapp"})
+    insert_job!(%{ref: 2}, meta: %{mode: "multi", domain: "myapp"})
+
+    assert_matches([0], "meta:video")
+    assert_matches([1], "meta:audio")
+    assert_matches([0, 1, 2], "meta:myapp")
+    assert_matches([0, 1], ~s(meta:"video or audio"))
+  end
+
+  test "searching within meta sub-fields" do
+    insert_job!(%{ref: 0}, meta: %{mode: "audio"})
+    insert_job!(%{ref: 1}, meta: %{mode: "video"})
+    insert_job!(%{ref: 2}, meta: %{mode: "media"})
+
+    assert_matches([0], "meta.mode:audio")
+    assert_matches([1], "meta.mode:video")
+    assert_matches([0, 1], ~s(meta.mode:"audio or video"))
+  end
+
+  test "negating terms" do
+    insert_job!(%{ref: 0, mode: "video"})
+    insert_job!(%{ref: 1, mode: "audio"})
+    insert_job!(%{ref: 2}, meta: %{mode: "video"})
+    insert_job!(%{ref: 3}, meta: %{mode: "audio"})
+
+    assert_matches([1, 2, 3], "args:-video")
+    assert_matches([0, 1, 3], "meta:-video")
   end
 
   test "ignoring the meta recorded column" do
     insert_job!(%{ref: 1}, meta: %{recorded: "video"})
     insert_job!(%{ref: 2}, meta: %{searched: "video"})
 
-    assert_matches([2], "video")
-  end
-
-  test "constraining search using the in:field qualifier" do
-    insert_job!(%{ref: 1}, worker: MyApp.Video)
-    insert_job!(%{ref: 2, mode: "video", domain: "myapp"})
-    insert_job!(%{ref: 3}, meta: %{mode: "audio"})
-    insert_job!(%{ref: 4}, tags: ["audio", "video"])
-
-    assert_matches([1], "myapp in:worker")
-    assert_matches([2], "video in:args")
-    assert_matches([3], "audio in:meta")
-    assert_matches([4], "audio in:tags")
-    assert_matches([], "audio in:")
-
-    assert_matches([1, 2], "myapp in:args,worker")
-    assert_matches([2, 4], "video in:args,tags")
-    assert_matches([3, 4], "audio in:meta,tags")
-
-    assert_matches([1, 2, 4], "video in:args,meta,tags,worker")
-  end
-
-  test "negating terms" do
-    insert_job!(%{ref: 1}, worker: Video)
-    insert_job!(%{ref: 2, mode: "video"})
-    insert_job!(%{ref: 3}, tags: ["video"])
-    insert_job!(%{ref: 4}, meta: %{mode: "video"})
-
-    assert_matches([1, 3, 4], "-video in:args")
-    assert_matches([1, 2, 3], "-video in:meta")
-    assert_matches([1, 2, 4], "-video in:tags")
-
-    assert_matches([1, 2, 4], "not video in:tags")
-    assert_matches([1, 2, 4], "video not in:tags")
-  end
-
-  test "searching by priority" do
-    insert_job!(%{ref: 0}, worker: MyApp.Video, priority: 0)
-    insert_job!(%{ref: 1}, worker: MyApp.Video, priority: 1)
-    insert_job!(%{ref: 2}, worker: MyApp.Video, priority: 2)
-
-    assert_matches([0], "priority:0")
-    assert_matches([0, 1], "priority:0,1")
-    assert_matches([0, 1, 2], "priority:0,1,2,3")
-    assert_matches([], "priority:3")
-    assert_matches([], "priority:")
-
-    assert_matches([2], "video priority:2")
-  end
-
-  test "searching within args sub-fields" do
-    insert_job!(%{ref: 0, foo: 1, bar: %{baz: 1}})
-    insert_job!(%{ref: 1, foo: 2, bar: %{baz: 2}})
-    insert_job!(%{ref: 2, foo: 3, bar: %{bat: 3}})
-
-    assert_matches([0], "1 in:args.foo")
-    assert_matches([0], "1 in:args.bar.baz")
-    assert_matches([0, 1], "baz in:args.bar")
-    assert_matches([2], "3 in:args.bar.bat")
-    assert_matches([2], "3 in:args.bar.bat,meta.bar")
-  end
-
-  test "searching within meta sub-fields" do
-    insert_job!(%{ref: 0}, meta: %{foo: 1, bar: %{baz: 1}})
-    insert_job!(%{ref: 1}, meta: %{foo: 2, bar: %{baz: 2}})
-    insert_job!(%{ref: 2}, meta: %{foo: 3, bar: %{bat: 3}})
-
-    assert_matches([0], "1 in:meta.foo")
-    assert_matches([0], "1 in:meta.bar.baz")
-    assert_matches([0, 1], "baz in:meta.bar")
-    assert_matches([2], "3 in:meta.bar.bat")
-    assert_matches([2], "3 in:args,meta.bar.bat,worker")
+    assert_matches([2], "meta:video")
   end
 
   test "ignoring invalid fields or syntax" do
-    assert_matches([], "what in:")
-    assert_matches([], "what in:thing")
+    assert_matches([], "in:   ")
+    assert_matches([], "thing:")
+  end
+
+  test "composing multiple terms" do
+    insert_job!(%{ref: 0, mode: "video"}, worker: Media, meta: %{batch_id: 1})
+    insert_job!(%{ref: 1, mode: "audio"}, worker: Media, meta: %{batch_id: 1})
+    insert_job!(%{ref: 2, mode: "multi"}, worker: Media, meta: %{batch_id: 2})
+    
+    assert_matches([0], "worker:Media args:video meta.batch_id:1")
+    assert_matches([1], "worker:Media args:audio meta.batch_id:1")
+    assert_matches([], "args:audio meta.batch_id:2")
   end
 
   defp assert_matches(expected_refs, query) do
