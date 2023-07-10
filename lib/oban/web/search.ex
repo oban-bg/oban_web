@@ -3,7 +3,39 @@ defmodule Oban.Web.Search do
 
   import Ecto.Query, only: [dynamic: 2, where: 2]
 
-  alias Oban.Job
+  alias Oban.{Config, Job}
+
+  @suggest_limit 10
+  @suggest_threshold 0.5
+
+  @suggest_qualifier [
+    {"args:", "a key or value in args", "args:video"},
+    {"id:", "job id", "id:123"},
+    {"meta:", "a key or value in meta", "meta.batch_id:123"},
+    {"node:", "host name", "node:machine@somehost"},
+    {"priority:", "number from 0 to 3", "priority:1"},
+    {"queue:", "queue name", "queue:default"},
+    {"state:", "job state", "state:executing"},
+    {"tags:", "tag name", "tags:super,duper"},
+    {"worker:", "worker module", "worker:MyApp.SomeWorker"}
+  ]
+
+  @suggest_priority [
+    {"0", "highest", "priority:0"},
+    {"1", "medium high", "priority:1"},
+    {"2", "medium low", "priority:2"},
+    {"3", "lowest", "priority:3"}
+  ]
+
+  @suggest_state [
+    {"available", "available to run", "state:available"},
+    {"cancelled", "purposefully stopped", "state:cancelled"},
+    {"completed", "finished successfully", "state:completed"},
+    {"discarded", "failed and won't run again", "state:discarded"},
+    {"executing", "currently executing", "state:executing"},
+    {"retryable", "failed and will retry in the future", "state:retryable"},
+    {"scheduled", "scheduled for the future", "state:scheduled"}
+  ]
 
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
@@ -34,6 +66,13 @@ defmodule Oban.Web.Search do
     end
   end
 
+  @doc """
+  Build an Ecto query from a string of parameters.
+
+  ## Examples
+
+      Search.build("state:executing queue:default")
+  """
   @spec build(Ecto.Queryable.t(), String.t()) :: Ecto.Queryable.t()
   def build(query \\ Job, terms) when is_binary(terms) do
     conditions =
@@ -42,6 +81,84 @@ defmodule Oban.Web.Search do
       |> Enum.reduce(true, &compose/2)
 
     where(query, ^conditions)
+  end
+
+  @doc """
+  Suggest completions from a search fragment.
+  """
+  @spec suggest(String.t(), Config.t()) :: [{String.t(), String.t(), String.t()}]
+  def suggest(terms, conf) do
+    terms
+    |> String.split(@split_pattern)
+    |> List.last()
+    |> to_string()
+    |> case do
+      "" ->
+        @suggest_qualifier
+
+      last ->
+        case String.split(last, ":", parts: 2) do
+          ["id", _] -> []
+          ["args" <> _, _] -> []
+          ["meta" <> _, _] -> []
+          ["node", frag] -> suggest_labels("node", frag, conf)
+          ["queue", frag] -> suggest_labels("queue", frag, conf)
+          ["priority", frag] -> suggest_priority(frag)
+          ["state", frag] -> suggest_state(frag)
+          ["tags", _] -> []
+          ["worker", frag] -> suggest_labels("worker", frag, conf)
+          [frag] -> suggest_qualifier(frag)
+          _ -> @suggest_qualifier
+        end
+    end
+  end
+
+  defp suggest_qualifier(fragment) do
+    for {field, _, _} = suggest <- @suggest_qualifier,
+        String.starts_with?(field, fragment),
+        do: suggest
+  end
+
+  defp suggest_priority(fragment) do
+    for {field, _, _} = suggest <- @suggest_priority,
+        String.starts_with?(field, fragment),
+        do: suggest
+  end
+
+  defp suggest_state(fragment) do
+    for {field, _, _} = suggest <- @suggest_state,
+        String.starts_with?(field, fragment),
+        do: suggest
+  end
+
+  defp suggest_labels(label, "", conf) do
+    conf.name
+    |> Oban.Met.labels(label)
+    |> Enum.take(@suggest_limit)
+    |> Enum.map(&{&1, "", ""})
+  end
+
+  defp suggest_labels(label, frag, conf) do
+    frag = String.downcase(frag)
+
+    conf.name
+    |> Oban.Met.labels(label)
+    |> Enum.filter(&(similarity(&1, frag) > @suggest_threshold))
+    |> Enum.sort_by(&similarity(&1, frag), :desc)
+    |> Enum.take(@suggest_limit)
+    |> Enum.map(&{&1, "", ""})
+  end
+
+  defp similarity(value, guess) do
+    boost = 0.2
+    value = String.downcase(value)
+    distance = String.jaro_distance(value, guess)
+
+    if String.starts_with?(value, guess) do
+      distance + boost
+    else
+      distance - boost
+    end
   end
 
   defp parse(terms) when is_binary(terms) do

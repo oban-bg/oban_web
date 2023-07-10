@@ -1,12 +1,7 @@
 defmodule Oban.Web.Jobs.SearchComponent do
   use Oban.Web, :live_component
 
-  @distance_threshold 0.5
-
-  # 1. Sort results by similarity
-  # 2. Tab complete the top value
-
-  # - Prevent bubbling keyboard shortcuts
+  alias Oban.Web.Search
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
@@ -15,8 +10,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    terms = assigns.params[:terms]
-    local = socket.assigns.local || terms
+    local = socket.assigns.local || assigns.params[:terms]
 
     {:ok, assign(socket, conf: assigns.conf, local: local)}
   end
@@ -37,15 +31,18 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </div>
 
       <input
-        aria-label="Search"
-        aria-placeholder="Search"
+        aria-label="Type / to search"
+        aria-placeholder="Type / to search"
         autocorrect="false"
         class="w-full appearance-none text-sm border-none block rounded-md shadow-inner focus:shadow-blue-100 pr-3 py-2.5 pl-8 ring-1 ring-inset ring-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-blue-500 focus:bg-blue-100/10"
         id="search-input"
         name="terms"
         phx-debounce="100"
-        phx-focus={JS.show(to: "#search-suggest")}
-        placeholder="Search"
+        phx-key="tab"
+        phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
+        phx-keydown="pick"
+        phx-target={@myself}
+        placeholder="Type / to search"
         spellcheck="false"
         type="search"
         value={@local}
@@ -63,6 +60,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
       <nav
         class="hidden absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5"
         id="search-suggest"
+        phx-click-away={JS.hide()}
       >
         <.option
           :for={{name, desc, exmp} <- suggestions(@local, @conf)}
@@ -83,11 +81,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
     ~H"""
     <button
       class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-blue-600"
-      phx-click={JS.push("inject", value: %{prefix: @name}) |> JS.focus(to: "#search-input")}
+      phx-click={JS.push("inject", value: %{prefix: @name})}
       phx-target="#search"
       type="button"
     >
-      <span class="block px-1 py-0.5 font-semibold rounded-sm bg-gray-100"><%= @name %></span>
+      <span class="block px-1 py-0.5 font-medium rounded-sm bg-gray-100"><%= @name %></span>
       <span class="block ml-2 text-gray-600 group-hover:text-white"><%= @desc %></span>
       <span class="block ml-auto text-right text-gray-400 group-hover:text-white"><%= @exmp %></span>
     </button>
@@ -103,11 +101,20 @@ defmodule Oban.Web.Jobs.SearchComponent do
     {:noreply, assign(socket, local: nil)}
   end
 
+  def handle_event("pick", %{"key" => "Tab"}, socket) do
+    suggestion =
+      socket.assigns.local
+      |> suggestions(socket.assigns.conf)
+      |> List.first()
+      |> elem(0)
+
+    {:noreply, assign(socket, local: suggestion)}
+  end
+
   def handle_event("inject", %{"prefix" => prefix}, socket) do
-    local =
-      [socket.assigns.local, "#{prefix}"]
-      |> Enum.join(" ")
-      |> String.trim_leading()
+    local = to_string(socket.assigns.local)
+    joint = if String.ends_with?(to_string(socket.assigns.local), ":"), do: "", else: " "
+    local = Enum.join([local, "#{prefix}"], joint)
 
     {:noreply, assign(socket, local: local)}
   end
@@ -131,39 +138,6 @@ defmodule Oban.Web.Jobs.SearchComponent do
   # Suggestion Helpers
 
   defp suggestions(local, conf) do
-    local
-    |> to_string()
-    |> String.split(" ")
-    |> List.last()
-    |> String.split(":", parts: 2)
-    |> case do
-      ["worker", value] -> suggest_workers(value, conf)
-      _ -> suggest_default()
-    end
-  end
-
-  defp suggest_default do
-    [
-      {"in:", "field qualifier", "account_id in:args"},
-      {"node:", "host name", "node:machine@somehost"},
-      {"worker:", "worker module", "worker:MyApp.SomeWorker"},
-      {"queue:", "queue name", "queue:default"},
-      {"priority:", "number from 0 to 3", "priority:1"},
-      {"batch:", "a batch id", "batch:abc-123"},
-      {"workflow:", "a workflow id", "workflow:abc-123"}
-    ]
-  end
-
-  defp suggest_workers(partial, conf) do
-    conf.name
-    |> Oban.Met.labels("worker")
-    |> Enum.filter(&similar?(&1, partial))
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp similar?(value, partial) do
-    String.starts_with?(value, partial) or
-      String.contains?(value, partial) or
-      String.jaro_distance(value, partial) >= @distance_threshold
+    Search.suggest(local, conf)
   end
 end
