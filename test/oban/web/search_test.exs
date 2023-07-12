@@ -191,9 +191,9 @@ defmodule Oban.Web.SearchTest do
     end
 
     test "suggesting fixed priorities" do
-      assert [{"priority:0", _, _} | _] = suggest("priority:")
-      assert [{"priority:0", _, _}] = suggest("priority:0")
-      assert [{"priority:1", _, _}] = suggest("priority:1")
+      assert [{"0", _, _} | _] = suggest("priority:")
+      assert [{"0", _, _}] = suggest("priority:0")
+      assert [{"1", _, _}] = suggest("priority:1")
     end
 
     test "suggesting fixed states" do
@@ -245,6 +245,35 @@ defmodule Oban.Web.SearchTest do
       assert [{"MyApp.Delta", _, _}, _, _] = suggest("worker:MyApp.Delta", name)
 
       stop_supervised!(name)
+    end
+
+    test "suggesting with multiple terms" do
+      assert [{"0", _, _} | _] = suggest("state:available priority:")
+    end
+  end
+
+  describe "complete/2" do
+    def complete(terms) do
+      Search.complete(terms, nil)
+    end
+
+    test "completing with an unknown qualifier" do
+      assert "stuff" == complete("stuff")
+    end
+
+    test "completing a qualifier" do
+      assert "queue:" == complete("qu")
+      assert "queue:" == complete("queue")
+      assert "state:" == complete("st")
+      assert "state:" == complete("state")
+
+      assert "queue:alpha state:" == complete("queue:alpha st")
+      assert "queue:alpha state:" == complete("queue:alpha state")
+    end
+
+    test "completing a value suggestion" do
+      assert "state:available" == complete("state:ava")
+      assert "priority:0 state:available" == complete("priority:0 state:ava")
     end
   end
 

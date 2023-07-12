@@ -79,6 +79,7 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
   defp expanded_class(true), do: "h-12 py-3 bg-gray-100 dark:bg-gray-800"
   defp expanded_class(_not), do: "h-0"
 
+  @impl Phoenix.LiveComponent
   def handle_event("cancel", _params, socket) do
     if can?(:cancel_jobs, socket.assigns.access) do
       send(self(), :cancel_selected)

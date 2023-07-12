@@ -103,30 +103,51 @@ defmodule Oban.Web.Search do
           ["meta" <> _, _] -> []
           ["node", frag] -> suggest_labels("node", frag, conf)
           ["queue", frag] -> suggest_labels("queue", frag, conf)
-          ["priority", frag] -> suggest_priority(frag)
-          ["state", frag] -> suggest_state(frag)
+          ["priority", frag] -> suggest_static(@suggest_priority, frag)
+          ["state", frag] -> suggest_static(@suggest_state, frag)
           ["tags", _] -> []
           ["worker", frag] -> suggest_labels("worker", frag, conf)
-          [frag] -> suggest_qualifier(frag)
+          [frag] -> suggest_static(@suggest_qualifier, frag)
           _ -> @suggest_qualifier
         end
     end
   end
 
-  defp suggest_qualifier(fragment) do
-    for {field, _, _} = suggest <- @suggest_qualifier,
-        String.starts_with?(field, fragment),
-        do: suggest
+  @doc """
+  Complete a query by expanding the latest qualifier or fragment.
+  """
+  def complete(terms, conf) do
+    case suggest(terms, conf) do
+      [] ->
+        terms
+
+      [{match, _, _} | _] ->
+        if String.ends_with?(match, ":") do
+          terms
+          |> String.reverse()
+          |> String.split(" ", parts: 2)
+          |> case do
+            [_head] ->
+              match
+
+            [_head, tail] ->
+              tail
+              |> String.reverse()
+              |> Kernel.<>(" #{match}")
+          end
+        else
+          terms
+          |> String.reverse()
+          |> String.split(":", parts: 2)
+          |> List.last()
+          |> String.reverse()
+          |> Kernel.<>(":#{match}")
+        end
+    end
   end
 
-  defp suggest_priority(fragment) do
-    for {field, _, _} = suggest <- @suggest_priority,
-        String.starts_with?(field, fragment),
-        do: suggest
-  end
-
-  defp suggest_state(fragment) do
-    for {field, _, _} = suggest <- @suggest_state,
+  defp suggest_static(possibilities, fragment) do
+    for {field, _, _} = suggest <- possibilities,
         String.starts_with?(field, fragment),
         do: suggest
   end

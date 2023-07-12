@@ -63,7 +63,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
         phx-click-away={JS.hide()}
       >
         <.option
-          :for={{name, desc, exmp} <- suggestions(@local, @conf)}
+          :for={{name, desc, exmp} <- Search.suggest(@local, @conf)}
           name={name}
           desc={desc}
           exmp={exmp}
@@ -102,13 +102,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("pick", %{"key" => "Tab"}, socket) do
-    suggestion =
-      socket.assigns.local
-      |> suggestions(socket.assigns.conf)
-      |> List.first()
-      |> elem(0)
+    completed = Search.complete(socket.assigns.local, socket.assigns.conf)
 
-    {:noreply, assign(socket, local: suggestion)}
+    {:noreply, assign(socket, local: completed)}
   end
 
   def handle_event("inject", %{"prefix" => prefix}, socket) do
@@ -134,10 +130,4 @@ defmodule Oban.Web.Jobs.SearchComponent do
   defp clear_class(nil), do: "hidden"
   defp clear_class(""), do: "hidden"
   defp clear_class(_terms), do: "block"
-
-  # Suggestion Helpers
-
-  defp suggestions(local, conf) do
-    Search.suggest(local, conf)
-  end
 end
