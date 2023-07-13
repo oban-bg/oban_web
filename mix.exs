@@ -110,6 +110,7 @@ defmodule Oban.Web.MixProject do
       extras: extras(),
       groups_for_extras: groups_for_extras(),
       homepage_url: "/",
+      logo: "assets/oban-web-logo.svg",
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       before_closing_body_tag: fn _ ->
         """
