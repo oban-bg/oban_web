@@ -277,6 +277,21 @@ defmodule Oban.Web.SearchTest do
     end
   end
 
+  describe "append/2" do
+    import Search, only: [append: 2]
+
+    test "appending new qualifiers" do
+      assert "queue:" == append("qu", "queue:")
+      assert "queue:" == append("queue", "queue:")
+      assert "queue:" == append("queue:", "queue:")
+      assert "node:web queue:" == append("node:web que", "queue:")
+    end
+
+    test "preventing duplicate values" do
+      assert "queue:" == append("queue:", "queue:")
+    end
+  end
+
   defp store_labels(name, label, value) do
     gauge = Oban.Met.Values.Gauge.new(1)
 

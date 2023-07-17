@@ -102,7 +102,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         <.state_icon job={@job} nodes={@nodes} />
 
         <div
-          class="tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
+          class="w-16 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
           data-timestamp={timestamp(@job)}
           data-relative-mode={relative_mode(@job)}
           id={"job-ts-#{@job.id}"}

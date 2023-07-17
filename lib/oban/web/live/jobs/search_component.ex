@@ -31,8 +31,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </div>
 
       <input
-        aria-label="Type / to search"
-        aria-placeholder="Type / to search"
+        aria-label="Type / to filter"
+        aria-placeholder="Type / to filter"
         autocorrect="false"
         class="w-full appearance-none text-sm border-none block rounded-md shadow-inner focus:shadow-blue-100 pr-3 py-2.5 pl-8 ring-1 ring-inset ring-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-blue-500 focus:bg-blue-100/10"
         id="search-input"
@@ -50,6 +50,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
       <button
         class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class(@local)}"}
+        data-title="Clear filters"
+        id="search-reset"
+        phx-hook="Tippy"
         phx-target={@myself}
         phx-click="clear"
         type="reset"
@@ -81,7 +84,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     ~H"""
     <button
       class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-blue-600"
-      phx-click={JS.push("inject", value: %{prefix: @name})}
+      phx-click={JS.push("append", value: %{choice: @name})}
       phx-target="#search"
       type="button"
     >
@@ -98,7 +101,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def handle_event("clear", _params, socket) do
     send(self(), {:params, :terms, nil})
 
-    {:noreply, assign(socket, local: nil)}
+    {:noreply, assign(socket, local: "")}
   end
 
   def handle_event("pick", %{"key" => "Tab"}, socket) do
@@ -107,10 +110,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
     {:noreply, assign(socket, local: completed)}
   end
 
-  def handle_event("inject", %{"prefix" => prefix}, socket) do
-    local = to_string(socket.assigns.local)
-    joint = if String.ends_with?(to_string(socket.assigns.local), ":"), do: "", else: " "
-    local = Enum.join([local, "#{prefix}"], joint)
+  def handle_event("append", %{"choice" => choice}, socket) do
+    local = Search.append(socket.assigns.local, choice)
 
     {:noreply, assign(socket, local: local)}
   end

@@ -122,27 +122,36 @@ defmodule Oban.Web.Search do
         terms
 
       [{match, _, _} | _] ->
-        if String.ends_with?(match, ":") do
-          terms
-          |> String.reverse()
-          |> String.split(" ", parts: 2)
-          |> case do
-            [_head] ->
-              match
+        append(terms, match)
+    end
+  end
 
-            [_head, tail] ->
-              tail
-              |> String.reverse()
-              |> Kernel.<>(" #{match}")
-          end
-        else
-          terms
-          |> String.reverse()
-          |> String.split(":", parts: 2)
-          |> List.last()
-          |> String.reverse()
-          |> Kernel.<>(":#{match}")
+  @doc """
+  Append to the terms string without any duplication.
+  """
+  def append(terms, choice) do
+    cond do
+      String.ends_with?(choice, ":") ->
+        terms
+        |> String.reverse()
+        |> String.split(" ", parts: 2)
+        |> case do
+          [_head] ->
+            choice
+
+          [_head, tail] ->
+            tail
+            |> String.reverse()
+            |> Kernel.<>(" #{choice}")
         end
+
+      true ->
+        terms
+        |> String.reverse()
+        |> String.split(":", parts: 2)
+        |> List.last()
+        |> String.reverse()
+        |> Kernel.<>(":#{choice}")
     end
   end
 
