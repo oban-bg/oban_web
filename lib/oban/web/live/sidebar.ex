@@ -6,7 +6,7 @@ defmodule Oban.Web.Live.Sidebar do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="sidebar" class="mr-3 mt-4">
+    <div id="sidebar" class="mr-3">
       <%= if :nodes in @sections do %>
         <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
           <%= for node <- nodes(@conf.name) do %>
