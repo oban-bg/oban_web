@@ -239,7 +239,7 @@ defmodule Oban.Workers.PricingAnalyzer do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_perform(1_500, 15_000)
+    Generator.random_perform(500, 10_000)
 
     {:ok,
      %{
@@ -288,7 +288,7 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
   @impl Worker
   def perform(_job) do
     if :rand.uniform() < 0.75 do
-      Generator.random_perform(2_000, 15_000)
+      Generator.random_perform(1_000, 15_000)
     else
       {:cancel, "no longer neaded"}
     end
@@ -329,7 +329,7 @@ defmodule Oban.Workers.SyntaxAnalyzer do
   end
 
   @impl Oban.Pro.Worker
-  def process(%Job{args: _}), do: Generator.random_perform(1_000, 10_000)
+  def process(%Job{args: _}), do: Generator.random_perform(500, 10_000)
 end
 
 defmodule Oban.Workers.TranscriptionAnalyzer do
@@ -346,7 +346,7 @@ defmodule Oban.Workers.TranscriptionAnalyzer do
   end
 
   @impl Worker
-  def perform(_job), do: Generator.random_perform(1_500, 10_000)
+  def perform(_job), do: Generator.random_perform(1_500, 7_000)
 end
 
 defmodule Oban.Workers.VideoProcessor do
@@ -479,14 +479,14 @@ oban_opts = [
   engine: Oban.Pro.Engines.Smart,
   repo: WebDev.Repo,
   queues: [
-    analysis: 20,
+    analysis: 30,
     default: 30,
     events: 15,
     exports: [global_limit: 8],
     mailers: [local_limit: 10, rate_limit: [allowed: 90, period: 15]],
     media: [
       local_limit: 10,
-      rate_limit: [allowed: 20, period: 60, partition: [fields: [:worker]]]
+      rate_limit: [allowed: 60, period: 60, partition: [fields: [:worker]]]
     ]
   ],
   plugins: [
