@@ -24,7 +24,7 @@ function toWords(timestamp) {
 
   let distance = ""
 
-  if (relative === 0) distance = "now"
+  if (relative === 0) return "now"
   else if (relative <= 59) distance = `${relative}s`
   else if (relative <= 3_599) distance = `${Math.floor(relative / 60)}m`
   else if (relative <= 86_399) distance = `${Math.floor(relative / 3_600)}h`
