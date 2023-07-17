@@ -126,32 +126,6 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
   end
 
-  describe "searching" do
-    @describetag :search
-
-    test "filtering jobs by search query", %{live: live} do
-      insert_job!([callsign: "yankee"], queue: "alpha", worker: AlphaWorker)
-      insert_job!([callsign: "hotel"], queue: "delta", worker: DeltaWorker)
-      insert_job!([callsign: "fox trot"], queue: "gamma", worker: GammaWorker)
-
-      click_state(live, "available")
-
-      # Filter down by worker name prefix
-      submit_search(live, "delta")
-
-      refute has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
-
-      # Filter down by args
-      submit_search(live, "fox trot")
-
-      refute has_job?(live, "AlphaWorker")
-      refute has_job?(live, "DeltaWorker")
-      assert has_job?(live, "GammaWorker")
-    end
-  end
-
   describe "bulk operations" do
     test "cancelling selected jobs", %{live: live} do
       [job_1, _job, job_3] =
@@ -242,13 +216,5 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       |> element("#jobs-table #job-#{id} [rel=toggle-select]")
       |> render_click()
     end
-  end
-
-  defp submit_search(live, terms) do
-    live
-    |> element("#search")
-    |> render_change(%{terms: terms})
-
-    refresh(live)
   end
 end

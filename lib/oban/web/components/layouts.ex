@@ -26,7 +26,7 @@ defmodule Oban.Web.Layouts do
   def logo(assigns) do
     ~H"""
     <a href={oban_path(:jobs)} title="Oban Web">
-      <svg class="h-10" viewBox="0 0 227 64">
+      <svg class="h-10" viewBox="0 0 227 64" style="filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.2))">
         <g fill="none" fill-rule="evenodd">
           <path
             class="text-violet-950 dark:text-violet-50"

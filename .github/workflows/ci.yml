@@ -15,13 +15,11 @@ jobs:
               elixir: '1.12'
               otp: '23.3'
               postgres: '12.13-alpine'
-            exclude_tags: 'search'
           - pair:
               elixir: '1.14'
               otp: '25.1'
               postgres: '15.1-alpine'
             lint: lint
-            exclude_tags: 'nothing'
 
     runs-on: ubuntu-20.04
 
@@ -89,4 +87,4 @@ jobs:
       - name: Run mix test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
-        run: mix test --exclude ${{ matrix.exclude_tags }}
+        run: mix test

@@ -8,6 +8,8 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.Live.{Chart, Sidebar}
   alias Oban.Web.{Page, Query, Telemetry}
 
+  @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
+
   @flash_timing 5_000
 
   @impl Phoenix.LiveComponent
@@ -71,7 +73,7 @@ defmodule Oban.Web.JobsPage do
   @impl Page
   def handle_mount(socket) do
     default = fn ->
-      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing", terms: ""}
+      %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing"}
     end
 
     socket
@@ -140,15 +142,6 @@ defmodule Oban.Web.JobsPage do
     params =
       socket.assigns.params
       |> Map.update!(:limit, &to_string(&1 + inc))
-      |> without_defaults(socket.assigns.default_params)
-
-    {:noreply, push_patch(socket, to: oban_path(:jobs, params), replace: true)}
-  end
-
-  def handle_info({:params, :terms, terms}, socket) do
-    params =
-      socket.assigns.params
-      |> Map.put(:terms, terms)
       |> without_defaults(socket.assigns.default_params)
 
     {:noreply, push_patch(socket, to: oban_path(:jobs, params), replace: true)}
@@ -269,6 +262,7 @@ defmodule Oban.Web.JobsPage do
   end
 
   defp params_with_defaults(params, socket) do
+    # TODO: Parse all fields, or avoid this "with defaults" thing
     normalize = fn
       {"limit", limit} -> {:limit, String.to_integer(limit)}
       {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
@@ -278,7 +272,7 @@ defmodule Oban.Web.JobsPage do
 
     params =
       params
-      |> Map.take(["limit", "nodes", "queues", "sort_by", "sort_dir", "state", "terms"])
+      |> Map.take(@known_params)
       |> Map.new(normalize)
 
     Map.merge(socket.assigns.default_params, params)

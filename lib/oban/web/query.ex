@@ -3,7 +3,7 @@ defmodule Oban.Web.Query do
 
   import Ecto.Query
 
-  alias Oban.{Config, Job, Repo, Web.Search}
+  alias Oban.{Config, Job, Repo}
 
   @defaults %{
     limit: 30,
@@ -11,8 +11,6 @@ defmodule Oban.Web.Query do
     sort_dir: "asc",
     state: "executing"
   }
-
-  @minimum_pg_for_search 110_000
 
   @list_fields [
     :id,
@@ -43,28 +41,53 @@ defmodule Oban.Web.Query do
     :scheduled_at
   ]
 
+  defmacrop json_search(column, terms) do
+    quote do
+      fragment(
+        """
+        jsonb_to_tsvector('english', ? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
+        """,
+        unquote(column),
+        unquote(terms)
+      )
+    end
+  end
+
+  defmacrop json_path_search(column, path, terms) do
+    quote do
+      fragment(
+        """
+        jsonb_to_tsvector('english', ? #> ?, '["all"]') @@ websearch_to_tsquery(?)
+        """,
+        unquote(column),
+        unquote(path),
+        unquote(terms)
+      )
+    end
+  end
+
   @doc false
   def all_jobs(%Config{} = conf, %{} = args) do
-    maybe_atomize = fn
-      val when is_binary(val) -> String.to_existing_atom(val)
-      val when is_atom(val) -> val
-    end
-
     args =
       @defaults
       |> Map.merge(args)
-      |> Map.update!(:sort_by, maybe_atomize)
-      |> Map.update!(:sort_dir, maybe_atomize)
+      |> Map.update!(:sort_by, &maybe_atomize/1)
+      |> Map.update!(:sort_dir, &maybe_atomize/1)
+
+    conditions = Enum.reduce(args, true, &filter/2)
 
     query =
-      args
-      |> Enum.reduce(Job, &filter(&1, &2, conf))
-      |> order(args[:sort_by], args[:state], args[:sort_dir])
-      |> limit(^args[:limit])
+      Job
+      |> where(^conditions)
+      |> order(args.sort_by, args.state, args.sort_dir)
+      |> limit(^args.limit)
       |> select(^@list_fields)
 
     Repo.all(conf, query)
   end
+
+  defp maybe_atomize(val) when is_binary(val), do: String.to_existing_atom(val)
+  defp maybe_atomize(val), do: val
 
   @doc false
   def refresh_job(_conf, nil), do: nil
@@ -80,17 +103,12 @@ defmodule Oban.Web.Query do
         nil
 
       [new_job] ->
-        new_job
-        |> Enum.reduce(job, fn {key, val}, acc -> %{acc | key => val} end)
-        |> relativize_timestamps()
+        Enum.reduce(new_job, job, fn {key, val}, acc -> %{acc | key => val} end)
     end
   end
 
   def refresh_job(%Config{} = conf, job_id) when is_binary(job_id) or is_integer(job_id) do
-    case Repo.all(conf, where(Job, id: ^job_id)) do
-      [] -> nil
-      [job] -> relativize_timestamps(job)
-    end
+    Repo.get(conf, Job, job_id)
   end
 
   @doc false
@@ -114,34 +132,53 @@ defmodule Oban.Web.Query do
     :ok
   end
 
-  # Helpers
+  # Filter Helpers
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
-  defp filter({:nodes, named_nodes}, query, _conf) do
-    nodes =
-      for name_node <- named_nodes do
-        name_node
-        |> String.downcase()
-        |> String.split("/")
-        |> List.first()
-      end
-
-    where(query, [j], fragment("lower(?[1])", j.attempted_by) in ^nodes)
+  defp filter({:args, {parts, terms}}, condition) do
+    dynamic([j], ^condition and json_path_search(j.args, ^parts, ^terms))
   end
 
-  defp filter({:queues, queues}, query, _conf), do: where(query, [j], j.queue in ^queues)
-  defp filter({:state, state}, query, _conf), do: where(query, state: ^state)
-
-  defp filter({:terms, terms}, query, conf) when byte_size(terms) > 0 do
-    if pg_version(conf) >= @minimum_pg_for_search do
-      Search.build(query, terms)
-    else
-      where(query, [j], ilike(j.worker, ^"%#{terms}%"))
-    end
+  defp filter({:args, terms}, condition) do
+    dynamic([j], ^condition and json_search(j.args, ^terms))
   end
 
-  defp filter(_, query, _conf), do: query
+  defp filter({:meta, {parts, terms}}, condition) do
+    dynamic([j], ^condition and json_path_search(j.meta, ^parts, ^terms))
+  end
+
+  defp filter({:meta, terms}, condition) do
+    dynamic([j], ^condition and json_search(j.meta, ^terms))
+  end
+
+  defp filter({:nodes, nodes}, condition) do
+    dynamic([j], ^condition and fragment("?[1]", j.attempted_by) in ^nodes)
+  end
+
+  defp filter({:queues, queues}, condition) do
+    dynamic([j], ^condition and j.queue in ^queues)
+  end
+
+  defp filter({:priorities, priorities}, condition) do
+    dynamic([j], ^condition and j.priority in ^priorities)
+  end
+
+  defp filter({:state, state}, condition) do
+    dynamic([j], ^condition and j.state == ^state)
+  end
+
+  defp filter({:tags, tags}, condition) do
+    dynamic([j], ^condition and fragment("? && ?", j.tags, ^tags))
+  end
+
+  defp filter({:workers, workers}, condition) do
+    dynamic([j], ^condition and j.worker in ^workers)
+  end
+
+  defp filter(_, condition), do: condition
+
+  # Ordering Helpers
 
   defp order(query, :queue, _state, dir) do
     order_by(query, [j], {^dir, j.queue})
@@ -169,42 +206,5 @@ defmodule Oban.Web.Query do
 
   defp order(query, :worker, _state, dir) do
     order_by(query, [j], {^dir, j.worker})
-  end
-
-  # Once a job is attempted or scheduled the timestamp doesn't change. That prevents LiveView from
-  # re-rendering the relative time, which makes it look like the view is broken. To work around
-  # this issue we inject relative values to trigger change tracking.
-  defp relativize_timestamps(job, now \\ NaiveDateTime.utc_now()) do
-    relative = %{
-      relative_attempted_at: maybe_diff(now, job.attempted_at),
-      relative_cancelled_at: maybe_diff(now, job.cancelled_at),
-      relative_completed_at: maybe_diff(now, job.completed_at),
-      relative_discarded_at: maybe_diff(now, job.discarded_at),
-      relative_inserted_at: maybe_diff(now, job.inserted_at),
-      relative_scheduled_at: maybe_diff(now, job.scheduled_at)
-    }
-
-    Map.merge(job, relative)
-  end
-
-  defp maybe_diff(_now, nil), do: nil
-  defp maybe_diff(now, then), do: NaiveDateTime.diff(then, now)
-
-  # We need to know the PG server version to toggle full text search capabilities. Queries are
-  # usually performed within a persistent LiveView connection, so we can safely cache the pg
-  # version within that process.
-  defp pg_version(%Config{} = conf) do
-    case Process.get(:pg_version) do
-      version when is_integer(version) ->
-        version
-
-      nil ->
-        {:ok, %{rows: [[version]]}} =
-          Repo.query(conf, "SELECT current_setting('server_version_num')::int", [])
-
-        Process.put(:pg_version, version)
-
-        version
-    end
   end
 end

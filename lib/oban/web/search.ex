@@ -1,30 +1,27 @@
 defmodule Oban.Web.Search do
   @moduledoc false
 
-  import Ecto.Query, only: [dynamic: 2, where: 2]
-
-  alias Oban.{Config, Job}
+  alias Oban.Config
 
   @suggest_limit 10
-  @suggest_threshold 0.5
+  @suggest_threshold 0.8
 
   @suggest_qualifier [
     {"args:", "a key or value in args", "args:video"},
-    {"id:", "job id", "id:123"},
     {"meta:", "a key or value in meta", "meta.batch_id:123"},
-    {"node:", "host name", "node:machine@somehost"},
-    {"priority:", "number from 0 to 3", "priority:1"},
-    {"queue:", "queue name", "queue:default"},
+    {"nodes:", "host name", "node:machine@somehost"},
+    {"priorities:", "number from 0 to 3", "priority:1"},
+    {"queues:", "queue name", "queue:default"},
     {"state:", "job state", "state:executing"},
     {"tags:", "tag name", "tags:super,duper"},
-    {"worker:", "worker module", "worker:MyApp.SomeWorker"}
+    {"workers:", "worker module", "worker:MyApp.SomeWorker"}
   ]
 
   @suggest_priority [
-    {"0", "highest", "priority:0"},
-    {"1", "medium high", "priority:1"},
-    {"2", "medium low", "priority:2"},
-    {"3", "lowest", "priority:3"}
+    {"0", "highest", "priorities:0"},
+    {"1", "medium high", "priorities:1"},
+    {"2", "medium low", "priorities:2"},
+    {"3", "lowest", "priorities:3"}
   ]
 
   @suggest_state [
@@ -41,48 +38,6 @@ defmodule Oban.Web.Search do
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
-  defmacrop json_search(column, terms) do
-    quote do
-      fragment(
-        """
-        jsonb_to_tsvector('english', ? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(terms)
-      )
-    end
-  end
-
-  defmacrop json_path_search(column, path, terms) do
-    quote do
-      fragment(
-        """
-        jsonb_to_tsvector('english', ? #> ?, '["all"]') @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(path),
-        unquote(terms)
-      )
-    end
-  end
-
-  @doc """
-  Build an Ecto query from a string of parameters.
-
-  ## Examples
-
-      Search.build("state:executing queue:default")
-  """
-  @spec build(Ecto.Queryable.t(), String.t()) :: Ecto.Queryable.t()
-  def build(query \\ Job, terms) when is_binary(terms) do
-    conditions =
-      terms
-      |> parse()
-      |> Enum.reduce(true, &compose/2)
-
-    where(query, ^conditions)
-  end
-
   @doc """
   Suggest completions from a search fragment.
   """
@@ -98,15 +53,14 @@ defmodule Oban.Web.Search do
 
       last ->
         case String.split(last, ":", parts: 2) do
-          ["id", _] -> []
           ["args" <> _, _] -> []
           ["meta" <> _, _] -> []
-          ["node", frag] -> suggest_labels("node", frag, conf)
-          ["queue", frag] -> suggest_labels("queue", frag, conf)
-          ["priority", frag] -> suggest_static(@suggest_priority, frag)
+          ["nodes", frag] -> suggest_labels("node", frag, conf)
+          ["queues", frag] -> suggest_labels("queue", frag, conf)
+          ["priorities", frag] -> suggest_static(@suggest_priority, frag)
           ["state", frag] -> suggest_static(@suggest_state, frag)
           ["tags", _] -> []
-          ["worker", frag] -> suggest_labels("worker", frag, conf)
+          ["workers", frag] -> suggest_labels("worker", frag, conf)
           [frag] -> suggest_static(@suggest_qualifier, frag)
           _ -> @suggest_qualifier
         end
@@ -180,7 +134,7 @@ defmodule Oban.Web.Search do
   end
 
   defp similarity(value, guess) do
-    boost = 0.2
+    boost = 0.5
     value = String.downcase(value)
     distance = String.jaro_distance(value, guess)
 
@@ -201,48 +155,26 @@ defmodule Oban.Web.Search do
     end)
   end
 
-  defp parse_term("priority:" <> priorities) when byte_size(priorities) > 0 do
+  # Filter Parsing
+
+  defp parse_term({:priority, priorities}) when byte_size(priorities) > 0 do
     parse_ints(:priority, priorities)
   end
 
-  defp parse_term("args:" <> terms) do
-    {:args, String.trim(terms, "\"")}
+  defp parse_term({:args, path_and_term}) do
+    {:args, parse_path(:args, path_and_term)}
   end
 
-  defp parse_term("args." <> path_and_term) do
-    parse_path(:args, path_and_term)
-  end
-
-  defp parse_term("id:" <> ids) when byte_size(ids) > 0 do
+  defp parse_term({:id, ids}) when byte_size(ids) > 0 do
     parse_ints(:id, ids)
   end
 
-  defp parse_term("meta:" <> terms) do
-    {:meta, String.trim(terms, "\"")}
+  defp parse_term({:meta, path_and_term}) do
+    {:args, parse_path(:meta, path_and_term)}
   end
 
-  defp parse_term("meta." <> path_and_term) do
-    parse_path(:meta, path_and_term)
-  end
-
-  defp parse_term("node:" <> nodes) do
-    {:node, String.split(nodes, ",")}
-  end
-
-  defp parse_term("queue:" <> queues) do
-    {:queue, String.split(queues, ",")}
-  end
-
-  defp parse_term("state:" <> states) do
-    {:state, String.split(states, ",")}
-  end
-
-  defp parse_term("tags:" <> tags) do
-    {:tags, String.split(tags, ",")}
-  end
-
-  defp parse_term("worker:" <> workers) do
-    {:worker, String.split(workers, ",")}
+  defp parse_term({type, value}) when type in ~w(node queue state tags worker)a do
+    {type, String.split(value, ",")}
   end
 
   defp parse_term(_term), do: {:none, ""}
@@ -260,49 +192,4 @@ defmodule Oban.Web.Search do
     {field, String.split(path, "."), String.trim(term, "\"")}
   end
 
-  defp compose({:args, terms}, condition) do
-    dynamic([j], ^condition and json_search(j.args, ^terms))
-  end
-
-  defp compose({:args, parts, terms}, condition) do
-    dynamic([j], ^condition and json_path_search(j.args, ^parts, ^terms))
-  end
-
-  defp compose({:id, ids}, condition) do
-    dynamic([j], ^condition and j.id in ^ids)
-  end
-
-  defp compose({:meta, terms}, condition) do
-    dynamic([j], ^condition and json_search(j.meta, ^terms))
-  end
-
-  defp compose({:meta, parts, terms}, condition) do
-    dynamic([j], ^condition and json_path_search(j.meta, ^parts, ^terms))
-  end
-
-  defp compose({:node, nodes}, condition) do
-    dynamic([j], ^condition and fragment("?[1]", j.attempted_by) in ^nodes)
-  end
-
-  defp compose({:queue, queues}, condition) do
-    dynamic([j], ^condition and j.queue in ^queues)
-  end
-
-  defp compose({:priority, priorities}, condition) do
-    dynamic([j], ^condition and j.priority in ^priorities)
-  end
-
-  defp compose({:state, states}, condition) do
-    dynamic([j], ^condition and j.state in ^states)
-  end
-
-  defp compose({:tags, tags}, condition) do
-    dynamic([j], ^condition and fragment("? && ?", j.tags, ^tags))
-  end
-
-  defp compose({:worker, workers}, condition) do
-    dynamic([j], ^condition and j.worker in ^workers)
-  end
-
-  defp compose(_, condition), do: condition
 end
