@@ -9,12 +9,11 @@ defmodule Oban.Web.Search do
   @suggest_qualifier [
     {"args:", "a key or value in args", "args:video"},
     {"meta:", "a key or value in meta", "meta.batch_id:123"},
-    {"nodes:", "host name", "node:machine@somehost"},
-    {"priorities:", "number from 0 to 3", "priority:1"},
-    {"queues:", "queue name", "queue:default"},
-    {"state:", "job state", "state:executing"},
+    {"nodes:", "host name", "nodes:machine@somehost"},
+    {"priorities:", "number from 0 to 3", "priorities:1"},
+    {"queues:", "queue name", "queues:default"},
     {"tags:", "tag name", "tags:super,duper"},
-    {"workers:", "worker module", "worker:MyApp.SomeWorker"}
+    {"workers:", "worker module", "workers:MyApp.SomeWorker"}
   ]
 
   @suggest_priority [
@@ -24,19 +23,20 @@ defmodule Oban.Web.Search do
     {"3", "lowest", "priorities:3"}
   ]
 
-  @suggest_state [
-    {"available", "available to run", "state:available"},
-    {"cancelled", "purposefully stopped", "state:cancelled"},
-    {"completed", "finished successfully", "state:completed"},
-    {"discarded", "failed and won't run again", "state:discarded"},
-    {"executing", "currently executing", "state:executing"},
-    {"retryable", "failed and will retry in the future", "state:retryable"},
-    {"scheduled", "scheduled for the future", "state:scheduled"}
-  ]
-
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
+
+  @spec parse(String.t()) :: map()
+  def parse(terms) when is_binary(terms) do
+    terms
+    |> String.split(@split_pattern)
+    |> Map.new(fn term ->
+      term
+      |> String.replace(@ignored_chars, "")
+      |> parse_term()
+    end)
+  end
 
   @doc """
   Suggest completions from a search fragment.
@@ -58,7 +58,6 @@ defmodule Oban.Web.Search do
           ["nodes", frag] -> suggest_labels("node", frag, conf)
           ["queues", frag] -> suggest_labels("queue", frag, conf)
           ["priorities", frag] -> suggest_static(@suggest_priority, frag)
-          ["state", frag] -> suggest_static(@suggest_state, frag)
           ["tags", _] -> []
           ["workers", frag] -> suggest_labels("worker", frag, conf)
           [frag] -> suggest_static(@suggest_qualifier, frag)
@@ -134,7 +133,7 @@ defmodule Oban.Web.Search do
   end
 
   defp similarity(value, guess) do
-    boost = 0.5
+    boost = 0.2
     value = String.downcase(value)
     distance = String.jaro_distance(value, guess)
 
@@ -145,36 +144,44 @@ defmodule Oban.Web.Search do
     end
   end
 
-  defp parse(terms) when is_binary(terms) do
-    terms
-    |> String.split(@split_pattern)
-    |> Enum.map(fn term ->
-      term
-      |> String.replace(@ignored_chars, "")
-      |> parse_term()
-    end)
+  defp parse_term("args:" <> terms) do
+    {:args, String.trim(terms, "\"")}
   end
 
-  # Filter Parsing
-
-  defp parse_term({:priority, priorities}) when byte_size(priorities) > 0 do
-    parse_ints(:priority, priorities)
+  defp parse_term("args." <> path_and_term) do
+    parse_path(:args, path_and_term)
   end
 
-  defp parse_term({:args, path_and_term}) do
-    {:args, parse_path(:args, path_and_term)}
+  defp parse_term("meta:" <> terms) do
+    {:meta, String.trim(terms, "\"")}
   end
 
-  defp parse_term({:id, ids}) when byte_size(ids) > 0 do
-    parse_ints(:id, ids)
+  defp parse_term("meta." <> path_and_term) do
+    parse_path(:meta, path_and_term)
   end
 
-  defp parse_term({:meta, path_and_term}) do
-    {:args, parse_path(:meta, path_and_term)}
+  defp parse_term("nodes:" <> nodes) do
+    {:nodes, String.split(nodes, ",")}
   end
 
-  defp parse_term({type, value}) when type in ~w(node queue state tags worker)a do
-    {type, String.split(value, ",")}
+  defp parse_term("priorities:" <> priorities) when byte_size(priorities) > 0 do
+    parse_ints(:priorities, priorities)
+  end
+
+  defp parse_term("queues:" <> queues) do
+    {:queues, String.split(queues, ",")}
+  end
+
+  defp parse_term("state:" <> states) do
+    {:state, String.split(states, ",")}
+  end
+
+  defp parse_term("tags:" <> tags) do
+    {:tags, String.split(tags, ",")}
+  end
+
+  defp parse_term("workers:" <> workers) do
+    {:workers, String.split(workers, ",")}
   end
 
   defp parse_term(_term), do: {:none, ""}
@@ -189,7 +196,6 @@ defmodule Oban.Web.Search do
   defp parse_path(field, path_and_term) do
     [path, term] = String.split(path_and_term, ":", parts: 2)
 
-    {field, String.split(path, "."), String.trim(term, "\"")}
+    {field, {String.split(path, "."), String.trim(term, "\"")}}
   end
-
 end

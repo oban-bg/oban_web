@@ -3,53 +3,52 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   alias Oban.Web.Search
 
+  # TODO: Switch this to use a hook with event pushing to handle tab and focus
+
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, local: nil)}
-  end
-
-  @impl Phoenix.LiveComponent
-  def update(assigns, socket) do
-    local = socket.assigns.local || assigns.params[:terms]
-
-    {:ok, assign(socket, conf: assigns.conf, local: local)}
+    {:ok, assign(socket, buffer: "")}
   end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <form
-      class="grow relative mr-3"
+      class="grow relative"
       id="search"
       data-shortcut={JS.focus_first(to: "#search")}
-      phx-change="suggest"
+      phx-change="change"
       phx-submit="search"
       phx-target={@myself}
     >
-      <div class="absolute top-2.5 left-0 pl-1.5 flex items-center text-gray-500 pointer-events-none">
-        <Icons.magnifying_glass class="w-5 h-5" />
+      <div class="w-full flex items-center pl-1.5 space-x-1.5 text-sm rounded-md shadow-inner ring-1 ring-inset ring-gray-300 ">
+        <Icons.magnifying_glass class="flex-none w-5 h-5 text-gray-500" />
+
+        <.filter :for={{param, terms} <- filterable(@params)} param={param} terms={terms} />
+
+        <input
+          aria-label="Add filters"
+          aria-placeholder="Add filters"
+          autocorrect="false"
+          class="w-full appearance-none border-none bg-transparent px-0 py-2 placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
+          id="search-input"
+          onblur="this.parentNode.classList.remove('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
+          onfocus="this.parentNode.classList.add('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
+          name="terms"
+          phx-debounce="100"
+          phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
+          phx-key="tab"
+          phx-keydown="complete"
+          phx-target={@myself}
+          placeholder="Add filters"
+          spellcheck="false"
+          type="search"
+          value={@buffer}
+        />
       </div>
 
-      <input
-        aria-label="Type / to filter"
-        aria-placeholder="Type / to filter"
-        autocorrect="false"
-        class="w-full appearance-none text-sm border-none block rounded-md shadow-inner focus:shadow-blue-100 pr-3 py-2.5 pl-8 ring-1 ring-inset ring-gray-300 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-blue-500 focus:bg-blue-100/10"
-        id="search-input"
-        name="terms"
-        phx-debounce="100"
-        phx-key="tab"
-        phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
-        phx-keydown="pick"
-        phx-target={@myself}
-        placeholder="Type / to search"
-        spellcheck="false"
-        type="search"
-        value={@local}
-      />
-
       <button
-        class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class(@local)}"}
+        class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class(@buffer)}"}
         data-title="Clear filters"
         id="search-reset"
         phx-hook="Tippy"
@@ -66,13 +65,36 @@ defmodule Oban.Web.Jobs.SearchComponent do
         phx-click-away={JS.hide()}
       >
         <.option
-          :for={{name, desc, exmp} <- Search.suggest(@local, @conf)}
+          :for={{name, desc, exmp} <- Search.suggest(@buffer, @conf)}
           name={name}
           desc={desc}
           exmp={exmp}
         />
       </nav>
     </form>
+    """
+  end
+
+  attr :param, :any, required: true
+  attr :terms, :any, required: true
+
+  defp filter(assigns) do
+    ~H"""
+    <div class="flex items-center font-medium" id={"search-filter-#{@param}"}>
+      <span class="pl-1.5 pr-0.5 py-1 text-gray-700 bg-violet-100 rounded-s-md whitespace-nowrap">
+        <%= @param %>:<%= @terms %>
+      </span>
+      <button
+        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-300 hover:text-gray-800"
+        type="button"
+        phx-click="remove-filter"
+        phx-value-param={@param}
+        phx-value-terms={@terms}
+        phx-target="#search"
+      >
+        <Icons.x_mark class="w-5 h-5" />
+      </button>
+    </div>
     """
   end
 
@@ -95,40 +117,60 @@ defmodule Oban.Web.Jobs.SearchComponent do
     """
   end
 
+  defp filterable(params), do: Map.take(params, ~w(nodes queues workers)a)
+
   # Events
 
   @impl Phoenix.LiveComponent
-  def handle_event("clear", _params, socket) do
-    send(self(), {:params, :terms, nil})
-
-    {:noreply, assign(socket, local: "")}
+  def handle_event("change", %{"terms" => terms}, socket) do
+    {:noreply, assign(socket, buffer: terms)}
   end
 
-  def handle_event("pick", %{"key" => "Tab"}, socket) do
-    completed = Search.complete(socket.assigns.local, socket.assigns.conf)
-
-    {:noreply, assign(socket, local: completed)}
+  def handle_event("clear", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(buffer: "")
+     |> push_patch(to: oban_path(:jobs))}
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
-    local = Search.append(socket.assigns.local, choice)
-
-    {:noreply, assign(socket, local: local)}
+    socket.assigns.buffer
+    |> Search.append(choice)
+    |> handle_submit(socket)
   end
 
-  def handle_event("search", %{"terms" => terms}, socket) do
-    send(self(), {:params, :terms, terms})
-
-    {:noreply, socket}
+  def handle_event("complete", %{"key" => "Tab"}, socket) do
+    socket.assigns.buffer
+    |> Search.complete(socket.assigns.conf)
+    |> handle_submit(socket)
   end
 
-  def handle_event("suggest", %{"terms" => local}, socket) do
-    {:noreply, assign(socket, local: local)}
+  def handle_event("search", _, socket) do
+    handle_submit(socket.assigns.buffer, socket)
+  end
+
+  def handle_event("remove-filter", %{"param" => param, "terms" => _}, socket) do
+    params = Map.delete(socket.assigns.params, String.to_existing_atom(param))
+
+    {:noreply, push_patch(socket, to: oban_path(:jobs, params))}
+  end
+
+  defp handle_submit(buffer, socket) do
+    if String.ends_with?(buffer, ":") do
+      {:noreply, assign(socket, buffer: buffer)}
+    else
+      parsed = Search.parse(buffer)
+      params = Map.merge(socket.assigns.params, parsed)
+
+      {:noreply,
+       socket
+       |> assign(buffer: "")
+       |> push_patch(to: oban_path(:jobs, params))}
+    end
   end
 
   # Class Helpers
 
-  defp clear_class(nil), do: "hidden"
   defp clear_class(""), do: "hidden"
   defp clear_class(_terms), do: "block"
 end
