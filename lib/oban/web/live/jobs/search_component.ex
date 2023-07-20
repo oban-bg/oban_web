@@ -16,35 +16,37 @@ defmodule Oban.Web.Jobs.SearchComponent do
     <form
       class="grow relative"
       id="search"
-      data-shortcut={JS.focus_first(to: "#search")}
+      data-shortcut={JS.focus(to: "#search-input")}
       phx-change="change"
       phx-submit="search"
       phx-target={@myself}
     >
-      <div class="w-full flex items-center pl-1.5 space-x-1.5 text-sm rounded-md shadow-inner ring-1 ring-inset ring-gray-300 ">
-        <Icons.magnifying_glass class="flex-none w-5 h-5 text-gray-500" />
+      <div class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300 ">
+        <Icons.magnifying_glass class="ml-1.5 flex-none w-5 h-5 text-gray-500" />
 
-        <.filter :for={{param, terms} <- filterable(@params)} param={param} terms={terms} />
+        <div class="w-full flex flex-wrap space-x-1.5">
+          <.filter :for={{param, terms} <- filterable(@params)} param={param} terms={terms} />
 
-        <input
-          aria-label="Add filters"
-          aria-placeholder="Add filters"
-          autocorrect="false"
-          class="w-full appearance-none border-none bg-transparent px-0 py-2 placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
-          id="search-input"
-          onblur="this.parentNode.classList.remove('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
-          onfocus="this.parentNode.classList.add('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
-          name="terms"
-          phx-debounce="100"
-          phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
-          phx-key="tab"
-          phx-keydown="complete"
-          phx-target={@myself}
-          placeholder="Add filters"
-          spellcheck="false"
-          type="search"
-          value={@buffer}
-        />
+          <input
+            aria-label="Add filters"
+            aria-placeholder="Add filters"
+            autocorrect="false"
+            class="min-w-[10rem] flex-grow my-2 p-0 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
+            id="search-input"
+            onblur="this.parentNode.parentNode.classList.remove('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
+            onfocus="this.parentNode.parentNode.classList.add('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
+            name="terms"
+            phx-debounce="100"
+            phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
+            phx-key="tab"
+            phx-keydown="complete"
+            phx-target={@myself}
+            placeholder="Add filters"
+            spellcheck="false"
+            type="search"
+            value={@buffer}
+          />
+        </div>
       </div>
 
       <button
@@ -80,9 +82,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   defp filter(assigns) do
     ~H"""
-    <div class="flex items-center font-medium" id={"search-filter-#{@param}"}>
+    <div class="my-1.5 flex items-center text-sm font-medium" id={"search-filter-#{@param}"}>
       <span class="pl-1.5 pr-0.5 py-1 text-gray-700 bg-violet-100 rounded-s-md whitespace-nowrap">
-        <%= @param %>:<%= @terms %>
+        <%= @param %>:<%= @terms |> List.wrap() |> Enum.join(",") %>
       </span>
       <button
         class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-300 hover:text-gray-800"

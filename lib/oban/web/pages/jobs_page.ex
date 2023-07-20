@@ -40,7 +40,7 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <div class="flex justify-end items-center border-b border-gray-200 dark:border-gray-700 px-3 py-3">
+            <div class="flex items-start justify-between space-x-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
               <.live_component id="header" module={HeaderComponent} jobs={@jobs} selected={@selected} />
               <.live_component id="search" module={SearchComponent} conf={@conf} params={@params} />
               <.live_component id="sorter" module={SortComponent} params={@params} />
@@ -267,6 +267,7 @@ defmodule Oban.Web.JobsPage do
       {"limit", limit} -> {:limit, String.to_integer(limit)}
       {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
       {"queues", queues} -> {:queues, String.split(queues, ",")}
+      {"workers", workers} -> {:workers, String.split(workers, ",")}
       {key, val} -> {String.to_existing_atom(key), val}
     end
 

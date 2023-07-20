@@ -95,11 +95,17 @@ defmodule Oban.Web.Jobs.TableComponent do
       </div>
 
       <div class="ml-auto py-3 pr-3 flex items-center space-x-2">
+        <Icons.state_orphaned
+          :if={orphaned?(@job, @nodes)}
+          class="h-4 w-4 text-gray-500"
+          id={"job-status-#{assigns.job.id}"}
+          phx-hook="Tippy"
+          data-title="Orphaned, host node shut down"
+        />
+
         <p class="p-1 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
           <%= @job.queue %>
         </p>
-
-        <.state_icon job={@job} nodes={@nodes} />
 
         <div
           class="w-16 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
@@ -126,31 +132,6 @@ defmodule Oban.Web.Jobs.TableComponent do
     >
       <%= @label %>
     </button>
-    """
-  end
-
-  defp state_icon(assigns) do
-    assigns = assign(assigns, class: "h-4 w-4 text-gray-500", id: "job-status-#{assigns.job.id}")
-
-    ~H"""
-    <%= cond do %>
-      <% orphaned?(@job, @nodes) -> %>
-        <Icons.state_orphaned class={@class} id={@id} phx-hook="Tippy" data-title="Orphaned, host node shut down" />
-      <% @job.state == "available" -> %>
-        <Icons.state_available class={@class} id={@id} phx-hook="Tippy" data-title="Available" />
-      <% @job.state == "cancelled" -> %>
-        <Icons.state_cancelled class={@class} id={@id} phx-hook="Tippy" data-title="Cancelled" />
-      <% @job.state == "discarded" -> %>
-        <Icons.state_discarded class={@class} id={@id} phx-hook="Tippy" data-title="Discarded" />
-      <% @job.state == "executing" -> %>
-        <Icons.state_executing class={@class} id={@id} phx-hook="Tippy" data-title="Executing" />
-      <% @job.state == "retryable" -> %>
-        <Icons.state_retryable class={@class} id={@id} phx-hook="Tippy" data-title="Retryable" />
-      <% @job.state == "scheduled" -> %>
-        <Icons.state_scheduled class={@class} id={@id} phx-hook="Tippy" data-title="Scheduled" />
-      <% true -> %>
-        <Icons.state_completed class={@class} id={@id} phx-hook="Tippy" data-title="Completed" />
-    <% end %>
     """
   end
 

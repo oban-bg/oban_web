@@ -48,7 +48,7 @@ defmodule Oban.Web.Live.Sidebar do
       <header class="flex justify-between items-center border-b border-gray-300 dark:border-gray-700 pr-3 py-3">
         <button
           id={"#{@id}-toggle"}
-          class="text-gray-400 hover:text-blue-500 dark:text-gray-600 dark:hover:text-blue-500"
+          class="text-gray-400 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-500"
           data-title={"Toggle #{@name}"}
           phx-click={toggle(@id)}
           phx-hook="Tippy"
@@ -73,7 +73,7 @@ defmodule Oban.Web.Live.Sidebar do
   defp node_row(assigns) do
     active_class =
       if assigns.node.name in List.wrap(assigns.params[:nodes]),
-        do: "border-blue-500",
+        do: "border-violet-500",
         else: "border-transparent"
 
     assigns = assign(assigns, active_class: active_class)
@@ -84,7 +84,8 @@ defmodule Oban.Web.Live.Sidebar do
         replace: true,
         id: "node-#{sanitize_name(@node.name)}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
+      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
         <%= String.downcase(@node.name) %>
       </span>
@@ -104,7 +105,7 @@ defmodule Oban.Web.Live.Sidebar do
     active_class =
       if assigns.params[:state] == assigns.state.name or
            (is_nil(assigns.params[:state]) and assigns.state.name == "executing"),
-         do: "border-blue-500",
+         do: "border-violet-500",
          else: "border-transparent"
 
     params =
@@ -122,7 +123,8 @@ defmodule Oban.Web.Live.Sidebar do
         replace: true,
         id: "state-#{@state.name}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
+      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
         <%= @state.name %>
       </span>
@@ -136,7 +138,7 @@ defmodule Oban.Web.Live.Sidebar do
   defp queue_row(assigns) do
     active_class =
       if assigns.queue.name in List.wrap(assigns.params[:queues]),
-        do: "border-blue-500",
+        do: "border-violet-500",
         else: "border-transparent"
 
     assigns = assign(assigns, active_class: active_class)
@@ -147,7 +149,8 @@ defmodule Oban.Web.Live.Sidebar do
         replace: true,
         id: "queue-#{@queue.name}",
         rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-blue-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
+        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
+      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
       <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}>
         <%= @queue.name %>
       </span>

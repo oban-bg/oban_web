@@ -11,12 +11,12 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         true -> :none
       end
 
-    {:ok, assign(socket, count: MapSet.size(selected), select_mode: select_mode)}
+    {:ok, assign(socket, select_mode: select_mode)}
   end
 
   def render(assigns) do
     ~H"""
-    <div id="jobs-header" class="w-96 flex-none flex items-center">
+    <div id="jobs-header" class="h-10 pr-3 flex-none flex items-center">
       <button
         id="toggle-select"
         class="mt-0.5 text-gray-400 hover:text-blue-500"
@@ -37,10 +37,6 @@ defmodule Oban.Web.Jobs.HeaderComponent do
       </button>
 
       <h2 class="dark:text-gray-200 text-base font-semibold ml-2">Jobs</h2>
-
-      <%= if @count > 0 do %>
-        <h3 class="text-md ml-2 text-gray-500 font-normal tabular">(<%= @count %> Selected)</h3>
-      <% end %>
     </div>
     """
   end
