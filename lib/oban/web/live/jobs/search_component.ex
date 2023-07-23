@@ -11,6 +11,18 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   @impl Phoenix.LiveComponent
+  def update(assigns, socket) do
+    suggestions = Query.suggest(socket.assigns.buffer, assigns.conf)
+
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(suggestions: suggestions)
+
+    {:ok, socket}
+  end
+
+  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <form
@@ -73,12 +85,17 @@ defmodule Oban.Web.Jobs.SearchComponent do
         phx-click-away={JS.hide()}
       >
         <.option
-          :for={{name, desc, exmp} <- Query.suggest(@buffer, @conf)}
+          :for={{name, desc, exmp} <- @suggestions}
           buff={@buffer}
           name={name}
           desc={desc}
           exmp={exmp}
         />
+
+        <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
+          <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
+          <span class="text-gray-700">No suggestions matching <b>"<%= @buffer %>"</b></span>
+        </div>
       </nav>
     </form>
     """
@@ -93,6 +110,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
       <span class="pl-1.5 pr-0.5 py-1 text-gray-700 bg-violet-100 rounded-s-md whitespace-nowrap">
         <%= @param %>:<%= @terms |> List.wrap() |> Enum.join(",") %>
       </span>
+
       <button
         class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-300 hover:text-gray-800"
         type="button"
@@ -140,11 +158,16 @@ defmodule Oban.Web.Jobs.SearchComponent do
       substr
       |> String.split(":", trim: true)
       |> List.last()
-      |> to_string()
 
-    value
-    |> String.replace_prefix(match, "<b>#{match}</b>")
-    |> raw()
+    if is_binary(match) do
+      pattern = Regex.compile!("(#{match})", "i")
+
+      value
+      |> String.replace(pattern, "<b>\\1</b>")
+      |> raw()
+    else
+      value
+    end
   end
 
   @focused_highlight "shadow-blue-100 ring-blue-500 bg-blue-100/30"
@@ -164,14 +187,18 @@ defmodule Oban.Web.Jobs.SearchComponent do
   # Events
 
   @impl Phoenix.LiveComponent
-  def handle_event("change", %{"terms" => terms}, socket) do
-    {:noreply, assign(socket, buffer: terms)}
+  def handle_event("change", %{"terms" => buffer}, socket) do
+    suggestions = Query.suggest(buffer, socket.assigns.conf)
+
+    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
   end
 
   def handle_event("clear", _params, socket) do
+    suggestions = Query.suggest("", socket.assigns.conf)
+
     {:noreply,
      socket
-     |> assign(buffer: "")
+     |> assign(buffer: "", suggestions: suggestions)
      |> push_patch(to: oban_path(:jobs))}
   end
 
@@ -200,14 +227,17 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   defp handle_submit(buffer, socket) do
     if String.ends_with?(buffer, ":") do
-      {:noreply, assign(socket, buffer: buffer)}
+      suggestions = Query.suggest(buffer, socket.assigns.conf)
+
+      {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
     else
       parsed = Query.parse(buffer)
       params = Map.merge(socket.assigns.params, parsed)
+      suggestions = Query.suggest("", socket.assigns.conf)
 
       {:noreply,
        socket
-       |> assign(buffer: "")
+       |> assign(buffer: "", suggestions: suggestions)
        |> push_patch(to: oban_path(:jobs, params))}
     end
   end

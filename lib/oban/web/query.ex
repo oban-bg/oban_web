@@ -326,21 +326,21 @@ defmodule Oban.Web.Query do
 
     conf.name
     |> Oban.Met.labels(label)
-    |> Enum.filter(&(similarity(&1, frag) > @suggest_threshold))
+    |> Enum.filter(&(similarity(&1, frag) >= @suggest_threshold))
     |> Enum.sort_by(&similarity(&1, frag), :desc)
     |> Enum.take(@suggest_limit)
     |> Enum.map(&{&1, "", ""})
   end
 
-  defp similarity(value, guess) do
-    boost = 0.2
+  defp similarity(value, guess, boost \\ 0.5) do
     value = String.downcase(value)
+    guess = String.downcase(guess)
     distance = String.jaro_distance(value, guess)
 
-    if String.starts_with?(value, guess) do
+    if String.contains?(value, guess) do
       distance + boost
     else
-      distance - boost
+      distance
     end
   end
 
