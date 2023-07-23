@@ -3,11 +3,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   alias Oban.Web.Search
 
-  # TODO: Switch this to use a hook with event pushing to handle tab and focus
+  @known ~w(args meta nodes priorities queues tags workers)a
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, buffer: "")}
+    {:ok, assign(socket, buffer: "", focused: false)}
   end
 
   @impl Phoenix.LiveComponent
@@ -17,11 +17,15 @@ defmodule Oban.Web.Jobs.SearchComponent do
       class="grow relative"
       id="search"
       data-shortcut={JS.focus(to: "#search-input")}
+      phx-hook="Completer"
       phx-change="change"
       phx-submit="search"
       phx-target={@myself}
     >
-      <div class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300 ">
+      <div
+        id="search-wrapper"
+        class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300"
+      >
         <Icons.magnifying_glass class="ml-1.5 flex-none w-5 h-5 text-gray-500" />
 
         <div class="w-full flex flex-wrap space-x-1.5">
@@ -33,13 +37,10 @@ defmodule Oban.Web.Jobs.SearchComponent do
             autocorrect="false"
             class="min-w-[10rem] flex-grow my-2 p-0 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
             id="search-input"
-            onblur="this.parentNode.parentNode.classList.remove('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
-            onfocus="this.parentNode.parentNode.classList.add('shadow-blue-100', 'ring-blue-500', 'bg-blue-100/30')"
             name="terms"
-            phx-debounce="100"
-            phx-focus={JS.show(to: "#search-suggest") |> JS.push_focus()}
-            phx-key="tab"
-            phx-keydown="complete"
+            phx-blur={hide_focus()}
+            phx-debounce={100}
+            phx-focus={show_focus()}
             phx-target={@myself}
             placeholder="Add filters"
             spellcheck="false"
@@ -50,10 +51,12 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </div>
 
       <button
-        class={"absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500 #{clear_class(@buffer)}"}
+        class={[
+          "absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500",
+          unless(clearable?(@buffer, @params), do: "hidden")
+        ]}
         data-title="Clear filters"
         id="search-reset"
-        phx-hook="Tippy"
         phx-target={@myself}
         phx-click="clear"
         type="reset"
@@ -62,12 +65,17 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </button>
 
       <nav
-        class="hidden absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5"
+        class={[
+          "absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg",
+          "rounded-md ring-1 ring-black ring-opacity-5",
+          unless(@focused, do: "hidden")
+        ]}
         id="search-suggest"
-        phx-click-away={JS.hide()}
+        phx-click-away={JS.push("blurred", target: @myself)}
       >
         <.option
           :for={{name, desc, exmp} <- Search.suggest(@buffer, @conf)}
+          buff={@buffer}
           name={name}
           desc={desc}
           exmp={exmp}
@@ -100,30 +108,71 @@ defmodule Oban.Web.Jobs.SearchComponent do
     """
   end
 
-  attr :name, :string, required: true
+  attr :buff, :string
+  attr :name, :string
   attr :desc, :string
   attr :exmp, :string
 
   defp option(assigns) do
     ~H"""
     <button
-      class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-blue-600"
+      class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-600"
       phx-click={JS.push("append", value: %{choice: @name})}
       phx-target="#search"
       type="button"
     >
-      <span class="block px-1 py-0.5 font-medium rounded-sm bg-gray-100"><%= @name %></span>
+      <span class="block px-1 py-0.5 font-medium rounded-sm bg-gray-100">
+        <%= highlight(@name, @buff) %>
+      </span>
       <span class="block ml-2 text-gray-600 group-hover:text-white"><%= @desc %></span>
       <span class="block ml-auto text-right text-gray-400 group-hover:text-white"><%= @exmp %></span>
     </button>
     """
   end
 
-  defp filterable(params), do: Map.take(params, ~w(nodes queues workers)a)
+  defp clearable?(buffer, params) do
+    String.length(buffer) > 0 or map_size(filterable(params)) > 0
+  end
+
+  defp filterable(params), do: Map.take(params, @known)
+
+  defp highlight(value, substr) do
+    match =
+      substr
+      |> String.split(":", trim: true)
+      |> List.last()
+      |> to_string()
+
+    value
+    |> String.replace_prefix(match, "<b>#{match}</b>")
+    |> raw()
+  end
+
+  @focused_highlight "shadow-blue-100 ring-blue-500 bg-blue-100/30"
+
+  def show_focus do
+    @focused_highlight
+    |> JS.add_class(to: "#search-wrapper")
+    |> JS.push("focused")
+  end
+
+  # Opening and closing the suggest menu is done with push events to allow clicking on a
+  # suggestion to fire before the menu closes.
+  def hide_focus do
+    JS.remove_class(@focused_highlight, to: "#search-wrapper")
+  end
 
   # Events
 
   @impl Phoenix.LiveComponent
+  def handle_event("focused", _params, socket) do
+    {:noreply, assign(socket, focused: true)}
+  end
+
+  def handle_event("blurred", _params, socket) do
+    {:noreply, assign(socket, focused: false)}
+  end
+
   def handle_event("change", %{"terms" => terms}, socket) do
     {:noreply, assign(socket, buffer: terms)}
   end
@@ -141,10 +190,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
     |> handle_submit(socket)
   end
 
-  def handle_event("complete", %{"key" => "Tab"}, socket) do
-    socket.assigns.buffer
-    |> Search.complete(socket.assigns.conf)
-    |> handle_submit(socket)
+  def handle_event("complete", _params, socket) do
+    buffer = Search.complete(socket.assigns.buffer, socket.assigns.conf)
+    socket = push_event(socket, "completed", %{buffer: buffer})
+
+    handle_submit(buffer, socket)
   end
 
   def handle_event("search", _, socket) do
@@ -170,9 +220,4 @@ defmodule Oban.Web.Jobs.SearchComponent do
        |> push_patch(to: oban_path(:jobs, params))}
     end
   end
-
-  # Class Helpers
-
-  defp clear_class(""), do: "hidden"
-  defp clear_class(_terms), do: "block"
 end

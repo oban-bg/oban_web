@@ -1,6 +1,8 @@
 defmodule Oban.Web.Search do
   @moduledoc false
 
+  import Ecto.Query
+
   alias Oban.Config
 
   @suggest_limit 10
@@ -58,7 +60,7 @@ defmodule Oban.Web.Search do
           ["nodes", frag] -> suggest_labels("node", frag, conf)
           ["queues", frag] -> suggest_labels("queue", frag, conf)
           ["priorities", frag] -> suggest_static(@suggest_priority, frag)
-          ["tags", _] -> []
+          ["tags", frag] -> suggest_tags(frag, conf)
           ["workers", frag] -> suggest_labels("worker", frag, conf)
           [frag] -> suggest_static(@suggest_qualifier, frag)
           _ -> @suggest_qualifier
@@ -112,6 +114,22 @@ defmodule Oban.Web.Search do
     for {field, _, _} = suggest <- possibilities,
         String.starts_with?(field, fragment),
         do: suggest
+  end
+
+  defp suggest_tags(frag, conf) do
+    query =
+      Oban.Job
+      |> select([j], j.tags)
+      |> order_by(desc: :id)
+      |> limit(100_000)
+
+    conf
+    |> Oban.Repo.all(query)
+    |> List.flatten()
+    |> Enum.uniq()
+    |> Enum.sort_by(&similarity(&1, frag), :desc)
+    |> Enum.take(@suggest_limit)
+    |> Enum.map(&{&1, "", ""})
   end
 
   defp suggest_labels(label, "", conf) do
@@ -196,6 +214,6 @@ defmodule Oban.Web.Search do
   defp parse_path(field, path_and_term) do
     [path, term] = String.split(path_and_term, ":", parts: 2)
 
-    {field, {String.split(path, "."), String.trim(term, "\"")}}
+    {field, [String.split(path, "."), String.trim(term, "\"")]}
   end
 end

@@ -38,7 +38,7 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
 
       <%= if can?(:retry_jobs, @access) and @runnable? do %>
         <button
-          id="bulk-retry"
+          id="bulk-run-now"
           class="group flex items-center ml-4 text-sm text-gray-500 hover:text-blue-500"
           phx-target={@myself}
           phx-click="retry"

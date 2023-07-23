@@ -87,14 +87,14 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{ref: 1, mode: "video", bar: %{baz: 2}})
       insert_job!(%{ref: 2, mode: "media", bar: %{bat: 3}})
 
-      assert [0] = filter_refs(args: {~w(mode), "audio"})
-      assert [1] = filter_refs(args: {~w(mode), "video"})
-      assert [0, 1] = filter_refs(args: {~w(mode), "audio or video"})
+      assert [0] = filter_refs(args: [~w(mode), "audio"])
+      assert [1] = filter_refs(args: [~w(mode), "video"])
+      assert {0, 1} = filter_refs(args: [~w(mode), "audio or video"])
 
-      assert [0] = filter_refs(args: {~w(bar baz), "1"})
-      assert [0, 1] = filter_refs(args: {~w(bar), "baz"})
-      assert [2] = filter_refs(args: {~w(bar bat), "3"})
-      assert [] = filter_refs(args: {~w(bar bat), "4"})
+      assert [0] = filter_refs(args: [~w(bar baz), "1"])
+      assert [0, 1] = filter_refs(args: [~w(bar), "baz"])
+      assert [2] = filter_refs(args: [~w(bar bat), "3"])
+      assert [] = filter_refs(args: [~w(bar bat), "4"])
     end
 
     test "searching within meta" do
@@ -114,14 +114,14 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{ref: 1}, meta: %{mode: "video", bar: %{baz: 2}})
       insert_job!(%{ref: 2}, meta: %{mode: "media", bar: %{bat: 3}})
 
-      assert [0] = filter_refs(meta: {~w(mode), "audio"})
-      assert [1] = filter_refs(meta: {~w(mode), "video"})
-      assert [0, 1] = filter_refs(meta: {~w(mode), "audio or video"})
+      assert [0] = filter_refs(meta: [~w(mode), "audio"])
+      assert [1] = filter_refs(meta: [~w(mode), "video"])
+      assert [0, 1] = filter_refs(meta: [~w(mode), "audio or video"])
 
-      assert [0] = filter_refs(meta: {~w(bar baz), "1"})
-      assert [0, 1] = filter_refs(meta: {~w(bar), "baz"})
-      assert [2] = filter_refs(meta: {~w(bar bat), "3"})
-      assert [] = filter_refs(meta: {~w(bar bat), "4"})
+      assert [0] = filter_refs(meta: [~w(bar baz), "1"])
+      assert [0, 1] = filter_refs(meta: [~w(bar), "baz"])
+      assert [2] = filter_refs(meta: [~w(bar bat), "3"])
+      assert [] = filter_refs(meta: [~w(bar bat), "4"])
     end
 
     test "ignoring the meta recorded column" do

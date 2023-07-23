@@ -264,10 +264,12 @@ defmodule Oban.Web.JobsPage do
   defp params_with_defaults(params, socket) do
     # TODO: Parse all fields, or avoid this "with defaults" thing
     normalize = fn
-      {"limit", limit} -> {:limit, String.to_integer(limit)}
-      {"nodes", nodes} -> {:nodes, String.split(nodes, ",")}
-      {"queues", queues} -> {:queues, String.split(queues, ",")}
-      {"workers", workers} -> {:workers, String.split(workers, ",")}
+      {"limit", value} -> {:limit, String.to_integer(value)}
+      {"nodes", value} -> {:nodes, String.split(value, ",")}
+      {"priorities", value} -> {:priorities, String.split(value, ",")}
+      {"queues", value} -> {:queues, String.split(value, ",")}
+      {"tags", value} -> {:tags, String.split(value, ",")}
+      {"workers", value} -> {:workers, String.split(value, ",")}
       {key, val} -> {String.to_existing_atom(key), val}
     end
 

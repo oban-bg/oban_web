@@ -136,7 +136,7 @@ defmodule Oban.Web.Query do
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
-  defp filter({:args, {parts, terms}}, condition) do
+  defp filter({:args, [parts, terms]}, condition) do
     dynamic([j], ^condition and json_path_search(j.args, ^parts, ^terms))
   end
 
@@ -144,7 +144,7 @@ defmodule Oban.Web.Query do
     dynamic([j], ^condition and json_search(j.args, ^terms))
   end
 
-  defp filter({:meta, {parts, terms}}, condition) do
+  defp filter({:meta, [parts, terms]}, condition) do
     dynamic([j], ^condition and json_path_search(j.meta, ^parts, ^terms))
   end
 

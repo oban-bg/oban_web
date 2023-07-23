@@ -19,7 +19,6 @@ defmodule Oban.Web.SearchTest do
 
     test "falling back to defaults without any fragments" do
       assert [{"args:", _, _} | _] = suggest("priority:1 ")
-      assert [{"args:", _, _} | _] = suggest("state:available priority:1 ")
     end
 
     test "suggesting qualifiers with fragments" do
@@ -39,15 +38,6 @@ defmodule Oban.Web.SearchTest do
       assert [{"0", _, _} | _] = suggest("priorities:")
       assert [{"0", _, _}] = suggest("priorities:0")
       assert [{"1", _, _}] = suggest("priorities:1")
-    end
-
-    test "suggesting fixed states" do
-      assert [{"available", _, _} | _] = suggest("state:")
-      assert [{"available", _, _}] = suggest("state:a")
-      assert [{"available", _, _}] = suggest("state:available")
-
-      assert [{"cancelled", _, _}] = suggest("state:can")
-      assert [{"completed", _, _}] = suggest("state:com")
     end
 
     test "suggesting nodes" do
@@ -105,12 +95,6 @@ defmodule Oban.Web.SearchTest do
     test "completing a qualifier" do
       assert "queues:" == complete("qu")
       assert "queues:" == complete("queue")
-      assert "state:" == complete("st")
-      assert "state:" == complete("state")
-    end
-
-    test "completing a value suggestion" do
-      assert "state:available" == complete("state:ava")
     end
   end
 
