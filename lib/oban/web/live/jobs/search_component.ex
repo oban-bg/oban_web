@@ -1,13 +1,13 @@
 defmodule Oban.Web.Jobs.SearchComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Search
+  alias Oban.Web.Query
 
   @known ~w(args meta nodes priorities queues tags workers)a
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, buffer: "", focused: false)}
+    {:ok, assign(socket, buffer: "")}
   end
 
   @impl Phoenix.LiveComponent
@@ -66,15 +66,14 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
       <nav
         class={[
-          "absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg",
-          "rounded-md ring-1 ring-black ring-opacity-5",
-          unless(@focused, do: "hidden")
+          "hidden absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg",
+          "rounded-md ring-1 ring-black ring-opacity-5"
         ]}
         id="search-suggest"
-        phx-click-away={JS.push("blurred", target: @myself)}
+        phx-click-away={JS.hide()}
       >
         <.option
-          :for={{name, desc, exmp} <- Search.suggest(@buffer, @conf)}
+          :for={{name, desc, exmp} <- Query.suggest(@buffer, @conf)}
           buff={@buffer}
           name={name}
           desc={desc}
@@ -153,11 +152,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def show_focus do
     @focused_highlight
     |> JS.add_class(to: "#search-wrapper")
-    |> JS.push("focused")
+    |> JS.show(to: "#search-suggest")
   end
 
-  # Opening and closing the suggest menu is done with push events to allow clicking on a
-  # suggestion to fire before the menu closes.
+  # Closing the suggest menu is done with push events to allow clicking on a suggestion to fire
+  # before the menu closes.
   def hide_focus do
     JS.remove_class(@focused_highlight, to: "#search-wrapper")
   end
@@ -165,14 +164,6 @@ defmodule Oban.Web.Jobs.SearchComponent do
   # Events
 
   @impl Phoenix.LiveComponent
-  def handle_event("focused", _params, socket) do
-    {:noreply, assign(socket, focused: true)}
-  end
-
-  def handle_event("blurred", _params, socket) do
-    {:noreply, assign(socket, focused: false)}
-  end
-
   def handle_event("change", %{"terms" => terms}, socket) do
     {:noreply, assign(socket, buffer: terms)}
   end
@@ -186,12 +177,12 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   def handle_event("append", %{"choice" => choice}, socket) do
     socket.assigns.buffer
-    |> Search.append(choice)
+    |> Query.append(choice)
     |> handle_submit(socket)
   end
 
   def handle_event("complete", _params, socket) do
-    buffer = Search.complete(socket.assigns.buffer, socket.assigns.conf)
+    buffer = Query.complete(socket.assigns.buffer, socket.assigns.conf)
     socket = push_event(socket, "completed", %{buffer: buffer})
 
     handle_submit(buffer, socket)
@@ -211,7 +202,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     if String.ends_with?(buffer, ":") do
       {:noreply, assign(socket, buffer: buffer)}
     else
-      parsed = Search.parse(buffer)
+      parsed = Query.parse(buffer)
       params = Map.merge(socket.assigns.params, parsed)
 
       {:noreply,

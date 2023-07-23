@@ -8,6 +8,15 @@ const Completer = {
 
         this.pushEventTo("#search", "complete", {})
       }
+
+      if (event.key === "Escape") {
+        input.blur()
+
+        const node = document.querySelector("#search-suggest")
+        const exec = node.getAttribute("phx-click-away")
+
+        this.liveSocket.execJS(node, exec, "click")
+      }
     })
 
     this.handleEvent("completed", ({buffer}) => {
