@@ -109,7 +109,7 @@ end
 defmodule Oban.Workers.AvatarProcessor do
   @moduledoc false
 
-  use Oban.Worker, queue: :media
+  use Oban.Worker, queue: :media, tags: ["media"]
 
   alias Faker.Avatar
   alias WebDev.Generator
@@ -152,7 +152,7 @@ end
 defmodule Oban.Workers.DigestMailer do
   @moduledoc false
 
-  use Oban.Worker, queue: :mailers, max_attempts: 1
+  use Oban.Worker, queue: :mailers, max_attempts: 1, tags: ["notification"]
 
   alias Faker.{Company, Internet}
   alias WebDev.Generator
@@ -190,7 +190,7 @@ end
 defmodule Oban.Workers.MailingListSyncer do
   @moduledoc false
 
-  use Oban.Worker, queue: :events
+  use Oban.Worker, queue: :events, tags: ["notification"]
 
   alias Faker.{Address, Date, Internet, Person}
   alias WebDev.Generator
