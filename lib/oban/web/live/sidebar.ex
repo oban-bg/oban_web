@@ -7,29 +7,40 @@ defmodule Oban.Web.Live.Sidebar do
   def render(assigns) do
     ~H"""
     <div id="sidebar" class="mr-3">
-      <%= if :nodes in @sections do %>
-        <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
-          <%= for node <- nodes(@conf.name) do %>
-            <.node_row node={node} page={@page} params={@params} socket={@socket} />
-          <% end %>
-        </.section>
-      <% end %>
+      <.section :if={:states in @sections} id="states" name="States" headers={~w(Count)}>
+        <.state_row
+          :for={state <- states(@conf.name)}
+          state={state}
+          page={@page}
+          params={@params}
+          socket={@socket}
+        />
+      </.section>
 
-      <%= if :states in @sections do %>
-        <.section id="states" name="States" headers={~w(Count)}>
-          <%= for state <- states(@conf.name) do %>
-            <.state_row state={state} page={@page} params={@params} socket={@socket} />
-          <% end %>
-        </.section>
-      <% end %>
+      <.section :if={:nodes in @sections} id="nodes" name="Nodes" headers={~w(Exec Limit)}>
+        <.node_row
+          :for={node <- nodes(@conf.name)}
+          node={node}
+          page={@page}
+          params={@params}
+          socket={@socket}
+        />
+      </.section>
 
-      <%= if :queues in @sections do %>
-        <.section id="queues" name="Queues" headers={~w(Mode Limit Exec Avail)}>
-          <%= for queue <- queues(@conf.name) do %>
-            <.queue_row queue={queue} page={@page} params={@params} socket={@socket} />
-          <% end %>
-        </.section>
-      <% end %>
+      <.section
+        :if={:queues in @sections}
+        id="queues"
+        name="Queues"
+        headers={~w(Mode Limit Exec Avail)}
+      >
+        <.queue_row
+          :for={queue <- queues(@conf.name)}
+          queue={queue}
+          page={@page}
+          params={@params}
+          socket={@socket}
+        />
+      </.section>
     </div>
     """
   end
@@ -41,10 +52,7 @@ defmodule Oban.Web.Live.Sidebar do
 
   defp section(assigns) do
     ~H"""
-    <div
-      id={@id}
-      class="bg-transparent dark:bg-transparent w-fill mb-3 rounded-md overflow-hidden md:w-84"
-    >
+    <div id={@id} class="bg-transparent dark:bg-transparent w-fill mb-3 overflow-hidden md:w-84">
       <header class="flex justify-between items-center border-b border-gray-300 dark:border-gray-700 pr-3 py-3">
         <button
           id={"#{@id}-toggle"}
@@ -70,23 +78,63 @@ defmodule Oban.Web.Live.Sidebar do
     """
   end
 
-  defp node_row(assigns) do
-    active_class =
-      if assigns.node.name in List.wrap(assigns.params[:nodes]),
-        do: "border-violet-500",
-        else: "border-transparent"
+  defp state_row(assigns) do
+    active? =
+      assigns.params[:state] == assigns.state.name or
+        (is_nil(assigns.params[:state]) and assigns.state.name == "executing")
 
-    assigns = assign(assigns, active_class: active_class)
+    params =
+      if assigns.state.name in ["available", "scheduled"] do
+        Map.delete(assigns.params, :nodes)
+      else
+        assigns.params
+      end
+
+    assigns = assign(assigns, active?: active?, params: params)
 
     ~H"""
-    <%= live_patch(
-        to: filter_link(@page, :nodes, @node.name, @params),
-        replace: true,
-        id: "node-#{sanitize_name(@node.name)}",
-        rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
-      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
-      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
+    <.link
+      id={"state-#{@state.name}"}
+      navigate={filter_link(@page, :state, @state.name, @params)}
+      rel="filter"
+      replace={true}
+      class={[
+        "flex justify-between py-2 my-0.5 rounded-md border-l-4 border-transparent",
+        "hover:bg-gray-100 dark:hover:bg-violet-700",
+        if(@active?, do: "bg-white hover:bg-white dark:bg-violet-800 dark:hover:bg-violet-800")
+      ]}
+    >
+      <span class={[
+        "pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate",
+        if(@active?, do: "font-semibold text-gray-950 dark:text-gray-100")
+      ]}>
+        <%= @state.name %>
+      </span>
+      <span class={[
+        "pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular",
+        if(@active?, do: "text-gray-800 dark:text-gray-200")
+      ]}>
+        <%= integer_to_estimate(@state.count) %>
+      </span>
+    </.link>
+    """
+  end
+
+  defp node_row(assigns) do
+    assigns = assign(assigns, active?: assigns.node.name in List.wrap(assigns.params[:nodes]))
+
+    ~H"""
+    <.link
+      id={"node-#{sanitize_name(@node.name)}"}
+      navigate={filter_link(@page, :nodes, @node.name, @params)}
+      rel="filter"
+      replace={true}
+      class={[
+        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-400",
+        if(@active?, do: "border-violet-500 hover:border-violet-500")
+      ]}
+    >
+      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate">
         <%= String.downcase(@node.name) %>
       </span>
       <div class="flex-none">
@@ -97,83 +145,33 @@ defmodule Oban.Web.Live.Sidebar do
           <%= integer_to_estimate(@node.limit) %>
         </span>
       </div>
-    <% end %>
-    """
-  end
-
-  defp state_row(assigns) do
-    active_class =
-      if assigns.params[:state] == assigns.state.name or
-           (is_nil(assigns.params[:state]) and assigns.state.name == "executing"),
-         do: "border-violet-500",
-         else: "border-transparent"
-
-    params =
-      if assigns.state.name in ["available", "scheduled"] do
-        Map.delete(assigns.params, :nodes)
-      else
-        assigns.params
-      end
-
-    assigns = assign(assigns, active_class: active_class, params: params)
-
-    ~H"""
-    <%= live_patch(
-        to: filter_link(@page, :state, @state.name, @params),
-        replace: true,
-        id: "state-#{@state.name}",
-        rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
-      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
-      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate">
-        <%= @state.name %>
-      </span>
-      <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular">
-        <%= integer_to_estimate(@state.count) %>
-      </span>
-    <% end %>
+    </.link>
     """
   end
 
   defp queue_row(assigns) do
-    active_class =
-      if assigns.queue.name in List.wrap(assigns.params[:queues]),
-        do: "border-violet-500",
-        else: "border-transparent"
-
-    assigns = assign(assigns, active_class: active_class)
+    assigns = assign(assigns, active?: assigns.queue.name in List.wrap(assigns.params[:queues]))
 
     ~H"""
-    <%= live_patch(
-        to: filter_link(@page, :queues, @queue.name, @params),
-        replace: true,
-        id: "queue-#{@queue.name}",
-        rel: "filter",
-        class: "flex justify-between py-2.5 border-l-4 hover:bg-gray-50 dark:hover:bg-violet-300
-      dark:hover:bg-opacity-10 focus:bg-gray-50 dark:focus:bg-violet-300 dark:focus:bg-opacity-10 #{@active_class}") do %>
-      <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-semibold truncate #{if @queue.paused?, do: "line-through font-light"}"}>
+    <.link
+      id={"queue-#{@queue.name}"}
+      navigate={filter_link(@page, :queues, @queue.name, @params)}
+      rel="filter"
+      replace={true}
+      class={[
+        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-400",
+        if(@active?, do: "border-violet-500 hover:border-violet-500")
+      ]}
+    >
+      <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate #{if @queue.paused?, do: "line-through font-light"}"}>
         <%= @queue.name %>
       </span>
 
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
         <div class="flex items-center text-right">
-          <%= if @queue.paused? do %>
-            <span title="Paused" rel="is-paused">
-              <Icons.pause_circle class="w-4 h-4" />
-            </span>
-          <% end %>
-
-          <%= if @queue.rate_limited? do %>
-            <span title="Rate Limited" rel="is-rate-limited">
-              <Icons.arrow_trending_down class="w-4 h-4" />
-            </span>
-          <% end %>
-
-          <%= if @queue.global? do %>
-            <span title="Global" rel="is-global">
-              <Icons.globe class="w-4 h-4" />
-            </span>
-          <% end %>
+          <Icons.pause_circle :if={@queue.paused?} class="w-4 h-4" rel="is-paused" />
+          <Icons.arrow_trending_down :if={@queue.rate_limited?} class="w-4 h-4" rel="is-rate-limited" />
+          <Icons.globe :if={@queue.global?} class="w-4 h-4" rel="is-global" />
 
           <div class="text-sm w-10 tabular" rel="limit"><%= integer_to_estimate(@queue.limit) %></div>
         </div>
@@ -184,7 +182,7 @@ defmodule Oban.Web.Live.Sidebar do
           <%= integer_to_estimate(@queue.avail) %>
         </div>
       </div>
-    <% end %>
+    </.link>
     """
   end
 

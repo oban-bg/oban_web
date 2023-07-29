@@ -198,7 +198,7 @@ defmodule Oban.Web.Layouts do
     base = "font-semibold text-sm rounded-md px-3 py-2"
 
     if curr == page do
-      base <> " text-gray-950 dark:text-gray-100 bg-gray-200 dark:bg-gray-800"
+      base <> " text-gray-950 dark:text-gray-100 bg-gray-50 dark:bg-gray-800"
     else
       base <> " text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
     end

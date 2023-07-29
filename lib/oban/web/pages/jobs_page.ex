@@ -41,7 +41,7 @@ defmodule Oban.Web.JobsPage do
             />
           <% else %>
             <div class="flex items-start justify-between space-x-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-              <.live_component id="header" module={HeaderComponent} jobs={@jobs} selected={@selected} />
+              <.live_component id="header" module={HeaderComponent} jobs={@jobs} params={@params} selected={@selected} />
               <.live_component id="search" module={SearchComponent} conf={@conf} params={@params} />
               <.live_component id="sorter" module={SortComponent} params={@params} />
             </div>

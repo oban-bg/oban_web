@@ -2,7 +2,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
   use Oban.Web, :live_component
 
   def update(assigns, socket) do
-    %{jobs: jobs, selected: selected} = assigns
+    %{jobs: jobs, params: params, selected: selected} = assigns
 
     select_mode =
       cond do
@@ -11,12 +11,14 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         true -> :none
       end
 
-    {:ok, assign(socket, select_mode: select_mode)}
+    state = Map.get(params, :state, "executing")
+
+    {:ok, assign(socket, select_mode: select_mode, state: state)}
   end
 
   def render(assigns) do
     ~H"""
-    <div id="jobs-header" class="h-10 pr-3 flex-none flex items-center">
+    <div id="jobs-header" class="h-10 w-44 pr-3 flex-none flex items-center">
       <button
         id="toggle-select"
         class="mt-0.5 text-gray-400 hover:text-blue-500"
@@ -36,7 +38,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
         <% end %>
       </button>
 
-      <h2 class="dark:text-gray-200 text-base font-semibold ml-2">Jobs</h2>
+      <h2 class="capitalize ml-2 text-base font-semibold dark:text-gray-200"><%= @state %> Jobs</h2>
     </div>
     """
   end
