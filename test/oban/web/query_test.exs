@@ -6,6 +6,57 @@ defmodule Oban.Web.QueryTest do
 
   @conf Config.new(repo: Repo)
 
+  describe "parse/1" do
+    import Query, only: [parse: 1]
+
+    test "splitting multiple values" do
+      assert %{nodes: ["worker-1"]} = parse("nodes:worker-1")
+      assert %{queues: ["alpha", "gamma"]} = parse("queues:alpha,gamma")
+      assert %{workers: ["My.A", "My.B"]} = parse("workers:My.A,My.B")
+      assert %{tags: ["alpha", "gamma"]} = parse("tags:alpha,gamma")
+    end
+
+    test "splitting path qualifiers" do
+      assert %{args: "Foo"} = parse("args:Foo")
+      assert %{args: [~w(account), "Foo"]} = parse("args.account:Foo")
+      assert %{args: [~w(account name), "Foo"]} = parse("args.account.name:Foo")
+    end
+  end
+
+  describe "encode_params/1" do
+    import Query, only: [encode_params: 1]
+
+    test "encoding fields with multiple values" do
+      assert %{nodes: "web-1,web-2"} = encode_params(nodes: ~w(web-1 web-2))
+    end
+
+    test "encoding fields with path qualifiers" do
+      assert %{args: "a++x"} = encode_params(args: [~w(a), "x"])
+      assert %{args: "a,b++x"} = encode_params(args: [~w(a b), "x"])
+      assert %{args: "a,b,c++x"} = encode_params(args: [~w(a b c), "x"])
+    end
+  end
+
+  describe "decode_params/1" do
+    import Query, only: [decode_params: 1]
+
+    test "decoding fields with known integers" do
+      assert %{limit: 1} = decode_params(%{"limit" => "1"})
+    end
+
+    test "decoding params with multiple values" do
+      assert %{nodes: ~w(web-1 web-2)} = decode_params(%{"nodes" => "web-1,web-2"})
+      assert %{queues: ~w(alpha gamma)} = decode_params(%{"queues" => "alpha,gamma"})
+      assert %{workers: ~w(A B)} = decode_params(%{"workers" => "A,B"})
+    end
+
+    test "decoding params with path qualifiers" do
+      assert %{args: [~w(a), "x"]} = decode_params(%{"args" => "a++x"})
+      assert %{args: [~w(a b), "x"]} = decode_params(%{"args" => "a,b++x"})
+      assert %{meta: [~w(a), "x"]} = decode_params(%{"meta" => "a++x"})
+    end
+  end
+
   describe "suggest/2" do
     def suggest(terms), do: Query.suggest(terms, @conf)
 
@@ -52,6 +103,20 @@ defmodule Oban.Web.QueryTest do
                |> Enum.sort()
 
       assert [{"account_id", _, _}] = suggest("args.accou")
+    end
+
+    test "suggesting nested args" do
+      insert_job!(%{id: 1, add: %{city: %{name: "Chi", zip: "60647"}, state: "IL"}})
+      insert_job!(%{xd: 2, add: %{city: %{name: "Whe", zip: "60187"}, state: "IL"}})
+
+      assert ~w(city state) =
+               "args.add."
+               |> suggest()
+               |> Enum.map(&elem(&1, 0))
+               |> Enum.sort()
+
+      assert [{"state", _, _}, _] = suggest("args.add.stat")
+      assert [{"name", _, _}] = suggest("args.add.city.nam")
     end
 
     test "suggesting meta" do

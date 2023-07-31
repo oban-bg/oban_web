@@ -108,7 +108,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     ~H"""
     <div class="my-1.5 flex items-center text-sm font-medium" id={"search-filter-#{@param}"}>
       <span class="pl-1.5 pr-0.5 py-1 text-gray-700 bg-violet-100 rounded-s-md whitespace-nowrap">
-        <%= @param %>:<%= @terms |> List.wrap() |> Enum.join(",") %>
+        <%= format_filter(@param, @terms) %>
       </span>
 
       <button
@@ -123,6 +123,18 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </button>
     </div>
     """
+  end
+
+  defp format_filter(param, [path, term]) when is_list(path) do
+    "#{param}.#{Enum.join(path, ".")}:#{term}"
+  end
+
+  defp format_filter(param, term) when is_list(term) do
+    "#{param}:#{Enum.join(term, ",")}"
+  end
+
+  defp format_filter(param, term) do
+    "#{param}:#{term}"
   end
 
   attr :buff, :string
@@ -156,7 +168,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   defp highlight(value, substr) do
     match =
       substr
-      |> String.split(":", trim: true)
+      |> String.split([":", "."], trim: true)
       |> List.last()
 
     if is_binary(value) and is_binary(match) do
@@ -204,9 +216,10 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
-    socket.assigns.buffer
-    |> Query.append(choice)
-    |> handle_submit(socket)
+    buffer = Query.append(socket.assigns.buffer, choice)
+    suggestions = Query.suggest(buffer, socket.assigns.conf)
+
+    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
   end
 
   def handle_event("complete", _params, socket) do

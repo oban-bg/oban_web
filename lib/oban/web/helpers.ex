@@ -2,7 +2,7 @@ defmodule Oban.Web.Helpers do
   @moduledoc false
 
   alias Oban.Job
-  alias Oban.Web.{AccessError, Resolver, Timing}
+  alias Oban.Web.{AccessError, Query, Resolver, Timing}
   alias Phoenix.VerifiedRoutes
 
   # Routing Helpers
@@ -22,13 +22,7 @@ defmodule Oban.Web.Helpers do
   end
 
   def oban_path(route, params) do
-    params =
-      params
-      |> Enum.reject(fn {_, val} -> is_nil(val) or val == "" end)
-      |> Map.new(fn
-        {key, [_ | _] = val} -> {key, Enum.join(val, ",")}
-        {key, val} -> {key, val}
-      end)
+    params = Query.encode_params(params)
 
     case Process.get(:routing) do
       {socket, prefix} ->

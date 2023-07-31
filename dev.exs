@@ -196,18 +196,17 @@ defmodule Oban.Workers.MailingListSyncer do
   alias WebDev.Generator
 
   def gen(opts \\ []) do
-    users =
-      for _ <- 2..:rand.uniform(10) do
-        %{
-          name: Person.name(),
-          city: Address.city(),
-          country: Address.country(),
-          email: Internet.free_email(),
-          avatar: Internet.image_url()
-        }
-      end
-
-    new(%{new_users: users, last_sync_at: Date.backward(1)}, opts)
+    new(%{
+      name: Person.name(),
+      email: Internet.free_email(),
+      avatar: Internet.image_url(),
+      address: %{
+        city: Address.city(),
+        country: Address.country(),
+        state: Address.state(),
+        zip: Address.zip()
+      }
+    })
   end
 
   @impl Worker
@@ -317,8 +316,8 @@ defmodule Oban.Workers.SyntaxAnalyzer do
   use Oban.Pro.Worker, queue: :analysis
 
   args_schema do
-    field :id, :uuid
-    field :description, :string
+    field(:id, :uuid)
+    field(:description, :string)
   end
 
   alias Faker.{Food, UUID}
@@ -355,9 +354,9 @@ defmodule Oban.Workers.VideoProcessor do
   use Oban.Pro.Worker, queue: :media, max_attempts: 5
 
   args_schema do
-    field :id, :id
-    field :file, :string
-    field :type, :string
+    field(:id, :id)
+    field(:file, :string)
+    field(:type, :string)
   end
 
   alias Faker.File
@@ -409,31 +408,32 @@ defmodule WebDev.Router do
   import Oban.Web.Router
 
   pipeline :browser do
-    plug :fetch_session
+    plug(:fetch_session)
   end
 
   scope "/" do
-    pipe_through :browser
+    pipe_through(:browser)
 
-    oban_dashboard "/oban"
+    oban_dashboard("/oban")
   end
 end
 
 defmodule WebDev.Endpoint do
   use Phoenix.Endpoint, otp_app: :oban_web
 
-  socket "/live", Phoenix.LiveView.Socket
-  socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
+  socket("/live", Phoenix.LiveView.Socket)
+  socket("/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket)
 
-  plug Phoenix.LiveReloader
-  plug Phoenix.CodeReloader
+  plug(Phoenix.LiveReloader)
+  plug(Phoenix.CodeReloader)
 
-  plug Plug.Session,
+  plug(Plug.Session,
     store: :cookie,
     key: "_oban_web_key",
     signing_salt: "/VEDsdfsffMnp5"
+  )
 
-  plug WebDev.Router
+  plug(WebDev.Router)
 end
 
 defmodule WebDev.ErrorHTML do

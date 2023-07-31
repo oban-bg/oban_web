@@ -262,21 +262,10 @@ defmodule Oban.Web.JobsPage do
   end
 
   defp params_with_defaults(params, socket) do
-    # TODO: Parse all fields, or avoid this "with defaults" thing
-    normalize = fn
-      {"limit", value} -> {:limit, String.to_integer(value)}
-      {"nodes", value} -> {:nodes, String.split(value, ",")}
-      {"priorities", value} -> {:priorities, String.split(value, ",")}
-      {"queues", value} -> {:queues, String.split(value, ",")}
-      {"tags", value} -> {:tags, String.split(value, ",")}
-      {"workers", value} -> {:workers, String.split(value, ",")}
-      {key, val} -> {String.to_existing_atom(key), val}
-    end
-
     params =
       params
       |> Map.take(@known_params)
-      |> Map.new(normalize)
+      |> Query.decode_params()
 
     Map.merge(socket.assigns.default_params, params)
   end

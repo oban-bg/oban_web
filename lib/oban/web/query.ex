@@ -84,6 +84,45 @@ defmodule Oban.Web.Query do
     end)
   end
 
+  @doc """
+  Prepare parsed params for URI encoding.
+  """
+  def encode_params(params) do
+    for {key, val} <- params, val != nil, val != "", into: %{} do
+      case val do
+        [path, frag] when is_list(path) ->
+          {key, Enum.join(path, ",") <> "++" <> frag}
+
+        [_ | _] ->
+          {key, Enum.join(val, ",")}
+
+        _ ->
+          {key, val}
+      end
+    end
+  end
+
+  def decode_params(params) do
+    Map.new(params, fn
+      {"limit", val} ->
+        {:limit, String.to_integer(val)}
+
+      {key, val} when key in ~w(args meta) ->
+        val =
+          val
+          |> String.split("++")
+          |> List.update_at(0, &String.split(&1, ","))
+
+        {String.to_existing_atom(key), val}
+
+      {key, val} when key in ~w(nodes priorities queues tags workers) ->
+        {String.to_existing_atom(key), String.split(val, ",")}
+
+      {key, val} ->
+        {String.to_existing_atom(key), val}
+    end)
+  end
+
   @suggest_limit 10
   @suggest_threshold 0.5
 
@@ -140,14 +179,27 @@ defmodule Oban.Web.Query do
         do: suggest
   end
 
-  defp suggest_json(field, frag, conf) do
+  defp suggest_json(field, term, conf) do
+    {frag, path} =
+      term
+      |> String.split(".")
+      |> then(&List.pop_at(&1, length(&1) - 1))
+
+    subquery =
+      if Enum.empty?(path) do
+        select(limit_query(), [j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
+      else
+        select(limit_query(), [j], %{
+          keys: fragment("jsonb_object_keys(? #> ?)", field(j, ^field), ^path)
+        })
+      end
+
     query =
-      limit_query()
-      |> select([j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
+      subquery
       |> subquery()
       |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
 
-    case fetch_query(field, query, conf) do
+    case fetch_query({field, path}, query, conf) do
       [%{keys: [_ | _] = keys}] -> restrict_suggestions(keys, frag)
       _ -> []
     end
