@@ -1,6 +1,7 @@
 Application.ensure_all_started(:postgrex)
 
 Application.put_env(:oban_met, :auto_start, false)
+Application.put_env(:oban_web, :cache, false)
 
 Application.put_env(:oban_web, Oban.Web.Endpoint,
   check_origin: false,

@@ -4,6 +4,7 @@ defmodule Oban.Web.Query do
   import Ecto.Query
 
   alias Oban.{Config, Job, Repo}
+  alias Oban.Web.Cache
 
   @defaults %{
     limit: 30,
@@ -146,7 +147,7 @@ defmodule Oban.Web.Query do
       |> subquery()
       |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
 
-    case Repo.all(conf, query) do
+    case fetch_query(field, query, conf) do
       [%{keys: [_ | _] = keys}] -> restrict_suggestions(keys, frag)
       _ -> []
     end
@@ -158,8 +159,8 @@ defmodule Oban.Web.Query do
       |> select([j], fragment("?[1]", j.attempted_by))
       |> distinct(true)
 
-    conf
-    |> Repo.all(query)
+    :nodes
+    |> fetch_query(query, conf)
     |> restrict_suggestions(frag)
   end
 
@@ -169,8 +170,8 @@ defmodule Oban.Web.Query do
       |> select([j], j.queue)
       |> distinct(true)
 
-    conf
-    |> Repo.all(query)
+    :queues
+    |> fetch_query(query, conf)
     |> restrict_suggestions(frag)
   end
 
@@ -181,7 +182,7 @@ defmodule Oban.Web.Query do
       |> subquery()
       |> select([x], %{tags: fragment("array_agg(distinct ?)", x.tags)})
 
-    case Repo.all(conf, query) do
+    case fetch_query(:tags, query, conf) do
       [%{tags: [_ | _] = tags}] -> restrict_suggestions(tags, frag)
       _ -> []
     end
@@ -193,9 +194,13 @@ defmodule Oban.Web.Query do
       |> select([j], j.worker)
       |> distinct(true)
 
-    conf
-    |> Repo.all(query)
+    :workers
+    |> fetch_query(query, conf)
     |> restrict_suggestions(frag)
+  end
+
+  defp fetch_query(key, query, conf) do
+    Cache.fetch(key, fn -> Repo.all(conf, query) end)
   end
 
   defp limit_query(limit \\ 100_000) do
