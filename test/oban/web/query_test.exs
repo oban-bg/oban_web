@@ -7,19 +7,15 @@ defmodule Oban.Web.QueryTest do
   @conf Config.new(repo: Repo)
 
   describe "suggest/2" do
-    def suggest(terms, name \\ nil) do
-      conf = if name, do: Oban.config(name), else: nil
-
-      Query.suggest(terms, conf)
-    end
+    def suggest(terms), do: Query.suggest(terms, @conf)
 
     test "falling back to defaults without a query" do
-      assert [{"args:", _, _} | _] = suggest("")
-      assert [{"args:", _, _} | _] = suggest("  ")
+      assert [{"args.", _, _} | _] = suggest("")
+      assert [{"args.", _, _} | _] = suggest("  ")
     end
 
     test "falling back to defaults without any fragments" do
-      assert [{"args:", _, _} | _] = suggest("priority:1 ")
+      assert [{"args.", _, _} | _] = suggest("priority:1 ")
     end
 
     test "suggesting qualifiers with fragments" do
@@ -32,7 +28,6 @@ defmodule Oban.Web.QueryTest do
       assert [] = suggest("args.id:")
       assert [] = suggest("meta:")
       assert [] = suggest("meta.batch_id:")
-      assert [] = suggest("tags:")
     end
 
     test "suggesting fixed priorities" do
@@ -41,52 +36,98 @@ defmodule Oban.Web.QueryTest do
       assert [{"1", _, _}] = suggest("priorities:1")
     end
 
+    test "suggesting args" do
+      assert [] = suggest("args:")
+      assert [] = suggest("args.")
+      assert [] = suggest("args.id")
+
+      insert_job!(%{id: 1, account_id: 1})
+      insert_job!(%{id: 1, name: "Alpha"})
+      insert_job!(%{id: 1, data: %{on: true}})
+
+      assert ~w(account_id data id name) =
+               "args."
+               |> suggest()
+               |> Enum.map(&elem(&1, 0))
+               |> Enum.sort()
+
+      assert [{"account_id", _, _}] = suggest("args.accou")
+    end
+
+    test "suggesting meta" do
+      assert [] = suggest("meta:")
+      assert [] = suggest("meta.")
+      assert [] = suggest("meta.batch_id")
+
+      insert_job!(%{}, meta: %{id: 1, account_id: 1})
+      insert_job!(%{}, meta: %{id: 1, name: "Alpha"})
+      insert_job!(%{}, meta: %{id: 1, data: %{on: true}})
+
+      assert ~w(account_id data id name) =
+               "meta."
+               |> suggest()
+               |> Enum.map(&elem(&1, 0))
+               |> Enum.sort()
+
+      assert [{"account_id", _, _}] = suggest("meta.accou")
+    end
+
     test "suggesting nodes" do
-      name = start_supervised_oban!()
+      assert [] = suggest("nodes:")
 
-      store_labels(name, "node", "web.1@host")
-      store_labels(name, "node", "web.2@host")
-      store_labels(name, "node", "loc.8@host")
+      insert_job!(%{}, attempted_by: ["web.1@host", "abc-123"])
+      insert_job!(%{}, attempted_by: ["web.2@host", "abc-123"])
+      insert_job!(%{}, attempted_by: ["loc.8@host", "abc-123"])
 
-      assert [{"loc.8@host", _, _}, _, _] = suggest("nodes:", name)
-      assert [{"web.1@host", _, _}, {"web.2@host", _, _}] = suggest("nodes:web", name)
-      assert [{"web.1@host", _, _}] = suggest("nodes:web.1", name)
-
-      stop_supervised!(name)
+      assert [{"loc.8@host", _, _}, _, _] = suggest("nodes:")
+      assert [{"web.1@host", _, _}, {"web.2@host", _, _}] = suggest("nodes:web")
+      assert [{"web.1@host", _, _}, _] = suggest("nodes:web.1")
     end
 
     test "suggesting queues" do
-      name = start_supervised_oban!()
+      assert [] = suggest("queues:")
 
-      store_labels(name, "queue", "alpha")
-      store_labels(name, "queue", "gamma")
-      store_labels(name, "queue", "delta")
+      insert_job!(%{}, queue: "alpha")
+      insert_job!(%{}, queue: "gamma")
+      insert_job!(%{}, queue: "delta")
 
-      assert [{"alpha", _, _}, _, _] = suggest("queues:", name)
-      assert [{"alpha", _, _}] = suggest("queues:a", name)
-      assert [{"delta", _, _}] = suggest("queues:delta", name)
+      assert [{"alpha", _, _}, _, _] = suggest("queues:")
+      assert [{"alpha", _, _}] = suggest("queues:alph")
+      assert [{"delta", _, _}, _] = suggest("queues:delta")
+    end
 
-      stop_supervised!(name)
+    test "suggesting tags" do
+      assert [] = suggest("tags:")
+
+      insert_job!(%{}, tags: ~w(alpha gamma))
+      insert_job!(%{}, tags: ~w(gamma delta))
+      insert_job!(%{}, tags: ~w(delta))
+
+      assert ~w(alpha delta gamma) =
+               "tags:"
+               |> suggest()
+               |> Enum.map(&elem(&1, 0))
+               |> Enum.sort()
+
+      assert [{"delta", _, _}] = suggest("tags:de")
     end
 
     test "suggesting workers" do
-      name = start_supervised_oban!()
+      assert [] = suggest("workers:")
 
-      store_labels(name, "worker", "MyApp.Alpha")
-      store_labels(name, "worker", "MyApp.Gamma")
-      store_labels(name, "worker", "MyApp.Delta")
+      insert_job!(%{}, worker: MyApp.Alpha)
+      insert_job!(%{}, worker: MyApp.Gamma)
+      insert_job!(%{}, worker: MyApp.Delta)
 
-      assert [{"MyApp.Alpha", _, _}, _, _] = suggest("workers:", name)
-      assert [{"MyApp.Alpha", _, _}, _, _] = suggest("workers:My", name)
-      assert [{"MyApp.Delta", _, _}] = suggest("workers:MyApp.Delta", name)
-
-      stop_supervised!(name)
+      assert [{"MyApp.Alpha", _, _}, _, _] = suggest("workers:")
+      assert [{"MyApp.Alpha", _, _}, _, _] = suggest("workers:My")
+      assert [{"MyApp.Delta", _, _}] = suggest("workers:Delta")
     end
   end
 
   describe "complete/2" do
     def complete(terms) do
-      Search.complete(terms, nil)
+      Query.complete(terms, @conf)
     end
 
     test "completing with an unknown qualifier" do
@@ -97,16 +138,23 @@ defmodule Oban.Web.QueryTest do
       assert "queues:" == complete("qu")
       assert "queues:" == complete("queue")
     end
+
+    test "completing a path qualifier" do
+      insert_job!(%{id: 1, account_id: 1})
+
+      assert "args.id" == complete("args.i")
+      assert "args.account_id" == complete("args.accou")
+    end
   end
 
   describe "append/2" do
-    import Search, only: [append: 2]
+    import Query, only: [append: 2]
 
     test "appending new qualifiers" do
       assert "queue:" == append("qu", "queue:")
       assert "queue:" == append("queue", "queue:")
       assert "queue:" == append("queue:", "queue:")
-      assert "node:web queue:" == append("node:web que", "queue:")
+      assert "args." == append("arg", "args.")
     end
 
     test "preventing duplicate values" do
@@ -197,7 +245,7 @@ defmodule Oban.Web.QueryTest do
 
       assert [0] = filter_refs(args: [~w(mode), "audio"])
       assert [1] = filter_refs(args: [~w(mode), "video"])
-      assert {0, 1} = filter_refs(args: [~w(mode), "audio or video"])
+      assert [0, 1] = filter_refs(args: [~w(mode), "audio or video"])
 
       assert [0] = filter_refs(args: [~w(bar baz), "1"])
       assert [0, 1] = filter_refs(args: [~w(bar), "baz"])
@@ -254,10 +302,10 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{ref: 1, mode: "audio"}, worker: Media, meta: %{batch_id: 1})
       insert_job!(%{ref: 2, mode: "multi"}, worker: Media, meta: %{batch_id: 2})
 
-      assert [0] = filter_refs(workers: ~w(Media), args: "video", meta: {~w(batch_id), "1"})
-      assert [1] = filter_refs(workers: ~w(Media), args: "audio", meta: {~w(batch_id), "1"})
-      assert [2] = filter_refs(args: "multi", meta: {~w(batch_id), "2"})
-      assert [] = filter_refs(args: "audio", meta: {~w(batch_id), "2"})
+      assert [0] = filter_refs(workers: ~w(Media), args: "video", meta: [~w(batch_id), "1"])
+      assert [1] = filter_refs(workers: ~w(Media), args: "audio", meta: [~w(batch_id), "1"])
+      assert [2] = filter_refs(args: "multi", meta: [~w(batch_id), "2"])
+      assert [] = filter_refs(args: "audio", meta: [~w(batch_id), "2"])
     end
 
     test "ordering fields by state" do
@@ -277,14 +325,6 @@ defmodule Oban.Web.QueryTest do
                |> Query.all_jobs(%{state: "cancelled", sort_dir: "desc"})
                |> Enum.map(& &1.id)
     end
-  end
-
-  defp store_labels(name, label, value) do
-    gauge = Oban.Met.Values.Gauge.new(1)
-
-    name
-    |> Oban.Registry.via(Oban.Met.Recorder)
-    |> Oban.Met.Recorder.store(:exec_time, gauge, %{label => value})
   end
 
   defp filter_refs(terms) do

@@ -47,7 +47,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
             aria-label="Add filters"
             aria-placeholder="Add filters"
             autocorrect="false"
-            class="min-w-[10rem] flex-grow my-2 p-0 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
+            class="min-w-[10rem] flex-grow my-2 px-0 py-0.5 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
             id="search-input"
             name="terms"
             phx-blur={hide_focus()}
@@ -159,7 +159,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
       |> String.split(":", trim: true)
       |> List.last()
 
-    if is_binary(match) do
+    if is_binary(value) and is_binary(match) do
       pattern = Regex.compile!("(#{match})", "i")
 
       value
@@ -170,18 +170,19 @@ defmodule Oban.Web.Jobs.SearchComponent do
     end
   end
 
-  @focused_highlight "shadow-blue-100 ring-blue-500 bg-blue-100/30"
-
   def show_focus do
-    @focused_highlight
-    |> JS.add_class(to: "#search-wrapper")
+    "ring-gray-300"
+    |> JS.remove_class(to: "#search-wrapper")
+    |> JS.add_class("shadow-blue-100 ring-blue-500 bg-blue-100/30", to: "#search-wrapper")
     |> JS.show(to: "#search-suggest")
   end
 
   # Closing the suggest menu is done with push events to allow clicking on a suggestion to fire
   # before the menu closes.
   def hide_focus do
-    JS.remove_class(@focused_highlight, to: "#search-wrapper")
+    "shadow-blue-100 ring-blue-500 bg-blue-100/30"
+    |> JS.remove_class(to: "#search-wrapper")
+    |> JS.add_class("ring-gray-300", to: "#search-wrapper")
   end
 
   # Events
@@ -212,7 +213,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
     buffer = Query.complete(socket.assigns.buffer, socket.assigns.conf)
     socket = push_event(socket, "completed", %{buffer: buffer})
 
-    handle_submit(buffer, socket)
+    suggestions = Query.suggest(buffer, socket.assigns.conf)
+
+    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
   end
 
   def handle_event("search", _, socket) do

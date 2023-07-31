@@ -20,11 +20,7 @@ const Completer = {
     })
 
     this.handleEvent("completed", ({buffer}) => {
-      if (/.+:$/.test(buffer)) {
-        input.value = buffer
-      } else {
-        input.value = ""
-      }
+      input.value = buffer
     })
   }
 }

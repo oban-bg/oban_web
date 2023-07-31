@@ -223,10 +223,11 @@ defmodule Oban.Web.Live.Chart do
   defp period_to_step("2m"), do: 120
 
   defp params_to_filters(params) do
-    for {key, vals} <- params, key in ~w(nodes queues)a do
+    for {key, vals} <- params, key in ~w(nodes queues workers)a do
       case key do
         :nodes -> {:node, vals}
         :queues -> {:queue, vals}
+        :workers -> {:worker, vals}
       end
     end
   end

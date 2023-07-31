@@ -87,8 +87,8 @@ defmodule Oban.Web.Query do
   @suggest_threshold 0.5
 
   @suggest_qualifier [
-    {"args:", "a key or value in args", "args:video"},
-    {"meta:", "a key or value in meta", "meta.batch_id:123"},
+    {"args.", "a key or value in args", "args:video"},
+    {"meta.", "a key or value in meta", "meta.batch_id:123"},
     {"nodes:", "host name", "nodes:machine@somehost"},
     {"priorities:", "number from 0 to 3", "priorities:1"},
     {"queues:", "queue name", "queues:default"},
@@ -120,14 +120,118 @@ defmodule Oban.Web.Query do
         case String.split(last, ":", parts: 2) do
           ["args" <> _, _] -> []
           ["meta" <> _, _] -> []
-          ["nodes", frag] -> suggest_labels("node", frag, conf)
-          ["queues", frag] -> suggest_labels("queue", frag, conf)
+          ["nodes", frag] -> suggest_nodes(frag, conf)
+          ["queues", frag] -> suggest_queues(frag, conf)
           ["priorities", frag] -> suggest_static(@suggest_priority, frag)
           ["tags", frag] -> suggest_tags(frag, conf)
-          ["workers", frag] -> suggest_labels("worker", frag, conf)
+          ["workers", frag] -> suggest_workers(frag, conf)
+          ["args." <> frag] -> suggest_json(:args, frag, conf)
+          ["meta." <> frag] -> suggest_json(:meta, frag, conf)
           [frag] -> suggest_static(@suggest_qualifier, frag)
           _ -> @suggest_qualifier
         end
+    end
+  end
+
+  defp suggest_static(possibilities, fragment) do
+    for {field, _, _} = suggest <- possibilities,
+        String.starts_with?(field, fragment),
+        do: suggest
+  end
+
+  defp suggest_json(field, frag, conf) do
+    query =
+      limit_query()
+      |> select([j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
+      |> subquery()
+      |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
+
+    case Repo.all(conf, query) do
+      [%{keys: [_ | _] = keys}] -> restrict_suggestions(keys, frag)
+      _ -> []
+    end
+  end
+
+  defp suggest_nodes(frag, conf) do
+    query =
+      limit_query()
+      |> select([j], fragment("?[1]", j.attempted_by))
+      |> distinct(true)
+
+    conf
+    |> Repo.all(query)
+    |> restrict_suggestions(frag)
+  end
+
+  defp suggest_queues(frag, conf) do
+    query =
+      limit_query()
+      |> select([j], j.queue)
+      |> distinct(true)
+
+    conf
+    |> Repo.all(query)
+    |> restrict_suggestions(frag)
+  end
+
+  defp suggest_tags(frag, conf) do
+    query =
+      limit_query()
+      |> select([j], %{tags: fragment("unnest(?)", j.tags)})
+      |> subquery()
+      |> select([x], %{tags: fragment("array_agg(distinct ?)", x.tags)})
+
+    case Repo.all(conf, query) do
+      [%{tags: [_ | _] = tags}] -> restrict_suggestions(tags, frag)
+      _ -> []
+    end
+  end
+
+  defp suggest_workers(frag, conf) do
+    query =
+      limit_query()
+      |> select([j], j.worker)
+      |> distinct(true)
+
+    conf
+    |> Repo.all(query)
+    |> restrict_suggestions(frag)
+  end
+
+  defp limit_query(limit \\ 100_000) do
+    sublimit =
+      Job
+      |> select([j], j.id - ^limit)
+      |> order_by(desc: :id)
+      |> limit(1)
+
+    where(Job, [j], j.id >= subquery(sublimit))
+  end
+
+  defp restrict_suggestions(suggestions, "") do
+    suggestions
+    |> Enum.sort()
+    |> Enum.take(@suggest_limit)
+    |> Enum.map(&{&1, "", ""})
+  end
+
+  defp restrict_suggestions(suggestions, frag) do
+    suggestions
+    |> Enum.filter(&(similarity(&1, frag) >= @suggest_threshold))
+    |> Enum.sort_by(&{1.0 - similarity(&1, frag), &1}, :asc)
+    |> Enum.take(@suggest_limit)
+    |> Enum.map(&{&1, "", ""})
+  end
+
+  defp similarity(value, guess, boost \\ 0.5) do
+    value = String.downcase(value)
+    guess = String.downcase(guess)
+    distance = String.jaro_distance(value, guess)
+
+    if String.contains?(value, guess) do
+      min(distance + boost, 1.0)
+    else
+      distance
     end
   end
 
@@ -148,28 +252,17 @@ defmodule Oban.Web.Query do
   Append to the terms string without any duplication.
   """
   def append(terms, choice) do
-    cond do
-      String.ends_with?(choice, ":") ->
-        terms
-        |> String.reverse()
-        |> String.split(" ", parts: 2)
-        |> case do
-          [_head] ->
-            choice
+    if String.ends_with?(choice, [":", "."]) do
+      choice
+    else
+      joiner = if String.contains?(terms, ":"), do: ":", else: "."
 
-          [_head, tail] ->
-            tail
-            |> String.reverse()
-            |> Kernel.<>(" #{choice}")
-        end
-
-      true ->
-        terms
-        |> String.reverse()
-        |> String.split(":", parts: 2)
-        |> List.last()
-        |> String.reverse()
-        |> Kernel.<>(":#{choice}")
+      terms
+      |> String.reverse()
+      |> String.split([":", "."], parts: 2)
+      |> List.last()
+      |> String.reverse()
+      |> Kernel.<>("#{joiner}#{choice}")
     end
   end
 
@@ -288,60 +381,6 @@ defmodule Oban.Web.Query do
     [path, term] = String.split(path_and_term, ":", parts: 2)
 
     {field, [String.split(path, "."), String.trim(term, "\"")]}
-  end
-
-  # Suggest Helpers
-
-  defp suggest_static(possibilities, fragment) do
-    for {field, _, _} = suggest <- possibilities,
-        String.starts_with?(field, fragment),
-        do: suggest
-  end
-
-  defp suggest_tags(frag, conf) do
-    query =
-      Oban.Job
-      |> select([j], j.tags)
-      |> order_by(desc: :id)
-      |> limit(100_000)
-
-    conf
-    |> Oban.Repo.all(query)
-    |> List.flatten()
-    |> Enum.uniq()
-    |> Enum.sort_by(&similarity(&1, frag), :desc)
-    |> Enum.take(@suggest_limit)
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp suggest_labels(label, "", conf) do
-    conf.name
-    |> Oban.Met.labels(label)
-    |> Enum.take(@suggest_limit)
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp suggest_labels(label, frag, conf) do
-    frag = String.downcase(frag)
-
-    conf.name
-    |> Oban.Met.labels(label)
-    |> Enum.filter(&(similarity(&1, frag) >= @suggest_threshold))
-    |> Enum.sort_by(&similarity(&1, frag), :desc)
-    |> Enum.take(@suggest_limit)
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp similarity(value, guess, boost \\ 0.5) do
-    value = String.downcase(value)
-    guess = String.downcase(guess)
-    distance = String.jaro_distance(value, guess)
-
-    if String.contains?(value, guess) do
-      distance + boost
-    else
-      distance
-    end
   end
 
   # Filter Helpers
