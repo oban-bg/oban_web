@@ -5,9 +5,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @known ~w(args meta nodes priorities queues tags workers)a
 
+  @spinner_timeout 100
+
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, buffer: "")}
+    {:ok, assign(socket, buffer: "", loading: false)}
   end
 
   @impl Phoenix.LiveComponent
@@ -38,7 +40,13 @@ defmodule Oban.Web.Jobs.SearchComponent do
         id="search-wrapper"
         class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300"
       >
-        <Icons.magnifying_glass class="ml-1.5 flex-none w-5 h-5 text-gray-500" />
+        <div class="ml-1.5 flex-none">
+          <%= if @loading do %>
+            <Icons.spinner class="w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-violet-500" />
+          <% else %>
+            <Icons.magnifying_glass class="w-5 h-5 text-gray-500" />
+          <% end %>
+        </div>
 
         <div class="w-full flex flex-wrap space-x-1.5">
           <.filter :for={{param, terms} <- filterable(@params)} param={param} terms={terms} />
@@ -201,9 +209,12 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("change", %{"terms" => buffer}, socket) do
-    suggestions = Query.suggest(buffer, socket.assigns.conf)
+    socket =
+      socket
+      |> assign(buffer: buffer)
+      |> async_suggest(buffer)
 
-    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
+    {:noreply, socket}
   end
 
   def handle_event("clear", _params, socket) do
@@ -211,24 +222,31 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
     {:noreply,
      socket
-     |> assign(buffer: "", suggestions: suggestions)
+     |> assign(buffer: "", loading: false, suggestions: suggestions)
      |> push_patch(to: oban_path(:jobs))}
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
     buffer = Query.append(socket.assigns.buffer, choice)
-    suggestions = Query.suggest(buffer, socket.assigns.conf)
 
-    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
+    socket =
+      socket
+      |> assign(buffer: buffer)
+      |> async_suggest(buffer)
+
+    {:noreply, socket}
   end
 
   def handle_event("complete", _params, socket) do
     buffer = Query.complete(socket.assigns.buffer, socket.assigns.conf)
-    socket = push_event(socket, "completed", %{buffer: buffer})
 
-    suggestions = Query.suggest(buffer, socket.assigns.conf)
+    socket =
+      socket
+      |> assign(buffer: buffer)
+      |> push_event("completed", %{buffer: buffer})
+      |> async_suggest(buffer)
 
-    {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
+    {:noreply, socket}
   end
 
   def handle_event("search", _, socket) do
@@ -243,18 +261,53 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   defp handle_submit(buffer, socket) do
     if String.ends_with?(buffer, ":") do
-      suggestions = Query.suggest(buffer, socket.assigns.conf)
+      socket =
+        socket
+        |> assign(buffer: buffer)
+        |> async_suggest(buffer)
 
-      {:noreply, assign(socket, buffer: buffer, suggestions: suggestions)}
+      {:noreply, socket}
     else
       parsed = Query.parse(buffer)
-      params = Map.merge(socket.assigns.params, parsed)
+      params = Map.merge(socket.assigns.params, parsed, fn _key, old, new -> old ++ new end)
       suggestions = Query.suggest("", socket.assigns.conf)
 
       {:noreply,
        socket
-       |> assign(buffer: "", suggestions: suggestions)
+       |> assign(buffer: "", loading: false, suggestions: suggestions)
        |> push_patch(to: oban_path(:jobs, params))}
+    end
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_info({ref, suggestions}, socket) when is_reference(ref) do
+    {:noreply, assign(socket, loading: false, suggestions: suggestions)}
+  end
+
+  defp async_suggest(socket, buffer) do
+    self = self()
+
+    fun = fn ->
+      suggestions = Query.suggest(buffer, socket.assigns.conf)
+
+      assigns =
+        socket.assigns
+        |> Map.take(~w(id conf params)a)
+        |> Map.put(:loading, false)
+        |> Map.put(:suggestions, suggestions)
+
+      send_update(self, __MODULE__, assigns)
+    end
+
+    fun
+    |> Task.async()
+    |> Task.yield(@spinner_timeout)
+    |> case do
+      nil -> assign(socket, loading: true)
+      _ok -> socket
     end
   end
 end

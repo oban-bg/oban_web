@@ -128,6 +128,14 @@ defmodule Oban.Web.JobsPage do
   # Queues
 
   @impl Page
+  def handle_info({ref, _val}, socket) when is_reference(ref) do
+    {:noreply, socket}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, :normal}, socket) do
+    {:noreply, socket}
+  end
+
   def handle_info({:scale_queue, queue, limit}, socket) do
     Telemetry.action(:scale_queue, socket, [queue: queue, limit: limit], fn ->
       Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
