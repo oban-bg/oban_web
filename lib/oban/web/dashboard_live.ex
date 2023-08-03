@@ -8,6 +8,7 @@ defmodule Oban.Web.DashboardLive do
     %{"oban" => oban, "prefix" => prefix, "resolver" => resolver} = session
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
+    %{"refresh" => refresh} = session
 
     conf = await_init([oban], :supervisor)
     _met = await_init([oban, Oban.Met], :met)
@@ -15,7 +16,7 @@ defmodule Oban.Web.DashboardLive do
 
     Process.put(:routing, {socket, prefix})
 
-    refresh = restore(socket, "refresh", 1)
+    refresh = restore(socket, "refresh", refresh)
     theme = restore(socket, "theme", "system")
 
     socket =
