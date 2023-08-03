@@ -78,6 +78,13 @@ Here we're using `"/oban"` as the mount point, but it can be anywhere you like.
 After you've verified that the dashboard is loading you'll probably want to
 restrict access to the dashboard via authentication, e.g. with [Basic Auth][ba].
 
+## Customization
+
+Web customization is done through the `Oban.Web.Resolver` behaviour. To allows you to enable
+access controls, control formatting, and provide query limits for filtering and searching. Using a
+custom resolver is entirely optional, but you should familiarize yourself with the default
+limits and functionality.
+
 Installation is complete and you're all set! Start your Phoenix server, point
 your browser to where you mounted Oban and start monitoring your jobs.
 

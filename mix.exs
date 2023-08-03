@@ -123,7 +123,6 @@ defmodule Oban.Web.MixProject do
     [
       "guides/introduction/installation.md",
       "guides/configuration/mounting.md",
-      "guides/configuration/customizing.md",
       "guides/advanced/searching.md",
       "guides/advanced/telemetry.md",
       "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
