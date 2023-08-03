@@ -195,7 +195,7 @@ defmodule Oban.Workers.MailingListSyncer do
   alias Faker.{Address, Date, Internet, Person}
   alias WebDev.Generator
 
-  def gen(opts \\ []) do
+  def gen(_opts) do
     new(%{
       name: Person.name(),
       email: Internet.free_email(),

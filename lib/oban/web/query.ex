@@ -4,7 +4,7 @@ defmodule Oban.Web.Query do
   import Ecto.Query
 
   alias Oban.{Config, Job, Repo}
-  alias Oban.Web.Cache
+  alias Oban.Web.{Cache, Resolver}
 
   @defaults %{
     limit: 30,
@@ -147,7 +147,7 @@ defmodule Oban.Web.Query do
   Suggest completions from a search fragment.
   """
   @spec suggest(String.t(), Config.t()) :: [{String.t(), String.t(), String.t()}]
-  def suggest(terms, conf) do
+  def suggest(terms, conf, opts \\ []) do
     terms
     |> String.split(@split_pattern)
     |> List.last()
@@ -160,13 +160,13 @@ defmodule Oban.Web.Query do
         case String.split(last, ":", parts: 2) do
           ["args" <> _, _] -> []
           ["meta" <> _, _] -> []
-          ["nodes", frag] -> suggest_nodes(frag, conf)
-          ["queues", frag] -> suggest_queues(frag, conf)
+          ["nodes", frag] -> suggest_nodes(frag, conf, opts)
+          ["queues", frag] -> suggest_queues(frag, conf, opts)
           ["priorities", frag] -> suggest_static(@suggest_priority, frag)
-          ["tags", frag] -> suggest_tags(frag, conf)
-          ["workers", frag] -> suggest_workers(frag, conf)
-          ["args." <> frag] -> suggest_json(:args, frag, conf)
-          ["meta." <> frag] -> suggest_json(:meta, frag, conf)
+          ["tags", frag] -> suggest_tags(frag, conf, opts)
+          ["workers", frag] -> suggest_workers(frag, conf, opts)
+          ["args." <> frag] -> suggest_json(:args, frag, conf, opts)
+          ["meta." <> frag] -> suggest_json(:meta, frag, conf, opts)
           [frag] -> suggest_static(@suggest_qualifier, frag)
           _ -> @suggest_qualifier
         end
@@ -179,7 +179,7 @@ defmodule Oban.Web.Query do
         do: suggest
   end
 
-  defp suggest_json(field, term, conf) do
+  defp suggest_json(field, term, conf, opts) do
     {frag, path} =
       term
       |> String.split(".")
@@ -187,11 +187,13 @@ defmodule Oban.Web.Query do
 
     subquery =
       if Enum.empty?(path) do
-        select(limit_query(), [j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
+        field
+        |> hint_limit_query(opts)
+        |> select([j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
       else
-        select(limit_query(), [j], %{
-          keys: fragment("jsonb_object_keys(? #> ?)", field(j, ^field), ^path)
-        })
+        field
+        |> hint_limit_query(opts)
+        |> select([j], %{keys: fragment("jsonb_object_keys(? #> ?)", field(j, ^field), ^path)})
       end
 
     query =
@@ -199,70 +201,64 @@ defmodule Oban.Web.Query do
       |> subquery()
       |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
 
-    case fetch_query({field, path}, query, conf) do
+    case cache_query({field, path}, query, conf) do
       [%{keys: [_ | _] = keys}] -> restrict_suggestions(keys, frag)
       _ -> []
     end
   end
 
-  defp suggest_nodes(frag, conf) do
+  defp suggest_nodes(frag, conf, opts) do
     query =
-      limit_query()
+      :nodes
+      |> hint_limit_query(opts)
       |> select([j], fragment("?[1]", j.attempted_by))
       |> distinct(true)
 
     :nodes
-    |> fetch_query(query, conf)
+    |> cache_query(query, conf)
     |> restrict_suggestions(frag)
   end
 
-  defp suggest_queues(frag, conf) do
+  defp suggest_queues(frag, conf, opts) do
     query =
-      limit_query()
+      :queues
+      |> hint_limit_query(opts)
       |> select([j], j.queue)
       |> distinct(true)
 
     :queues
-    |> fetch_query(query, conf)
+    |> cache_query(query, conf)
     |> restrict_suggestions(frag)
   end
 
-  defp suggest_tags(frag, conf) do
+  defp suggest_tags(frag, conf, opts) do
     query =
-      limit_query()
+      :tags
+      |> hint_limit_query(opts)
       |> select([j], %{tags: fragment("unnest(?)", j.tags)})
       |> subquery()
       |> select([x], %{tags: fragment("array_agg(distinct ?)", x.tags)})
 
-    case fetch_query(:tags, query, conf) do
+    case cache_query(:tags, query, conf) do
       [%{tags: [_ | _] = tags}] -> restrict_suggestions(tags, frag)
       _ -> []
     end
   end
 
-  defp suggest_workers(frag, conf) do
+  defp suggest_workers(frag, conf, opts) do
     query =
-      limit_query()
+      :workers
+      |> hint_limit_query(opts)
       |> select([j], j.worker)
       |> distinct(true)
 
     :workers
-    |> fetch_query(query, conf)
+    |> cache_query(query, conf)
     |> restrict_suggestions(frag)
   end
 
-  defp fetch_query(key, query, conf) do
+  defp cache_query(key, query, conf) do
     Cache.fetch(key, fn -> Repo.all(conf, query) end)
-  end
-
-  defp limit_query(limit \\ 100_000) do
-    sublimit =
-      Job
-      |> select([j], j.id - ^limit)
-      |> order_by(desc: :id)
-      |> limit(1)
-
-    where(Job, [j], j.id >= subquery(sublimit))
   end
 
   defp restrict_suggestions(suggestions, "") do
@@ -325,26 +321,58 @@ defmodule Oban.Web.Query do
 
   # Queries
 
-  def all_jobs(%Config{} = conf, %{} = args) do
-    args =
+  def all_jobs(params, conf, opts \\ []) do
+    params =
       @defaults
-      |> Map.merge(args)
+      |> Map.merge(params)
       |> Map.update!(:sort_by, &maybe_atomize/1)
       |> Map.update!(:sort_dir, &maybe_atomize/1)
 
-    conditions = Enum.reduce(args, true, &filter/2)
+    conditions = Enum.reduce(params, true, &filter/2)
 
     query =
-      Job
-      |> where(^conditions)
-      |> order(args.sort_by, args.state, args.sort_dir)
-      |> limit(^args.limit)
+      params.state
+      |> jobs_limit_query(opts)
       |> select(^@list_fields)
+      |> where(^conditions)
+      |> order(params.sort_by, params.state, params.sort_dir)
+      |> limit(^params.limit)
 
     Repo.all(conf, query)
   end
 
-  def refresh_job(_conf, nil), do: nil
+  defp jobs_limit_query(state, opts) do
+    state
+    |> String.to_existing_atom()
+    |> limit_query(:jobs_query_limit, opts)
+  end
+
+  defp hint_limit_query(qual, opts) do
+    limit_query(qual, :hint_query_limit, opts)
+  end
+
+  defp limit_query(value, fun, opts) do
+    resolver =
+      if function_exported?(opts[:resolver], fun, 1) do
+        opts[:resolver]
+      else
+        Resolver
+      end
+
+    case apply(resolver, fun, [value]) do
+      :infinity ->
+        Job
+
+      limit ->
+        sublimit =
+          Job
+          |> select([j], j.id - ^limit)
+          |> order_by(desc: :id)
+          |> limit(1)
+
+        where(Job, [j], j.id >= subquery(sublimit))
+    end
+  end
 
   def refresh_job(%Config{} = conf, %Job{id: job_id} = job) do
     query =
@@ -364,6 +392,8 @@ defmodule Oban.Web.Query do
   def refresh_job(%Config{} = conf, job_id) when is_binary(job_id) or is_integer(job_id) do
     Repo.get(conf, Job, job_id)
   end
+
+  def refresh_job(_conf, nil), do: nil
 
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))

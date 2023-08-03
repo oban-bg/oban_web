@@ -41,8 +41,20 @@ defmodule Oban.Web.JobsPage do
             />
           <% else %>
             <div class="flex items-start justify-between space-x-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-              <.live_component id="header" module={HeaderComponent} jobs={@jobs} params={@params} selected={@selected} />
-              <.live_component id="search" module={SearchComponent} conf={@conf} params={@params} />
+              <.live_component
+                id="header"
+                module={HeaderComponent}
+                jobs={@jobs}
+                params={@params}
+                selected={@selected}
+              />
+              <.live_component
+                id="search"
+                module={SearchComponent}
+                conf={@conf}
+                params={@params}
+                resolver={@resolver}
+              />
               <.live_component id="sorter" module={SortComponent} params={@params} />
             </div>
 
@@ -87,7 +99,9 @@ defmodule Oban.Web.JobsPage do
 
   @impl Page
   def handle_refresh(socket) do
-    jobs = Query.all_jobs(socket.assigns.conf, socket.assigns.params)
+    %{conf: conf, params: params, resolver: resolver} = socket.assigns
+
+    jobs = Query.all_jobs(params, conf, resolver: resolver)
 
     selected =
       jobs
@@ -114,13 +128,15 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_params(params, _uri, socket) do
+    %{conf: conf, resolver: resolver} = socket.assigns
+
     params = params_with_defaults(params, socket)
 
     socket =
       socket
       |> assign(detailed: nil, page_title: page_title("Jobs"))
       |> assign(params: params)
-      |> assign(jobs: Query.all_jobs(socket.assigns.conf, params))
+      |> assign(jobs: Query.all_jobs(params, conf, resolver: resolver))
 
     {:noreply, socket}
   end

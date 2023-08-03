@@ -14,7 +14,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    suggestions = Query.suggest(socket.assigns.buffer, assigns.conf)
+    suggestions = Query.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
 
     socket =
       socket
@@ -291,11 +291,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
     self = self()
 
     fun = fn ->
-      suggestions = Query.suggest(buffer, socket.assigns.conf)
+      suggestions = Query.suggest(buffer, socket.assigns.conf, resolver: socket.assigns.resolver)
 
       assigns =
         socket.assigns
-        |> Map.take(~w(id conf params)a)
+        |> Map.take(~w(id conf params resolver)a)
         |> Map.put(:loading, false)
         |> Map.put(:suggestions, suggestions)
 

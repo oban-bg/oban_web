@@ -188,6 +188,20 @@ defmodule Oban.Web.QueryTest do
       assert [{"MyApp.Alpha", _, _}, _, _] = suggest("workers:My")
       assert [{"MyApp.Delta", _, _}] = suggest("workers:Delta")
     end
+
+    test "suggesting with a resolver that implements hint_query_limit/1" do
+      defmodule HintResolver do
+        def hint_query_limit(:workers), do: 1
+        def hint_query_limit(_qualifier), do: :infinity
+      end
+
+      insert_job!(%{}, queue: :alpha, worker: MyApp.Alpha)
+      insert_job!(%{}, queue: :gamma, worker: MyApp.Gamma)
+      insert_job!(%{}, queue: :delta, worker: MyApp.Delta)
+
+      assert [_, _] = Query.suggest("workers:", @conf, resolver: HintResolver)
+      assert [_, _, _] = Query.suggest("queues:", @conf, resolver: HintResolver)
+    end
   end
 
   describe "complete/2" do
@@ -390,16 +404,33 @@ defmodule Oban.Web.QueryTest do
                |> Query.all_jobs(%{state: "cancelled", sort_dir: "desc"})
                |> Enum.map(& &1.id)
     end
+
+    test "restrict the query with a resolver that implements jobs_query_limit/1" do
+      defmodule JobResolver do
+        def jobs_query_limit(:completed), do: 1
+        def jobs_query_limit(:executing), do: 10
+      end
+
+      insert_job!(%{ref: 0}, state: "executing")
+      insert_job!(%{ref: 1}, state: "executing")
+      insert_job!(%{ref: 2}, state: "executing")
+      insert_job!(%{ref: 3}, state: "completed")
+      insert_job!(%{ref: 4}, state: "completed")
+      insert_job!(%{ref: 5}, state: "completed")
+
+      assert [0, 1, 2] = filter_refs(%{state: "executing"}, resolver: JobResolver)
+      assert [4, 5] = filter_refs(%{state: "completed"}, resolver: JobResolver)
+    end
   end
 
-  defp filter_refs(terms) do
-    terms =
-      terms
+  defp filter_refs(params, opts \\ []) do
+    params =
+      params
       |> Map.new()
       |> Map.put_new(:state, "available")
 
-    @conf
-    |> Query.all_jobs(terms)
+    params
+    |> Query.all_jobs(@conf, opts)
     |> Enum.map(& &1.args["ref"])
     |> Enum.sort()
   end

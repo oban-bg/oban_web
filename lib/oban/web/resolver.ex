@@ -84,7 +84,7 @@ defmodule Oban.Web.Resolver do
           | {:delete_jobs, boolean()}
           | {:retry_jobs, boolean()}
 
-  @type qualifier :: :args | :meta | :node | :queue | :tags | :worker
+  @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
   @type refresh :: 1 | 2 | 5 | 15 | 60 | -1
 
@@ -221,10 +221,12 @@ defmodule Oban.Web.Resolver do
   always be within the filter limit. For example, with a limit of 100k jobs and 200k completed
   jobs, only the latest 100k are queryable and the oldest 100k are effectively invisible.
 
+  In the interest of speed, limits are only approximate.
+
   The limit may be determined by state, e.g. `:completed` or `:cancelled`, to fine-tune query
   performance for larger states. Limiting may be disabled with `:infinity`.
 
-  Without a callback impleted it defaults to a conservative 100,000 jobs.
+  Without a callback impleted it defaults to a conservative 100k jobs.
 
   ## Example
 
@@ -283,4 +285,10 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def resolve_refresh(_user), do: 1
+
+  @doc false
+  def jobs_query_limit(_state), do: 100_000
+
+  @doc false
+  def hint_query_limit(_qualifier), do: 10_000
 end
