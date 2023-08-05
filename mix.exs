@@ -56,7 +56,7 @@ defmodule Oban.Web.MixProject do
 
       # Oban
       {:oban, "~> 2.15"},
-      {:oban_met, "~> 0.1", path: "../oban_met"},
+      {:oban_met, "~> 0.1", repo: :oban},
       {:oban_pro, "~> 1.0", repo: :oban, only: [:test, :dev]},
 
       # Dev Server
