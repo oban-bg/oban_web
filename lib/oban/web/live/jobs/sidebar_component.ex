@@ -1,45 +1,26 @@
-defmodule Oban.Web.Live.Sidebar do
+defmodule Oban.Web.Jobs.SidebarComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Helpers.SidebarHelper
+  import Oban.Web.Helpers
+
+  alias Oban.Met
+
+  @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="sidebar" class="mr-3">
-      <.section :if={:states in @sections} id="states" name="States" headers={~w(Count)}>
-        <.state_row
-          :for={state <- states(@conf.name)}
-          state={state}
-          page={@page}
-          params={@params}
-          socket={@socket}
-        />
+      <.section id="states" name="States" headers={~w(Count)}>
+        <.state_row :for={state <- states(@conf)} state={state} params={@params} />
       </.section>
 
-      <.section :if={:nodes in @sections} id="nodes" name="Nodes" headers={~w(Exec Limit)}>
-        <.node_row
-          :for={node <- nodes(@conf.name)}
-          node={node}
-          page={@page}
-          params={@params}
-          socket={@socket}
-        />
+      <.section id="nodes" name="Nodes" headers={~w(Exec Limit)}>
+        <.node_row :for={node <- nodes(@conf)} node={node} params={@params} />
       </.section>
 
-      <.section
-        :if={:queues in @sections}
-        id="queues"
-        name="Queues"
-        headers={~w(Mode Limit Exec Avail)}
-      >
-        <.queue_row
-          :for={queue <- queues(@conf.name)}
-          queue={queue}
-          page={@page}
-          params={@params}
-          socket={@socket}
-        />
+      <.section id="queues" name="Queues" headers={~w(Mode Limit Exec Avail)}>
+        <.queue_row :for={queue <- queues(@conf)} queue={queue} params={@params} />
       </.section>
     </div>
     """
@@ -95,7 +76,7 @@ defmodule Oban.Web.Live.Sidebar do
     ~H"""
     <.link
       id={"state-#{@state.name}"}
-      navigate={filter_link(@page, :state, @state.name, @params)}
+      navigate={filter_link(:state, @state.name, @params)}
       rel="filter"
       replace={true}
       class={[
@@ -126,7 +107,7 @@ defmodule Oban.Web.Live.Sidebar do
     ~H"""
     <.link
       id={"node-#{sanitize_name(@node.name)}"}
-      navigate={filter_link(@page, :nodes, @node.name, @params)}
+      navigate={filter_link(:nodes, @node.name, @params)}
       rel="filter"
       replace={true}
       class={[
@@ -155,7 +136,7 @@ defmodule Oban.Web.Live.Sidebar do
     ~H"""
     <.link
       id={"queue-#{@queue.name}"}
-      navigate={filter_link(@page, :queues, @queue.name, @params)}
+      navigate={filter_link(:queues, @queue.name, @params)}
       rel="filter"
       replace={true}
       class={[
@@ -186,9 +167,78 @@ defmodule Oban.Web.Live.Sidebar do
     """
   end
 
-  # Helpers
+  # Metrics Helpers
 
-  defp filter_link(page, key, value, params) do
+  def nodes(conf) do
+    conf.name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn check, acc ->
+      node = check["node"]
+      count = length(check["running"])
+      limit = check["local_limit"] || check["limit"]
+
+      acc
+      |> Map.put_new(node, %{name: node, count: 0, limit: 0})
+      |> update_in([node, :count], &(&1 + count))
+      |> update_in([node, :limit], &(&1 + limit))
+    end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  def states(conf) do
+    counts = Met.latest(conf.name, :full_count, group: "state")
+
+    for state <- @ordered_states do
+      %{name: state, count: Map.get(counts, state, 0)}
+    end
+  end
+
+  def queues(conf) do
+    avail_counts =
+      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
+
+    execu_counts =
+      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "executing"])
+
+    conf.name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn %{"queue" => queue} = check, acc ->
+      empty = fn ->
+        %{
+          name: queue,
+          avail: Map.get(avail_counts, queue, 0),
+          execu: Map.get(execu_counts, queue, 0),
+          limit: 0,
+          paused?: false,
+          global?: false,
+          rate_limited?: false
+        }
+      end
+
+      acc
+      |> Map.put_new_lazy(queue, empty)
+      |> update_in([queue, :limit], &check_limit(&1, check))
+      |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
+      |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))
+      |> update_in([queue, :paused?], &(&1 or check["paused"]))
+    end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  defp check_limit(_total, %{"global_limit" => %{"allowed" => limit}}), do: limit
+  defp check_limit(total, %{"local_limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, %{"limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, _payload), do: total
+
+  # Component Helpers
+
+  defp filter_link(:state, value, params) do
+    oban_path(:jobs, Map.put(params, :state, value))
+  end
+
+  defp filter_link(key, value, params) do
     param_value = params[key]
 
     params =
@@ -206,7 +256,7 @@ defmodule Oban.Web.Live.Sidebar do
           Map.put(params, key, value)
       end
 
-    oban_path(page, params)
+    oban_path(:jobs, params)
   end
 
   defp toggle(prefix) do

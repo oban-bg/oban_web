@@ -481,12 +481,12 @@ oban_opts = [
   queues: [
     analysis: 30,
     default: 30,
-    events: 15,
+    events: 20,
     exports: [global_limit: 8],
     mailers: [local_limit: 10, rate_limit: [allowed: 90, period: 15]],
     media: [
-      local_limit: 10,
-      rate_limit: [allowed: 60, period: 60, partition: [fields: [:worker]]]
+      local_limit: 20,
+      rate_limit: [allowed: 120, period: 60, partition: [fields: [:worker]]]
     ]
   ],
   plugins: [

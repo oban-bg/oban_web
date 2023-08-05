@@ -4,8 +4,8 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent}
-  alias Oban.Web.Jobs.{SearchComponent, SortComponent, TableComponent}
-  alias Oban.Web.Live.{Chart, Sidebar}
+  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, SortComponent, TableComponent}
+  alias Oban.Web.Live.Chart
   alias Oban.Web.{Page, Query, Telemetry}
 
   @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
@@ -19,11 +19,8 @@ defmodule Oban.Web.JobsPage do
       <.live_component
         id="sidebar"
         conf={@conf}
-        module={Sidebar}
-        sections={~w(nodes states queues)a}
-        page={:jobs}
+        module={SidebarComponent}
         params={without_defaults(@params, @default_params)}
-        socket={@socket}
       />
 
       <div class="flex-grow">
@@ -52,7 +49,7 @@ defmodule Oban.Web.JobsPage do
                 id="search"
                 module={SearchComponent}
                 conf={@conf}
-                params={@params}
+                params={without_defaults(@params, @default_params)}
                 resolver={@resolver}
               />
               <.live_component id="sorter" module={SortComponent} params={@params} />

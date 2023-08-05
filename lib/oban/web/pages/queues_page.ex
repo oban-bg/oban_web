@@ -4,24 +4,13 @@ defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.{Met, Notifier}
-  alias Oban.Web.Live.Sidebar
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, Telemetry}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="queues-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
-      <.live_component
-        id="sidebar"
-        conf={@conf}
-        module={Sidebar}
-        sections={[:nodes]}
-        page={:queues}
-        params={without_defaults(@params, @default_params)}
-        socket={@socket}
-      />
-
+    <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detail do %>
