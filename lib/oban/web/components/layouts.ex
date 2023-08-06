@@ -3,7 +3,7 @@ defmodule Oban.Web.Layouts do
 
   import Oban.Web.Helpers
 
-  alias Oban.Web.Live.{Refresh, Shortcuts, Theme}
+  alias Oban.Web.Live.{Connectivity, Refresh, Shortcuts, Theme}
 
   @static_path Path.join(__DIR__, "../../../../priv/static")
 

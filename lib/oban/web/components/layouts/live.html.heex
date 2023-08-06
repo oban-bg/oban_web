@@ -15,6 +15,7 @@
 
     <div class="ml-auto flex items-center space-x-4">
       <.live_component module={Shortcuts} id="shortcuts" />
+      <.live_component module={Connectivity} id="connectivity" conf={@conf} />
       <.live_component module={Refresh} id="refresh" refresh={@refresh} />
       <.live_component module={Theme} id="theme" theme={@theme} />
     </div>

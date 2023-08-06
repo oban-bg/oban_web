@@ -116,7 +116,7 @@ defmodule Oban.Web.Resolver do
   This callback behaves identically to `c:format_job_args/1`, but is used for `meta`.
 
   ## Examples
-  
+
   Msk the `batch_id` for some secret batch jobs:
 
       def format_job_meta(%Oban.Job{meta: %{"batch_id" => _batch} = meta}) do

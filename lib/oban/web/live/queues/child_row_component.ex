@@ -1,8 +1,9 @@
 defmodule Oban.Web.Queues.ChildRowComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Components.Core
   import Oban.Web.Helpers.QueueHelper
+
+  alias Oban.Web.Components.Core
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
