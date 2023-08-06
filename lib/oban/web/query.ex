@@ -42,31 +42,6 @@ defmodule Oban.Web.Query do
     :scheduled_at
   ]
 
-  defmacrop json_search(column, terms) do
-    quote do
-      fragment(
-        """
-        jsonb_to_tsvector('english', ? - 'recorded', '["all"]') @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(terms)
-      )
-    end
-  end
-
-  defmacrop json_path_search(column, path, terms) do
-    quote do
-      fragment(
-        """
-        jsonb_to_tsvector('english', ? #> ?, '["all"]') @@ websearch_to_tsquery(?)
-        """,
-        unquote(column),
-        unquote(path),
-        unquote(terms)
-      )
-    end
-  end
-
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
@@ -127,7 +102,7 @@ defmodule Oban.Web.Query do
   @suggest_threshold 0.5
 
   @suggest_qualifier [
-    {"args.", "a key or value in args", "args:video"},
+    {"args.", "a key or value in args", "args.id:123"},
     {"meta.", "a key or value in meta", "meta.batch_id:123"},
     {"nodes:", "host name", "nodes:machine@somehost"},
     {"priorities:", "number from 0 to 3", "priorities:1"},
@@ -158,17 +133,17 @@ defmodule Oban.Web.Query do
 
       last ->
         case String.split(last, ":", parts: 2) do
-          ["args" <> _, _] -> []
-          ["meta" <> _, _] -> []
+          ["args." <> path, frag] -> suggest_json_vals(:args, path, frag, conf, opts)
+          ["meta." <> path, frag] -> suggest_json_vals(:meta, path, frag, conf, opts)
           ["nodes", frag] -> suggest_nodes(frag, conf, opts)
           ["queues", frag] -> suggest_queues(frag, conf, opts)
           ["priorities", frag] -> suggest_static(@suggest_priority, frag)
           ["tags", frag] -> suggest_tags(frag, conf, opts)
           ["workers", frag] -> suggest_workers(frag, conf, opts)
-          ["args." <> frag] -> suggest_json(:args, frag, conf, opts)
-          ["meta." <> frag] -> suggest_json(:meta, frag, conf, opts)
+          ["args." <> path] -> suggest_json_path(:args, path, conf, opts)
+          ["meta." <> path] -> suggest_json_path(:meta, path, conf, opts)
           [frag] -> suggest_static(@suggest_qualifier, frag)
-          _ -> @suggest_qualifier
+          _ -> []
         end
     end
   end
@@ -179,7 +154,7 @@ defmodule Oban.Web.Query do
         do: suggest
   end
 
-  defp suggest_json(field, term, conf, opts) do
+  defp suggest_json_path(field, term, conf, opts) do
     {frag, path} =
       term
       |> String.split(".")
@@ -194,6 +169,7 @@ defmodule Oban.Web.Query do
         field
         |> hint_limit_query(opts)
         |> select([j], %{keys: fragment("jsonb_object_keys(? #> ?)", field(j, ^field), ^path)})
+        |> where([j], fragment("jsonb_typeof(? #> ?) = 'object'", field(j, ^field), ^path))
       end
 
     query =
@@ -201,9 +177,42 @@ defmodule Oban.Web.Query do
       |> subquery()
       |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
 
-    case cache_query({field, path}, query, conf) do
-      [%{keys: [_ | _] = keys}] -> restrict_suggestions(keys, frag)
-      _ -> []
+    case cache_query({field, :keys, path}, query, conf) do
+      [%{keys: [_ | _] = keys}] ->
+        keys
+        |> Kernel.--(["return"])
+        |> restrict_suggestions(frag)
+
+      _ ->
+        []
+    end
+  end
+
+  defp suggest_json_vals(_field, "", _frag, _conf, _opts), do: []
+
+  defp suggest_json_vals(field, path, frag, conf, opts) do
+    path = String.split(path, ".")
+
+    subquery =
+      field
+      |> hint_limit_query(opts)
+      |> select([j], %{vals: fragment("? #> ?", field(j, ^field), ^path)})
+
+    query =
+      subquery
+      |> subquery()
+      |> select([x], %{vals: fragment("jsonb_agg(distinct ?)", x.vals)})
+      |> where([x], fragment("jsonb_typeof(?) = ANY(?)", x.vals, ~w(number string)))
+
+    case cache_query({field, :vals, path}, query, conf) do
+      [%{vals: [_ | _] = vals}] ->
+        vals
+        |> Enum.map(&to_string/1)
+        |> Enum.map(&String.slice(&1, 0..90))
+        |> restrict_suggestions(frag)
+
+      _ ->
+        []
     end
   end
 
@@ -213,6 +222,7 @@ defmodule Oban.Web.Query do
       |> hint_limit_query(opts)
       |> select([j], fragment("?[1]", j.attempted_by))
       |> distinct(true)
+      |> where([j], j.state not in ~w(available scheduled))
 
     :nodes
     |> cache_query(query, conf)
@@ -305,6 +315,8 @@ defmodule Oban.Web.Query do
   Append to the terms string without any duplication.
   """
   def append(terms, choice) do
+    choice = if String.match?(choice, ~r/[\s,]/), do: ~s("#{choice}"), else: choice
+
     if String.ends_with?(choice, [":", "."]) do
       choice
     else
@@ -477,20 +489,12 @@ defmodule Oban.Web.Query do
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
-  defp filter({:args, [parts, terms]}, condition) do
-    dynamic([j], ^condition and json_path_search(j.args, ^parts, ^terms))
+  defp filter({:args, [path, term]}, condition) do
+    dynamic([j], ^condition and fragment("? @> ?", j.args, ^gen_map(path, term)))
   end
 
-  defp filter({:args, terms}, condition) do
-    dynamic([j], ^condition and json_search(j.args, ^terms))
-  end
-
-  defp filter({:meta, [parts, terms]}, condition) do
-    dynamic([j], ^condition and json_path_search(j.meta, ^parts, ^terms))
-  end
-
-  defp filter({:meta, terms}, condition) do
-    dynamic([j], ^condition and json_search(j.meta, ^terms))
+  defp filter({:meta, [path, term]}, condition) do
+    dynamic([j], ^condition and fragment("? @> ?", j.meta, ^gen_map(path, term)))
   end
 
   defp filter({:nodes, nodes}, condition) do
@@ -518,6 +522,28 @@ defmodule Oban.Web.Query do
   end
 
   defp filter(_, condition), do: condition
+
+  defp gen_map(path, val) do
+    gen_map(path, cast_val(val), {[], %{}})
+  end
+
+  defp gen_map([], _val, {_path, acc}), do: acc
+  defp gen_map([key], val, {path, acc}), do: put_in(acc, path ++ [key], val)
+
+  defp gen_map([key | tail], val, {path, acc}) do
+    gen_map(tail, val, {path ++ [key], put_in(acc, path ++ [key], %{})})
+  end
+
+  defp cast_val(<<int, _rest::binary>> = val) when int in ?0..?9 do
+    case Integer.parse(val) do
+      {int, _xt} -> int
+      :error -> val
+    end
+  end
+
+  defp cast_val("true"), do: true
+  defp cast_val("false"), do: false
+  defp cast_val(val), do: val
 
   # Ordering Helpers
 

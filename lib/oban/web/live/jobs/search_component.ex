@@ -272,6 +272,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
       params = Map.merge(socket.assigns.params, parsed, fn _key, old, new -> old ++ new end)
       suggestions = Query.suggest("", socket.assigns.conf)
 
+      IO.inspect({parsed, params})
+
       {:noreply,
        socket
        |> assign(buffer: "", loading: false, suggestions: suggestions)

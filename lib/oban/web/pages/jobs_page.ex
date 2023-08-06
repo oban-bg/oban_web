@@ -12,6 +12,8 @@ defmodule Oban.Web.JobsPage do
 
   @flash_timing 5_000
 
+  # TODO: Force refreshing states/nodes/queues
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
