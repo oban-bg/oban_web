@@ -204,8 +204,8 @@ defmodule Oban.Web.Live.Chart do
   defp groups_for_series(:full_count), do: ~w(state queue)
   defp groups_for_series(_series), do: groups()
 
-  defp metric_label(:exec_count), do: "Executed"
-  defp metric_label(:full_count), do: "Total"
+  defp metric_label(:exec_count), do: "Executed Count"
+  defp metric_label(:full_count), do: "Full Count"
   defp metric_label(:exec_time), do: "Execution Time"
   defp metric_label(:wait_time), do: "Queue Time"
 

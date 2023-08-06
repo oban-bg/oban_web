@@ -76,7 +76,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     ~H"""
     <.link
       id={"state-#{@state.name}"}
-      navigate={filter_link(:state, @state.name, @params)}
+      patch={filter_link(:state, @state.name, @params)}
       rel="filter"
       replace={true}
       class={[
@@ -107,7 +107,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     ~H"""
     <.link
       id={"node-#{sanitize_name(@node.name)}"}
-      navigate={filter_link(:nodes, @node.name, @params)}
+      patch={filter_link(:nodes, @node.name, @params)}
       rel="filter"
       replace={true}
       class={[
@@ -136,7 +136,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     ~H"""
     <.link
       id={"queue-#{@queue.name}"}
-      navigate={filter_link(:queues, @queue.name, @params)}
+      patch={filter_link(:queues, @queue.name, @params)}
       rel="filter"
       replace={true}
       class={[
