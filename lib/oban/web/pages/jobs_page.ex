@@ -7,12 +7,11 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, SortComponent, TableComponent}
   alias Oban.Web.Live.Chart
   alias Oban.Web.{Page, Query, Telemetry}
-
-  @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
+  alias Oban.Met
 
   @flash_timing 5_000
-
-  # TODO: Force refreshing states/nodes/queues
+  @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
+  @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -20,9 +19,11 @@ defmodule Oban.Web.JobsPage do
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <.live_component
         id="sidebar"
-        conf={@conf}
         module={SidebarComponent}
+        nodes={@nodes}
         params={without_defaults(@params, @default_params)}
+        queues={@queues}
+        states={@states}
       />
 
       <div class="flex-grow">
@@ -94,12 +95,15 @@ defmodule Oban.Web.JobsPage do
     end
 
     socket
+    |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:jobs, fn -> [] end)
-    |> assign_new(:params, default)
-    |> assign_new(:default_params, default)
-    |> assign_new(:selected, &MapSet.new/0)
+    |> assign_new(:nodes, fn -> [] end)
     |> assign_new(:os_time, fn -> System.os_time(:second) end)
+    |> assign_new(:params, default)
+    |> assign_new(:queues, fn -> [] end)
+    |> assign_new(:selected, &MapSet.new/0)
+    |> assign_new(:states, fn -> [] end)
   end
 
   @impl Page
@@ -114,18 +118,21 @@ defmodule Oban.Web.JobsPage do
       |> MapSet.intersection(socket.assigns.selected)
 
     assign(socket,
-      detailed: refresh_job(socket.assigns.conf, socket.assigns.detailed),
+      detailed: Query.refresh_job(conf, socket.assigns.detailed),
       jobs: jobs,
+      nodes: nodes(conf),
+      os_time: System.os_time(:second),
+      queues: queues(conf),
       selected: selected,
-      os_time: System.os_time(:second)
+      states: states(conf)
     )
   end
 
   @impl Page
   def handle_params(%{"id" => job_id}, _uri, socket) do
-    case refresh_job(socket.assigns.conf, job_id) do
+    case Query.refresh_job(socket.assigns.conf, job_id) do
       nil ->
-        {:noreply, patch_to_jobs(socket)}
+        {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
 
       job ->
         {:noreply, assign(socket, detailed: job, page_title: page_title(job))}
@@ -142,6 +149,7 @@ defmodule Oban.Web.JobsPage do
       |> assign(detailed: nil, page_title: page_title("Jobs"))
       |> assign(params: params)
       |> assign(jobs: Query.all_jobs(params, conf, resolver: resolver))
+      |> assign(nodes: nodes(conf), queues: queues(conf), states: states(conf))
 
     {:noreply, socket}
   end
@@ -193,7 +201,7 @@ defmodule Oban.Web.JobsPage do
       Query.delete_jobs(socket.assigns.conf, [job.id])
     end)
 
-    {:noreply, patch_to_jobs(socket)}
+    {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
   end
 
   def handle_info({:retry_job, job}, socket) do
@@ -274,21 +282,7 @@ defmodule Oban.Web.JobsPage do
     {:noreply, handle_refresh(socket)}
   end
 
-  # Helpers
-
-  defp flash(socket, mode, message) do
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    put_flash(socket, mode, message)
-  end
-
-  defp hide_and_clear_selected(socket) do
-    %{jobs: jobs, selected: selected} = socket.assigns
-
-    jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
-
-    assign(socket, jobs: jobs, selected: MapSet.new())
-  end
+  # Param Helpers
 
   defp params_with_defaults(params, socket) do
     params =
@@ -299,11 +293,84 @@ defmodule Oban.Web.JobsPage do
     Map.merge(socket.assigns.default_params, params)
   end
 
-  defp patch_to_jobs(socket) do
-    push_patch(socket, to: oban_path(:jobs), replace: true)
+  # Socket Helpers
+
+  defp hide_and_clear_selected(socket) do
+    %{jobs: jobs, selected: selected} = socket.assigns
+
+    jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
+
+    assign(socket, jobs: jobs, selected: MapSet.new())
   end
 
-  defp refresh_job(conf, job_or_jid) do
-    Query.refresh_job(conf, job_or_jid)
+  defp flash(socket, mode, message) do
+    Process.send_after(self(), :clear_flash, @flash_timing)
+
+    put_flash(socket, mode, message)
   end
+
+  # Metrics Helpers
+
+  def nodes(conf) do
+    conf.name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn check, acc ->
+      node = check["node"]
+      count = length(check["running"])
+      limit = check["local_limit"] || check["limit"]
+
+      acc
+      |> Map.put_new(node, %{name: node, count: 0, limit: 0})
+      |> update_in([node, :count], &(&1 + count))
+      |> update_in([node, :limit], &(&1 + limit))
+    end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  def states(conf) do
+    counts = Met.latest(conf.name, :full_count, group: "state")
+
+    for state <- @ordered_states do
+      %{name: state, count: Map.get(counts, state, 0)}
+    end
+  end
+
+  def queues(conf) do
+    avail_counts =
+      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
+
+    execu_counts =
+      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "executing"])
+
+    conf.name
+    |> Met.checks()
+    |> Enum.reduce(%{}, fn %{"queue" => queue} = check, acc ->
+      empty = fn ->
+        %{
+          name: queue,
+          avail: Map.get(avail_counts, queue, 0),
+          execu: Map.get(execu_counts, queue, 0),
+          limit: 0,
+          paused?: false,
+          global?: false,
+          rate_limited?: false
+        }
+      end
+
+      acc
+      |> Map.put_new_lazy(queue, empty)
+      |> update_in([queue, :limit], &check_limit(&1, check))
+      |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
+      |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))
+      |> update_in([queue, :paused?], &(&1 or check["paused"]))
+    end)
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  defp check_limit(_total, %{"global_limit" => %{"allowed" => limit}}), do: limit
+  defp check_limit(total, %{"local_limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, %{"limit" => limit}) when is_integer(limit), do: total + limit
+  defp check_limit(total, _payload), do: total
 end
