@@ -11,6 +11,7 @@ const Shortcuts = {
   mounted() {
     window.addEventListener("keydown", (event) => {
       if (event.target.nodeName !== "BODY") return
+      if (event.metaKey) return
 
       const selector = PAIRS[event.key]
 
