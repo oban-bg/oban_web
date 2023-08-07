@@ -86,24 +86,36 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
       <nav
         class={[
-          "hidden absolute z-10 mt-1 p-2 w-full text-sm bg-white shadow-lg",
-          "rounded-md ring-1 ring-black ring-opacity-5"
+          "hidden absolute z-10 mt-1 w-full text-sm bg-white shadow-lg",
+          "overflow-hidden rounded-md ring-1 ring-black ring-opacity-5"
         ]}
         id="search-suggest"
         phx-click-away={JS.hide()}
       >
-        <.option
-          :for={{name, desc, exmp} <- @suggestions}
-          buff={@buffer}
-          name={name}
-          desc={desc}
-          exmp={exmp}
-        />
+        <div class="p-2">
+          <.option
+            :for={{name, desc, exmp} <- @suggestions}
+            buff={@buffer}
+            name={name}
+            desc={desc}
+            exmp={exmp}
+          />
+        </div>
 
         <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
           <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
           <span class="text-gray-700">No suggestions matching <b>"<%= @buffer %>"</b></span>
         </div>
+
+        <a
+          href="https://getoban.pro/docs/web/searching.html"
+          class="w-full flex items-center space-x-1 p-2 bg-gray-100 text-gray-500 hover:text-gray-950"
+          title="Read the filtering and searching guide"
+          target="_blank"
+        >
+          <Icons.info_circle class="w-4 h-4" />
+          <span class="text-xs">Filtering Tips</span>
+        </a>
       </nav>
     </form>
     """
@@ -120,7 +132,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
       </span>
 
       <button
-        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-300 hover:text-gray-800"
+        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-500 hover:text-gray-100"
         type="button"
         phx-click="remove-filter"
         phx-value-param={@param}
@@ -153,7 +165,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   defp option(assigns) do
     ~H"""
     <button
-      class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-600"
+      class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-500"
       phx-click={JS.push("append", value: %{choice: @name})}
       phx-target="#search"
       type="button"
