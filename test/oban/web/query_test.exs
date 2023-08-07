@@ -60,10 +60,10 @@ defmodule Oban.Web.QueryTest do
     def suggest(terms), do: Query.suggest(terms, @conf)
 
     def sorted_suggest(terms) do
-       terms
-       |> Query.suggest(@conf)
-       |> Enum.map(&elem(&1, 0))
-       |> Enum.sort()
+      terms
+      |> Query.suggest(@conf)
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.sort()
     end
 
     test "falling back to defaults without a query" do
@@ -126,7 +126,7 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{id: 1, account_id: 1})
       insert_job!(%{id: 2, account_id: 2, name: "Alpha Mode"})
       insert_job!(%{id: 3, name: "Delta Mode"})
-      
+
       assert [] = suggest("args:")
       assert [] = suggest("args.:")
       assert [] = sorted_suggest("args.missing:")

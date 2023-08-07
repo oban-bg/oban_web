@@ -2,11 +2,6 @@ defmodule Oban.Web.Live.Shortcuts do
   use Oban.Web, :live_component
 
   @impl Phoenix.LiveComponent
-  def mount(socket) do
-    {:ok, socket}
-  end
-
-  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div

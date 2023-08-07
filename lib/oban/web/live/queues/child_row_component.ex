@@ -9,22 +9,22 @@ defmodule Oban.Web.Queues.ChildRowComponent do
   def render(assigns) do
     ~H"""
     <tr
-      id={queue_id(@queue, @gossip["node"])}
+      id={queue_id(@queue, @checks["node"])}
       class="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-black dark:bg-opacity-25"
     >
-      <td rel="node" colspan="2" class="py-3 font-medium text-right"><%= node_name(@gossip) %></td>
-      <td rel="executing" class="py-3 text-right tabular"><%= length(@gossip["running"]) %></td>
-      <td rel="available" class="py-3 text-right tabular"><%= available_count(@counts) %></td>
-      <td rel="local" class="py-3 text-right tabular"><%= Map.get(@gossip, "local_limit", "-") %></td>
-      <td rel="global" class="py-3 text-right tabular"><%= global_limit_to_words([@gossip]) %></td>
-      <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@gossip]) %></td>
-      <td rel="started" class="py-3 text-right tabular"><%= started_at([@gossip]) %></td>
+      <td rel="node" colspan="2" class="py-3 font-medium text-right"><%= node_name(@checks) %></td>
+      <td rel="executing" class="py-3 text-right tabular"><%= length(@checks["running"]) %></td>
+      <td rel="available" class="py-3 text-right tabular"></td>
+      <td rel="local" class="py-3 text-right tabular"><%= Map.get(@checks, "local_limit", "-") %></td>
+      <td rel="global" class="py-3 text-right tabular"><%= global_limit_to_words([@checks]) %></td>
+      <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@checks]) %></td>
+      <td rel="started" class="py-3 text-right tabular"><%= started_at([@checks]) %></td>
       <td class="py-3 pr-3 flex justify-end">
         <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
           myself={@myself}
-          paused={@gossip["paused"]}
+          paused={@checks["paused"]}
         />
       </td>
     </tr>
@@ -35,10 +35,10 @@ defmodule Oban.Web.Queues.ChildRowComponent do
   def handle_event("toggle-pause", _params, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    gossip = socket.assigns.gossip
-    action = if gossip["paused"], do: :resume_queue, else: :pause_queue
+    checks = socket.assigns.checks
+    action = if checks["paused"], do: :resume_queue, else: :pause_queue
 
-    send(self(), {action, socket.assigns.queue, gossip["name"], gossip["node"]})
+    send(self(), {action, socket.assigns.queue, checks["name"], checks["node"]})
 
     {:noreply, socket}
   end
@@ -46,10 +46,4 @@ defmodule Oban.Web.Queues.ChildRowComponent do
   # Helpers
 
   defp queue_id(queue, node), do: ["queue-", queue, "-node-", String.replace(node, ".", "_")]
-
-  defp available_count(counts) do
-    counts
-    |> Map.get("available", 0)
-    |> integer_to_estimate()
-  end
 end

@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.Chart do
+defmodule Oban.Web.Jobs.ChartComponent do
   use Oban.Web, :live_component
 
   alias Oban.Met

@@ -4,20 +4,21 @@ defmodule Oban.Web.Queues.DetailComponent do
   import Oban.Web.Helpers.QueueHelper
 
   alias Oban.Config
+  alias Oban.Met
   alias Oban.Web.Components.Core
   alias Oban.Web.Queues.DetailInsanceComponent
 
   @impl Phoenix.LiveComponent
   def update(%{local_limit: new_limit}, socket) do
-    %{gossip: gossip, inputs: inputs} = socket.assigns
+    %{checks: checks, inputs: inputs} = socket.assigns
 
     local_limit =
       cond do
-        match?([_], gossip) ->
+        match?([_], checks) ->
           new_limit
 
-        match?([_ | _], gossip) ->
-          max(local_limit(gossip), new_limit)
+        match?([_ | _], checks) ->
+          max(local_limit(checks), new_limit)
 
         true ->
           inputs.local_limit
@@ -29,21 +30,23 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   def update(assigns, socket) do
-    counts = Enum.find(assigns.counts, %{}, &(&1["name"] == assigns.queue))
-    gossip = Enum.filter(assigns.gossip, &(&1["queue"] == assigns.queue))
+    checks = Enum.filter(assigns.checks, &(&1["queue"] == assigns.queue))
+
+    counts =
+      Met.latest(assigns.conf.name, :full_count, group: "state", filters: [queue: assigns.queue])
 
     socket =
       socket
       |> assign(access: assigns.access, conf: assigns.conf, queue: assigns.queue)
-      |> assign(counts: counts, gossip: gossip)
+      |> assign(counts: counts, checks: checks)
       |> assign_new(:inputs, fn ->
         %{
-          local_limit: local_limit(gossip),
-          global_limit: global_limit(gossip),
-          rate_limit_allowed: rate_limit_allowed(gossip),
-          rate_limit_period: rate_limit_period(gossip),
-          rate_limit_partition_fields: rate_limit_partition_fields(gossip),
-          rate_limit_partition_keys: rate_limit_partition_keys(gossip)
+          local_limit: local_limit(checks),
+          global_limit: global_limit(checks),
+          rate_limit_allowed: rate_limit_allowed(checks),
+          rate_limit_period: rate_limit_period(checks),
+          rate_limit_partition_fields: rate_limit_partition_fields(checks),
+          rate_limit_partition_keys: rate_limit_partition_keys(checks)
         }
       end)
 
@@ -79,14 +82,14 @@ defmodule Oban.Web.Queues.DetailComponent do
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
                 <Icons.clock class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span><%= started_at(@gossip) %></span>
+                <span><%= started_at(@checks) %></span>
               </div>
             </td>
 
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
                 <Icons.cog class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span><%= executing_count(@gossip) %></span>
+                <span><%= executing_count(@checks) %></span>
               </div>
             </td>
 
@@ -132,7 +135,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             <.submit_input
               locked={not can?(:scale_queues, @access)}
               disabled={
-                @inputs.local_limit == local_limit(@gossip) or not can?(:scale_queues, @access)
+                @inputs.local_limit == local_limit(@checks) or not can?(:scale_queues, @access)
               }
               label="Scale"
             />
@@ -178,7 +181,7 @@ defmodule Oban.Web.Queues.DetailComponent do
               <.submit_input
                 locked={not can?(:scale_queues, @access)}
                 disabled={
-                  @inputs.global_limit == global_limit(@gossip) or not can?(:scale_queues, @access)
+                  @inputs.global_limit == global_limit(@checks) or not can?(:scale_queues, @access)
                 }
                 label="Apply"
               />
@@ -275,7 +278,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
               <.submit_input
                 locked={not can?(:scale_queues, @access)}
-                disabled={rate_limit_unchanged?(@gossip, @inputs) or not can?(:scale_queues, @access)}
+                disabled={rate_limit_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
                 label="Apply"
               />
             </div>
@@ -326,11 +329,11 @@ defmodule Oban.Web.Queues.DetailComponent do
           </thead>
 
           <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <%= for gossip <- @gossip do %>
+            <%= for checks <- @checks do %>
               <.live_component
                 access={@access}
-                gossip={gossip}
-                id={node_name(gossip)}
+                checks={checks}
+                id={node_name(checks)}
                 module={DetailInsanceComponent}
               />
             <% end %>
@@ -538,14 +541,14 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp local_limit([]), do: 0
 
-  defp local_limit(gossip) do
-    gossip
+  defp local_limit(checks) do
+    checks
     |> Enum.map(& &1["local_limit"])
     |> Enum.max()
   end
 
-  defp global_limit(gossip) do
-    gossip
+  defp global_limit(checks) do
+    checks
     |> Enum.map(& &1["global_limit"])
     |> Enum.filter(&is_map/1)
     |> List.first()
@@ -555,43 +558,43 @@ defmodule Oban.Web.Queues.DetailComponent do
     end
   end
 
-  defp rate_limit_allowed(gossip) do
-    gossip
+  defp rate_limit_allowed(checks) do
+    checks
     |> Enum.map(& &1["rate_limit"])
     |> Enum.filter(&is_map/1)
     |> Enum.find_value(& &1["allowed"])
   end
 
-  defp rate_limit_period(gossip) do
-    gossip
+  defp rate_limit_period(checks) do
+    checks
     |> Enum.map(& &1["rate_limit"])
     |> Enum.filter(&is_map/1)
     |> Enum.find_value(& &1["period"])
   end
 
-  defp rate_limit_partition_fields(gossip) do
-    case first_rate_limit(gossip) do
+  defp rate_limit_partition_fields(checks) do
+    case first_rate_limit(checks) do
       %{"partition" => %{"fields" => [_ | _] = fields}} -> Enum.join(fields, ",")
       _ -> nil
     end
   end
 
-  defp rate_limit_partition_keys(gossip) do
-    case first_rate_limit(gossip) do
+  defp rate_limit_partition_keys(checks) do
+    case first_rate_limit(checks) do
       %{"partition" => %{"keys" => [_ | _] = keys}} -> Enum.join(keys, ",")
       _ -> nil
     end
   end
 
-  defp rate_limit_unchanged?(gossip, inputs) do
-    inputs.rate_limit_allowed == rate_limit_allowed(gossip) and
-      inputs.rate_limit_period == rate_limit_period(gossip) and
-      inputs.rate_limit_partition_fields == rate_limit_partition_fields(gossip) and
-      inputs.rate_limit_partition_keys == rate_limit_partition_keys(gossip)
+  defp rate_limit_unchanged?(checks, inputs) do
+    inputs.rate_limit_allowed == rate_limit_allowed(checks) and
+      inputs.rate_limit_period == rate_limit_period(checks) and
+      inputs.rate_limit_partition_fields == rate_limit_partition_fields(checks) and
+      inputs.rate_limit_partition_keys == rate_limit_partition_keys(checks)
   end
 
-  defp first_rate_limit(gossip) do
-    gossip
+  defp first_rate_limit(checks) do
+    checks
     |> Enum.map(& &1["rate_limit"])
     |> Enum.filter(&is_map/1)
     |> List.first()

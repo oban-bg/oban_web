@@ -3,11 +3,10 @@ defmodule Oban.Web.JobsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Jobs.{BulkActionComponent, DetailComponent, HeaderComponent}
-  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, SortComponent, TableComponent}
-  alias Oban.Web.Live.Chart
-  alias Oban.Web.{Page, Query, Telemetry}
   alias Oban.Met
+  alias Oban.Web.Jobs.{BulkActionComponent, ChartComponent, DetailComponent, HeaderComponent}
+  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, SortComponent, TableComponent}
+  alias Oban.Web.{Page, Query, Telemetry}
 
   @flash_timing 5_000
   @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
@@ -41,7 +40,7 @@ defmodule Oban.Web.JobsPage do
             <.live_component
               id="chart"
               conf={@conf}
-              module={Chart}
+              module={ChartComponent}
               params={@params}
               os_time={@os_time}
             />

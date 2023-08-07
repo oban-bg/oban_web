@@ -38,33 +38,33 @@ defmodule Oban.Web.Queues.GroupRowComponent do
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= nodes_count(@gossip) %>
+        <%= nodes_count(@checks) %>
       </td>
       <td rel="executing" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= executing_count(@gossip) %>
+        <%= executing_count(@checks) %>
       </td>
       <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= available_count(@counts) %>
+        <%= integer_to_estimate(@counts) %>
       </td>
       <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= local_limit(@gossip) %>
+        <%= local_limit(@checks) %>
       </td>
       <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= global_limit_to_words(@gossip) %>
+        <%= global_limit_to_words(@checks) %>
       </td>
       <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= rate_limit_to_words(@gossip) %>
+        <%= rate_limit_to_words(@checks) %>
       </td>
       <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= started_at(@gossip) %>
+        <%= started_at(@checks) %>
       </td>
 
       <td class="py-3 pr-3 flex justify-end">
         <button
           rel="toggle-pause"
-          class={"block #{pause_color(@gossip)} hover:text-blue-500"}
+          class={"block #{pause_color(@checks)} hover:text-blue-500"}
           disabled={not can?(:pause_queues, @access)}
-          data-title={pause_title(@gossip)}
+          data-title={pause_title(@checks)}
           id={"#{@queue}-toggle-pause"}
           type="button"
           phx-click="toggle-pause"
@@ -72,7 +72,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           phx-throttle="2000"
           phx-hook="Tippy"
         >
-          <%= if any_paused?(@gossip) do %>
+          <%= if any_paused?(@checks) do %>
             <Icons.play_circle class="w-5 h-5" />
           <% else %>
             <Icons.pause_circle class="w-5 h-5" />
@@ -87,7 +87,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   def handle_event("toggle-pause", _params, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    action = if any_paused?(socket.assigns.gossip), do: :resume_queue, else: :pause_queue
+    action = if any_paused?(socket.assigns.checks), do: :resume_queue, else: :pause_queue
 
     send(self(), {action, socket.assigns.queue})
 
@@ -102,32 +102,26 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
   # Helpers
 
-  defp pause_color(gossip) do
+  defp pause_color(checks) do
     cond do
-      Enum.all?(gossip, & &1["paused"]) -> "text-red-500"
-      Enum.any?(gossip, & &1["paused"]) -> "text-yellow-400"
+      Enum.all?(checks, & &1["paused"]) -> "text-red-500"
+      Enum.any?(checks, & &1["paused"]) -> "text-yellow-400"
       true -> "text-gray-600 dark:text-gray-400"
     end
   end
 
-  defp pause_title(gossip) do
+  defp pause_title(checks) do
     cond do
-      Enum.all?(gossip, & &1["paused"]) -> "Resume all instances"
-      Enum.any?(gossip, & &1["paused"]) -> "Resume paused instances"
+      Enum.all?(checks, & &1["paused"]) -> "Resume all instances"
+      Enum.any?(checks, & &1["paused"]) -> "Resume paused instances"
       true -> "Pause all instances"
     end
   end
 
-  defp nodes_count(gossip), do: length(gossip)
+  defp nodes_count(checks), do: length(checks)
 
-  defp available_count(counts) do
-    counts
-    |> Map.get("available", 0)
-    |> integer_to_estimate()
-  end
-
-  defp local_limit(gossip) do
-    gossip
+  defp local_limit(checks) do
+    checks
     |> Enum.map(& &1["local_limit"])
     |> Enum.min_max()
     |> case do
@@ -136,5 +130,5 @@ defmodule Oban.Web.Queues.GroupRowComponent do
     end
   end
 
-  defp any_paused?(gossip), do: Enum.any?(gossip, & &1["paused"])
+  defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
 end

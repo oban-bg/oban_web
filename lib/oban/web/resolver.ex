@@ -77,12 +77,7 @@ defmodule Oban.Web.Resolver do
 
   @type access :: :all | :read_only | [access_option()]
 
-  @type access_option ::
-          {:pause_queues, boolean()}
-          | {:scale_queues, boolean()}
-          | {:cancel_jobs, boolean()}
-          | {:delete_jobs, boolean()}
-          | {:retry_jobs, boolean()}
+  @type access_option :: :pause_queues | :scale_queues | :cancel_jobs | :delete_jobs | :retry_jobs
 
   @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
