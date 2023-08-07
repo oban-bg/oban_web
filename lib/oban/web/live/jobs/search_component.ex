@@ -14,7 +14,10 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    suggestions = Query.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
+    suggestions =
+      Map.get_lazy(assigns, :suggestions, fn ->
+        Query.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
+      end)
 
     socket =
       socket
@@ -100,11 +103,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
             desc={desc}
             exmp={exmp}
           />
-        </div>
 
-        <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
-          <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
-          <span class="text-gray-700">No suggestions matching <b>"<%= @buffer %>"</b></span>
+          <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
+            <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
+            <span class="text-gray-700">No suggestions matching <b>"<%= @buffer %>"</b></span>
+          </div>
         </div>
 
         <a
