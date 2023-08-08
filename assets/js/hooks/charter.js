@@ -122,6 +122,8 @@ const BASIC_OPTS = {
   animation: false,
   maintainAspectRatio: false,
   normalized: true,
+  responsive: true,
+  resizeDelay: 100,
   interaction: {
     mode: "index",
     intersect: false,
@@ -244,7 +246,8 @@ const Charter = {
 
         return {
           backgroundColor: color,
-          barThickness: 9,
+          barPercentage: 1.0,
+          barThickness: "flex",
           borderColor: color,
           data: data.reverse(),
           label: label,

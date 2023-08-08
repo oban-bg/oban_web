@@ -107,8 +107,8 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       rel="filter"
       replace={true}
       class={[
-        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-400",
-        if(@active?, do: "border-violet-500 hover:border-violet-500")
+        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-200",
+        if(@active?, do: "border-violet-500 hover:border-violet-500 focus:border-violet-500")
       ]}
     >
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate">
@@ -136,8 +136,8 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       rel="filter"
       replace={true}
       class={[
-        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-400",
-        if(@active?, do: "border-violet-500 hover:border-violet-500")
+        "flex justify-between py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-200",
+        if(@active?, do: "border-violet-500 hover:border-violet-500 focus:border-violet-500")
       ]}
     >
       <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate #{if @queue.paused?, do: "line-through font-light"}"}>

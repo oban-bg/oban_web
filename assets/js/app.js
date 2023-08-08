@@ -5,7 +5,7 @@ import topbar from "topbar"
 
 import { loadAll } from "./lib/settings"
 
-import Charter from "./hooks/chart"
+import Charter from "./hooks/charter"
 import Completer from "./hooks/completer"
 import Refresher from "./hooks/refresher"
 import Relativize from "./hooks/relativize"

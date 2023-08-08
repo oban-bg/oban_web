@@ -26,6 +26,15 @@ defmodule Oban.Web.JobsPage do
       />
 
       <div class="flex-grow">
+        <.live_component
+          :if={is_nil(@detailed)}
+          id="chart"
+          conf={@conf}
+          module={ChartComponent}
+          params={@params}
+          os_time={@os_time}
+        />
+
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg">
           <%= if @detailed do %>
             <.live_component
@@ -37,14 +46,6 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <.live_component
-              id="chart"
-              conf={@conf}
-              module={ChartComponent}
-              params={@params}
-              os_time={@os_time}
-            />
-
             <div class="flex items-start justify-between space-x-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
               <.live_component
                 id="header"

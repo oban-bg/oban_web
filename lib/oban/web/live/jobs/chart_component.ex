@@ -13,7 +13,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       |> assign_new(:ntile, fn -> List.first(ntiles()) end)
       |> assign_new(:period, fn -> List.first(periods()) end)
       |> assign_new(:series, fn -> List.first(series()) end)
-      |> assign(last_os_time: 0, max_cols: 100, visible: true)
+      |> assign(last_os_time: 0, max_cols: 100, max_data: 7, visible: true)
 
     {:ok, socket}
   end
@@ -43,7 +43,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     ~H"""
     <div class="bg-white dark:bg-gray-900 rounded-md shadow-md w-full mb-3">
       <div class="flex items-center justify-between p-3">
-        <div class="flex items-center text-gray-900 dark:text-gray-200">
+        <div id="chart-h" class="flex items-center text-gray-900 dark:text-gray-200">
           <button
             id="chart-toggle"
             data-title="Toggle charts"
@@ -115,7 +115,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
         </div>
       </div>
 
-      <div id="chart" class="cursor-crosshair pl-5 pr-3" style="height: 200px">
+      <div id="chart" class="w-full relative cursor-crosshair pl-5 pr-3" style="height: 200px;">
         <canvas id="chart-canvas" phx-update="ignore" phx-hook="Charter"></canvas>
       </div>
     </div>
@@ -141,7 +141,14 @@ defmodule Oban.Web.Jobs.ChartComponent do
     assigns.conf.name
     |> Met.timeslice(assigns.series, opts)
     |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
+    |> top_n(assigns.max_data)
     |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, os_time)} end)
+  end
+
+  defp top_n(points, limit) do
+    points
+    |> Enum.sort_by(fn {_key, data} -> Enum.reduce(data, 0, &(elem(&1, 1) + &2)) end, :desc)
+    |> Enum.take(limit)
   end
 
   defp interpolate(slices, cols, time) do
@@ -212,7 +219,6 @@ defmodule Oban.Web.Jobs.ChartComponent do
   def ntiles, do: ~w(max p99 p95 p75 p50)
   def periods, do: ~w(1s 5s 10s 30s 1m 2m)
   def series, do: ~w(exec_count full_count exec_time wait_time)a
-  def states, do: ~w(completed cancelled retryable scheduled discarded available executing)
 
   defp groups_for_series(:full_count), do: ~w(state queue)
   defp groups_for_series(_series), do: groups()
