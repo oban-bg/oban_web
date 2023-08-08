@@ -43,7 +43,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     ~H"""
     <div class="bg-white dark:bg-gray-900 rounded-md shadow-md w-full mb-3">
       <div class="flex items-center justify-between p-3">
-        <h3 class="flex items-center text-gray-900 dark:text-gray-200 text-base font-semibold">
+        <div class="flex items-center text-gray-900 dark:text-gray-200">
           <button
             id="chart-toggle"
             data-title="Toggle charts"
@@ -52,11 +52,24 @@ defmodule Oban.Web.Jobs.ChartComponent do
           >
             <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
           </button>
-          <%= metric_label(@series) %>
+
+          <h3 class="text-base font-semibold">
+            <%= metric_label(@series) %>
+          </h3>
+
           <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
             (<%= @period %> by <%= String.capitalize(@group) %>)
           </span>
-        </h3>
+
+          <span
+            :if={@params |> params_to_filters() |> Enum.any?()}
+            id="chart-filtered-alert"
+            class="w-3 h-3 ml-1 bg-violet-300 rounded-full"
+            data-title={"Filtered by #{params_to_filters_list(@params)}"}
+            phx-hook="Tippy"
+          >
+          </span>
+        </div>
 
         <div id="chart-c" class="flex space-x-2">
           <Core.dropdown_button
@@ -222,14 +235,24 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp period_to_step("1m"), do: 60
   defp period_to_step("2m"), do: 120
 
+  @filterable_params ~w(nodes queues workers)a
+
   defp params_to_filters(params) do
-    for {key, vals} <- params, key in ~w(nodes queues workers)a do
+    for {key, vals} <- params, key in @filterable_params do
       case key do
         :nodes -> {:node, vals}
         :queues -> {:queue, vals}
         :workers -> {:worker, vals}
       end
     end
+  end
+
+  defp params_to_filters_list(params) do
+    params
+    |> Map.take(@filterable_params)
+    |> Map.keys()
+    |> Enum.sort()
+    |> Enum.join(", ")
   end
 
   # JS Commands
