@@ -41,7 +41,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     >
       <div
         id="search-wrapper"
-        class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300"
+        class="w-full flex items-center space-x-1.5 rounded-md shadow-inner ring-1 ring-inset ring-gray-300 dark:ring-gray-700"
       >
         <div class="ml-1.5 flex-none">
           <%= if @loading do %>
@@ -89,7 +89,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
       <nav
         class={[
-          "hidden absolute z-10 mt-1 w-full text-sm bg-white shadow-lg",
+          "hidden absolute z-10 mt-1 w-full text-sm shadow-lg",
+          "bg-white dark:bg-gray-800 focus:outline-none",
           "overflow-hidden rounded-md ring-1 ring-black ring-opacity-5"
         ]}
         id="search-suggest"
@@ -112,7 +113,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
         <a
           href="https://getoban.pro/docs/web/searching.html"
-          class="w-full flex items-center space-x-1 p-2 bg-gray-100 text-gray-500 hover:text-gray-950"
+          class="w-full flex items-center space-x-1 p-2 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-gray-100"
           title="Read the filtering and searching guide"
           target="_blank"
         >
@@ -130,12 +131,12 @@ defmodule Oban.Web.Jobs.SearchComponent do
   defp filter(assigns) do
     ~H"""
     <div class="my-1.5 flex items-center text-sm font-medium" id={"search-filter-#{@param}"}>
-      <span class="pl-1.5 pr-0.5 py-1 text-gray-700 bg-violet-100 rounded-s-md whitespace-nowrap">
+      <span class="pl-1.5 pr-0.5 py-1 text-gray-700 dark:text-violet-950 bg-violet-100 dark:bg-violet-300 rounded-s-md whitespace-nowrap">
         <%= format_filter(@param, @terms) %>
       </span>
 
       <button
-        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 hover:bg-violet-500 hover:text-gray-100"
+        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 dark:bg-violet-300 hover:bg-violet-500 dark:hover:bg-violet-500 hover:text-gray-100"
         type="button"
         phx-click="remove-filter"
         phx-value-param={@param}
@@ -173,11 +174,15 @@ defmodule Oban.Web.Jobs.SearchComponent do
       phx-target="#search"
       type="button"
     >
-      <span class="block px-1 py-0.5 font-medium rounded-sm bg-gray-100">
+      <span class="block px-1 py-0.5 font-medium rounded-md bg-gray-100 dark:bg-gray-900">
         <%= highlight(@name, @buff) %>
       </span>
-      <span class="block ml-2 text-gray-600 group-hover:text-white"><%= @desc %></span>
-      <span class="block ml-auto text-right text-gray-400 group-hover:text-white"><%= @exmp %></span>
+      <span class="block ml-2 text-gray-600 dark:text-gray-300 group-hover:text-white">
+        <%= @desc %>
+      </span>
+      <span class="block ml-auto text-right text-gray-400 dark:text-gray-500 group-hover:text-white">
+        <%= @exmp %>
+      </span>
     </button>
     """
   end
@@ -206,18 +211,22 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def show_focus do
-    "ring-gray-300"
-    |> JS.remove_class(to: "#search-wrapper")
-    |> JS.add_class("shadow-blue-100 ring-blue-500 bg-blue-100/30", to: "#search-wrapper")
+    %JS{}
+    |> JS.remove_class("ring-gray-300 dark:ring-gray-700", to: "#search-wrapper")
+    |> JS.add_class("shadow-blue-100 dark:shadow-blue-950", to: "#search-wrapper")
+    |> JS.add_class("ring-blue-500 dark:ring-blue-700", to: "#search-wrapper")
+    |> JS.add_class("bg-blue-100/30 dark:bg-blue-900/30", to: "#search-wrapper")
     |> JS.show(to: "#search-suggest")
   end
 
   # Closing the suggest menu is done with push events to allow clicking on a suggestion to fire
   # before the menu closes.
   def hide_focus do
-    "shadow-blue-100 ring-blue-500 bg-blue-100/30"
-    |> JS.remove_class(to: "#search-wrapper")
-    |> JS.add_class("ring-gray-300", to: "#search-wrapper")
+    %JS{}
+    |> JS.add_class("ring-gray-300 dark:ring-gray-700", to: "#search-wrapper")
+    |> JS.remove_class("shadow-blue-100 dark:shadow-blue-950", to: "#search-wrapper")
+    |> JS.remove_class("ring-blue-500 dark:ring-blue-700", to: "#search-wrapper")
+    |> JS.remove_class("bg-blue-100/30 dark:bg-blue-900/30", to: "#search-wrapper")
   end
 
   # Events

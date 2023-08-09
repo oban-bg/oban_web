@@ -77,8 +77,8 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       replace={true}
       class={[
         "flex justify-between py-2 my-0.5 rounded-md border-l-4 border-transparent",
-        "hover:bg-gray-100 dark:hover:bg-violet-700",
-        if(@active?, do: "bg-white hover:bg-white dark:bg-violet-800 dark:hover:bg-violet-800")
+        "hover:bg-gray-100 dark:hover:bg-gray-800",
+        if(@active?, do: "bg-white hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-800")
       ]}
     >
       <span class={[

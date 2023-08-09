@@ -8,7 +8,9 @@ defmodule Oban.Web.Jobs.SortComponent do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        class="w-full flex justify-left items-center cursor-pointer rounded-md bg-white py-2.5 px-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-blue-500"
+        class="w-full flex justify-left items-center cursor-pointer rounded-md bg-white
+        dark:bg-gray-900 py-2.5 px-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800
+        dark:hover:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:outline-none focus:ring-blue-500"
         data-title="Change sort order"
         id="sort-menu-button"
         phx-click={JS.toggle(to: "#sort-menu")}
@@ -24,7 +26,7 @@ defmodule Oban.Web.Jobs.SortComponent do
       </button>
 
       <nav
-        class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+        class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
         id="sort-menu"
         role="listbox"
         tabindex="-1"
@@ -35,7 +37,7 @@ defmodule Oban.Web.Jobs.SortComponent do
           selected={@params.sort_by}
           value={value}
         />
-        <hr class="w-full border-0 border-b my-2" />
+        <hr class="w-full border-0 border-b border-gray-200 dark:border-gray-700 my-2" />
         <.option
           :for={value <- ~w(asc desc)}
           link={oban_path(:jobs, Map.put(@params, :sort_dir, value))}

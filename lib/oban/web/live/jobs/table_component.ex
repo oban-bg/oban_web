@@ -86,7 +86,7 @@ defmodule Oban.Web.Jobs.TableComponent do
           <%= @job.worker %>
         </.link>
 
-        <span class="tabular text-xs text-gray-600" rel="attempts">
+        <span class="tabular text-xs text-gray-600 dark:text-gray-300" rel="attempts">
           <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
         </span>
         <samp class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400" rel="args">
@@ -95,17 +95,17 @@ defmodule Oban.Web.Jobs.TableComponent do
       </div>
 
       <div class="ml-auto py-3 pr-3 flex items-center space-x-2">
+        <p class="py-1.5 px-2 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
+          <%= @job.queue %>
+        </p>
+
         <Icons.state_orphaned
           :if={orphaned?(@job, @nodes)}
-          class="h-4 w-4 text-gray-500"
+          class="h-4 w-4 text-gray-500 dark:text-gray-300"
           id={"job-status-#{assigns.job.id}"}
           phx-hook="Tippy"
           data-title="Orphaned, host node shut down"
         />
-
-        <p class="p-1 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
-          <%= @job.queue %>
-        </p>
 
         <div
           class="w-16 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
@@ -193,7 +193,7 @@ defmodule Oban.Web.Jobs.TableComponent do
     if MapSet.member?(selected, job.id) do
       "bg-blue-50 dark:bg-blue-950"
     else
-      "hover:bg-gray-50 dark:hover:bg-gray-950"
+      "hover:bg-gray-50 dark:hover:bg-gray-950/30"
     end
   end
 

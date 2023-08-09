@@ -8,7 +8,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
     ~H"""
     <tr
       id={"queue-#{@queue}"}
-      class="bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-300 dark:hover:bg-opacity-25"
+      class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-950/30"
     >
       <td class="pl-3 py-3 text-gray-700 dark:text-gray-300 flex items-center space-x-2">
         <button
