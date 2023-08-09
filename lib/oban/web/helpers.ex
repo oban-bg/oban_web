@@ -22,7 +22,10 @@ defmodule Oban.Web.Helpers do
   end
 
   def oban_path(route, params) do
-    params = Query.encode_params(params)
+    params =
+      params
+      |> Enum.sort()
+      |> Query.encode_params()
 
     case Process.get(:routing) do
       {socket, prefix} ->

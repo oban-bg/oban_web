@@ -63,7 +63,7 @@ defmodule Oban.Web.Query do
   Prepare parsed params for URI encoding.
   """
   def encode_params(params) do
-    for {key, val} <- params, val != nil, val != "", into: %{} do
+    for {key, val} <- params, val != nil, val != "" do
       case val do
         [path, frag] when is_list(path) ->
           {key, Enum.join(path, ",") <> "++" <> frag}

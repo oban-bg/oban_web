@@ -151,7 +151,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
         assert_patch(
           live,
-          jobs_path(state: "available", limit: 20, sort_by: mode, sort_dir: "asc")
+          jobs_path(limit: 20, sort_by: mode, sort_dir: "asc", state: "available")
         )
       end
     end
@@ -234,7 +234,12 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   end
 
   defp jobs_path(params) do
-    "/oban/jobs?#{URI.encode_query(params)}"
+    query =
+      params
+      |> Enum.sort()
+      |> URI.encode_query()
+
+    "/oban/jobs?#{query}"
   end
 
   defp refresh(live) do
