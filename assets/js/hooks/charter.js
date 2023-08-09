@@ -47,22 +47,28 @@ const STATE_PALETTE = {
 }
 
 const estimateCount = function (value) {
+  let powr
+  let suff
+
   if (value < 1000) {
     return value
+  } else if (value < 10_000) {
+    powr = 2
+    suff = "k"
+  } else if (value < 1_000_000) {
+    powr = 3
+    suff = "k"
+  } else if (value < 1_000_000_000) {
+    powr = 6
+    suff = "m"
   } else {
-    const log = Math.max(Math.floor(Math.log10(value)), 5)
-    const mult = Math.pow(10, log - 2)
-    const base = Math.floor(value / mult)
-    const part = Math.round((value % mult) / Math.pow(10, log - 3))
-
-    if (part === 0) {
-      return `${base}k`
-    } else if (part === 10) {
-      return `${base + 1}k`
-    } else {
-      return `${base}.${part}k`
-    }
+    powr = 9
+    suff = "b"
   }
+
+  const base = Math.round(value / Math.pow(10, powr))
+
+  return `${base}${suff}`
 }
 
 const estimateNanos = function (value) {
@@ -154,7 +160,7 @@ const BASIC_OPTS = {
           if (type === "line") {
             return `${label}: ${estimateNanos(value)}`
           } else {
-            return `${label}: ${value}`
+            return `${label}: ${estimateCount(value)}`
           }
         },
       },

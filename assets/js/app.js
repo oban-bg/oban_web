@@ -45,7 +45,7 @@ const livePath = document.querySelector("meta[name='live-path']").getAttribute("
 const liveSocket = new LiveSocket(livePath, Socket, {
   transport: liveTran === "longpoll" ? LongPoll : WebSocket,
   params: { _csrf_token: csrfToken, init_state: loadAll() },
-  hooks: hooks
+  hooks: hooks,
 })
 
 liveSocket.connect()

@@ -22,18 +22,19 @@ function toWords(timestamp) {
   const ellapsed = Date.now() - timestamp
   const relative = Math.floor(Math.abs(ellapsed) / 1000)
 
+  if (relative === 0) return "now"
+
   let distance = ""
 
-  if (relative === 0) return "now"
-  else if (relative <= 59) distance = `${relative}s`
+  if (relative <= 59) distance = `${relative}s`
   else if (relative <= 3_599) distance = `${Math.floor(relative / 60)}m`
   else if (relative <= 86_399) distance = `${Math.floor(relative / 3_600)}h`
   else if (relative <= 2_591_999) distance = `${Math.floor(relative / 86_400)}d`
   else if (relative <= 31_535_999) distance = `${Math.floor(relative / 2_592_000)}mo`
   else distance = `${Math.floor(relative / 31_536_000)}yr`
 
-  if (ellapsed < 0) return `${distance} ago`
-  if (ellapsed > 0) return `in ${distance}`
+  if (ellapsed > 0) return `${distance} ago`
+  if (ellapsed < 0) return `in ${distance}`
 
   return distance
 }

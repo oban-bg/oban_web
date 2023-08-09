@@ -19,10 +19,10 @@ const Completer = {
       }
     })
 
-    this.handleEvent("completed", ({buffer}) => {
+    this.handleEvent("completed", ({ buffer }) => {
       input.value = buffer
     })
-  }
+  },
 }
 
 export default Completer
