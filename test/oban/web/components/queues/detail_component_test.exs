@@ -12,6 +12,8 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   setup do
     Process.put(:routing, :nowhere)
 
+    start_supervised_oban!()
+
     :ok
   end
 
@@ -28,13 +30,13 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   end
 
   test "listing all queue instances" do
-    gossip = [
+    checks = [
       build_gossip(queue: @queue, node: "web.1", name: "Oban"),
       build_gossip(queue: @queue, node: "web.1", name: "Private"),
       build_gossip(queue: @queue, node: "web.2", name: "Oban")
     ]
 
-    html = render_component(Component, assigns(gossip: gossip), router: Router)
+    html = render_component(Component, assigns(checks: checks), router: Router)
 
     assert html =~ "web.1/oban"
     assert html =~ "web.1/private"
@@ -59,7 +61,7 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   defp assigns(opts) do
     [access: :all, conf: Config.new(repo: Repo), id: :detail, queue: @queue]
     |> Keyword.put(:counts, [counts()])
-    |> Keyword.put(:gossip, [build_gossip(queue: @queue)])
+    |> Keyword.put(:checks, [build_gossip(queue: @queue)])
     |> Keyword.merge(opts)
   end
 

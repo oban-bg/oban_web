@@ -30,7 +30,7 @@ defmodule Oban.Web.TelemetryTest do
 
   describe "attach_default_logger/1" do
     test "logging metadata with measurements" do
-      :ok = Telemetry.attach_default_logger(:warn)
+      :ok = Telemetry.attach_default_logger(:warning)
 
       logged =
         capture_log(fn ->
@@ -50,7 +50,7 @@ defmodule Oban.Web.TelemetryTest do
     end
 
     test "disabling encoding on the default logger" do
-      :ok = Telemetry.attach_default_logger(encode: false, level: :warn)
+      :ok = Telemetry.attach_default_logger(encode: false, level: :warning)
 
       logged =
         capture_log(fn ->
@@ -66,7 +66,7 @@ defmodule Oban.Web.TelemetryTest do
     end
 
     test "logging exceptions safely" do
-      :ok = Telemetry.attach_default_logger(:warn)
+      :ok = Telemetry.attach_default_logger(:warning)
 
       logged =
         capture_log(fn ->

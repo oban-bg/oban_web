@@ -6,6 +6,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   setup do
     start_supervised_oban!()
 
+    Job.states()
+
     {:ok, live, _html} = live(build_conn(), "/oban")
 
     {:ok, live: live}
@@ -49,16 +51,16 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       insert_job!([ref: 3], queue: "alpha", worker: GammaWorker, attempted_by: web_1)
 
       click_state(live, "available")
-      click_node(live, "web-2_oban")
-      assert_patch(live, jobs_path(nodes: "web-2/oban", state: "available"))
+      click_node(live, "web-2")
+      assert_patch(live, jobs_path(nodes: "web-2", state: "available"))
 
       refute has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
       refute has_job?(live, "GammaWorker")
 
-      click_node(live, "web-1_oban")
+      click_node(live, "web-1")
 
-      assert_patch(live, jobs_path(nodes: "web-1/oban,web-2/oban", state: "available"))
+      assert_patch(live, jobs_path(nodes: "web-1,web-2", state: "available"))
 
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
@@ -69,8 +71,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       gossip(node: "web-1", queue: "alpha")
 
       click_state(live, "executing")
-      click_node(live, "web-1_oban")
-      assert_patch(live, jobs_path(nodes: "web-1/oban"))
+      click_node(live, "web-1")
+      assert_patch(live, jobs_path(nodes: "web-1"))
 
       click_state(live, "available")
       assert_patch(live, jobs_path(state: "available"))
@@ -99,7 +101,36 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_job?(live, "GammaWorker")
 
       click_queue(live, "alpha")
-      assert_patch(live, jobs_path(queues: "alpha,delta", state: "available"))
+      assert_patch(live, jobs_path(state: "available", queues: "alpha,delta"))
+
+      assert has_job?(live, "AlphaWorker")
+      assert has_job?(live, "DeltaWorker")
+      refute has_job?(live, "GammaWorker")
+    end
+
+    test "filtering through the autocomplete toolbar", %{live: live} do
+      gossip(node: "web-1", queue: "alpha")
+      gossip(node: "web-1", queue: "delta")
+      gossip(node: "web-1", queue: "gamma")
+
+      changesets = [
+        Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
+        Job.new(%{ref: 2}, queue: "delta", worker: DeltaWorker),
+        Job.new(%{ref: 3}, queue: "gamma", worker: GammaWorker)
+      ]
+
+      Oban.insert_all(changesets)
+
+      flush_reporter()
+
+      click_state(live, "available")
+
+      live
+      |> form("#search")
+      |> tap(&render_change(&1, %{terms: "queues:alpha,delta"}))
+      |> tap(&render_submit(&1, %{}))
+
+      assert_patch(live, jobs_path(state: "available", queues: "alpha,delta"))
 
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
@@ -120,7 +151,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
         assert_patch(
           live,
-          jobs_path(limit: 20, sort_by: mode, sort_dir: "asc", state: "available")
+          jobs_path(state: "available", limit: 20, sort_by: mode, sort_dir: "asc")
         )
       end
     end
