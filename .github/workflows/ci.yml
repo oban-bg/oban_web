@@ -12,13 +12,13 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: '1.12'
-              otp: '23.3'
+              elixir: '1.13'
+              otp: '24.3'
               postgres: '12.13-alpine'
           - pair:
-              elixir: '1.14'
-              otp: '25.1'
-              postgres: '15.1-alpine'
+              elixir: '1.15'
+              otp: '26.0'
+              postgres: '15.3-alpine'
             lint: lint
 
     runs-on: ubuntu-20.04
