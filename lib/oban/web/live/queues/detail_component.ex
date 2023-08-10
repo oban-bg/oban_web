@@ -346,7 +346,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Handlers
 
-  @integer_inputs ~w(local_limit global_limit_allowed rate_limit_allowed rate_limit_period)
+  @integer_inputs ~w(local_limit global_limit rate_limit_allowed rate_limit_period)
 
   @impl Phoenix.LiveComponent
   def handle_event("form-change", %{"_target" => "rate_limit_partition_fields"} = params, socket) do
