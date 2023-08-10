@@ -1,3 +1,5 @@
+import { load, store } from "../lib/settings"
+
 import {
   BarController,
   BarElement,
@@ -44,6 +46,16 @@ const STATE_PALETTE = {
   executing: ORANGE,
   retryable: YELLOW,
   scheduled: EMERALD,
+}
+
+const STORABLE = ["group", "ntile", "period", "series", "visible"]
+
+const storeChanges = (changes) => {
+  for (const [key, val] of Object.entries(changes)) {
+    if (STORABLE.includes(key) && val !== undefined) {
+      store(`chart-${key}`, val)
+    }
+  }
 }
 
 const estimateCount = function (value) {
@@ -236,7 +248,11 @@ const Charter = {
   mounted() {
     let chart = null
 
-    this.handleEvent("chart-change", ({ group, points, series }) => {
+    this.handleEvent("chart-change", (changes) => {
+      const { group, points, series } = changes
+
+      storeChanges(changes)
+
       const [type, opts] = /_count/.test(series) ? ["bar", STACK_OPTS] : ["line", LINES_OPTS]
       const plugins = type === "line" ? [liner] : []
 

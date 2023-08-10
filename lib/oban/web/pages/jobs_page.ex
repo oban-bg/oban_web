@@ -30,9 +30,10 @@ defmodule Oban.Web.JobsPage do
           :if={is_nil(@detailed)}
           id="chart"
           conf={@conf}
+          init_state={@init_state}
           module={ChartComponent}
-          params={@params}
           os_time={@os_time}
+          params={@params}
         />
 
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg">

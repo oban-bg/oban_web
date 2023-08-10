@@ -7,24 +7,24 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    socket =
-      socket
-      |> assign_new(:group, fn -> List.first(groups()) end)
-      |> assign_new(:ntile, fn -> List.first(ntiles()) end)
-      |> assign_new(:period, fn -> List.first(periods()) end)
-      |> assign_new(:series, fn -> List.first(series()) end)
-      |> assign(last_os_time: 0, max_cols: 100, max_data: 7, visible: true)
-
-    {:ok, socket}
+    {:ok, assign(socket, last_os_time: 0, max_cols: 100, max_data: 7)}
   end
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     socket =
+      socket
+      |> assign(conf: assigns.conf, params: assigns.params)
+      |> assign_new(:group, fn -> init_lazy(:group, assigns, hd(groups())) end)
+      |> assign_new(:ntile, fn -> init_lazy(:ntile, assigns, hd(ntiles())) end)
+      |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods())) end)
+      |> assign_new(:series, fn -> init_lazy(:series, assigns, hd(series())) end)
+      |> assign_new(:visible, fn -> init_lazy(:visible, assigns, true) end)
+
+    socket =
       if socket.assigns.visible do
         step = period_to_step(socket.assigns.period)
         os_time = Timing.snap(assigns.os_time, step)
-        socket = assign(socket, conf: assigns.conf, params: assigns.params)
         points = points(os_time, socket.assigns)
         update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
 
@@ -36,6 +36,10 @@ defmodule Oban.Web.Jobs.ChartComponent do
       end
 
     {:ok, socket}
+  end
+
+  defp init_lazy(key, %{init_state: init_state}, default) do
+    Map.get(init_state, "oban:chart-#{key}", default)
   end
 
   @impl Phoenix.LiveComponent
@@ -50,7 +54,10 @@ defmodule Oban.Web.Jobs.ChartComponent do
             phx-click={toggle_chart(@myself)}
             phx-hook="Tippy"
           >
-            <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
+            <Icons.chevron_right class={[
+              "w-5 h-5 mr-2 transition-transform",
+              if(@visible, do: "rotate-90")
+            ]} />
           </button>
 
           <h3 class="text-base font-semibold">
@@ -73,49 +80,56 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
         <div id="chart-c" class="flex space-x-2">
           <Core.dropdown_button
+            disabled={not @visible}
             name="series"
-            title="Change metric series"
-            selected={@series}
             options={series()}
+            selected={@series}
             target={@myself}
+            title="Change metric series"
           >
             <Icons.chart_bar_square />
           </Core.dropdown_button>
 
           <Core.dropdown_button
+            disabled={not @visible}
             name="period"
-            title="Change slice period"
-            selected={@period}
             options={periods()}
+            selected={@period}
             target={@myself}
+            title="Change slice period"
           >
             <Icons.clock />
           </Core.dropdown_button>
 
           <Core.dropdown_button
+            disabled={not @visible}
             name="group"
-            title="Change metric grouping"
-            selected={@group}
             options={groups_for_series(@series)}
+            selected={@group}
             target={@myself}
+            title="Change metric grouping"
           >
             <Icons.rectangle_group />
           </Core.dropdown_button>
 
           <Core.dropdown_button
+            disabled={not @visible or @series in ~w(exec_count full_count)}
             name="ntile"
-            disabled={@series in ~w(exec_count full_count)a}
-            title="Change percentile"
-            selected={@ntile}
             options={ntiles()}
+            selected={@ntile}
             target={@myself}
+            title="Change percentile"
           >
             <Icons.percent_square />
           </Core.dropdown_button>
         </div>
       </div>
 
-      <div id="chart" class="w-full relative cursor-crosshair pl-5 pr-3" style="height: 200px;">
+      <div
+        id="chart"
+        class={["w-full relative cursor-crosshair pl-5 pr-3", unless(@visible, do: "hidden")]}
+        style="height: 200px;"
+      >
         <canvas id="chart-canvas" phx-update="ignore" phx-hook="Charter"></canvas>
       </div>
     </div>
@@ -139,7 +153,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     ]
 
     assigns.conf.name
-    |> Met.timeslice(assigns.series, opts)
+    |> Met.timeslice(String.to_existing_atom(assigns.series), opts)
     |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
     |> top_n(assigns.max_data)
     |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, os_time)} end)
@@ -181,13 +195,13 @@ defmodule Oban.Web.Jobs.ChartComponent do
     assigns =
       cond do
         series == "full_count" and socket.assigns.group in ~w(node worker) ->
-          [ntile: "max", group: "state", series: :full_count]
+          [ntile: "max", group: "state", series: "full_count"]
 
         series in ~w(exec_time wait_time) ->
-          [ntile: "p95", series: String.to_existing_atom(series)]
+          [ntile: "p95", series: series]
 
         true ->
-          [ntile: "max", series: String.to_existing_atom(series)]
+          [ntile: "max", series: series]
       end
 
     {:noreply, push_change(socket, assigns)}
@@ -196,7 +210,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
   def handle_event("toggle-visible", _params, socket) do
     socket =
       if socket.assigns.visible do
-        assign(socket, visible: false)
+        push_change(socket, visible: false)
       else
         push_change(socket, visible: true)
       end
@@ -208,7 +222,15 @@ defmodule Oban.Web.Jobs.ChartComponent do
     os_time = socket.assigns.last_os_time
     socket = assign(socket, change)
     points = points(os_time, Map.put(socket.assigns, :last_os_time, 0))
-    update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
+
+    update = %{
+      group: socket.assigns.group,
+      ntile: socket.assigns.ntile,
+      period: socket.assigns.period,
+      points: points,
+      series: socket.assigns.series,
+      visible: socket.assigns.visible
+    }
 
     push_event(socket, "chart-change", update)
   end
@@ -218,15 +240,15 @@ defmodule Oban.Web.Jobs.ChartComponent do
   def groups, do: ~w(state queue node worker)
   def ntiles, do: ~w(max p99 p95 p75 p50)
   def periods, do: ~w(1s 5s 10s 30s 1m 2m)
-  def series, do: ~w(exec_count full_count exec_time wait_time)a
+  def series, do: ~w(exec_count full_count exec_time wait_time)
 
-  defp groups_for_series(:full_count), do: ~w(state queue)
+  defp groups_for_series("full_count"), do: ~w(state queue)
   defp groups_for_series(_series), do: groups()
 
-  defp metric_label(:exec_count), do: "Executed Count"
-  defp metric_label(:full_count), do: "Full Count"
-  defp metric_label(:exec_time), do: "Execution Time"
-  defp metric_label(:wait_time), do: "Queue Time"
+  defp metric_label("exec_count"), do: "Executed Count"
+  defp metric_label("full_count"), do: "Full Count"
+  defp metric_label("exec_time"), do: "Execution Time"
+  defp metric_label("wait_time"), do: "Queue Time"
 
   defp ntile_to_float("max"), do: 1.0
   defp ntile_to_float("p99"), do: 0.99

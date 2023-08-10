@@ -16,14 +16,14 @@ defmodule Oban.Web.DashboardLive do
 
     Process.put(:routing, {socket, prefix})
 
-    refresh = restore(socket, "refresh", refresh)
-    theme = restore(socket, "theme", "system")
+    refresh = restore_state(socket, "refresh", refresh)
+    theme = restore_state(socket, "theme", "system")
 
     socket =
       socket
-      |> assign(conf: conf, params: params, page: page, resolver: resolver)
+      |> assign(conf: conf, params: params, page: page, init_state: init_state(socket))
       |> assign(live_path: live_path, live_transport: live_transport)
-      |> assign(csp_nonces: csp_nonces, access: access, user: user)
+      |> assign(access: access, csp_nonces: csp_nonces, resolver: resolver, user: user)
       |> assign(original_refresh: nil, refresh: refresh, timer: nil, theme: theme)
       |> init_schedule_refresh()
       |> page.comp.handle_mount()
@@ -31,14 +31,17 @@ defmodule Oban.Web.DashboardLive do
     {:ok, socket}
   end
 
-  defp restore(socket, key, default) do
+  defp init_state(socket) do
     case get_connect_params(socket) do
-      %{"init_state" => state} ->
-        Map.get(state, "oban:" <> key, default)
-
-      _ ->
-        default
+      %{"init_state" => state} -> state
+      _ -> %{}
     end
+  end
+
+  defp restore_state(socket, key, default) do
+    socket
+    |> init_state()
+    |> Map.get("oban:" <> key, default)
   end
 
   @impl Phoenix.LiveView
