@@ -397,7 +397,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
         send(self(), {:scale_queue, socket.assigns.queue, global_limit: %{allowed: limit}})
 
-        %{socket.assigns.inputs | global_limit: %{allowed: limit}}
+        %{socket.assigns.inputs | global_limit: limit}
       end
 
     {:noreply, assign(socket, inputs: inputs)}
