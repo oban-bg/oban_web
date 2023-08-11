@@ -112,7 +112,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
         </div>
 
         <a
-          href="https://getoban.pro/docs/web/searching.html"
+          href="https://getoban.pro/docs/web/filtering.html"
           class="w-full flex items-center space-x-1 p-2 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-gray-100"
           title="Read the filtering and searching guide"
           target="_blank"
