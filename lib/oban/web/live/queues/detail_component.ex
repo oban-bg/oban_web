@@ -387,11 +387,18 @@ defmodule Oban.Web.Queues.DetailComponent do
   def handle_event("global-update", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    limit = String.to_integer(params["global_limit"])
+    inputs =
+      if is_nil(params["global_limit"]) do
+        send(self(), {:scale_queue, socket.assigns.queue, global_limit: nil})
 
-    send(self(), {:scale_queue, socket.assigns.queue, global_limit: %{allowed: limit}})
+        %{socket.assigns.inputs | global_limit: nil}
+      else
+        limit = String.to_integer(params["global_limit"])
 
-    inputs = %{socket.assigns.inputs | global_limit: limit}
+        send(self(), {:scale_queue, socket.assigns.queue, global_limit: %{allowed: limit}})
+
+        %{socket.assigns.inputs | global_limit: %{allowed: limit}}
+      end
 
     {:noreply, assign(socket, inputs: inputs)}
   end
