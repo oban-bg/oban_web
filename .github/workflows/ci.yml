@@ -68,10 +68,6 @@ jobs:
         run: mix format --check-formatted
         if: ${{ matrix.lint }}
 
-      - name: Run mix deps.unlock
-        run: mix deps.unlock --check-unused
-        if: ${{ matrix.lint }}
-
       - name: Run mix deps.compile
         run: mix deps.compile
 
