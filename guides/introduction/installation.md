@@ -88,6 +88,15 @@ limits and functionality.
 Installation is complete and you're all set! Start your Phoenix server, point your browser to
 where you mounted Oban and start monitoring your jobs.
 
+## Next Steps (Optional)
+
+* Configure the dashboard connection or mount additional dashboards with the `Oban.Web.Router`
+
+* Configure dashboard behavior with access controls, query limits, and formtting with
+  `Oban.Web.Resolver`
+
+* Attach logging and hook into telemetry events with `Oban.Web.Telemetry`
+
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
 [ba]: https://hexdocs.pm/basic_auth/readme.html

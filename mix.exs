@@ -125,7 +125,6 @@ defmodule Oban.Web.MixProject do
       "guides/introduction/overview.md",
       "guides/introduction/installation.md",
       "guides/advanced/searching.md",
-      "guides/advanced/telemetry.md",
       "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
     ]
   end
