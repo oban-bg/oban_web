@@ -42,7 +42,7 @@ Now that you're authenticated you're ready to add `oban_web` as a dependency for
 Open `mix.exs` and add the following line:
 
 ```elixir
-{:oban_web, "~> 2.9", repo: "oban"}
+{:oban_web, "~> 2.10", repo: "oban"}
 ```
 
 Now fetch your dependencies:
@@ -77,6 +77,15 @@ Here we're using `"/oban"` as the mount point, but it can be anywhere you like. 
 
 After you've verified that the dashboard is loading you'll probably want to restrict access to the
 dashboard via authentication, e.g. with [Basic Auth][ba].
+
+#### Usage in Worker Only Nodes
+
+To receive metrics from non-web nodes in a system with separate "web" and "worker" applications
+you must explicitly include `oban_met` as a dependency for "workers".
+
+```elixir
+{:oban_met, "~> 0.1", repo: :oban}
+```
 
 ## Customization
 
