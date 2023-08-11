@@ -122,21 +122,18 @@ defmodule Oban.Web.MixProject do
 
   defp extras do
     [
+      "guides/introduction/overview.md",
       "guides/introduction/installation.md",
-      "guides/configuration/mounting.md",
       "guides/advanced/searching.md",
       "guides/advanced/telemetry.md",
-      "CHANGELOG.md": [filename: "changelog", title: "Changelog"],
-      "guides/introduction/overview.md": [title: "Overview"]
+      "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
     ]
   end
 
   defp groups_for_extras do
     [
       Introduction: ~r/guides\/introduction\/.?/,
-      Configuration: ~r/guides\/configuration\/.?/,
-      Advanced: ~r/guides\/advanced\/.?/,
-      Deployment: ~r/guides\/deployment\/.?/
+      Advanced: ~r/guides\/advanced\/.?/
     ]
   end
 end

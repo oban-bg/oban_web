@@ -1,9 +1,8 @@
-# Oban Web Overview
+# Overview
 
-[🧭 Oban.Web][gpr] is a view of Oban's inner workings that you host directly
-within your Phoenix application. Powered by Phoenix Live View, it is extremely
-lightweight and fully realtime. It builds on features provided by
-[Oban.Pro][pro] and is available [through a paid license][pri].
+[🧭 Oban.Web][gpr] is a view of Oban's inner workings that you host directly within your Phoenix
+application. Powered by Phoenix Live View, it is extremely lightweight and fully realtime. It
+builds on features provided by [Oban.Pro][pro] and is available [through a paid license][pri].
 
 Get started with [installation](installation.html).
 
