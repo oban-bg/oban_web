@@ -114,7 +114,7 @@ defmodule Oban.Web.DashboardLive do
         handle_info({:update_refresh, original}, socket)
 
       true ->
-        {:noreply, socket}
+        handle_info({:update_refresh, 1}, socket)
     end
   end
 
