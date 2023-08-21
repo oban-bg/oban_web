@@ -27,3 +27,6 @@ assets/node_modules
 
 # Ignore compiled css/js
 priv/static/*
+
+# Temporary release notes
+NOTES.md

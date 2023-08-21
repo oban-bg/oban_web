@@ -70,7 +70,7 @@ applications.
   ...
   ```
 
-- The `Oban.Plugins.Gossip` plugin is no longer necessary and you should remove from your
+- The `Oban.Plugins.Gossip` plugin is no longer necessary and you should remove it from your
   plugins:
 
   ```diff
