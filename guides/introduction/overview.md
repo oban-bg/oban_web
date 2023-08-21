@@ -17,10 +17,6 @@ storage and filterable by node, queue, state, and worker.
 
 Monitor background job activity across all of your nodes in real time.
 
-### ⌨️ Composable Filtering
-
-Sift through jobs instantly with any combination of queue, state, node, worker and other metadata.
-
 ### 🔬 Detailed Inspection
 
 View job details including when, where and how it was ran (or how it failed to run).
@@ -35,19 +31,19 @@ Scale, pause, resume and stop queues across all running nodes with a couple of c
 
 ## Learn More
 
-### 🔍 [Powerful Filtering](filtering.html)
+### [🔍 Powerful Filtering](filtering.html)
 
 Intelligently filter jobs, with auto-completed suggestions across all fields.
 
-### ♊ [Multiple Dashboards](Oban.Web.Router.html)
+### [♊ Multiple Dashboards](Oban.Web.Router.html)
 
 Mount multiple dashboards with isolated controls and configure exotic connections.
 
-### 🔒 [Access Control](Oban.Web.Resolver.html)
+### [🔒 Access Control](Oban.Web.Resolver.html)
 
 Allow admins to control queues and interract with jobs while restricting other users to read-only
 use of the dashboard.
 
-### 🎬 [Action Logging](Oban.Web.Telemetry.html)
+### [🎬 Action Logging](Oban.Web.Telemetry.html)
 
 Use telemetry events to instrument and report all of a user's dashboard activity.

@@ -1,77 +1,166 @@
-# Changelog for Oban Web v2.9
+# Changelog for Oban Web v2.10
 
 All notable changes to `Oban.Web` are documented here.
 
-## Encrypted, Structured, and Recorded Support
+## 📊 Charts
 
-Jobs that use `Oban.Pro.Worker` features like encryption, recording, and
-enforced structure now display an indicator on the details page. What's more,
-recorded jobs display the job's return value directly in the details page.
+Charts for realtime metrics are enabled out of the box without any external dependencies. Charts
+are helpful for monitoring health and troubleshooting from within Oban Web because not all apps
+can, or will, run an extra timeseries or metrics database. And, because they're displayed
+alongside the original jobs, you can identify outliers in aggregate and then drill into individual
+jobs.
 
-## v2.9.4 — 2022-08-10
+#### Highlights
 
-### Bug Fixes
+* Select between execution counts, full counts, execution time, and wait time
+* Aggregate time series by state, node, worker, or queue label
+* Rollup metrics by time from 1s to 2m, spanning 90s to 3h of historic data
+* Measure execution and wait times across percentiles, from 100th down to 50th at standard
+  intervals
 
-- [Queues Page] Correctly display the current global limit in expanded queues.
+## 🔍 Filtering
 
-- [Queues Page] Correctly parse and format rate limits that use the new unix
-  timestamp format.
+Filtering is entirely overhauled with a new auto-complete interface, new qualifier syntax, and
+vastly more performant queries. Full text searching with unindexable operators such as `ilike` and
+`tsvector` was removed in favor of highly optimized exact-match queries. With the new query
+syntax all searching is faster, and searching nested `args` is over 100x faster thanks to index
+usage.
 
-## v2.9.3 — 2022-07-26
+One additional performance improvement for large `oban_jobs` tables is threshold querying. In
+order to minimize load on the application's database, only the most recent 100k jobs
+(approximately) are filtered. The 100k limit can be disabled or configured for each state, i.e. you
+could restrict filtering `completed` jobs but access the full history of `cancelled` jobs.
 
-Most fixes in this release are targeted at the recent Oban Pro v0.12 release.
-_Users on earler versions of Pro, or without Pro, don't need to upgrade._
+#### Highlights
 
-### Bug Fixes
+* Filter by args, meta, node, priority, queue, tags, and worker
+* Typeahead with keyboard shortcuts for focusing, selecting, and completing suggestions
+* Highly optimized suggestion queries across a configurable number of recent jobs
+* Locally cached for immediate feedback and minimal load on your application database
+* Auto-completion of nested `args` and `meta` keys and values at any depth 
 
-- [Jobs Sidebar] Correctly display global symbol and current limit
+## ⏱️  Metrics
 
-- [Queues Page] Correctly display the current global limit
+The foundation of charts, filtering, optimized counts, and realtime monitoring is the new
+`Oban.Met` package. It introduces a distributed time-series data store and replaces both
+`Oban.Plugins.Gossip` and `Oban.Web.Plugins.Stats` with zero-config implementations that are much
+more efficient.
 
-- [Queues Page] Prevent displaying negative rate limits
+#### Highlights
 
-  Gaps between execution that exceed the configured period, within one or more
-  partitions, could result in an incorrect, negative rate limit.
+* Telemetry powered execution tracking for time-series data that is replicated between nodes,
+  filterable by label, arbitrarily mergeable over windows of time, and compacted for longer
+  playback.
+* Centralized counting across queues and states with exponential backoff to minimize load and
+  data replication between nodes.
+* Ephemeral data storage via data replication with handoff between nodes. All nodes have a shared
+  view of the cluster's data and new nodes are caught up when they come online.
 
-## v2.9.2 — 2022-06-27
+In the future `Oban.Met` modules will be public, documented, and available for use from your own
+applications.
 
-### Bug Fixes
+## ❤️‍🩹 Deprecations
 
-- [Jobs Detail] Correct duration formatting for milliseconds
+- The `Oban.Web.Plugins.Stats` plugin is no longer necessary and you can remove it from
+  your plugins:
 
-  Negative numbers displayed with much larger values than they should have
-  because they lacked an `abs` call. In addition, the lack of padding caused 5ms
-  to look like 500ms.
+  ```diff
+  plugins: [
+  - Oban.Web.Plugins.Stats,
+  ...
+  ```
 
-- [Resolver] Loosen resolver check to avoid compliation issues
+- The `Oban.Plugins.Gossip` plugin is no longer necessary and you should remove from your
+  plugins:
 
-  The interplay of router compilation and code reloading could cause "invalid
-  :resolver" errors during recompliation during development.
+  ```diff
+  plugins: [
+  - Oban.Plugins.Gossip,
+  ...
+  ```
 
-## v2.9.1 — 2022-03-03
+## v2.10.0-rc.0 — 2023-08-14
 
-### Bug Fixes
+### Changes
 
-- [Jobs Page] Display correct global count in the sidebar. Now, global queues
-  will show a single global value rather than global * nodes.
+- Require a minimum of Elixir v1.13 for compatibility with features required by `oban_met`
 
-## v2.9.0 — 2022-02-13
+- Require a minimum of Phoenix v1.7 to support verified routes.
+
+- Require a minimum of Phoenix LiveView v0.19 for various features and bug fixes.
 
 ### Enhancements
 
-- [Jobs Page] Switch to a more intuitive default sort mode for all states. Now,
-  only `available`, `scheduled`, and `retryable` jobs are sorted in ascending
-  order by default.
+#### Navigation
 
-- [Job Details] The errors list in job details provides an absolute timestamp on
-  hover, along with the relative timestamp that's always shown. The errors list
-  got some additional formatting love to improve readability.
+- [PubSub] Indicate when PubSub isn't connected or receiving notifications with a warning and
+  explanation
+
+- [Refresh] Persist refresh selection between sessions and resume the most recent value after
+  pausing on window blur
+
+- [Themes] Support selecting light, dark, or system theme via a dropdown menu
+
+- [Shortcuts] Introduce keyboard shortcuts modal that's accessible by pressing `?`
+
+- [Shortcuts] Add shortcuts to toggle refreshing, cycle themes, focus search, and navigate between
+  pages
+
+#### Charts
+
+- Display canvas based charts for exec count, full count, exec time, and queue time
+
+- Restore chart options on page reload, including whether it's collapsed
+
+- Indicate which filters are applied when charts are filtered
+
+- Limit plotting large series, e.g. `queues` or `workers` to the 7 highest activity
+  series. Without limitation charts are slow and unreadable.
+
+- Estimate counts and times to a fixed size with a unit suffix
+
+#### Jobs Page
+
+- Restrict filtering and searching to a configurable maximum number of jobs. The default is
+  100k, which can be disabled or customized with a resolver callback.
+
+- Calculate all relative timestamps on the client to minimize updates over the wire
+
+- Reimplement jobs list view with simpler components without per-column sorting for better
+  performance.
+
+- Use a dropdown menu for job sorting to more clearly indicate which field is used for
+  sorting and the sort direction.
+
+- Orphans, jobs stuck in an executing state, are now marked with an status indicator
+
+#### Sidebar
+
+- Elevate "States" to the top of the sidebar and visually clarify that they're for navigation
+  while "Nodes" and "Queues" are filters.
+
+- Always display a standard toggle icon rather than showing one on hover
+
+- Use counts reported by `oban_met`. Counts are only reported by a single node and larger
+  queue/state combinations are counted with exponential backoff.
+
+- Removed from the queues page to maximize table space
+
+- Reduce param tracking and Use `patch` rather than `navigate` on links for filter changes without
+  a full update
+
+#### Resolver
+
+- Add `jobs_query_limit/1` callback to control the maximum number of jobs to query when filtering,
+  searching, or generally listing jobs
+
+- Add `hint_query_limit/1` callback to control the number of recent jobs to search for
+  auto-complete hints.
 
 ### Bug Fixes
 
-- [Job Details] Restore missing color to the timeline component for `retryable`
-  or `scheduled` states
+- [Queues] Correctly handle toggling global limits on and off
 
-For changes prior to `2.9` see the Oban [2.10][prev] docs.
+- [Queues] Track global limit changes on edit without requiring increment or decrement
 
-[prev]: https://hexdocs.pm/oban/2.10.1/changelog.html
+- [Web] Prevent lingering tooltips by by destroying instances on unmount

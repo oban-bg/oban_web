@@ -7,7 +7,7 @@ and always indexable.
 
 > ### Query Limits {: .info}
 >
-> To minimize load only the **most recent 100k jobs** are searched (approximately, across all
+> To minimize load, only the **most recent 100k jobs** are searched (approximately, across all
 > states). Use the `c:Oban.Web.Resolver.jobs_query_limit/1` callback to configure a different
 > general or per state limit, or disable limiting entirely.
 

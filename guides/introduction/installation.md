@@ -12,11 +12,6 @@ asset pipeline at all.
 2. Ensure [Phoenix Live View][plv] is installed and working in your application. If you don't have
    Live View, follow [these instructions][lvi] to get started.
 
-3. Ensure you're running Erlang/OTP v23.3.4.5, v24.0.4, or later. Older Erlang/OTP versions have
-   an expired CA root certificate that doesn't work with Let's Encrypt certificates.
-
-4. Ensure you're running `hex` v1.0.0 or later, via `mix local.hex --force`
-
 ## Authentication
 
 Before you can pull the package into your application you need to add a new `oban` hex repo.
@@ -78,6 +73,25 @@ Here we're using `"/oban"` as the mount point, but it can be anywhere you like. 
 After you've verified that the dashboard is loading you'll probably want to restrict access to the
 dashboard via authentication, e.g. with [Basic Auth][ba].
 
+#### Switch to the PG Notifier
+
+PubSub notifications are essential to Web's operation. Oban uses a Postgres based notifier for
+PubSub by default. That notifier is convenient when getting started, but it has a hard restriction
+on payload size.
+
+To get the most out of Web's metrics, you should switch to the PG (Process Groups) based notifier
+built on Distributed Erlang.
+
+```elixir
+config :my_app, Oban,
+  notifier: Oban.Notifiers.PG,
+  repo: MyApp.Repo,
+  ...
+```
+
+The PG notifier **requires that your app is clustered** together. Otherwise, notifications are
+local to the current node.
+
 #### Usage in Worker Only Nodes
 
 To receive metrics from non-web nodes in a system with separate "web" and "worker" applications
@@ -97,7 +111,7 @@ limits and functionality.
 Installation is complete and you're all set! Start your Phoenix server, point your browser to
 where you mounted Oban and start monitoring your jobs.
 
-## Next Steps (Optional)
+## Next Steps
 
 * Configure the dashboard connection or mount additional dashboards with the `Oban.Web.Router`
 
