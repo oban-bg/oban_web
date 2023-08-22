@@ -79,13 +79,13 @@ jobs:
         run: mix credo --strict
         if: ${{ matrix.lint }}
 
+      - name: Seed fake assets
+        run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
+
       - name: Run mix ecto.migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
         run: mix test.setup
-
-      - name: Seed fake assets
-        run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
 
       - name: Run mix test
         env:
