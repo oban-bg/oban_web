@@ -7,19 +7,19 @@ defmodule Oban.Web.Layouts do
 
   @static_path Application.app_dir(:oban_web, ["priv", "static"])
 
-  def render(filename) do
-    path = Path.join(@static_path, filename)
+  @external_resource Path.join(@static_path, "app.css")
+  @external_resource Path.join(@static_path, "app.js")
 
-    case File.read(path) do
-      {:ok, data} ->
-        data
+  @css @static_path
+       |> Path.join("app.css")
+       |> File.read!()
 
-      {:error, reason} ->
-        IO.warn("Unable to load #{filename}: #{reason}")
+  @js @static_path
+      |> Path.join("app.js")
+      |> File.read!()
 
-        ""
-    end
-  end
+  def render("app.css"), do: @css
+  def render("app.js"), do: @js
 
   embed_templates "layouts/*"
 
