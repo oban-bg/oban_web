@@ -79,7 +79,15 @@ applications.
   ...
   ```
 
-## v2.10.0-rc.0 — 2023-08-14
+## v2.10.0-rc.1 — 2023-08-22
+
+### Bug Fixes
+
+- [Assets] Correctly resolve assets directory across all build environments.
+
+  A change to loading assets dynamically at runtime broke path resolution in release builds.
+
+## v2.10.0-rc.0 — 2023-08-21
 
 ### Changes
 
