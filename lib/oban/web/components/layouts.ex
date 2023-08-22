@@ -5,7 +5,7 @@ defmodule Oban.Web.Layouts do
 
   alias Oban.Web.Live.{Connectivity, Refresh, Shortcuts, Theme}
 
-  @static_path Path.join(__DIR__, "../../../../priv/static")
+  @static_path Application.app_dir(:oban_web, ["priv", "static"])
 
   def render(filename) do
     path = Path.join(@static_path, filename)
