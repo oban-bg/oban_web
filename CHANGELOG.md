@@ -79,6 +79,13 @@ applications.
   ...
   ```
 
+## v2.10.0-rc.2 — 2023-08-22
+
+Let's try this one more time...
+
+- [Assets] Inline assets and track them as external resources rather than loading on them at
+  runtime.
+
 ## v2.10.0-rc.1 — 2023-08-22
 
 ### Bug Fixes
