@@ -3,6 +3,11 @@ defmodule Oban.Web.DashboardTest do
 
   import Phoenix.LiveViewTest
 
+  test "forbidding mount using a resolver callback" do
+    assert {:error, {:redirect, redirect}} = live(build_conn(), "/oban-limited")
+    assert %{to: "/", flash: %{"error" => "Access forbidden"}} = redirect
+  end
+
   test "waiting for oban config while mounting during a restart" do
     task =
       Task.async(fn ->

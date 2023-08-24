@@ -222,6 +222,7 @@ defmodule Oban.Web.Router do
     ]
 
     session_opts = [
+      on_mount: Oban.Web.Authentication,
       session: {__MODULE__, :__session__, session_args},
       root_layout: {Oban.Web.Layouts, :root}
     ]

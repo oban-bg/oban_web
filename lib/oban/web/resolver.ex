@@ -55,27 +55,28 @@ defmodule Oban.Web.Resolver do
   Details about each callback's functionality can be found in the callback docs. Here's a quick
   summary of each callback and its purpose:
 
-  * [Current User](c:resolve_user/1)—Extract the current user for access controls when the
+  * [Current User](#c:resolve_user/1)—Extract the current user for access controls when the
   dashboard mounts.
 
-  * [Action Controls](c:resolve_access/1)—Restrict which operations users may perform.
+  * [Action Controls](#c:resolve_access/1)—Restrict which operations users may perform or forbid
+  access to the dashboard.
 
-  * [Jobs Query Limit](c:jobs_query_limit/1)—Control the maximum number of jobs to query when
+  * [Jobs Query Limit](#c:jobs_query_limit/1)—Control the maximum number of jobs to query when
   filtering, searching, and otherwise listing jobs.
 
-  * [Hint Query Limit](c:hint_query_limit/1)—Control the maximum number of jobs to search for
+  * [Hint Query Limit](#c:hint_query_limit/1)—Control the maximum number of jobs to search for
   auto-complete hints.
 
-  * [Format Job Args](c:format_job_args/1)—Override the default verbose args formatting.
+  * [Format Job Args](#c:format_job_args/1)—Override the default verbose args formatting.
 
-  * [Format Job Meta](c:format_meta_args/1)—Override the default verbose meta formatting.
+  * [Format Job Meta](#c:format_meta_args/1)—Override the default verbose meta formatting.
 
-  * [Default Refresh](c:resolve_refresh/1)—Set the default refresh interval for new sessions.
+  * [Default Refresh](#c:resolve_refresh/1)—Set the default refresh interval for new sessions.
   """
 
   alias Oban.Job
 
-  @type access :: :all | :read_only | [access_option()]
+  @type access :: :all | :read_only | [access_option()] | {:forbidden, Path.t()} 
 
   @type access_option :: :pause_queues | :scale_queues | :cancel_jobs | :delete_jobs | :retry_jobs
 
@@ -148,12 +149,15 @@ defmodule Oban.Web.Resolver do
   @doc """
   Determine the appropriate access level for a user.
 
-  During normal operation users can modify running queues and interact with jobs
-  through the dashboard. In some situations actions such as pausing a queue may be
-  undesired, or even dangerous for operations.
+  During normal operation users can modify running queues and interact with jobs through the
+  dashboard. In some situations actions such as pausing a queue may be undesired, or even
+  dangerous for operations.
 
   Through this callback you can tailor precisely which actions the current user can do. The
   default access level is `:all`, which permits _all_ users to do any action.
+
+  Returning `{:forbidden, path}` prevents loading the dashboard entirely and redirects the user to
+  the provided path.
 
   The available fine grained access controls are:
 
@@ -170,6 +174,12 @@ defmodule Oban.Web.Resolver do
   To set the dashboard read only and prevent users from performing any actions at all:
 
       def resolve_access(_user), do: :read_only
+
+  Forbid any user that isn't an admin and redirect them to the root:
+
+      def resolve_access(user) do
+        if user.admin?, do: :all, else: {:forbidden, "/"}
+      end
 
   Alternatively, you can use the resolved `user` to allow admins write access and keep all other
   users read only:

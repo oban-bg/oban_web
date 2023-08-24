@@ -25,13 +25,14 @@ defmodule Oban.Web.Telemetry do
   | `:stop`      | `:duration`    | `:action, :config, :user`                             |
   | `:exception` | `:duration`    | `:action, :config, :user, :kind, :error, :stacktrace` |
 
-  For `:exception` events the metadata includes details about what caused the
-  failure. The `:kind` value is determined by how an error occurred.
+  For `:exception` events the metadata includes details about what caused the failure. The `:kind`
+  value is determined by how an error occurred.
 
   This chart breaks down the possible actions and their specific metadata:
 
   | action          | metadata           |
   | --------------- | ------------------ |
+  | `:mount`        |                    |
   | `:pause_queue`  | `:queue`           |
   | `:resume_queue` | `:queue`           |
   | `:scale_queue`  | `:queue`, `:limit` |
@@ -141,11 +142,7 @@ defmodule Oban.Web.Telemetry do
       |> Map.put(:user, socket.assigns.user)
       |> Map.put(:config, socket.assigns.conf)
 
-    :telemetry.span([:oban_web, :action], meta, fn ->
-      fun.()
-
-      {:ok, meta}
-    end)
+    :telemetry.span([:oban_web, :action], meta, fn -> {fun.(), meta} end)
   end
 
   @doc false

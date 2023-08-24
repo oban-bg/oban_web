@@ -71,7 +71,8 @@ Here we're using `"/oban"` as the mount point, but it can be anywhere you like. 
 `Oban.Web.Router` docs for additional options.
 
 After you've verified that the dashboard is loading you'll probably want to restrict access to the
-dashboard via authentication, e.g. with [Basic Auth][ba].
+dashboard via authentication, either with a [custom resolver's][ac] access controls or [Basic
+Auth][ba].
 
 #### Switch to the PG Notifier
 
@@ -122,6 +123,7 @@ where you mounted Oban and start monitoring your jobs.
 
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
+[ac]: Oban.Web.Resolver.html#c:resolve_access/1
 [ba]: https://hexdocs.pm/basic_auth/readme.html
 [oi]: installation.html
 [do]: https://getoban.pro/docs/pro/docker.html

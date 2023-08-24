@@ -21,6 +21,17 @@ defmodule Oban.Web.ErrorHTML do
   end
 end
 
+defmodule ForbiddenResolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl Oban.Web.Resolver
+  def resolve_user(_conn), do: %{id: 0}
+
+  @impl Oban.Web.Resolver
+  def resolve_access(%{id: 0}), do: {:forbidden, "/"}
+  def resolve_access(_user), do: :all
+end
+
 defmodule Oban.Web.Test.Router do
   use Phoenix.Router
 
@@ -28,12 +39,14 @@ defmodule Oban.Web.Test.Router do
 
   pipeline :browser do
     plug :fetch_session
+    plug :fetch_flash
   end
 
   scope "/", ThisWontBeUsed, as: :this_wont_be_used do
     pipe_through :browser
 
     oban_dashboard "/oban"
+    oban_dashboard "/oban-limited", as: :oban_limited_dashboard, resolver: ForbiddenResolver
     oban_dashboard "/oban-private", as: :oban_private_dashboard, oban_name: ObanPrivate
   end
 end
