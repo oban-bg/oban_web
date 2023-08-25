@@ -72,11 +72,38 @@ defmodule Oban.Web.Resolver do
   * [Format Job Meta](#c:format_meta_args/1)—Override the default verbose meta formatting.
 
   * [Default Refresh](#c:resolve_refresh/1)—Set the default refresh interval for new sessions.
+
+  ## Authentication
+
+  By combining `c:resolver_user/1` and `c:resolve_access/1` callbacks it's possible to build an
+  authenticaiton solution around the dashboard. For example, this resolver extracts the
+  `current_user` from the conn's assigns map and then scopes their access based on role. If it is
+  a standard user or `nil` then they're redirected to `/login` when the dashboard mounts.
+
+  ```elixir
+  defmodule MyApp.Resolver do
+    @behaviour Oban.Web.Resolver
+
+    @impl true
+    def resolve_user(conn) do
+      conn.assigns.current_user
+    end
+
+    @impl true
+    def resolve_access(user) do
+      case user do
+        %{admin?: true} -> :all
+        %{staff?: true} -> :read_only
+        _ -> {:forbidden, "/login"}
+      end
+    end
+  end
+  ```
   """
 
   alias Oban.Job
 
-  @type access :: :all | :read_only | [access_option()] | {:forbidden, Path.t()} 
+  @type access :: :all | :read_only | [access_option()] | {:forbidden, Path.t()}
 
   @type access_option :: :pause_queues | :scale_queues | :cancel_jobs | :delete_jobs | :retry_jobs
 
@@ -137,10 +164,10 @@ defmodule Oban.Web.Resolver do
 
   ## Examples
 
-  Extract the user from the `private` map in a typical plug based auth setup:
+  Extract the user from the `assigns` map in a typical plug based auth setup:
 
       def resolve_user(conn) do
-        conn.private.current_user
+        conn.assigns.current_user
       end
 
   """
