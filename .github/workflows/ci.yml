@@ -61,6 +61,9 @@ jobs:
           OBAN_API_KEY: ${{secrets.oban_api_key}}
         run: mix hex.repo add oban https://getoban.pro/repo --fetch-public-key $OBAN_KEY_SHA --auth-key $OBAN_API_KEY
 
+      - name: Seed fake assets
+        run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
+
       - name: Run mix deps.get
         run: mix deps.get
 
@@ -78,9 +81,6 @@ jobs:
       - name: Run credo
         run: mix credo --strict
         if: ${{ matrix.lint }}
-
-      - name: Seed fake assets
-        run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
 
       - name: Run mix ecto.migrate
         env:
