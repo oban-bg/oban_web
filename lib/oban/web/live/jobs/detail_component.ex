@@ -150,11 +150,11 @@ defmodule Oban.Web.Jobs.DetailComponent do
       </div>
 
       <div class="flex justify-center items-center px-3 pt-6 pb-5">
-        <TimelineComponent.render job={@job} state="inserted" />
-        <TimelineComponent.render job={@job} state="scheduled" />
-        <TimelineComponent.render job={@job} state="executing" />
-        <TimelineComponent.render job={@job} state="cancelled" />
-        <TimelineComponent.render job={@job} state="discarded" />
+        <TimelineComponent.render job={@job} os_time={@os_time} state="inserted" />
+        <TimelineComponent.render job={@job} os_time={@os_time} state="scheduled" />
+        <TimelineComponent.render job={@job} os_time={@os_time} state="executing" />
+        <TimelineComponent.render job={@job} os_time={@os_time} state="cancelled" />
+        <TimelineComponent.render job={@job} os_time={@os_time} state="discarded" />
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
@@ -194,7 +194,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <div class="mb-12">
               <h4 class="mb-3 flex items-center space-x-2">
                 <div class="text-sm font-semibold">
-                  Attempt <%= attempt %>&mdash;<%= iso8601_to_words(at) %>
+                  Attempt <%= attempt %>&mdash;<%= Timing.iso8601_to_words(at) %>
                 </div>
                 <div id={at} data-title={at} phx-hook="Tippy">
                   <Icons.info_circle class="w-5 h-5 text-gray-500 dark:text-gray-400" />

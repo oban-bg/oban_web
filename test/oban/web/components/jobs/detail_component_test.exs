@@ -46,7 +46,9 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
   end
 
   defp assigns(job, opts \\ []) do
-    [access: :all, id: :details, resolver: nil, params: %{}]
+    os_time = System.system_time(:second)
+
+    [access: :all, id: :details, os_time: os_time, params: %{}, resolver: nil]
     |> Keyword.put(:job, job)
     |> Keyword.merge(opts)
   end

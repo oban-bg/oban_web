@@ -51,16 +51,4 @@ defmodule Oban.Web.HelpersTest do
       assert Helpers.integer_to_estimate(150_500) == "151k"
     end
   end
-
-  describe "iso8601_to_words/2" do
-    test "converting an iso8601 string into time in words" do
-      words =
-        NaiveDateTime.utc_now()
-        |> NaiveDateTime.add(-1)
-        |> NaiveDateTime.to_iso8601()
-        |> Helpers.iso8601_to_words()
-
-      assert words =~ ~r/[1,2]s ago/
-    end
-  end
 end

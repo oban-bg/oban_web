@@ -233,6 +233,35 @@ defmodule Oban.Web.Timing do
     |> to_duration(:millisecond)
   end
 
+  @doc """
+  Select an absolute timestamp appropriate for the provided state and format it.
+  """
+  @spec absolute_time(String.t(), Job.t()) :: String.t()
+  def absolute_time(state, job) do
+    case state do
+      "available" -> "Available At: #{truncate_sec(job.scheduled_at)}"
+      "cancelled" -> "Cancelled At: #{truncate_sec(job.cancelled_at)}"
+      "completed" -> "Completed At: #{truncate_sec(job.completed_at)}"
+      "discarded" -> "Discarded At: #{truncate_sec(job.discarded_at)}"
+      "executing" -> "Attempted At: #{truncate_sec(job.attempted_at)}"
+      "retryable" -> "Retryable At: #{truncate_sec(job.scheduled_at)}"
+      "scheduled" -> "Scheduled At: #{truncate_sec(job.scheduled_at)}"
+    end
+  end
+
+  defp truncate_sec(datetime), do: NaiveDateTime.truncate(datetime, :second)
+
+  @doc """
+  Convert a stringified timestamp (i.e. from an error) into a relative time.
+  """
+  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
+    {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
+
+    datetime
+    |> NaiveDateTime.diff(now)
+    |> to_words()
+  end
+
   defp pad(time, places \\ 2) do
     time
     |> to_string()

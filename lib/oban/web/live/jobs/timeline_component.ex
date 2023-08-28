@@ -17,15 +17,6 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     "scheduled" => :scheduled_at
   }
 
-  @state_to_relative %{
-    "cancelled" => :relative_cancelled_at,
-    "completed" => :relative_completed_at,
-    "discarded" => :relative_discarded_at,
-    "executing" => :relative_attempted_at,
-    "inserted" => :relative_inserted_at,
-    "scheduled" => :relative_scheduled_at
-  }
-
   def render(assigns) do
     ~H"""
     <div
@@ -50,7 +41,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       <span class="block text-sm text-center font-semibold mt-2">
         <%= timestamp_name(@state, @job) %>
       </span>
-      <span class="block text-sm text-center tabular"><%= timeline_time(@state, @job) %></span>
+      <span class="block text-sm text-center tabular"><%= timeline_time(@state, @job, @os_time) %></span>
     </div>
     """
   end
@@ -96,9 +87,10 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     end
   end
 
-  defp timeline_time(state, job) do
-    for_state = Map.get(@state_to_relative, state)
+  defp timeline_time(state, job, os_time) do
+    for_state = Map.get(@state_to_timestamp, state)
     timestamp = Map.get(job, for_state)
+    now = DateTime.from_unix!(os_time)
 
     case {state, job.state, timestamp} do
       {_, _, nil} ->
@@ -107,22 +99,28 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       {state, "retryable", _} when state in ~w(completed executing) ->
         @empty_time
 
-      {"completed", "executing", _} ->
-        @empty_time
-
       {"executing", "executing", at} ->
-        Timing.to_duration(at)
+        at
+        |> DateTime.diff(now)
+        |> Timing.to_duration()
 
-      {"completed", _, at} ->
+      {"executing", "completed", at} ->
+        words =
+          at
+          |> DateTime.diff(now)
+          |> Timing.to_words()
+
         duration =
           job.attempted_at
-          |> NaiveDateTime.diff(job.completed_at)
+          |> DateTime.diff(job.completed_at)
           |> Timing.to_duration()
 
-        "#{Timing.to_words(at)} (#{duration})"
+        "#{words} (#{duration})"
 
       {_, _, at} ->
-        Timing.to_words(at)
+        at
+        |> DateTime.diff(now)
+        |> Timing.to_words()
     end
   end
 

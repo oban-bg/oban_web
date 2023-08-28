@@ -43,6 +43,7 @@ defmodule Oban.Web.JobsPage do
               access={@access}
               job={@detailed}
               module={DetailComponent}
+              os_time={@os_time}
               params={without_defaults(Map.delete(@params, "id"), @default_params)}
               resolver={@resolver}
             />
