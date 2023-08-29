@@ -69,14 +69,15 @@ defmodule WebDev.Generator do
 
   @impl GenServer
   def handle_info({:generate, worker}, state) do
-    for _ <- @min_jobs..@max_jobs do
+    changesets = for _ <- @min_jobs..@max_jobs do
       []
       |> weighted_schedule()
       |> random_priority()
       |> tracing_meta()
       |> worker.gen()
-      |> Oban.insert!()
     end
+
+    Oban.insert_all(changesets)
 
     delay_generation(worker)
 
