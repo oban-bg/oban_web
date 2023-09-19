@@ -59,14 +59,25 @@ const storeChanges = (changes) => {
 }
 
 const estimateCount = function (value) {
+  let base
+  let mult
   let powr
   let suff
 
   if (value < 1000) {
     return value
   } else if (value < 10_000) {
-    powr = 2
-    suff = "k"
+    mult = Math.pow(10, 3)
+    base = Math.floor(value / mult)
+    part = Math.round((value % mult) / Math.pow(10, 2))
+
+    if (part === 0) {
+      return `${base}k`
+    } else if (part === 10) {
+      return `${base + 1}k`
+    } else {
+      return `${base}.${part}k`
+    }
   } else if (value < 1_000_000) {
     powr = 3
     suff = "k"
@@ -78,7 +89,7 @@ const estimateCount = function (value) {
     suff = "b"
   }
 
-  const base = Math.round(value / Math.pow(10, powr))
+  base = Math.round(value / Math.pow(10, powr))
 
   return `${base}${suff}`
 }
