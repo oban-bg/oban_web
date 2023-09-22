@@ -16,7 +16,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       socket
       |> assign(conf: assigns.conf, params: assigns.params)
       |> assign_new(:group, fn -> init_lazy(:group, assigns, hd(groups())) end)
-      |> assign_new(:ntile, fn -> init_lazy(:ntile, assigns, hd(ntiles())) end)
+      |> assign_new(:ntile, fn -> init_lazy(:ntile, assigns, "sum") end)
       |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods())) end)
       |> assign_new(:series, fn -> init_lazy(:series, assigns, hd(series())) end)
       |> assign_new(:visible, fn -> init_lazy(:visible, assigns, true) end)
@@ -148,7 +148,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       filters: params_to_filters(assigns.params),
       group: assigns.group,
       lookback: cols * step,
-      ntile: ntile_to_float(assigns.ntile),
+      operation: ntile_to_operation(assigns.ntile),
       since: sy_time
     ]
 
@@ -195,13 +195,16 @@ defmodule Oban.Web.Jobs.ChartComponent do
     assigns =
       cond do
         series == "full_count" and socket.assigns.group in ~w(node worker) ->
-          [ntile: "max", group: "state", series: "full_count"]
+          [ntile: "max", group: "state", series: series]
+
+        series == "full_count" ->
+          [ntile: "max", series: series]
 
         series in ~w(exec_time wait_time) ->
           [ntile: "p95", series: series]
 
         true ->
-          [ntile: "max", series: series]
+          [ntile: "sum", series: series]
       end
 
     {:noreply, push_change(socket, assigns)}
@@ -250,11 +253,12 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp metric_label("exec_time"), do: "Execution Time"
   defp metric_label("wait_time"), do: "Queue Time"
 
-  defp ntile_to_float("max"), do: 1.0
-  defp ntile_to_float("p99"), do: 0.99
-  defp ntile_to_float("p95"), do: 0.95
-  defp ntile_to_float("p75"), do: 0.75
-  defp ntile_to_float("p50"), do: 0.50
+  defp ntile_to_operation("sum"), do: :sum
+  defp ntile_to_operation("max"), do: :max
+  defp ntile_to_operation("p99"), do: {:pct, 0.99}
+  defp ntile_to_operation("p95"), do: {:pct, 0.95}
+  defp ntile_to_operation("p75"), do: {:pct, 0.75}
+  defp ntile_to_operation("p50"), do: {:pct, 0.50}
 
   defp period_to_step("1s"), do: 1
   defp period_to_step("5s"), do: 5
