@@ -79,6 +79,63 @@ applications.
   ...
   ```
 
+## v2.10.0-rc.3 — 2023-09-24
+
+### Enhancements
+
+- [Resolver] Prevent dashboard access with :forbidden access
+
+  The dashboard now offers authentication by checking access on mount via `resolve_access/1`.
+  Returning `{:forbidden, path}` will halt mounting and redirect to the specified path.
+
+  By combining `resolver_user/1` and `resolve_access/1` callbacks it's possible to build an
+  authenticaiton solution around the dashboard. For example, this resolver extracts the
+  `current_user` from the conn's assigns map and then scopes their access based on role. If it is
+  a standard user or `nil` then they're redirected to `/login` when the dashboard mounts.
+
+  ```elixir
+  defmodule MyApp.Resolver do
+    @behaviour Oban.Web.Resolver
+
+    @impl true
+    def resolve_user(conn) do
+      conn.assigns.current_user
+    end
+
+    @impl true
+    def resolve_access(user) do
+      case user do
+        %{admin?: true} -> :all
+        %{staff?: true} -> :read_only
+        _ -> {:forbidden, "/login"}
+      end
+    end
+  end
+  ```
+
+- [Jobs] Change default sort direction for completed states
+
+  Completed, cancelled, and discarded states used an unintuitive sort preference with oldest jobs
+  first. Now it's restored to the historic ( and more intuitive) order of newest jobs first.
+
+- [Deps] Loosen constraints to allow Phoenix LiveView v0.20 and above
+
+- [Deps] Require a minimum of Oban Met v0.1.2 and above
+
+### Bug Fixes
+
+- [Chart] Correct count estimation for values between 1k and 10k
+
+- [Job Details] Make detail times relative on demand.
+
+  Job details always showed `-` because the old `relative_` timestamp fields were removed. Now
+  details show the correct relative timestamp, including a fix to correctly show the timing and
+  duration for completed jobs.
+
+- [Chart] Use `sum` for exec counts and `max` for full counts to display accurate information when
+  rolling up values by periods greater than 1s. Previously, full counts were summed across time
+  windows.
+
 ## v2.10.0-rc.2 — 2023-08-22
 
 Let's try this one more time...
