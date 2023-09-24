@@ -50,12 +50,12 @@ defmodule Oban.Web.MixProject do
       {:phoenix, "~> 1.7.0"},
       {:phoenix_html, "~> 3.2"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:phoenix_live_view, "~> 0.19.0"},
+      {:phoenix_live_view, "~> 0.19"},
       {:postgrex, "~> 0.17"},
 
       # Oban
       {:oban, "~> 2.15"},
-      {:oban_met, "~> 0.1", repo: :oban},
+      {:oban_met, "~> 0.1.2", repo: :oban},
       {:oban_pro, "~> 1.0", repo: :oban, only: [:test, :dev]},
 
       # Dev Server
@@ -86,6 +86,7 @@ defmodule Oban.Web.MixProject do
         "cmd git tag v#{@version}",
         "cmd git push",
         "cmd git push --tags",
+        "docs",
         "hex.publish package --yes",
         "lys.publish"
       ],
