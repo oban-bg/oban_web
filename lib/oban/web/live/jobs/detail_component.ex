@@ -9,10 +9,16 @@ defmodule Oban.Web.Jobs.DetailComponent do
     ~H"""
     <div id="job-details">
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
-        <%= live_patch to: oban_path(:jobs, @params), id: "back-link", class: "flex items-center hover:text-blue-500", "data-title": "Back to jobs", "phx-hook": "Tippy" do %>
+        <.link
+          patch={oban_path(:jobs, @params)}
+          id="back-link"
+          class="flex items-center hover:text-blue-500"
+          data-title="Back to jobs"
+          phx-hook="Tippy"
+        >
           <Icons.arrow_left class="w-5 h-5" />
           <span class="text-lg font-bold ml-2">Job Details</span>
-        <% end %>
+        </.link>
 
         <div class="flex">
           <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>

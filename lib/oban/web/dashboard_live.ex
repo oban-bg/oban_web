@@ -46,18 +46,14 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def render(assigns) do
-    ~H"""
-    <%= render_page(@page, assigns) %>
-    """
-  end
-
-  defp render_page(page, assigns) do
     assigns =
       assigns
       |> Map.put(:id, "page")
       |> Map.drop([:csp_nonces, :live_path, :live_transport, :refresh, :timer])
 
-    live_component(page.comp, assigns)
+    ~H"""
+    <.live_component id="page" module={@page.comp} {assigns} />
+    """
   end
 
   @impl Phoenix.LiveView

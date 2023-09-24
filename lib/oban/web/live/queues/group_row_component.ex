@@ -28,13 +28,14 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           <% end %>
         </button>
 
-        <%= live_patch(@queue,
-          to: oban_path([:queues, @queue]),
-          "aria-label": "View and configure #{@queue} details",
-          class:
-            "block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500",
-          rel: "name"
-        ) %>
+        <.link
+          patch={oban_path([:queues, @queue])}
+          title={"View and configure #{@queue} details"}
+          class="block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500"
+          rel="name"
+        >
+          <%= @queue %>
+        </.link>
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">

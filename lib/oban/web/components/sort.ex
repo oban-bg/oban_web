@@ -1,13 +1,14 @@
 defmodule Oban.Web.Components.Sort do
   use Oban.Web, :html
 
-  def link(assigns) do
+  def header_link(assigns) do
     ~H"""
-    <%= live_patch(
-      to: sort_link(@label, @page, @params),
-      rel: "sort",
-      title: title(@label, @params.sort_by, @params.sort_dir),
-      class: "flex justify-#{@justify}") do %>
+    <.link
+      patch={sort_link(@label, @page, @params)}
+      rel="sort"
+      title={title(@label, @params.sort_by, @params.sort_dir)}
+      class={"flex justify-#{@justify}"}
+    >
       <%= if active_sort?(@label, @params.sort_by) do %>
         <%= if @params.sort_dir == "asc" do %>
           <Icons.bars_arrow_up class="w-4 h-4" />
@@ -19,7 +20,7 @@ defmodule Oban.Web.Components.Sort do
       <% end %>
 
       <span class="pl-1"><%= @label %></span>
-    <% end %>
+    </.link>
     """
   end
 

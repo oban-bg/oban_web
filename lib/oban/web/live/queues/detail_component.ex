@@ -58,10 +58,10 @@ defmodule Oban.Web.Queues.DetailComponent do
     ~H"""
     <div id="queue-details">
       <div class="flex justify-between items-center px-3 py-6">
-        <%= live_patch to: oban_path(:queues), id: "back-link", class: "flex items-center hover:text-blue-500", "data-title": "Back to queues", "phx-hook": "Tippy" do %>
+        <.link patch={oban_path(:queues)} id="back-link" class="flex items-center hover:text-blue-500">
           <Icons.arrow_left class="w-5 h-5" />
           <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
-        <% end %>
+        </.link>
       </div>
 
       <table class="table-fixed w-full bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25">
