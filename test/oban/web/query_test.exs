@@ -361,12 +361,12 @@ defmodule Oban.Web.QueryTest do
       job_b = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(6))
       job_c = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(1))
 
-      assert [job_b.id, job_a.id, job_c.id] ==
+      assert [job_c.id, job_a.id, job_b.id] ==
                %{state: "cancelled"}
                |> Query.all_jobs(@conf)
                |> Enum.map(& &1.id)
 
-      assert [job_c.id, job_a.id, job_b.id] ==
+      assert [job_b.id, job_a.id, job_c.id] ==
                %{state: "cancelled", sort_dir: "desc"}
                |> Query.all_jobs(@conf)
                |> Enum.map(& &1.id)
