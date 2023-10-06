@@ -290,7 +290,7 @@ defmodule Oban.Web.QueryTest do
       assert [] = filter_refs(queues: ~w(delta))
     end
 
-    test "constraining by state" do
+    test "filtering by state" do
       insert_job!(%{ref: 0}, state: "available")
       insert_job!(%{ref: 1}, state: "available")
       insert_job!(%{ref: 2}, state: "scheduled")
@@ -336,13 +336,14 @@ defmodule Oban.Web.QueryTest do
     end
 
     test "searching within meta sub-fields" do
-      insert_job!(%{ref: 0}, meta: %{mode: "audio", bar: %{baz: 1}})
-      insert_job!(%{ref: 1}, meta: %{mode: "video", bar: %{baz: 2}})
-      insert_job!(%{ref: 2}, meta: %{mode: "media", bar: %{bat: 3}})
+      insert_job!(%{ref: 0}, meta: %{mode: "audio", bar: %{baz: "21f8"}})
+      insert_job!(%{ref: 1}, meta: %{mode: "video", bar: %{baz: 7050}})
+      insert_job!(%{ref: 2}, meta: %{mode: "media", bar: %{bat: "4b0e"}})
 
       assert [0] = filter_refs(meta: [~w(mode), "audio"])
-      assert [0] = filter_refs(meta: [~w(bar baz), "1"])
-      assert [2] = filter_refs(meta: [~w(bar bat), "3"])
+      assert [0] = filter_refs(meta: [~w(bar baz), "21f8"])
+      assert [1] = filter_refs(meta: [~w(bar baz), "7050"])
+      assert [2] = filter_refs(meta: [~w(bar bat), "4b0e"])
     end
 
     test "filtering by multiple terms" do

@@ -534,16 +534,15 @@ defmodule Oban.Web.Query do
     gen_map(tail, val, {path ++ [key], put_in(acc, path ++ [key], %{})})
   end
 
-  defp cast_val(<<int, _rest::binary>> = val) when int in ?0..?9 do
-    case Integer.parse(val) do
-      {int, _xt} -> int
-      :error -> val
-    end
-  end
-
   defp cast_val("true"), do: true
   defp cast_val("false"), do: false
-  defp cast_val(val), do: val
+
+  defp cast_val(val) do
+    case Integer.parse(val) do
+      {int, ""} -> int
+      _ -> val
+    end
+  end
 
   # Ordering Helpers
 
