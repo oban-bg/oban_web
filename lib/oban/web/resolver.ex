@@ -258,7 +258,8 @@ defmodule Oban.Web.Resolver do
   The limit may be determined by state, e.g. `:completed` or `:cancelled`, to fine-tune query
   performance for larger states. Limiting may be disabled with `:infinity`.
 
-  Without a callback impleted it defaults to a conservative 100k jobs.
+  Without a callback impleted, the `:completed` state defaults to a conservative 100k jobs and all
+  other states are `:infinite`.
 
   ## Example
 
@@ -266,7 +267,8 @@ defmodule Oban.Web.Resolver do
 
       def jobs_query_limit(_qualifier), do: 50_000
 
-  Use a conservative the limit for `:completed` without any limit for other states:
+  Use a conservative the limit for `:completed` without any limit for other states (this is the
+  default):
 
       def jobs_query_limit(:completed), do: 100_000
       def jobs_query_limit(_state), do: :infinity
@@ -319,7 +321,8 @@ defmodule Oban.Web.Resolver do
   def resolve_refresh(_user), do: 1
 
   @doc false
-  def jobs_query_limit(_state), do: 100_000
+  def jobs_query_limit(:completed), do: 100_000
+  def jobs_query_limit(_state), do: :infinity
 
   @doc false
   def hint_query_limit(_qualifier), do: 10_000
