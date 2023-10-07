@@ -3,7 +3,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   alias Oban.Web.Query
 
-  @known ~w(args meta nodes priorities queues tags workers)a
+  @known ~w(args ids meta nodes priorities queues tags workers)a
 
   @spinner_timeout 100
 
@@ -252,6 +252,8 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
   def handle_event("append", %{"choice" => choice}, socket) do
     buffer = Query.append(socket.assigns.buffer, choice)
+
+    IO.inspect({choice, buffer})
 
     socket =
       socket

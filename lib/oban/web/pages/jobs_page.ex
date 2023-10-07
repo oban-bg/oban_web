@@ -9,7 +9,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.{Page, Query, Telemetry}
 
   @flash_timing 5_000
-  @known_params ~w(args limit meta nodes priorities queues sort_by sort_dir state tags workers)
+  @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent

@@ -259,6 +259,17 @@ defmodule Oban.Web.QueryTest do
   end
 
   describe "all_jobs/2" do
+    test "filtering by id" do
+      job_1 = insert_job!(%{ref: 1})
+      job_2 = insert_job!(%{ref: 2})
+      job_3 = insert_job!(%{ref: 3})
+
+      assert [1] = filter_refs(ids: ~w(#{job_1.id}))
+      assert [1, 2] = filter_refs(ids: ~w(#{job_1.id} #{job_2.id}))
+      assert [1, 3] = filter_refs(ids: ~w(#{job_1.id} #{job_3.id}))
+      assert [] = filter_refs(ids: ~w(12345))
+    end
+
     test "filtering by node" do
       insert_job!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
       insert_job!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"])

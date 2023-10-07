@@ -90,7 +90,7 @@ defmodule Oban.Web.Query do
 
         {String.to_existing_atom(key), val}
 
-      {key, val} when key in ~w(nodes priorities queues tags workers) ->
+      {key, val} when key in ~w(ids nodes priorities queues tags workers) ->
         {String.to_existing_atom(key), String.split(val, ",")}
 
       {key, val} ->
@@ -103,6 +103,7 @@ defmodule Oban.Web.Query do
 
   @suggest_qualifier [
     {"args.", "a key or value in args", "args.id:123"},
+    {"ids:", "one or more job ids", "ids:1,2,3"},
     {"meta.", "a key or value in meta", "meta.batch_id:123"},
     {"nodes:", "host name", "nodes:machine@somehost"},
     {"priorities:", "number from 0 to 3", "priorities:1"},
@@ -435,6 +436,10 @@ defmodule Oban.Web.Query do
     parse_path(:args, path_and_term)
   end
 
+  defp parse_term("ids:" <> ids) do
+    parse_ints(:ids, ids)
+  end
+
   defp parse_term("meta:" <> terms) do
     {:meta, String.trim(terms, "\"")}
   end
@@ -491,6 +496,10 @@ defmodule Oban.Web.Query do
 
   defp filter({:args, [path, term]}, condition) do
     dynamic([j], ^condition and fragment("? @> ?", j.args, ^gen_map(path, term)))
+  end
+
+  defp filter({:ids, ids}, condition) do
+    dynamic([j], ^condition and j.id in ^ids)
   end
 
   defp filter({:meta, [path, term]}, condition) do
