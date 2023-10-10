@@ -133,14 +133,13 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     absolute_state(state, job.state, timestamp)
   end
 
-  defp absolute_state("completed", "completed", at) when not is_nil(at), do: :finished
-  defp absolute_state("completed", "executing", _), do: :unstarted
-  defp absolute_state("completed", "retryable", _), do: :unstarted
+  defp absolute_state("executing", "completed", at) when not is_nil(at), do: :finished
+  defp absolute_state("executing", "executing", _), do: :started
+  defp absolute_state("executing", "retryable", _), do: :unstarted
   defp absolute_state("cancelled", "cancelled", _), do: :finished
   defp absolute_state("cancelled", "retryable", _), do: :unstarted
   defp absolute_state("discarded", "discarded", _), do: :finished
   defp absolute_state("discarded", "retryable", _), do: :unstarted
-  defp absolute_state("executing", "retryable", _), do: :unstarted
   defp absolute_state("scheduled", "retryable", _), do: :retrying
   defp absolute_state(state, state, _), do: :started
   defp absolute_state(_, _, at) when not is_nil(at), do: :finished

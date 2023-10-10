@@ -253,14 +253,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def handle_event("append", %{"choice" => choice}, socket) do
     buffer = Query.append(socket.assigns.buffer, choice)
 
-    IO.inspect({choice, buffer})
-
-    socket =
-      socket
-      |> assign(buffer: buffer)
-      |> async_suggest(buffer)
-
-    {:noreply, socket}
+    socket
+    |> assign(buffer: buffer)
+    |> handle_submit()
   end
 
   def handle_event("complete", _params, socket) do
@@ -276,7 +271,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("search", _, socket) do
-    handle_submit(socket.assigns.buffer, socket)
+    handle_submit(socket)
   end
 
   def handle_event("remove-filter", %{"param" => param, "terms" => _}, socket) do
@@ -285,14 +280,11 @@ defmodule Oban.Web.Jobs.SearchComponent do
     {:noreply, push_patch(socket, to: oban_path(:jobs, params))}
   end
 
-  defp handle_submit(buffer, socket) do
-    if String.ends_with?(buffer, ":") do
-      socket =
-        socket
-        |> assign(buffer: buffer)
-        |> async_suggest(buffer)
+  defp handle_submit(socket) do
+    buffer = socket.assigns.buffer
 
-      {:noreply, socket}
+    if String.ends_with?(buffer, ":") or String.ends_with?(buffer, ".") do
+      {:noreply, async_suggest(socket, buffer)}
     else
       parsed = Query.parse(buffer)
       params = Map.merge(socket.assigns.params, parsed, fn _key, old, new -> old ++ new end)

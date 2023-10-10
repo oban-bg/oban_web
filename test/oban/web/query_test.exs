@@ -102,24 +102,25 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{id: 1, name: "Alpha"})
       insert_job!(%{id: 1, data: %{on: true}})
 
-      assert ~w(account_id data id name) =
+      assert ~w(account_id: data. id: name:) =
                "args."
                |> suggest()
                |> Enum.map(&elem(&1, 0))
                |> Enum.sort()
 
       assert [] = suggest("args.name.")
-      assert [{"account_id", _, _}] = suggest("args.accou")
+      assert [{"account_id:", _, _}] = suggest("args.accou")
+      assert [{"on:", _, _}] = suggest("args.data.")
     end
 
     test "suggesting nested args" do
       insert_job!(%{id: 1, add: %{city: %{name: "Chi", zip: "60647"}, state: "IL"}})
       insert_job!(%{xd: 2, add: %{city: %{name: "Whe", zip: "60187"}, state: "IL"}})
 
-      assert ~w(city state) = sorted_suggest("args.add.")
+      assert ~w(city. state:) = sorted_suggest("args.add.")
 
-      assert [{"state", _, _}, _] = suggest("args.add.stat")
-      assert [{"name", _, _}] = suggest("args.add.city.nam")
+      assert [{"state:", _, _}] = suggest("args.add.stat")
+      assert [{"name:", _, _}] = suggest("args.add.city.nam")
     end
 
     test "suggesting nested args values" do
@@ -138,15 +139,15 @@ defmodule Oban.Web.QueryTest do
     test "suggesting meta paths" do
       insert_job!(%{}, meta: %{id: 1, account_id: 1})
       insert_job!(%{}, meta: %{id: 1, name: "Alpha"})
-      insert_job!(%{}, meta: %{id: 1, return: %{on: true}})
+      insert_job!(%{}, meta: %{id: 1, return: "recorded-stuff"})
 
-      assert ~w(account_id id name) =
+      assert ~w(account_id: id: name:) =
                "meta."
                |> suggest()
                |> Enum.map(&elem(&1, 0))
                |> Enum.sort()
 
-      assert [{"account_id", _, _}] = suggest("meta.accou")
+      assert [{"account_id:", _, _}] = suggest("meta.accou")
     end
 
     test "suggesting nodes" do
@@ -233,8 +234,8 @@ defmodule Oban.Web.QueryTest do
     test "completing a path qualifier" do
       insert_job!(%{id: 1, account_id: 1})
 
-      assert "args.id" == complete("args.i")
-      assert "args.account_id" == complete("args.accou")
+      assert "args.id:" == complete("args.i")
+      assert "args.account_id:" == complete("args.accou")
     end
   end
 
@@ -242,14 +243,14 @@ defmodule Oban.Web.QueryTest do
     import Query, only: [append: 2]
 
     test "appending new qualifiers" do
-      assert "queue:" == append("qu", "queue:")
-      assert "queue:" == append("queue", "queue:")
-      assert "queue:" == append("queue:", "queue:")
+      assert "queues:" == append("qu", "queues:")
+      assert "queues:" == append("queue", "queues:")
+      assert "queues:" == append("queue:", "queues:")
       assert "args." == append("arg", "args.")
     end
 
-    test "preventing duplicate values" do
-      assert "queue:" == append("queue:", "queue:")
+    test "preventing duplicate qualifier values" do
+      assert "queues:" == append("queues:", "queues:")
     end
 
     test "quoting terms with whitespace" do

@@ -46,6 +46,22 @@ defmodule Oban.Web.Query do
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
+  defmacrop path_key(key, value) do
+    quote do
+      fragment(
+        """
+        case jsonb_typeof(?)
+        when 'object' then ? || '.'
+        else ? || ':'
+        end
+        """,
+        unquote(value),
+        unquote(key),
+        unquote(key)
+      )
+    end
+  end
+
   @doc """
   Parse a string of qualifiers and values into structured search terms.
   """
@@ -119,6 +135,8 @@ defmodule Oban.Web.Query do
     {"3", "lowest", "priorities:3"}
   ]
 
+  @known_qualifiers for {qualifier, _, _} <- @suggest_qualifier, into: MapSet.new(), do: qualifier
+
   @doc """
   Suggest completions from a search fragment.
   """
@@ -165,23 +183,27 @@ defmodule Oban.Web.Query do
       if Enum.empty?(path) do
         field
         |> hint_limit_query(opts)
-        |> select([j], %{keys: fragment("jsonb_object_keys(?)", field(j, ^field))})
+        |> join(:inner_lateral, [o], j in fragment("jsonb_each(?)", field(o, ^field)), on: true)
+        |> select([_o, j], %{key: path_key(j.key, j.value)})
       else
         field
         |> hint_limit_query(opts)
-        |> select([j], %{keys: fragment("jsonb_object_keys(? #> ?)", field(j, ^field), ^path)})
+        |> join(:inner_lateral, [o], j in fragment("jsonb_each(? #> ?)", field(o, ^field), ^path),
+          on: true
+        )
+        |> select([_o, j], %{key: path_key(j.key, j.value)})
         |> where([j], fragment("jsonb_typeof(? #> ?) = 'object'", field(j, ^field), ^path))
       end
 
     query =
       subquery
       |> subquery()
-      |> select([x], %{keys: fragment("array_agg(distinct ?)", x.keys)})
+      |> select([x], %{keys: fragment("jsonb_agg(distinct ?)", x.key)})
 
     case cache_query({field, :keys, path}, query, conf) do
       [%{keys: [_ | _] = keys}] ->
         keys
-        |> Kernel.--(["return"])
+        |> Kernel.--(["return:"])
         |> restrict_suggestions(frag)
 
       _ ->
@@ -318,7 +340,7 @@ defmodule Oban.Web.Query do
   def append(terms, choice) do
     choice = if String.match?(choice, ~r/[\s,]/), do: ~s("#{choice}"), else: choice
 
-    if String.ends_with?(choice, [":", "."]) do
+    if MapSet.member?(@known_qualifiers, choice) do
       choice
     else
       joiner = if String.contains?(terms, ":"), do: ":", else: "."
