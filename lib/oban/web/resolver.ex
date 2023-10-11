@@ -22,12 +22,12 @@ defmodule Oban.Web.Resolver do
     def resolve_refresh(_user), do: 1
 
     @impl true
-    def format_job_args(%Job{args: args}) do
+    def format_job_args(%Oban.Job{args: args}) do
       inspect(args, charlists: :as_lists, pretty: true)
     end
 
     @impl true
-    def format_job_meta(%Job{meta: meta}) do
+    def format_job_meta(%Oban.Job{meta: meta}) do
       inspect(meta, charlists: :as_lists, pretty: true)
     end
 
