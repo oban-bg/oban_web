@@ -79,6 +79,45 @@ applications.
   ...
   ```
 
+## v2.10.0 — 2023-10-12
+
+### Enhancements
+
+- [Jobs] Append and submit filter suggestions on click
+
+  Previously, clicking a suggested value injected it into the input but didn't submit it as a
+  filter. That was unexpected, and led to an odd "deletion" of previous values when typing
+  multiple filters at once. Clicking on a suggested value immediately submits it as a filter now.
+
+- [Jobs] Improved json path suggestions
+
+  Auto submission exposed an issue with json path completion, i.e. path suggestions lacked a final
+  `:` or `.` to indicate if it was a full qualifier or part of a path. Now it's clear whether an
+  `args` or `meta` suggestion is part of a nested object path (`.`), or a final key (`:`).
+
+- [Jobs] Add filtering by a list of ids, e.g. `ids:1,2,3`
+
+  It turns out this is a commonly used feature, especially in a staging environment and by testing
+  teams.
+
+### Bug Fixes
+
+- [Resolver] Only use a conservative query limit for `completed` jobs
+
+  Due to the loose application of threshold queries, the 100k limit caused confusion for other
+  states with only a handful of jobs, e.g. `retryable`. Now the limit is only applied to
+  `completed` jobs by default and `:infinity` for all other states.
+
+- [Jobs] Parse entire term as an integer when filtering
+
+  Values, such as UUIDs that start with a digit, were incorrectly considered an integer and
+  couldn't be used in filtering.
+
+- [Job Details] Prevent cancelled/discarded jobs showing completed
+
+  The timeline component incorrectly displayed jobs that weren't completed or executing as
+  completed.
+
 ## v2.10.0-rc.3 — 2023-09-24
 
 ### Enhancements

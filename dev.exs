@@ -140,13 +140,7 @@ defmodule Oban.Workers.BotCleaner do
 
   @impl Oban.Pro.Worker
   def process(_job) do
-    Generator.random_perform(1_000, 4_000)
-
-    if :rand.uniform() > 0.75 do
-      {:ok, %{bots_cleaned: :rand.uniform(30)}}
-    else
-      {:snooze, 5}
-    end
+    Generator.random_perform(1_000, 3_000)
   end
 end
 

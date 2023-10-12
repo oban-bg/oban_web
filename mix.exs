@@ -1,7 +1,7 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.10.0-rc.3"
+  @version "2.10.0"
 
   def project do
     [
@@ -9,6 +9,7 @@ defmodule Oban.Web.MixProject do
       version: @version,
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
+      prune_code_paths: false,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
