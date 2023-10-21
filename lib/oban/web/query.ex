@@ -42,6 +42,8 @@ defmodule Oban.Web.Query do
     :scheduled_at
   ]
 
+  @states Map.new(Oban.Job.states(), &{to_string(&1), &1})
+
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
@@ -377,8 +379,8 @@ defmodule Oban.Web.Query do
   end
 
   defp jobs_limit_query(state, opts) do
-    state
-    |> String.to_existing_atom()
+    @states
+    |> Map.fetch!(state)
     |> limit_query(:jobs_query_limit, opts)
   end
 
