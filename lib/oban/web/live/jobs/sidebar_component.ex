@@ -111,7 +111,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         if(@active?, do: "border-violet-500 hover:border-violet-500 focus:border-violet-500")
       ]}
     >
-      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate">
+      <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left tabular font-medium truncate">
         <%= String.downcase(@node.name) %>
       </span>
       <div class="flex-none">
