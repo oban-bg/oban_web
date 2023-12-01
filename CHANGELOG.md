@@ -79,6 +79,23 @@ applications.
   ...
   ```
 
+## v2.10.1 — 2023-12-01
+
+### Bug Fixes
+
+- [Resolver] Mount resolvers without an optional `resolve_access/1` callback defined.
+
+- [Query] Prevent `to_existing_atom/1` errors when querying jobs by ensuring job state atoms are
+  loaded before any jobs run.
+
+- [Query] Correct appending filter choices with both a qualifier and dot separator.
+
+  Clicking or tab completing a qualified term and a dot would incorrectly construct a compound
+  term. Now, completing a partial filter like `workers:MyApp.Al` correctly returns
+  `workers:MyApp.Alpha` instead of the broken `workers:MyApp:MyApp.Alpha`.
+
+- [Job Details] Prevent cancelled and discarded icons from rotating in completed state
+
 ## v2.10.0 — 2023-10-12
 
 ### Enhancements
