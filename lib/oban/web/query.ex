@@ -342,17 +342,22 @@ defmodule Oban.Web.Query do
   def append(terms, choice) do
     choice = if String.match?(choice, ~r/[\s,]/), do: ~s("#{choice}"), else: choice
 
-    if MapSet.member?(@known_qualifiers, choice) do
-      choice
-    else
-      joiner = if String.contains?(terms, ":"), do: ":", else: "."
+    cond do
+      MapSet.member?(@known_qualifiers, choice) ->
+        choice
 
-      terms
-      |> String.reverse()
-      |> String.split([":", "."], parts: 2)
-      |> List.last()
-      |> String.reverse()
-      |> Kernel.<>("#{joiner}#{choice}")
+      String.contains?(terms, ":") ->
+        [qualifier, _] = String.split(terms, ":", parts: 2)
+
+        "#{qualifier}:#{choice}"
+
+      true ->
+        terms
+        |> String.reverse()
+        |> String.split(["."], parts: 2)
+        |> List.last()
+        |> String.reverse()
+        |> Kernel.<>(".#{choice}")
     end
   end
 

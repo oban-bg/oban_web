@@ -237,6 +237,13 @@ defmodule Oban.Web.QueryTest do
       assert "args.id:" == complete("args.i")
       assert "args.account_id:" == complete("args.accou")
     end
+
+    test "completing a qualifier with a partial path" do
+      insert_job!(%{}, worker: "MyApp.Alpha")
+
+      assert "workers:MyApp.Alpha" == complete("workers:My")
+      assert "workers:MyApp.Alpha" == complete("workers:MyApp.A")
+    end
   end
 
   describe "append/2" do
