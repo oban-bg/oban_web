@@ -36,10 +36,10 @@ defmodule Oban.Web do
 
   defp html_helpers do
     quote do
-      use Phoenix.HTML
       use Phoenix.Component
 
       import Oban.Web.Helpers
+      import Phoenix.HTML
       import Phoenix.LiveView.Helpers
 
       alias Oban.Web.Components.Icons

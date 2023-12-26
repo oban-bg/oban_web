@@ -2,6 +2,7 @@ defmodule Oban.Web.Queues.DetailComponent do
   use Oban.Web, :live_component
 
   import Oban.Web.Helpers.QueueHelper
+  import Phoenix.HTML.Form, only: [options_for_select: 2]
 
   alias Oban.Config
   alias Oban.Met

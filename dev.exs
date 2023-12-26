@@ -432,7 +432,7 @@ defmodule WebDev.Endpoint do
 end
 
 defmodule WebDev.ErrorHTML do
-  use Phoenix.HTML
+  use Phoenix.Component
 
   def render(template, _assigns) do
     Phoenix.Controller.status_message_from_template(template)

@@ -14,7 +14,7 @@ Application.put_env(:oban_web, Oban.Web.Endpoint,
 )
 
 defmodule Oban.Web.ErrorHTML do
-  use Phoenix.HTML
+  use Phoenix.Component
 
   def render(template, _assigns) do
     Phoenix.Controller.status_message_from_template(template)
