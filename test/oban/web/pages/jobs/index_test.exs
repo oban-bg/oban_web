@@ -40,8 +40,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
 
     test "filtering jobs by node", %{live: live} do
-      web_1 = ["web-1", "alpha", "aaaaaaaa"]
-      web_2 = ["web-2", "alpha", "aaaaaaaa"]
+      web_1 = ["web-1", "aaaa-aaaa"]
+      web_2 = ["web-2", "bbbb-bbbb"]
 
       gossip(node: "web-1", queue: "alpha")
       gossip(node: "web-2", queue: "alpha")
@@ -65,6 +65,39 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
       assert has_job?(live, "GammaWorker")
+    end
+
+    test "indicating orphaned jobs", %{live: live} do
+      now = DateTime.utc_now()
+
+      web_1 = ["web-1", "aaaa-aaaa"]
+      web_2 = ["web-1", "bbbb-bbbb"]
+
+      gossip(node: "web-1", queue: "alpha", uuid: "bbbb-bbbb")
+
+      job_1 =
+        insert_job!([ref: 1],
+          state: "executing",
+          worker: AlphaWorker,
+          attempted_at: now,
+          attempted_by: web_1
+        )
+
+      job_2 =
+        insert_job!([ref: 2],
+          state: "executing",
+          worker: GammaWorker,
+          attempted_at: now,
+          attempted_by: web_2
+        )
+
+      click_state(live, "executing")
+
+      assert has_job?(live, "AlphaWorker")
+      assert has_job?(live, "GammaWorker")
+
+      assert has_element?(live, "#job-status-#{job_1.id}")
+      refute has_element?(live, "#job-status-#{job_2.id}")
     end
 
     test "viewing available or scheduled clears the node filter", %{live: live} do

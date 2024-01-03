@@ -14,16 +14,16 @@ defmodule Oban.Web.Jobs.TableComponent do
         Oban.Web.Resolver
       end
 
-    nodes =
+    producers =
       assigns.conf.name
       |> Oban.Met.checks()
-      |> Enum.map(& &1["node"])
+      |> Enum.map(& &1["uuid"])
       |> MapSet.new()
 
     socket =
       socket
       |> assign(jobs: assigns.jobs, params: assigns.params)
-      |> assign(nodes: nodes, resolver: resolver, selected: assigns.selected)
+      |> assign(producers: producers, resolver: resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
 
@@ -46,7 +46,7 @@ defmodule Oban.Web.Jobs.TableComponent do
           id={"job-#{job.id}"}
           job={job}
           myself={@myself}
-          nodes={@nodes}
+          producers={@producers}
           resolver={@resolver}
           selected={@selected}
         />
@@ -100,7 +100,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         </p>
 
         <Icons.state_orphaned
-          :if={orphaned?(@job, @nodes)}
+          :if={orphaned?(@job, @producers)}
           class="h-4 w-4 text-gray-500 dark:text-gray-300"
           id={"job-status-#{assigns.job.id}"}
           phx-hook="Tippy"

@@ -74,6 +74,7 @@ defmodule Oban.Web.Case do
     |> Map.put_new(:rate_limit, nil)
     |> Map.put_new(:paused, false)
     |> Map.put_new(:running, [])
+    |> Map.put_new(:uuid, Ecto.UUID.generate())
     |> Map.put_new(:started_at, iso_now)
     |> Map.put_new(:updated_at, iso_now)
     |> Jason.encode!()

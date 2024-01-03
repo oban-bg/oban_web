@@ -192,12 +192,10 @@ defmodule Oban.Web.Helpers do
 
   @doc """
   Whether the job was left in an executing state when the node or producer running it shut down.
-
-  # TODO: This isn't accurate enough. We need to use the UUIDs from all nodes.
   """
-  def orphaned?(%Job{} = job, %MapSet{} = nodes) do
+  def orphaned?(%Job{} = job, %MapSet{} = producers) do
     case {job.state, job.attempted_by} do
-      {"executing", [node | _]} -> not MapSet.member?(nodes, node)
+      {"executing", [_node, uuid | _]} -> not MapSet.member?(producers, uuid)
       _ -> false
     end
   end
