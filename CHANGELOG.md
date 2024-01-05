@@ -79,6 +79,22 @@ applications.
   ...
   ```
 
+## v2.10.2 — 2023-01-05
+
+### Enhancements
+
+- [Jobs] Use the queue producer's uuid when checking for orphaned jobs
+
+  The node alone isn't accurate enough to indicate orphans because queues may start, stop, or
+  crash unexpectedly. Now that all engines include the `uuid` as part of the `attempted_by` array,
+  we can reliablity use it to detect orphaned jobs.
+
+- Support using `phoenix_html` 4.0
+
+  The latest release Phoenix.HTML removes the top-level `use` macro and some common functionality.
+  This changes allows using the older v3.3 release or v4.0, with the necessary internal changes to
+  handle either.
+
 ## v2.10.1 — 2023-12-01
 
 ### Bug Fixes
