@@ -77,21 +77,23 @@ Auth][ba].
 #### Switch to the PG Notifier
 
 PubSub notifications are essential to Web's operation. Oban uses a Postgres based notifier for
-PubSub by default. That notifier is convenient when getting started, but it has a hard restriction
-on payload size.
+PubSub by default. That notifier is convenient when getting started, but it has a hard 8kb
+restriction on PubSub messages and busy systems may exceed that occasionally.
 
 To get the most out of Web's metrics, you should switch to the PG (Process Groups) based notifier
 built on Distributed Erlang.
 
-```elixir
-config :my_app, Oban,
-  notifier: Oban.Notifiers.PG,
-  repo: MyApp.Repo,
-  ...
-```
+> #### Clustering Required {: .info}
+>
+> The PG notifier **requires that your app is clustered** together. Otherwise, notifications are
+> local to the current node and **you won't see accurate counts or activity metrics**.
 
-The PG notifier **requires that your app is clustered** together. Otherwise, notifications are
-local to the current node.
+```diff
+ config :my_app, Oban,
++  notifier: Oban.Notifiers.PG,
+   repo: MyApp.Repo,
+   ...
+```
 
 #### Usage in Worker Only Nodes
 
@@ -104,10 +106,10 @@ you must explicitly include `oban_met` as a dependency for "workers".
 
 ## Customization
 
-Web customization is done through the `Oban.Web.Resolver` behaviour. To allows you to enable
+Web customization is done through the `Oban.Web.Resolver` behaviour. It allows you to enable
 access controls, control formatting, and provide query limits for filtering and searching. Using a
-custom resolver is entirely optional, but you should familiarize yourself with the default
-limits and functionality.
+custom resolver is entirely optional, but you should familiarize yourself with the default limits
+and functionality.
 
 Installation is complete and you're all set! Start your Phoenix server, point your browser to
 where you mounted Oban and start monitoring your jobs.
@@ -116,7 +118,7 @@ where you mounted Oban and start monitoring your jobs.
 
 * Configure the dashboard connection or mount additional dashboards with the `Oban.Web.Router`
 
-* Configure dashboard behavior with access controls, query limits, and formtting with
+* Configure dashboard behavior with access controls, query limits, and formatting with
   `Oban.Web.Resolver`
 
 * Attach logging and hook into telemetry events with `Oban.Web.Telemetry`
