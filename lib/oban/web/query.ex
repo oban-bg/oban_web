@@ -443,17 +443,23 @@ defmodule Oban.Web.Query do
     :ok
   end
 
+  def cancel_jobs(_conf, _ids), do: :ok
+
   def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
     Repo.delete_all(conf, only_ids(job_ids))
 
     :ok
   end
 
+  def delete_jobs(_conf, _ids), do: :ok
+
   def retry_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.retry_all_jobs(name, only_ids(job_ids))
 
     :ok
   end
+
+  def retry_jobs(_conf, _ids), do: :ok
 
   # Parsing Helpers
 
