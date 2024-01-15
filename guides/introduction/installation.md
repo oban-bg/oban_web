@@ -14,22 +14,38 @@ asset pipeline at all.
 
 ## Authentication
 
-Before you can pull the package into your application you need to add a new `oban` hex repo.
-First, grab the `OBAN_KEY_FINGERPRINT` and `OBAN_LICENSE_KEY` from your account page.
-
-Then, run the following `mix hex.repo` command:
+You need to add a new `oban` hex repo before you can pull the package into your application. Grab
+the `OBAN_LICENSE_KEY` from your account page and plug it into the `mix hex.repo` command:
 
 ```console
 mix hex.repo add oban https://getoban.pro/repo \
-  --fetch-public-key $OBAN_KEY_FINGERPRINT \
+  --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc \
   --auth-key $OBAN_LICENSE_KEY
 ```
 
-#### Authenticating Other Systems
+### Authenticating Other Systems
 
-You'll also need to authenticate on any other development machines, build servers and CI/CD
-instances. There are also guides to help with building [Docker Images][do], authenticating on
-[Gigalixir][gi] and [Heroku][he].
+You'll also need to authenticate on any other development machines, build servers, and CI/CD
+instances.
+
+There are guides to help with CI/CD tooling:
+
+* [Authorizing in CI/CD][ci]
+* [Configuring Dependabot][dp]
+
+And guides for deploying to production:
+
+* [Building Docker Images][do]
+* [Deploying to Fly][fl]
+* [Deploying to Gigalixir][gi]
+* [Deploying to Heroku][he]
+
+[ci]: https://getoban.pro/docs/pro/ci_cd.html
+[dp]: https://getoban.pro/docs/pro/dependabot.html
+[do]: https://getoban.pro/docs/pro/docker.html
+[fl]: https://getoban.pro/docs/pro/fly.html
+[gi]: https://getoban.pro/docs/pro/gigalixir.html
+[he]: https://getoban.pro/docs/pro/heroku.html
 
 ## Configuration
 
@@ -128,6 +144,3 @@ where you mounted Oban and start monitoring your jobs.
 [ac]: Oban.Web.Resolver.html#c:resolve_access/1
 [ba]: https://hexdocs.pm/basic_auth/readme.html
 [oi]: installation.html
-[do]: https://getoban.pro/docs/pro/docker.html
-[gi]: https://getoban.pro/docs/pro/gigalixir.html
-[he]: https://getoban.pro/docs/pro/heroku.html
