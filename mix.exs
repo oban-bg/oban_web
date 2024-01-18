@@ -126,6 +126,7 @@ defmodule Oban.Web.MixProject do
     [
       "guides/introduction/overview.md",
       "guides/introduction/installation.md",
+      "guides/introduction/open_source.md",
       "guides/advanced/metrics.md",
       "guides/advanced/filtering.md",
       "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
