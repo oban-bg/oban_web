@@ -32,6 +32,11 @@ defmodule Oban.Web.Resolver do
     end
 
     @impl true
+    def format_recorded(recorded, _job) do
+      inspect(recorded, charlists: :as_lists, pretty: true)
+    end
+
+    @impl true
     def jobs_query_limit(_state), do: 100_000
 
     @impl true
@@ -131,7 +136,7 @@ defmodule Oban.Web.Resolver do
 
       def format_job_args(job), do: Oban.Web.Resolver.format_job_args(job)
   """
-  @callback format_job_args(Job.t()) :: String.t()
+  @callback format_job_args(job :: Job.t()) :: iodata()
 
   @doc """
   Customize the formatting of job meta wherever it is displayed.
@@ -150,7 +155,31 @@ defmodule Oban.Web.Resolver do
 
       def format_job_meta(job), do: Oban.Web.Resolver.format_job_meta(job)
   """
-  @callback format_job_meta(Job.t()) :: String.t()
+  @callback format_job_meta(job :: Job.t()) :: iodata()
+
+  @doc """
+  Customize the formatting of recorded output wherever it is displayed.
+
+  This callback is similar to `c:format_job_args/1`, but it accepts both the recorded term and the
+  job to help augment the output.
+
+  ## Examples
+
+  Disable pretty printing and change the output width to 98 characters:
+
+      def format_recorded(recorded, _job) do
+        inspect(recorded, pretty: false, width: 98)
+      end
+
+  Display job args alongside recorded output:
+
+      def format_recorded(recorded, %Oban.Job{args: args}) when is_map(recorded) do
+        recorded
+        |> Map.put(:args, args)
+        |> inspect(charlists: :as_lists, pretty: true)
+      end
+  """
+  @callback format_recorded(recorded :: term(), job :: Job.t()) :: iodata()
 
   @doc """
   Extract the current user from a `Plug.Conn` when the dashboard mounts.
@@ -171,7 +200,7 @@ defmodule Oban.Web.Resolver do
       end
 
   """
-  @callback resolve_user(Plug.Conn.t()) :: user()
+  @callback resolve_user(conn :: Plug.Conn.t()) :: user()
 
   @doc """
   Determine the appropriate access level for a user.
@@ -299,17 +328,23 @@ defmodule Oban.Web.Resolver do
 
   @optional_callbacks format_job_args: 1,
                       format_job_meta: 1,
+                      format_recorded: 2,
                       hint_query_limit: 1,
                       jobs_query_limit: 1,
                       resolve_user: 1,
                       resolve_access: 1,
                       resolve_refresh: 1
 
-  @doc false
-  def format_job_args(%Job{args: args}), do: inspect(args, charlists: :as_lists, pretty: true)
+  @inspect_opts [charlists: :as_lists, pretty: true]
 
   @doc false
-  def format_job_meta(%Job{meta: meta}), do: inspect(meta, charlists: :as_lists, pretty: true)
+  def format_job_args(%Job{args: args}), do: inspect(args, @inspect_opts)
+
+  @doc false
+  def format_job_meta(%Job{meta: meta}), do: inspect(meta, @inspect_opts)
+
+  @doc false
+  def format_recorded(recorded, _job), do: inspect(recorded, @inspect_opts)
 
   @doc false
   def resolve_user(_conn), do: nil

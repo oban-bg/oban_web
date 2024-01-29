@@ -179,13 +179,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
         <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_meta(@job, @resolver) %></pre>
       </div>
 
-      <%= if recorded_job?(@job) do %>
+      <%= if @job.meta["recorded"] do %>
         <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
           <h3 class="flex font-semibold mb-3 space-x-2">
             <Icons.camera />
             <span>Recorded Output</span>
           </h3>
-          <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job) %></pre>
+          <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
         </div>
       <% end %>
 
@@ -246,8 +246,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   # Helpers
 
-  defp recorded_job?(%{meta: meta}), do: meta["recorded"] == true
-
   defp format_args(job, resolver) do
     resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
 
@@ -260,13 +258,15 @@ defmodule Oban.Web.Jobs.DetailComponent do
     resolver.format_job_meta(job)
   end
 
-  defp format_recorded(%{meta: meta}) do
+  defp format_recorded(%{meta: meta} = job, resolver) do
+    resolver = if function_exported?(resolver, :format_recorded, 2), do: resolver, else: Resolver
+
     case meta do
       %{"recorded" => true, "return" => value} ->
         value
         |> Base.decode64!(padding: false)
         |> :erlang.binary_to_term([:safe])
-        |> inspect(charlists: :as_lists, pretty: true)
+        |> resolver.format_recorded(job)
 
       _ ->
         "No Recording Yet"

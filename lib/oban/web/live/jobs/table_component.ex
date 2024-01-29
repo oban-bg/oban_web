@@ -9,13 +9,6 @@ defmodule Oban.Web.Jobs.TableComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    resolver =
-      if function_exported?(assigns.resolver, :format_job_args, 1) do
-        assigns.resolver
-      else
-        Resolver
-      end
-
     producers =
       assigns.conf.name
       |> Oban.Met.checks()
@@ -26,7 +19,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       socket
       |> assign(jobs: assigns.jobs, params: assigns.params)
       |> assign(query_limit: query_limit(assigns.resolver, assigns.params))
-      |> assign(producers: producers, resolver: resolver, selected: assigns.selected)
+      |> assign(producers: producers, resolver: assigns.resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
 
