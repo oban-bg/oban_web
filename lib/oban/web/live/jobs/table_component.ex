@@ -1,6 +1,8 @@
 defmodule Oban.Web.Jobs.TableComponent do
   use Oban.Web, :live_component
 
+  alias Oban.Web.Resolver
+
   @inc_limit 20
   @max_limit 200
   @min_limit 20
@@ -11,7 +13,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       if function_exported?(assigns.resolver, :format_job_args, 1) do
         assigns.resolver
       else
-        Oban.Web.Resolver
+        Resolver
       end
 
     producers =
@@ -23,6 +25,7 @@ defmodule Oban.Web.Jobs.TableComponent do
     socket =
       socket
       |> assign(jobs: assigns.jobs, params: assigns.params)
+      |> assign(query_limit: query_limit(assigns.resolver, assigns.params))
       |> assign(producers: producers, resolver: resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
       |> assign(show_more?: assigns.params.limit < @max_limit)
@@ -34,10 +37,16 @@ defmodule Oban.Web.Jobs.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="jobs-table" class="min-w-full">
-      <div :if={Enum.empty?(@jobs)} class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
-        <div class="flex items-center justify-center space-x-2">
+      <div :if={Enum.empty?(@jobs)} class="text-lg text-center py-12">
+        <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
           <Icons.no_symbol /> <span>No jobs match the current set of filters.</span>
         </div>
+        <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Filtering limited to latest <%= integer_to_delimited(@query_limit) %> jobs. See <a
+            class="underline"
+            href="https://getoban.pro/docs/web/filtering.html"
+          >filtering docs</a>.
+        </p>
       </div>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -158,12 +167,22 @@ defmodule Oban.Web.Jobs.TableComponent do
     {:noreply, socket}
   end
 
-  # Format Helpers
+  # Resolver Helpers
 
-  defp format_args(job, resolver, length \\ 98) do
+  defp query_limit(resolver, params) do
+    resolver = if function_exported?(resolver, :jobs_query_limit, 1), do: resolver, else: Resolver
+
+    params.state
+    |> String.to_existing_atom()
+    |> resolver.jobs_query_limit()
+  end
+
+  defp format_args(job, resolver) do
+    resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
+
     job
     |> resolver.format_job_args()
-    |> truncate(0..length)
+    |> truncate(0..98)
   end
 
   # Time Helpers
