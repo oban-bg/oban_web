@@ -32,7 +32,7 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
           phx-click="cancel"
           type="button"
         >
-          <Icons.x_circle class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Cancel
+          <Icons.x_circle class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Cancel Jobs
         </button>
       <% end %>
 
@@ -57,7 +57,7 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
           phx-click="retry"
           type="button"
         >
-          <Icons.arrow_path class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Retry
+          <Icons.arrow_path class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Retry Jobs
         </button>
       <% end %>
 
@@ -66,10 +66,11 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
           id="bulk-delete"
           class="group flex items-center ml-4 text-sm text-gray-500 hover:text-blue-500"
           phx-target={@myself}
+          data-confirm="Are you sure you want to delete these jobs?"
           phx-click="delete"
           type="button"
         >
-          <Icons.trash class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Delete
+          <Icons.trash class="mr-1 h-5 w-5 text-gray-400 group-hover:text-blue-500" /> Delete Jobs
         </button>
       <% end %>
     </div>
