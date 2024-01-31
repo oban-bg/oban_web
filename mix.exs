@@ -72,8 +72,8 @@ defmodule Oban.Web.MixProject do
 
       # Docs and Publishing
       {:ex_doc, "~> 0.28", only: :dev, runtime: false},
-      {:makeup_diff, "~> 0.1", only: :dev, runtime: false},
-      {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
+      {:makeup_diff, "~> 0.1", only: :dev, runtime: false}
+      # {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
     ]
   end
 
