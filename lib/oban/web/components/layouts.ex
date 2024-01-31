@@ -185,7 +185,7 @@ defmodule Oban.Web.Layouts do
         <%= @pro_version %>
       </span>
 
-      <span class="text-gray-800 dark:text-gray-200 mr-1">
+      <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">
         <Icons.soren_logo />
       </span>
 

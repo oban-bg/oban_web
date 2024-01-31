@@ -65,13 +65,18 @@ defmodule Oban.Web.Components.Core do
   A queue specific pause/resume button.
   """
   def pause_button(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:id, fn -> "play-pause-#{assigns.myself}" end)
+      |> assign_new(:title, fn -> if assigns.paused, do: "Resume queue", else: "Pause queue" end)
+
     ~H"""
     <button
       rel="toggle-pause"
-      class={"block hover:text-blue-500 #{if @paused, do: "text-red-500", else: "text-gray-500"}"}
+      class="block text-gray-400 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-500"
       disabled={@disabled}
-      id={"play-pause-#{@myself}"}
-      data-title={if @paused, do: "Resume queue", else: "Pause queue"}
+      id={@id}
+      data-title={@title}
       type="button"
       phx-click={@click}
       phx-target={@myself}
@@ -79,9 +84,9 @@ defmodule Oban.Web.Components.Core do
       phx-hook="Tippy"
     >
       <%= if @paused do %>
-        <Icons.pause_circle class="w-5 h-5" />
-      <% else %>
         <Icons.play_circle class="w-5 h-5" />
+      <% else %>
+        <Icons.pause_circle class="w-5 h-5" />
       <% end %>
     </button>
     """

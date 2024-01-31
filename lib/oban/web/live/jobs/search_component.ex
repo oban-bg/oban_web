@@ -169,7 +169,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   defp option(assigns) do
     ~H"""
     <button
-      class="block w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-500"
+      class="w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-500"
       phx-click={JS.push("append", value: %{choice: @name})}
       phx-target="#search"
       type="button"
