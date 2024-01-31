@@ -188,9 +188,7 @@ defmodule Oban.Web.Queues.TableComponent do
   end
 
   defp table_sort({queue, _checks}, counts, :avail) do
-    counts
-    |> Enum.find(%{}, &(&1["name"] == queue))
-    |> Map.get("available", 0)
+    Map.get(counts, queue, 0)
   end
 
   defp table_sort({_queue, checks}, _counts, :exec) do
