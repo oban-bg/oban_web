@@ -30,15 +30,17 @@ defmodule Oban.Web.Telemetry do
 
   This chart breaks down the possible actions and their specific metadata:
 
-  | action          | metadata           |
-  | --------------- | ------------------ |
-  | `:mount`        |                    |
-  | `:pause_queue`  | `:queue`           |
-  | `:resume_queue` | `:queue`           |
-  | `:scale_queue`  | `:queue`, `:limit` |
-  | `:cancel_jobs`  | `:job_ids`         |
-  | `:delete_jobs`  | `:job_ids`         |
-  | `:retry_jobs`   | `:job_ids`         |
+  | action               | metadata           |
+  | -------------------- | ------------------ |
+  | `:mount`             |                    |
+  | `:pause_queue`       | `:queue`           |
+  | `:resume_queue`      | `:queue`           |
+  | `:pause_all_queues`  |                    |
+  | `:resume_all_queues` |                    |
+  | `:scale_queue`       | `:queue`, `:limit` |
+  | `:cancel_jobs`       | `:job_ids`         |
+  | `:delete_jobs`       | `:job_ids`         |
+  | `:retry_jobs`        | `:job_ids`         |
 
   ## Action Logging
 

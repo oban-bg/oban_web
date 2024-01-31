@@ -7,6 +7,8 @@ defmodule Oban.Web.QueuesPage do
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, Telemetry}
 
+  @flash_timing 5_000
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -25,12 +27,34 @@ defmodule Oban.Web.QueuesPage do
           <% else %>
             <div
               id="queues-header"
-              class="flex items-center border-b border-gray-200 dark:border-gray-700 space-x-2 px-3 py-6"
+              class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-6"
             >
-              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
-              <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">
-                (<%= queues_count(@checks) %>)
-              </h3>
+              <div class="flex space-x-2">
+                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+                <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">
+                  (<%= queues_count(@checks) %>)
+                </h3>
+              </div>
+              <div class="flex space-x-2">
+                <.all_button
+                  access={@access}
+                  action="pause"
+                  checks={@checks}
+                  disabled={all_paused?(@checks)}
+                  myself={@myself}
+                >
+                  <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
+                </.all_button>
+                <.all_button
+                  access={@access}
+                  action="resume"
+                  checks={@checks}
+                  disabled={not any_paused?(@checks)}
+                  myself={@myself}
+                >
+                  <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
+                </.all_button>
+              </div>
             </div>
 
             <.live_component
@@ -46,6 +70,34 @@ defmodule Oban.Web.QueuesPage do
         </div>
       </div>
     </div>
+    """
+  end
+
+  attr :action, :string, required: true
+  attr :access, :any
+  attr :checks, :any
+  attr :disabled, :boolean, default: true
+  attr :myself, :any
+  slot :icon, required: true
+
+  defp all_button(assigns) do
+    ~H"""
+    <button
+      rel={"toggle-#{@action}"}
+      class="flex items-center space-x-2 ml-4 text-sm bg-gray-50 dark:bg-gray-800 p-2 border border-gray-300 dark:border-gray-700
+      rounded-md focus:outline-none hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500
+      disabled:text-gray-300 disabled:border-gray-200 dark:disabled:text-gray-600 dark:disabled:border-gray-700"
+      data-title={"#{String.capitalize(@action)} all queues"}
+      disabled={@disabled or not can?(:pause_queues, @access)}
+      id={"toggle-#{@action}-all"}
+      type="button"
+      phx-click={"toggle-#{@action}-all"}
+      phx-target={@myself}
+      phx-hook="Tippy"
+    >
+      <span><%= String.capitalize(@action) %> All</span>
+      <%= render_slot(@icon) %>
+    </button>
     """
   end
 
@@ -105,6 +157,19 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  @impl Phoenix.LiveComponent
+  def handle_event("toggle-pause-all", _params, socket) do
+    send(self(), :toggle_pause_all)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-resume-all", _params, socket) do
+    send(self(), :toggle_resume_all)
+
+    {:noreply, socket}
+  end
+
   @impl Page
   def handle_info({:toggle_queue, queue}, socket) do
     expanded =
@@ -149,6 +214,26 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  def handle_info(:toggle_pause_all, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    Telemetry.action(:pause_all_queues, socket, [], fn ->
+      Oban.pause_all_queues(socket.assigns.conf.name)
+    end)
+
+    {:noreply, flash(socket, :info, "All queues paused")}
+  end
+
+  def handle_info(:toggle_resume_all, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    Telemetry.action(:resume_all_queues, socket, [], fn ->
+      Oban.resume_all_queues(socket.assigns.conf.name)
+    end)
+
+    {:noreply, flash(socket, :info, "All queues resumed")}
+  end
+
   def handle_info({:scale_queue, queue, name, node, limit}, socket) do
     meta = [queue: queue, name: name, node: node, limit: limit]
 
@@ -181,7 +266,13 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
-  # Helpers
+  # Socket Helpers
+
+  defp flash(socket, mode, message) do
+    Process.send_after(self(), :clear_flash, @flash_timing)
+
+    put_flash(socket, mode, message)
+  end
 
   defp scale_message(queue, opts) do
     cond do
@@ -214,15 +305,13 @@ defmodule Oban.Web.QueuesPage do
     Notifier.notify(conf, :signal, message)
   end
 
-  defp flash(socket, mode, message, timing \\ 5_000) do
-    Process.send_after(self(), :clear_flash, timing)
-
-    put_flash(socket, mode, message)
-  end
-
   defp queues_count(checks) do
     checks
     |> Enum.uniq_by(& &1["queue"])
     |> length()
   end
+
+  defp all_paused?(checks), do: Enum.all?(checks, & &1["paused"])
+
+  defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
 end

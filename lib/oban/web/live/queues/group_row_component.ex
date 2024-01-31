@@ -3,6 +3,8 @@ defmodule Oban.Web.Queues.GroupRowComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
+  alias Oban.Web.Components.Core
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -60,25 +62,15 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         <%= started_at(@checks) %>
       </td>
 
-      <td class="py-3 pr-3 flex justify-end">
-        <button
-          rel="toggle-pause"
-          class={"block #{pause_color(@checks)} hover:text-blue-500"}
+      <td class="py-3 pr-5 flex justify-end border-r border-transparent">
+        <Core.pause_button
+          click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
-          data-title={pause_title(@checks)}
           id={"#{@queue}-toggle-pause"}
-          type="button"
-          phx-click="toggle-pause"
-          phx-target={@myself}
-          phx-throttle="2000"
-          phx-hook="Tippy"
-        >
-          <%= if any_paused?(@checks) do %>
-            <Icons.play_circle class="w-5 h-5" />
-          <% else %>
-            <Icons.pause_circle class="w-5 h-5" />
-          <% end %>
-        </button>
+          myself={@myself}
+          paused={any_paused?(@checks)}
+          title={pause_title(@checks)}
+        />
       </td>
     </tr>
     """
@@ -102,14 +94,6 @@ defmodule Oban.Web.Queues.GroupRowComponent do
   end
 
   # Helpers
-
-  defp pause_color(checks) do
-    cond do
-      Enum.all?(checks, & &1["paused"]) -> "text-red-500"
-      Enum.any?(checks, & &1["paused"]) -> "text-yellow-400"
-      true -> "text-gray-600 dark:text-gray-400"
-    end
-  end
 
   defp pause_title(checks) do
     cond do

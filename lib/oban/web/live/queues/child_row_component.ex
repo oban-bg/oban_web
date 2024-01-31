@@ -19,7 +19,7 @@ defmodule Oban.Web.Queues.ChildRowComponent do
       <td rel="global" class="py-3 text-right tabular"><%= global_limit_to_words([@checks]) %></td>
       <td rel="rate" class="py-3 text-right tabular"><%= rate_limit_to_words([@checks]) %></td>
       <td rel="started" class="py-3 text-right tabular"><%= started_at([@checks]) %></td>
-      <td class="py-3 pr-3 flex justify-end">
+      <td class="py-3 pr-5 border-r border-transparent flex justify-end">
         <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}

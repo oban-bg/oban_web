@@ -56,6 +56,36 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert has_element?(live, "#queue-alpha-node-web_2 [rel=rate]", "3/10 per 1m")
   end
 
+  test "pausing and resuming all queues", %{live: live} do
+    :telemetry_test.attach_event_handlers(self(), [[:oban_web, :action, :stop]])
+
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.2", queue: "bravo")
+
+    refresh(live)
+
+    assert has_element?(live, "#toggle-pause-all", "Pause All")
+
+    live
+    |> element("#toggle-pause-all")
+    |> render_click()
+
+    assert_receive {_event, _ref, _timing, %{action: :pause_all_queues}}
+
+    gossip(node: "web.1", queue: "alpha", paused: true)
+    gossip(node: "web.2", queue: "bravo", paused: true)
+
+    refresh(live)
+
+    assert has_element?(live, "#toggle-resume-all", "Resume All")
+
+    live
+    |> element("#toggle-resume-all")
+    |> render_click()
+
+    assert_receive {_event, _ref, _timing, %{action: :resume_all_queues}}
+  end
+
   test "pausing and resuming active queues", %{live: live} do
     gossip(node: "web.1", queue: "alpha")
     gossip(node: "web.2", queue: "alpha")
