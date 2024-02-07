@@ -212,6 +212,30 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def bolt_circle(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path d="M13.317 6.066a.648.648 0 0 1 .337.703l-.683 3.517h3.404c.245 0 .467.147.568.375a.657.657 0 0 1-.096.688l-5.416 6.43a.613.613 0 0 1-.747.155.648.648 0 0 1-.338-.702l.683-3.518H7.625a.624.624 0 0 1-.568-.375.657.657 0 0 1 .096-.688l5.416-6.43a.613.613 0 0 1 .748-.155ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
+  def bolt_slash(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M8.457 8.457 3 3m5.457 5.457 7.086 7.086m0 0L21 21"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def camera(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -451,20 +475,6 @@ defmodule Oban.Web.Components.Icons do
         stroke-linecap="round"
         stroke-linejoin="round"
         d="M5.25 8.25h15m-16.5 7.5h15m-1.8-13.5l-3.9 19.5m-2.1-19.5l-3.9 19.5"
-      />
-    </.svg_outline>
-    """
-  end
-
-  attr :rest, :global
-
-  def lightning_slash(assigns) do
-    ~H"""
-    <.svg_outline {@rest}>
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        d="M11.412 15.655L9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M8.457 8.457L3 3m5.457 5.457l7.086 7.086m0 0L21 21"
       />
     </.svg_outline>
     """
