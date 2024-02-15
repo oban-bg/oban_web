@@ -262,14 +262,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
     resolver = if function_exported?(resolver, :format_recorded, 2), do: resolver, else: Resolver
 
     case meta do
-      %{"recorded" => true, "return" => value} ->
-        value
-        |> Base.decode64!(padding: false)
-        |> :erlang.binary_to_term([:safe])
-        |> resolver.format_recorded(job)
-
-      _ ->
-        "No Recording Yet"
+      %{"recorded" => true, "return" => value} -> resolver.format_recorded(value, job)
+      _ -> "No Recording Yet"
     end
   end
 end

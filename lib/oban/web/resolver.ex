@@ -33,7 +33,9 @@ defmodule Oban.Web.Resolver do
 
     @impl true
     def format_recorded(recorded, _job) do
-      inspect(recorded, charlists: :as_lists, pretty: true)
+      recorded
+      |> Oban.Web.Resolver.decode_recorded()
+      |> inspect(charlists: :as_lists, pretty: true)
     end
 
     @impl true
@@ -160,21 +162,35 @@ defmodule Oban.Web.Resolver do
   @doc """
   Customize the formatting of recorded output wherever it is displayed.
 
-  This callback is similar to `c:format_job_args/1`, but it accepts both the recorded term and the
-  job to help augment the output.
+  This callback is similar to `c:format_job_args/1`, but it accepts both the recorded binary and
+  the job to help augment the output.
+
+  Note that you **must decode the recorded binary** prior to inspecting it.
 
   ## Examples
 
   Disable pretty printing and change the output width to 98 characters:
 
       def format_recorded(recorded, _job) do
-        inspect(recorded, pretty: false, width: 98)
+        recorded
+        |> Oban.Web.Resolver.decode_recorded()
+        |> inspect(pretty: false, width: 98)
+      end
+
+  Decode the recorded value without the `:safe` flag set, to allow decoding terms with unknown
+  atoms:
+
+      def format_recorded(recorded, _job) do
+        recorded
+        |> Oban.Web.Resolver.decode_recorded([])
+        |> inspect(pretty: false, width: 98)
       end
 
   Display job args alongside recorded output:
 
       def format_recorded(recorded, %Oban.Job{args: args}) when is_map(recorded) do
         recorded
+        |> Oban.Web.Resolver.decode_recorded()
         |> Map.put(:args, args)
         |> inspect(charlists: :as_lists, pretty: true)
       end
@@ -337,6 +353,31 @@ defmodule Oban.Web.Resolver do
 
   @inspect_opts [charlists: :as_lists, pretty: true]
 
+  @doc """
+  Decode a recorded job's output from a compressed, base64 binary into proper terms.
+
+  By default, decoding uses the `:safe` flag to prevent decoding unsafe data that can be used to
+  attack the Erlang runtime.
+
+  ## Example
+
+  Decode a recorded binary:
+
+      iex> Oban.Web.Resolver.decode_recorded("g3QAAAABdwRuYW1lbQAAAARvYmFu")
+      %{name: "oban"}
+
+  Decode without safety:
+
+      iex> Oban.Web.Resolver.decode_recorded("g3QAAAABdwRhdG9tdwd1bmtub3du", [])
+      %{atom: :unknown}
+  """
+  @spec decode_recorded(binary(), [:safe]) :: term()
+  def decode_recorded(bin, opts \\ [:safe]) do
+    bin
+    |> Base.decode64!(padding: false)
+    |> :erlang.binary_to_term(opts)
+  end
+
   @doc false
   def format_job_args(%Job{args: args}), do: inspect(args, @inspect_opts)
 
@@ -344,7 +385,11 @@ defmodule Oban.Web.Resolver do
   def format_job_meta(%Job{meta: meta}), do: inspect(meta, @inspect_opts)
 
   @doc false
-  def format_recorded(recorded, _job), do: inspect(recorded, @inspect_opts)
+  def format_recorded(recorded, _job) do
+    recorded
+    |> decode_recorded()
+    |> inspect(@inspect_opts)
+  end
 
   @doc false
   def resolve_user(_conn), do: nil
