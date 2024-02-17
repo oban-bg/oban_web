@@ -67,6 +67,32 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "GammaWorker")
     end
 
+    test "indicating rescued jobs", %{live: live} do
+      job_1 =
+        insert_job!([ref: 1],
+          state: "executing",
+          worker: AlphaWorker,
+          attempted_at: DateTime.utc_now(),
+          attempted_by: ["web-1", "aaaa-aaaa"],
+          meta: %{"rescued" => 1}
+        )
+
+      job_2 =
+        insert_job!([ref: 2],
+          state: "executing",
+          worker: GammaWorker,
+          attempted_at: DateTime.utc_now(),
+          attempted_by: ["web-1", "aaaa-aaaa"]
+        )
+
+      click_state(live, "executing")
+
+      assert has_job?(live, "AlphaWorker")
+
+      assert has_element?(live, "#job-rescued-#{job_1.id}")
+      refute has_element?(live, "#job-rescued-#{job_2.id}")
+    end
+
     test "indicating orphaned jobs", %{live: live} do
       now = DateTime.utc_now()
 
@@ -96,8 +122,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "GammaWorker")
 
-      assert has_element?(live, "#job-status-#{job_1.id}")
-      refute has_element?(live, "#job-status-#{job_2.id}")
+      assert has_element?(live, "#job-orphaned-#{job_1.id}")
+      refute has_element?(live, "#job-orphaned-#{job_2.id}")
     end
 
     test "viewing available or scheduled clears the node filter", %{live: live} do

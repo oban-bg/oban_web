@@ -84,8 +84,9 @@ defmodule Oban.Web.QueuesPage do
     ~H"""
     <button
       rel={"toggle-#{@action}"}
-      class="flex items-center space-x-2 ml-4 text-sm bg-gray-50 dark:bg-gray-800 p-2 border border-gray-300 dark:border-gray-700
-      rounded-md focus:outline-none hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500
+      class="flex items-center space-x-2 p-2 text-sm bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200
+      border border-gray-300 dark:border-gray-700 rounded-md
+      focus:outline-none hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500
       disabled:text-gray-300 disabled:border-gray-200 dark:disabled:text-gray-600 dark:disabled:border-gray-700"
       data-title={"#{String.capitalize(@action)} all queues"}
       disabled={@disabled or not can?(:pause_queues, @access)}

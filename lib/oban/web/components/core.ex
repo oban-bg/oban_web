@@ -84,9 +84,9 @@ defmodule Oban.Web.Components.Core do
       phx-hook="Tippy"
     >
       <%= if @paused do %>
-        <Icons.play_circle class="w-5 h-5" />
+        <Icons.play_circle_solid class="w-5 h-5" />
       <% else %>
-        <Icons.pause_circle class="w-5 h-5" />
+        <Icons.pause_circle_solid class="w-5 h-5" />
       <% end %>
     </button>
     """

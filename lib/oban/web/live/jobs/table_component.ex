@@ -96,15 +96,23 @@ defmodule Oban.Web.Jobs.TableComponent do
         </samp>
       </div>
 
-      <div class="ml-auto py-3 pr-3 flex items-center space-x-2">
+      <div class="ml-auto py-3 pr-3 flex items-center space-x-1">
         <p class="py-1.5 px-2 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
           <%= @job.queue %>
         </p>
 
-        <Icons.state_orphaned
+        <Icons.life_buoy
+          :if={Map.has_key?(@job.meta, "rescued")}
+          class="h-5 w-5 text-gray-500 dark:text-gray-300"
+          id={"job-rescued-#{assigns.job.id}"}
+          phx-hook="Tippy"
+          data-title="Rescued by the DynamicLifeline plugin"
+        />
+
+        <Icons.crossbones_circle
           :if={orphaned?(@job, @producers)}
-          class="h-4 w-4 text-gray-500 dark:text-gray-300"
-          id={"job-status-#{assigns.job.id}"}
+          class="h-5 w-5 text-gray-500 dark:text-gray-300"
+          id={"job-orphaned-#{assigns.job.id}"}
           phx-hook="Tippy"
           data-title="Orphaned, host node shut down"
         />

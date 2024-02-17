@@ -140,15 +140,42 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         if(@active?, do: "border-violet-500 hover:border-violet-500 focus:border-violet-500")
       ]}
     >
-      <span class={"pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate #{if @queue.paused?, do: "line-through font-light"}"}>
+      <span class={[
+        "pl-2 text-sm text-left font-medium truncate",
+        if(@queue.paused?,
+          do: "text-gray-400 dark:text-gray-600",
+          else: "text-gray-700 dark:text-gray-300"
+        )
+      ]}>
         <%= @queue.name %>
       </span>
 
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
         <div class="flex items-center text-right">
-          <Icons.pause_circle :if={@queue.paused?} class="w-4 h-4" rel="is-paused" />
-          <Icons.arrow_trending_down :if={@queue.rate_limited?} class="w-4 h-4" rel="is-rate-limited" />
-          <Icons.globe :if={@queue.global?} class="w-4 h-4" rel="is-global" />
+          <Icons.pause_circle
+            :if={@queue.paused?}
+            class="w-4 h-4"
+            data-title="Paused"
+            id={"#{@queue.name}-is-paused"}
+            phx-hook="Tippy"
+            rel="is-paused"
+          />
+          <Icons.arrow_trending_down
+            :if={@queue.rate_limited?}
+            class="w-4 h-4"
+            data-title="Rate limited"
+            id={"#{@queue.name}-is-rate-limited"}
+            phx-hook="Tippy"
+            rel="is-rate-limited"
+          />
+          <Icons.globe
+            :if={@queue.global?}
+            class="w-4 h-4"
+            data-title="Globally limited"
+            id={"#{@queue.name}-is-global"}
+            phx-hook="Tippy"
+            rel="is-global"
+          />
 
           <div class="text-sm w-10 tabular" rel="limit"><%= integer_to_estimate(@queue.limit) %></div>
         </div>

@@ -21,6 +21,7 @@ defmodule Oban.Web.Query do
     :worker,
     :queue,
     :max_attempts,
+    :meta,
     :state,
     :inserted_at,
     :attempted_at,
