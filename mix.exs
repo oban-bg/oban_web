@@ -55,7 +55,7 @@ defmodule Oban.Web.MixProject do
       {:postgrex, "~> 0.17"},
 
       # Oban
-      {:oban, "~> 2.17", github: "sorentwo/oban", override: true},
+      {:oban, "~> 2.17.4"},
       {:oban_met, "~> 0.1.4", repo: :oban},
       {:oban_pro, "~> 1.3", repo: :oban, only: [:test, :dev]},
 
