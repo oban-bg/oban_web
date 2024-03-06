@@ -354,7 +354,8 @@ defmodule Oban.Web.JobsPage do
           avail: Map.get(avail_counts, queue, 0),
           execu: Map.get(execu_counts, queue, 0),
           limit: 0,
-          paused?: false,
+          all_paused?: true,
+          any_paused?: false,
           global?: false,
           rate_limited?: false
         }
@@ -365,7 +366,8 @@ defmodule Oban.Web.JobsPage do
       |> update_in([queue, :limit], &check_limit(&1, check))
       |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
       |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))
-      |> update_in([queue, :paused?], &(&1 or check["paused"]))
+      |> update_in([queue, :all_paused?], &(&1 and check["paused"]))
+      |> update_in([queue, :any_paused?], &(&1 or check["paused"]))
     end)
     |> Map.values()
     |> Enum.sort_by(& &1.name)

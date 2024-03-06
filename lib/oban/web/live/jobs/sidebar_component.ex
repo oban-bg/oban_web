@@ -142,7 +142,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     >
       <span class={[
         "pl-2 text-sm text-left font-medium truncate",
-        if(@queue.paused?,
+        if(@queue.any_paused?,
           do: "text-gray-400 dark:text-gray-600",
           else: "text-gray-700 dark:text-gray-300"
         )
@@ -151,15 +151,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       </span>
 
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
-        <div class="flex items-center text-right">
-          <Icons.pause_circle
-            :if={@queue.paused?}
-            class="w-4 h-4"
-            data-title="Paused"
-            id={"#{@queue.name}-is-paused"}
-            phx-hook="Tippy"
-            rel="is-paused"
-          />
+        <div class="flex items-center text-right space-x-1">
           <Icons.arrow_trending_down
             :if={@queue.rate_limited?}
             class="w-4 h-4"
@@ -176,7 +168,22 @@ defmodule Oban.Web.Jobs.SidebarComponent do
             phx-hook="Tippy"
             rel="is-global"
           />
-
+          <Icons.pause_circle
+            :if={@queue.all_paused?}
+            class="w-4 h-4"
+            data-title="All paused"
+            id={"#{@queue.name}-is-paused"}
+            phx-hook="Tippy"
+            rel="is-paused"
+          />
+          <Icons.play_pause_circle
+            :if={@queue.any_paused? and not @queue.all_paused?}
+            class="w-4 h-4"
+            data-title="Some paused"
+            id={"#{@queue.name}-is-some-paused"}
+            phx-hook="Tippy"
+            rel="has-some-paused"
+          />
           <div class="text-sm w-10 tabular" rel="limit"><%= integer_to_estimate(@queue.limit) %></div>
         </div>
         <div class="text-sm text-right w-10 tabular" rel="executing">

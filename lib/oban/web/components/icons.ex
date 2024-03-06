@@ -663,6 +663,20 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def play_pause_circle(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path
+        d="M17 9v6m-2.455-6v6M7 14.32V9.68c0-.494.509-.803.918-.558l3.877 2.32c.191.115.31.328.31.559 0 .23-.119.443-.31.558l-3.877 2.32a.59.59 0 0 1-.613-.002.65.65 0 0 1-.305-.556h0ZM12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def plus_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
