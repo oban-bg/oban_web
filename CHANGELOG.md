@@ -79,7 +79,77 @@ applications.
   ...
   ```
 
-## v2.10.2 — 2023-01-05
+## v2.10.3 — 2024-03-11
+
+This release requires Oban v2.17.4 or greater to support the new `Notifier.status/1` connectivity
+check.
+
+### Enhancements
+
+- [Dashboard] Display a connectivity indicator for isolated or solitary nodes.
+
+  The previous connectivity status didn't work for the `PG` notifier because the local node is
+  always connected. This uses Oban's new `Notifier.status/1` check to enhance the status to
+  indicate more subtle disconnected statuses with more information:
+
+  * Isolated (no messages from any node)
+  * Solitary (only messages from the local node)
+
+- [Queues] Add "Pause All" and "Resume All" buttons.
+
+  Add pause all and resume all functionality to queues page, with updated components and styling
+  for individual pause and resume buttons.
+
+  The buttons emit new `pause_all_queues` and `resume_all_queues` telemetry events.
+
+- [Queue Detail] Add global queue partitioning controls.
+
+  It's now possible to view and edit `global_limit` partitions identically to `rate_limit`
+  partitions from the queue details page. This also contains a subtle fix to selecting the "Worker
+  + Args" partitioning scheme to prevent crashes.
+
+- [Jobs] Indicate when filtered results are limited and link directly to the filtering jobs for
+  reference.
+
+- [Jobs] Show different icons to indicate when a queue is paused on "all nodes" and "some nodes".
+
+- [Jobs] Require confirmation before bulk deleting jobs.
+
+  Bulk deleting jobs now requires a confirmation step like individual deletion. In addition, bulk
+  operation labels are more descriptive to make it clear they're operating on "jobs" and not the
+  selection.
+
+- [Jobs] Jobs rescued by the `DynamicLifeline` plugin have an icon indicator similar to orphans.
+
+  Now it's possible to identify rescued jobs on the dashboard. The status is based on `rescued`
+  metadata added in the recently released Oban Pro v1.3.5.
+
+- [Resolver] Add `format_recorded/2` resolver callback to customize recorded output wherever it is
+  displayed.
+
+  This callback is similar to `format_job_args/1`, but it accepts both the recorded binary and the
+  job to help augment the output. Now it's possible to format recorded output just like `args` or
+  `meta`.
+
+- [Resolver] Expose `decode_recorded/2` helper to format recorded.
+
+  The new helper makes it possible to decode recorded values without the `:safe` flag applied.
+
+### Bug Fixes
+
+- [Jobs] Gracefully handle bulk operations without any jobs.
+
+  After an update a previously selected row may be removed from the page before a bulk operation
+  (cancel, retry, delete, etc.) could be applied. Now that is safely ignored rather than causing a
+  pattern match error.
+
+- [Queues] Fix sorting the queues table by `available` status.
+
+  Sorting was based on old counts and broke when any queue lacked available jobs.
+
+- [Tooltips] Update tooltip labels after the initial render.
+
+## v2.10.2 — 2024-01-05
 
 ### Enhancements
 
