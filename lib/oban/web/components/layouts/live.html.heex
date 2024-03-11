@@ -13,7 +13,7 @@
 
     <.nav socket={@socket} page={@page.name} />
 
-    <div class="ml-auto flex items-center space-x-4">
+    <div class="ml-auto flex items-center space-x-3">
       <.live_component module={Shortcuts} id="shortcuts" />
       <.live_component module={Connectivity} id="connectivity" conf={@conf} />
       <.live_component module={Theme} id="theme" theme={@theme} />
