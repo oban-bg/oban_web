@@ -21,8 +21,8 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     html = render_component(Component, assigns(access: :read_only), router: Router)
 
     assert has_fragment?(html, "#local_limit[disabled]")
-    assert has_fragment?(html, "#global_limit[disabled]")
-    assert has_fragment?(html, "#rate_limit_allowed[disabled]")
+    assert has_fragment?(html, "#global_allowed[disabled]")
+    assert has_fragment?(html, "#rate_allowed[disabled]")
 
     html = render_component(Component, assigns(access: :all), router: Router)
 

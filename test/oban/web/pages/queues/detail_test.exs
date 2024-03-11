@@ -46,23 +46,54 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     # Initially the input is disabled when the limit is nil
-    assert has_element?(live, "#global_limit[disabled]")
+    assert has_element?(live, "#global_allowed[disabled]")
 
     live
     |> element("#toggle-global")
     |> render_click()
 
     # When the input is enabled it gets the local limit value
-    assert has_element?(live, "#global_limit[value=5]")
+    assert has_element?(live, "#global_allowed[value=5]")
 
     live
     |> form("#global-form")
-    |> render_submit(%{global_limit: 10})
+    |> render_submit(%{global_allowed: 10})
 
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Global limit set for alpha queue")
 
     assert_signal(%{"action" => "scale", "global_limit" => %{"allowed" => 10}, "queue" => "alpha"})
+  end
+
+  test "configuring global partitioning" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    refute has_element?(live, "#global_allowed[disabled]")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "worker"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{"allowed" => 10, "partition" => [["fields", ["worker"]]]},
+      "queue" => "alpha"
+    })
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "args", global_partition_keys: "foo,bar"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 10,
+        "partition" => [["fields", ["args"]], ["keys", ["foo", "bar"]]]
+      },
+      "queue" => "alpha"
+    })
   end
 
   test "setting the rate limit across all nodes" do
@@ -71,18 +102,18 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     # Initially the input is disabled when the limit is nil
-    assert has_element?(live, "#rate_limit_allowed[disabled]")
+    assert has_element?(live, "#rate_allowed[disabled]")
 
     live
     |> element("#toggle-rate-limit")
     |> render_click()
 
-    assert has_element?(live, "#rate_limit_allowed[value=5]")
-    assert has_element?(live, "#rate_limit_period[value=60]")
+    assert has_element?(live, "#rate_allowed[value=5]")
+    assert has_element?(live, "#rate_period[value=60]")
 
     live
     |> form("#rate-limit-form")
-    |> render_submit(%{rate_limit_allowed: 10, rate_limit_period: 90})
+    |> render_submit(%{rate_allowed: 10, rate_period: 90})
 
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Rate limit set for alpha queue")
@@ -90,7 +121,43 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_signal(%{
       "action" => "scale",
       "queue" => "alpha",
-      "rate_limit" => %{"allowed" => "10", "period" => "90"}
+      "rate_limit" => %{"allowed" => 10, "period" => 90}
+    })
+  end
+
+  test "configuring rate limit partitioning" do
+    gossip(local_limit: 5, rate_limit: %{allowed: 10, period: 1}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    refute has_element?(live, "#rate_allowed[disabled]")
+
+    live
+    |> form("#rate-limit-form")
+    |> render_submit(%{rate_partition_fields: "worker"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "rate_limit" => %{
+        "allowed" => 10,
+        "partition" => [["fields", ["worker"]]],
+        "period" => 1
+      },
+      "queue" => "alpha"
+    })
+
+    live
+    |> form("#rate-limit-form")
+    |> render_submit(%{rate_partition_fields: "args", rate_partition_keys: "foo,bar"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "rate_limit" => %{
+        "allowed" => 10,
+        "partition" => [["fields", ["args"]], ["keys", ["foo", "bar"]]],
+        "period" => 1
+      },
+      "queue" => "alpha"
     })
   end
 
