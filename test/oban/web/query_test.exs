@@ -17,6 +17,7 @@ defmodule Oban.Web.QueryTest do
     end
 
     test "splitting path qualifiers" do
+      assert %{args: [~w(account), ""]} = parse("args.account")
       assert %{args: [~w(account), "Foo"]} = parse("args.account:Foo")
       assert %{args: [~w(account name), "Foo"]} = parse("args.account.name:Foo")
     end

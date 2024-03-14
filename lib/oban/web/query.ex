@@ -518,9 +518,13 @@ defmodule Oban.Web.Query do
   end
 
   defp parse_path(field, path_and_term) do
-    [path, term] = String.split(path_and_term, ":", parts: 2)
+    case String.split(path_and_term, ":", parts: 2) do
+      [path, term] ->
+        {field, [String.split(path, "."), String.trim(term, "\"")]}
 
-    {field, [String.split(path, "."), String.trim(term, "\"")]}
+      [path] ->
+        {field, [String.split(path, "."), ""]}
+    end
   end
 
   # Filter Helpers
