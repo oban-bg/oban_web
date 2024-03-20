@@ -131,13 +131,18 @@ defmodule Oban.Web.JobsPage do
   end
 
   @impl Page
-  def handle_params(%{"id" => job_id}, _uri, socket) do
+  def handle_params(%{"id" => job_id} = params, _uri, socket) do
+    params = params_with_defaults(params, socket)
+
     case Query.refresh_job(socket.assigns.conf, job_id) do
       nil ->
         {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
 
       job ->
-        {:noreply, assign(socket, detailed: job, page_title: page_title(job))}
+        {:noreply,
+         socket
+         |> assign(detailed: job, page_title: page_title(job))
+         |> assign(params: params)}
     end
   end
 
