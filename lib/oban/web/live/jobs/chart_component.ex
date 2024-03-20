@@ -156,7 +156,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     |> Met.timeslice(String.to_existing_atom(assigns.series), opts)
     |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
     |> top_n(assigns.max_data)
-    |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, os_time)} end)
+    |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, step, os_time)} end)
   end
 
   defp top_n(points, limit) do
@@ -165,11 +165,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
     |> Enum.take(limit)
   end
 
-  defp interpolate(slices, cols, time) do
+  defp interpolate(slices, cols, step, time) do
     lookup = Map.new(slices)
 
     for index <- 0..(cols - 1) do
-      x = time - index
+      x = time - step * index
       y = Map.get(lookup, index, nil)
 
       %{x: to_string(x), y: y}
