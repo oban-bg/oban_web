@@ -226,7 +226,10 @@ const STACK_OPTS = {
 
 const LINES_OPTS = {
   ...BASIC_OPTS,
+  borderWidth: 2,
   borderJoinStyle: "round",
+  radius: 2,
+  spanGaps: true,
   scales: {
     x: {
       grid: {
