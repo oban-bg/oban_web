@@ -90,7 +90,7 @@ After you've verified that the dashboard is loading you'll probably want to rest
 dashboard via authentication, either with a [custom resolver's][ac] access controls or [Basic
 Auth][ba].
 
-#### Switch to the PG Notifier
+### Switch to the PG Notifier
 
 PubSub notifications are essential to Web's operation. Oban uses a Postgres based notifier for
 PubSub by default. That notifier is convenient when getting started, but it has a hard 8kb
@@ -111,10 +111,10 @@ built on Distributed Erlang.
    ...
 ```
 
-#### Usage in Worker Only Nodes
+### Usage with Web and Worker Nodes
 
-To receive metrics from non-web nodes in a system with separate "web" and "worker" applications
-you must explicitly include `oban_met` as a dependency for "workers".
+To use Web in an application that also runs on non-web nodes, i.e. a system with separate "web"
+and "worker" applications, you must explicitly include `oban_met` as a dependency for "workers".
 
 ```elixir
 {:oban_met, "~> 0.1", repo: :oban}
