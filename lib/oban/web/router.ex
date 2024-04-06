@@ -62,6 +62,20 @@ defmodule Oban.Web.Router do
   Note that the default name is `Oban`, setting `oban_name: Oban` in the example above was purely
   for demonstration purposes.
 
+  ### On Mount Hooks
+
+  You can provide a list of hooks to attach to the dashboard's mount lifecycle. Additional hooks
+  are prepended before [Oban Web's own Authentication](Oban.Web.Resolver). For example, to run a
+  user-fetching hook and an activation checking hook before mount:
+
+  ```elixir
+  scope "/" do
+    pipe_through :browser
+
+    oban_dashboard "/oban", on_mount: [MyApp.UserHook, MyApp.ActivatedHook]
+  end
+  ```
+
   ### Customizing the Socket Connection
 
   Applications that use a live socket other than "/live" can override the default socket path in
@@ -210,7 +224,7 @@ defmodule Oban.Web.Router do
 
     Enum.each(opts, &validate_opt!/1)
 
-    session_name = Keyword.get(opts, :as, :oban_dashboard)
+    on_mount = Keyword.get(opts, :on_mount, []) ++ [Oban.Web.Authentication]
 
     session_args = [
       prefix,
@@ -222,10 +236,12 @@ defmodule Oban.Web.Router do
     ]
 
     session_opts = [
-      on_mount: Oban.Web.Authentication,
+      on_mount: on_mount,
       session: {__MODULE__, :__session__, session_args},
       root_layout: {Oban.Web.Layouts, :root}
     ]
+
+    session_name = Keyword.get(opts, :as, :oban_dashboard)
 
     {session_name, session_opts, as: session_name}
   end

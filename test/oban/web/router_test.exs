@@ -74,6 +74,16 @@ defmodule Oban.Web.RouterTest do
       assert %{"access" => :read_only, "refresh" => 5, "user" => %{id: 1}} = session
     end
 
+    test "passing additional on_mount hooks through to session opts" do
+      {_name, sess_opts, _opts} = Router.__options__("/oban", [])
+
+      assert [Oban.Web.Authentication] = Keyword.get(sess_opts, :on_mount)
+
+      {_name, sess_opts, _opts} = Router.__options__("/oban", on_mount: [My.Hook])
+
+      assert [My.Hook, Oban.Web.Authentication] = Keyword.get(sess_opts, :on_mount)
+    end
+
     test "falling back to default values with a partial resolver implementation" do
       conn =
         :get
