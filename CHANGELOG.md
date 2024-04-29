@@ -79,6 +79,46 @@ applications.
   ...
   ```
 
+## v2.10.4 — 2024-04-29
+
+### Enhancements
+
+- [Jobs] Allow sorting jobs by the number of attempts.
+
+  Sorting by the `attempt` column can help highlight jobs that fail and accumulate retries.
+
+- [Router] Accept additional `on_mount` hooks to `oban_dashboard`
+
+  You can provide a list of hooks to attach to the dashboard's mount lifecycle. Additional hooks
+  are prepended before [Oban Web's own Authentication](Oban.Web.Resolver). For example, to run a
+  user-fetching hook and an activation checking hook before mount:
+
+  ```elixir
+  scope "/" do
+    pipe_through :browser
+
+    oban_dashboard "/oban", on_mount: [MyApp.UserHook, MyApp.ActivatedHook]
+  end
+  ```
+
+### Bug Fixes
+
+- [Chart] Display the correct time labels on the chart's x-axis.
+
+  Now the labels correctly reflect the current slice increment (e.g. 2s, 5s, 10s), rather than
+  always counting by 1s.
+
+- [Dashboard] Set default params before every page render, even when defaults aren't needed.
+
+  Occasionally, missing default params cause a missing key error when navigating from a job's
+  detail view back to the main page. As a precaution, we now set defaults in the detail clause as
+  well.
+
+- [Jobs] Safely parse search qualifiers like `args` without a trailing colon.
+
+  Now parsing an `args` path without a trailing period or search term is considered empty rather
+  than falling through and raising a match error.
+
 ## v2.10.3 — 2024-03-11
 
 This release requires Oban v2.17.4 or greater to support the new `Notifier.status/1` connectivity
