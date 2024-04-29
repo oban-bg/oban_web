@@ -4,7 +4,7 @@ defmodule Oban.Web.Jobs.SortComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="job-sort" class="w-24 relative">
+    <div id="job-sort" class="w-28 relative">
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
@@ -26,13 +26,14 @@ defmodule Oban.Web.Jobs.SortComponent do
       </button>
 
       <nav
-        class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+        class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white
+        dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
         id="sort-menu"
         role="listbox"
         tabindex="-1"
       >
         <.option
-          :for={value <- ~w(time worker queue)}
+          :for={value <- ["time", "attempt", "queue", "worker"]}
           link={oban_path(:jobs, Map.put(@params, :sort_by, value))}
           selected={@params.sort_by}
           value={value}
@@ -64,7 +65,9 @@ defmodule Oban.Web.Jobs.SortComponent do
       <% else %>
         <span class="block w-4 h-4"></span>
       <% end %>
-      <span class="capitalize text-gray-800 dark:text-gray-200"><%= @value %></span>
+      <span class="capitalize text-gray-800 dark:text-gray-200">
+        <%= String.replace(@value, "_", " ") %>
+      </span>
     </.link>
     """
   end

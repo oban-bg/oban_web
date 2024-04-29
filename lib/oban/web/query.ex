@@ -595,6 +595,10 @@ defmodule Oban.Web.Query do
 
   # Ordering Helpers
 
+  defp order(query, :attempt, _state, dir) do
+    order_by(query, [j], {^dir, j.attempt})
+  end
+
   defp order(query, :queue, _state, dir) do
     order_by(query, [j], {^dir, j.queue})
   end
