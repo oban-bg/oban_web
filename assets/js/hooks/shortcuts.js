@@ -1,6 +1,7 @@
 const PAIRS = {
   "/": "#search",
   "?": "#shortcuts",
+  C: "#nav-crons",
   J: "#nav-jobs",
   Q: "#nav-queues",
   r: "#refresh-selector",

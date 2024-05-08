@@ -42,42 +42,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
           active={active_filter?(@params, :queues, queue.name)}
           patch={patch_params(@params, :jobs, :queues, queue.name)}
           values={[Queue.total_limit(queue), queue.counts.executing, queue.counts.available]}
-        >
-          <:statuses>
-            <Icons.arrow_trending_down
-              :if={Queue.rate_limit?(queue)}
-              class="w-4 h-4"
-              data-title="Rate limited"
-              id={"#{queue.name}-is-rate-limited"}
-              phx-hook="Tippy"
-              rel="is-rate-limited"
-            />
-            <Icons.globe
-              :if={Queue.global_limit?(queue)}
-              class="w-4 h-4"
-              data-title="Globally limited"
-              id={"#{queue.name}-is-global"}
-              phx-hook="Tippy"
-              rel="is-global"
-            />
-            <Icons.pause_circle
-              :if={Queue.all_paused?(queue)}
-              class="w-4 h-4"
-              data-title="All paused"
-              id={"#{queue.name}-is-paused"}
-              phx-hook="Tippy"
-              rel="is-paused"
-            />
-            <Icons.play_pause_circle
-              :if={Queue.any_paused?(queue) and not Queue.all_paused?(queue)}
-              class="w-4 h-4"
-              data-title="Some paused"
-              id={"#{queue.name}-is-some-paused"}
-              phx-hook="Tippy"
-              rel="has-some-paused"
-            />
-          </:statuses>
-        </SidebarComponents.filter_row>
+        />
       </SidebarComponents.section>
     </SidebarComponents.sidebar>
     """

@@ -42,6 +42,7 @@ defmodule Oban.Web.ShortcutsComponent do
               <dl class="divide-y divide-gray-100 dark:divide-gray-900 text-sm">
                 <.list_item description="Go to jobs" shortcut="J" />
                 <.list_item description="Go to queues" shortcut="Q" />
+                <.list_item description="Go to crons" shortcut="C" />
 
                 <.list_item description="Focus search" shortcut="/" />
                 <.list_item description="Toggle refresh" shortcut="r" />
