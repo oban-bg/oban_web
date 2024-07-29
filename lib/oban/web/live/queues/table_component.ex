@@ -1,7 +1,6 @@
 defmodule Oban.Web.Queues.TableComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Components.Sort
   alias Oban.Web.Queues.{ChildRowComponent, GroupRowComponent}
 
   @impl Phoenix.LiveComponent
@@ -25,103 +24,15 @@ defmodule Oban.Web.Queues.TableComponent do
       class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700"
     >
       <thead>
-        <tr class="text-gray-500 dark:text-gray-400">
-          <th
-            scope="col"
-            class="w-1/4 text-left text-xs font-medium uppercase tracking-wider py-3 pl-4"
-          >
-            <Sort.header_link
-              label="name"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="start"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="nodes"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="exec"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="avail"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="local"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="global"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="rate limit"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
-          <th
-            scope="col"
-            class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pl-1"
-          >
-            <Sort.header_link
-              label="started"
-              params={@params}
-              socket={@socket}
-              page={:queues}
-              justify="end"
-            />
-          </th>
+        <tr class="text-gray-400 dark:text-gray-600">
+          <.th label="name" class="w-1/4 text-left" />
+          <.th label="nodes" class="w-16 text-right" />
+          <.th label="exec" class="w-16 text-right" />
+          <.th label="avail" class="w-16 text-right" />
+          <.th label="local" class="w-16 text-right" />
+          <.th label="global" class="w-16 text-right" />
+          <.th label="rate limit" class="w-24 text-right" />
+          <.th label="started" class="w-16 text-right" />
           <th scope="col" class="w-5"></th>
         </tr>
       </thead>
@@ -162,6 +73,17 @@ defmodule Oban.Web.Queues.TableComponent do
         <% end %>
       </tbody>
     </table>
+    """
+  end
+
+  attr :label, :string
+  attr :class, :string, default: ""
+
+  defp th(assigns) do
+    ~H"""
+    <th scope="col" class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
+      <%= @label %>
+    </th>
     """
   end
 

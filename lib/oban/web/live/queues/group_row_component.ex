@@ -62,7 +62,7 @@ defmodule Oban.Web.Queues.GroupRowComponent do
         <%= started_at(@checks) %>
       </td>
 
-      <td class="py-3 pr-5 flex justify-end border-r border-transparent">
+      <td class="py-3 pl-3 pr-5 flex justify-end border-r border-transparent">
         <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
