@@ -79,6 +79,10 @@ applications.
   ...
   ```
 
+## v2.10.5 — 2024-07-29
+
+Relax the Oban dependency to allow v2.17.4+ or v2.18.0+
+
 ## v2.10.4 — 2024-04-29
 
 ### Enhancements

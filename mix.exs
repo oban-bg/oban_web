@@ -1,7 +1,7 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.10.4"
+  @version "2.10.5"
 
   def project do
     [
@@ -55,8 +55,8 @@ defmodule Oban.Web.MixProject do
       {:postgrex, "~> 0.17"},
 
       # Oban
-      {:oban, "~> 2.17.4"},
-      {:oban_met, "~> 0.1.4", repo: :oban},
+      {:oban, ">= 2.17.4 and < 2.19.0"},
+      {:oban_met, "~> 0.1.7", repo: :oban},
       {:oban_pro, "~> 1.3", repo: :oban, only: [:test, :dev]},
 
       # Dev Server
