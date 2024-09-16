@@ -47,7 +47,7 @@ defmodule Oban.Web.Query do
 
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-  @ignored_chars ~W(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
+  @ignored_chars ~w(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
   defmacrop path_key(key, value) do
     quote do
