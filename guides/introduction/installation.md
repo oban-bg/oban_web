@@ -18,7 +18,7 @@ You need to add a new `oban` hex repo before you can pull the package into your 
 the `OBAN_LICENSE_KEY` from your account page and plug it into the `mix hex.repo` command:
 
 ```console
-mix hex.repo add oban https://getoban.pro/repo \
+mix hex.repo add oban https://repo.oban.pro \
   --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc \
   --auth-key $OBAN_LICENSE_KEY
 ```
