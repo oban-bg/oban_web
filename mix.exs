@@ -57,10 +57,10 @@ defmodule Oban.Web.MixProject do
       # Oban
       {:oban, ">= 2.17.4 and < 2.19.0"},
       {:oban_met, "~> 0.1.7", repo: :oban},
-      {:oban_pro, "~> 1.3", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 1.5.0-rc.4", repo: :oban, only: [:test, :dev]},
 
       # Dev Server
-      {:bandit, "~> 0.7", only: :dev},
+      {:bandit, "~> 1.5", only: :dev},
       {:esbuild, "~> 0.7", only: :dev, runtime: false},
       {:faker, "~> 0.17", only: :dev},
       {:phoenix_live_reload, "~> 1.2", only: :dev},

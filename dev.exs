@@ -15,6 +15,7 @@ defmodule WebDev.Generator do
   @delay_chance 30
 
   @workers [
+    Oban.Workers.ArticleSummarizer,
     Oban.Workers.AvatarProcessor,
     Oban.Workers.BotCleaner,
     Oban.Workers.DigestMailer,
@@ -69,13 +70,14 @@ defmodule WebDev.Generator do
 
   @impl GenServer
   def handle_info({:generate, worker}, state) do
-    changesets = for _ <- @min_jobs..@max_jobs do
-      []
-      |> weighted_schedule()
-      |> random_priority()
-      |> tracing_meta()
-      |> worker.gen()
-    end
+    changesets =
+      for _ <- @min_jobs..@max_jobs do
+        []
+        |> weighted_schedule()
+        |> random_priority()
+        |> tracing_meta()
+        |> worker.gen()
+      end
 
     Oban.insert_all(changesets)
 
@@ -371,6 +373,24 @@ defmodule Oban.Workers.VideoProcessor do
   def process(%Job{args: %__MODULE__{}}), do: Generator.random_perform(1_000, 20_000)
 end
 
+defmodule Oban.Workers.ArticleSummarizer do
+  @moduledoc false
+
+  use Oban.Pro.Decorator
+
+  alias Faker.{Team, UUID}
+  alias WebDev.Generator
+
+  def gen(_opts) do
+    new_summarize(UUID.V4(), Team.name())
+  end
+
+  @job true
+  def summarize(_id, _team) do
+    Generator.random_perform(500, 5_000)
+  end
+end
+
 # Repo
 
 defmodule WebDev.Repo do
@@ -380,19 +400,17 @@ end
 defmodule WebDev.Migration0 do
   use Ecto.Migration
 
-  def up do
-    Oban.Migrations.up()
-    Oban.Pro.Migrations.Producers.up()
-    Oban.Pro.Migrations.DynamicCron.up()
-    Oban.Pro.Migrations.DynamicQueues.up()
-  end
+  def up, do: Oban.Migration.up()
 
-  def down do
-    Oban.Pro.Migrations.DynamicQueues.down()
-    Oban.Pro.Migrations.DynamicCron.down()
-    Oban.Pro.Migrations.Producers.down()
-    Oban.Migrations.down()
-  end
+  def down, do: Oban.Migration.down()
+end
+
+defmodule WebDev.Migration1 do
+  use Ecto.Migration
+
+  def up, do: Oban.Pro.Migration.up()
+
+  def down, do: Oban.Pro.Migration.down()
 end
 
 # Phoenix
@@ -503,7 +521,7 @@ Task.async(fn ->
 
   {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
 
-  Ecto.Migrator.run(WebDev.Repo, [{0, WebDev.Migration0}], :up, all: true)
+  Ecto.Migrator.run(WebDev.Repo, [{0, WebDev.Migration0}, {1, WebDev.Migration1}], :up, all: true)
 
   Process.sleep(:infinity)
 end)
