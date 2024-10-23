@@ -382,7 +382,7 @@ defmodule Oban.Workers.ArticleSummarizer do
   alias WebDev.Generator
 
   def gen(_opts) do
-    new_summarize(UUID.V4(), Team.name())
+    new_summarize(UUID.v4(), Team.name())
   end
 
   @job true
