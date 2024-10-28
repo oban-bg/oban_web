@@ -63,7 +63,6 @@ defmodule Oban.Web.QueuesPage do
               access={@access}
               counts={@counts}
               checks={@checks}
-              expanded={@expanded}
               params={@params}
             />
           <% end %>
@@ -110,7 +109,6 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:params, default)
     |> assign_new(:default_params, default)
-    |> assign_new(:expanded, &MapSet.new/0)
     |> assign_new(:checks, fn -> checks(socket.assigns.conf) end)
     |> assign_new(:counts, fn -> counts(socket.assigns.conf) end)
   end
@@ -172,17 +170,6 @@ defmodule Oban.Web.QueuesPage do
   end
 
   @impl Page
-  def handle_info({:toggle_queue, queue}, socket) do
-    expanded =
-      if MapSet.member?(socket.assigns.expanded, queue) do
-        MapSet.delete(socket.assigns.expanded, queue)
-      else
-        MapSet.put(socket.assigns.expanded, queue)
-      end
-
-    {:noreply, assign(socket, expanded: expanded)}
-  end
-
   def handle_info({:pause_queue, queue}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
       Oban.pause_queue(socket.assigns.conf.name, queue: queue)

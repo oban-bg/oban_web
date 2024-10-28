@@ -31,7 +31,6 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
         <Core.pause_button
           click="toggle-pause"
           disabled={not can?(:pause_queues, @access)}
-          myself={@myself}
           paused={@paused}
         />
       </td>

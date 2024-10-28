@@ -67,7 +67,7 @@ defmodule Oban.Web.Components.Core do
   def pause_button(assigns) do
     assigns =
       assigns
-      |> assign_new(:id, fn -> "play-pause-#{assigns.myself}" end)
+      |> assign_new(:id, fn -> "#{assigns.queue}-toggle-pause" end)
       |> assign_new(:title, fn -> if assigns.paused, do: "Resume queue", else: "Pause queue" end)
 
     ~H"""
@@ -79,9 +79,10 @@ defmodule Oban.Web.Components.Core do
       data-title={@title}
       type="button"
       phx-click={@click}
-      phx-target={@myself}
+      phx-target={@target}
       phx-throttle="2000"
       phx-hook="Tippy"
+      phx-value-queue={@queue}
     >
       <%= if @paused do %>
         <Icons.play_circle_solid class="w-5 h-5" />
