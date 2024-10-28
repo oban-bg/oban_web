@@ -5,8 +5,8 @@ defmodule Oban.Web.JobsPage do
 
   alias Oban.Met
   alias Oban.Web.Jobs.{BulkActionComponent, ChartComponent, DetailComponent, HeaderComponent}
-  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, SortComponent, TableComponent}
-  alias Oban.Web.{Page, Query, Telemetry}
+  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, TableComponent}
+  alias Oban.Web.{Page, Query, SortComponent, Telemetry}
 
   @flash_timing 5_000
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
@@ -63,7 +63,7 @@ defmodule Oban.Web.JobsPage do
                 params={without_defaults(@params, @default_params)}
                 resolver={@resolver}
               />
-              <.live_component id="sorter" module={SortComponent} params={@params} />
+              <SortComponent.select params={@params} by={~w(time attempt queue worker)} />
             </div>
 
             <.live_component

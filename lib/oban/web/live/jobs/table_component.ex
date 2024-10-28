@@ -69,8 +69,8 @@ defmodule Oban.Web.Jobs.TableComponent do
         class="p-3"
         rel="toggle-select"
         phx-click="toggle-select"
-        phx-value-id={@job.id}
         phx-target={@myself}
+        phx-value-id={@job.id}
       >
         <%= if MapSet.member?(@selected, @job.id) do %>
           <Icons.check_selected class="w-5 h-5 text-blue-500" />

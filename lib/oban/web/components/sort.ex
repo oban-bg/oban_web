@@ -1,10 +1,13 @@
-defmodule Oban.Web.Jobs.SortComponent do
-  use Oban.Web, :live_component
+defmodule Oban.Web.SortComponent do
+  use Oban.Web, :html
 
-  @impl Phoenix.LiveComponent
-  def render(assigns) do
+  attr :id, :string, default: "job-sort"
+  attr :by, :list, required: true
+  attr :params, :map, required: true
+
+  def select(assigns) do
     ~H"""
-    <div id="job-sort" class="w-28 relative">
+    <div id={@id} class="w-28 relative">
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
@@ -33,7 +36,7 @@ defmodule Oban.Web.Jobs.SortComponent do
         tabindex="-1"
       >
         <.option
-          :for={value <- ["time", "attempt", "queue", "worker"]}
+          :for={value <- @by}
           link={oban_path(:jobs, Map.put(@params, :sort_by, value))}
           selected={@params.sort_by}
           value={value}
@@ -49,6 +52,10 @@ defmodule Oban.Web.Jobs.SortComponent do
     </div>
     """
   end
+
+  attr :link, :any, required: true
+  attr :selected, :string, required: true
+  attr :value, :string, required: true
 
   defp option(assigns) do
     ~H"""
@@ -72,3 +79,5 @@ defmodule Oban.Web.Jobs.SortComponent do
     """
   end
 end
+
+

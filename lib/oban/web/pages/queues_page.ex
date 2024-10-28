@@ -5,7 +5,7 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.{Met, Notifier}
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
-  alias Oban.Web.{Page, Telemetry}
+  alias Oban.Web.{Page, SortComponent, Telemetry}
 
   @flash_timing 5_000
 
@@ -27,34 +27,11 @@ defmodule Oban.Web.QueuesPage do
           <% else %>
             <div
               id="queues-header"
-              class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-6"
+              class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-3"
             >
-              <div class="flex space-x-2">
-                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
-                <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">
-                  (<%= queues_count(@checks) %>)
-                </h3>
-              </div>
-              <div class="flex space-x-2">
-                <.all_button
-                  access={@access}
-                  action="pause"
-                  checks={@checks}
-                  disabled={all_paused?(@checks)}
-                  myself={@myself}
-                >
-                  <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
-                </.all_button>
-                <.all_button
-                  access={@access}
-                  action="resume"
-                  checks={@checks}
-                  disabled={not any_paused?(@checks)}
-                  myself={@myself}
-                >
-                  <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
-                </.all_button>
-              </div>
+              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+
+              <SortComponent.select by={~w(name nodes avail exec local global rate_limit started)} params={@params} />
             </div>
 
             <.live_component
@@ -292,14 +269,4 @@ defmodule Oban.Web.QueuesPage do
 
     Notifier.notify(conf, :signal, message)
   end
-
-  defp queues_count(checks) do
-    checks
-    |> Enum.uniq_by(& &1["queue"])
-    |> length()
-  end
-
-  defp all_paused?(checks), do: Enum.all?(checks, & &1["paused"])
-
-  defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
 end
