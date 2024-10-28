@@ -1,6 +1,13 @@
 defmodule Oban.Web.Repo.Migrations.AddObanJobsTable do
   use Ecto.Migration
 
-  defdelegate up, to: Oban.Migrations
-  defdelegate down, to: Oban.Migrations
+  def up do
+    Oban.Migration.up()
+    Oban.Migration.up(prefix: "private")
+  end
+  
+  def down do
+    Oban.Migration.down()
+    Oban.Migration.down(prefix: "private")
+  end
 end
