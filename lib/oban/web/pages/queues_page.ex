@@ -27,11 +27,23 @@ defmodule Oban.Web.QueuesPage do
           <% else %>
             <div
               id="queues-header"
-              class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-3 py-3"
+              class="pr-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700"
             >
-              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+              <div class="flex items-center">
+                <button class="p-6 group" phx-click="toggle-select-all">
+                  <div class="w-4 h-4 border border-2 border-gray-400 rounded group-hover:bg-gray-400">
+                    <Icons.check class="w-3 h-3 text-white hover:text-white" />
+                  </div>
+                </button>
 
-              <SortComponent.select by={~w(name nodes avail exec local global rate_limit started)} params={@params} />
+                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+              </div>
+
+              <SortComponent.select
+                by={~w(name nodes avail exec local global rate_limit started)}
+                page={:queues}
+                params={@params}
+              />
             </div>
 
             <.live_component
@@ -49,12 +61,12 @@ defmodule Oban.Web.QueuesPage do
     """
   end
 
-  attr :action, :string, required: true
-  attr :access, :any
-  attr :checks, :any
-  attr :disabled, :boolean, default: true
-  attr :myself, :any
-  slot :icon, required: true
+  attr(:action, :string, required: true)
+  attr(:access, :any)
+  attr(:checks, :any)
+  attr(:disabled, :boolean, default: true)
+  attr(:myself, :any)
+  slot(:icon, required: true)
 
   defp all_button(assigns) do
     ~H"""

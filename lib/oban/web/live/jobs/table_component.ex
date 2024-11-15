@@ -45,7 +45,6 @@ defmodule Oban.Web.Jobs.TableComponent do
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.job_row
           :for={job <- @jobs}
-          id={"job-#{job.id}"}
           job={job}
           myself={@myself}
           producers={@producers}
@@ -64,7 +63,7 @@ defmodule Oban.Web.Jobs.TableComponent do
 
   defp job_row(assigns) do
     ~H"""
-    <li id={@id} class={"flex items-center #{select_class(@selected, @job)} #{hidden_class(@job)}"}>
+    <li id={"job-#{@job.id}"} class={"flex items-center #{select_class(@selected, @job)} #{hidden_class(@job)}"}>
       <button
         class="p-3"
         rel="toggle-select"
@@ -81,7 +80,7 @@ defmodule Oban.Web.Jobs.TableComponent do
 
       <div class="py-3">
         <.link
-          class="block font-semibold text-sm text-gray-800 dark:text-gray-200 hover:text-blue-500 focus:outline-none focus:text-blue-500"
+          class="block font-semibold text-sm text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none focus:text-blue-500"
           patch={oban_path([:jobs, @job.id])}
           rel="worker"
         >

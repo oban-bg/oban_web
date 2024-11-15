@@ -3,6 +3,7 @@ defmodule Oban.Web.SortComponent do
 
   attr :id, :string, default: "job-sort"
   attr :by, :list, required: true
+  attr :page, :atom, default: :jobs
   attr :params, :map, required: true
 
   def select(assigns) do
@@ -25,7 +26,9 @@ defmodule Oban.Web.SortComponent do
         <% else %>
           <Icons.bars_arrow_up class="w-4 h-4" />
         <% end %>
-        <span class="ml-1 block capitalize"><%= @params.sort_by %></span>
+        <span class="ml-1 block capitalize">
+          <%= String.replace(@params.sort_by, "_", " ") %>
+        </span>
       </button>
 
       <nav
@@ -37,14 +40,14 @@ defmodule Oban.Web.SortComponent do
       >
         <.option
           :for={value <- @by}
-          link={oban_path(:jobs, Map.put(@params, :sort_by, value))}
+          link={oban_path(@page, Map.put(@params, :sort_by, value))}
           selected={@params.sort_by}
           value={value}
         />
         <hr class="w-full border-0 border-b border-gray-200 dark:border-gray-700 my-2" />
         <.option
           :for={value <- ~w(asc desc)}
-          link={oban_path(:jobs, Map.put(@params, :sort_dir, value))}
+          link={oban_path(@page, Map.put(@params, :sort_dir, value))}
           selected={@params.sort_dir}
           value={value}
         />
@@ -79,5 +82,3 @@ defmodule Oban.Web.SortComponent do
     """
   end
 end
-
-

@@ -5,7 +5,7 @@ defmodule Oban.Web.Repo.Migrations.AddObanJobsTable do
     Oban.Migration.up()
     Oban.Migration.up(prefix: "private")
   end
-  
+
   def down do
     Oban.Migration.down()
     Oban.Migration.down(prefix: "private")

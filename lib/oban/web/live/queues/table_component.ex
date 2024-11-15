@@ -21,45 +21,36 @@ defmodule Oban.Web.Queues.TableComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <table
-      id="queues-table"
-      class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700"
-    >
-      <thead>
-        <tr class="text-gray-400 dark:text-gray-600">
-          <.th label="name" class="w-1/4 text-left" />
-          <.th label="nodes" class="w-16 text-right" />
-          <.th label="exec" class="w-16 text-right" />
-          <.th label="avail" class="w-12 text-right" />
-          <.th label="local" class="w-12 text-right" />
-          <.th label="global" class="w-12 text-right" />
-          <.th label="rate limit" class="w-24 text-right" />
-          <.th label="started" class="w-16 text-right" />
-          <.th label="pause" class="w-4 pr-4 text-right" />
-        </tr>
-      </thead>
+    <div id="queues-table" class="min-w-full">
+      <ul class="flex items-center border-b border-gray-200 text-gray-400 dark:text-gray-600">
+        <.queue_header label="name" class="ml-12 w-1/3 text-left" />
+        <div class="ml-auto flex items-center space-x-6">
+          <.queue_header label="nodes" class="w-16 text-right" />
+          <.queue_header label="exec" class="w-16 text-right" />
+          <.queue_header label="avail" class="w-16 text-right" />
+          <.queue_header label="local" class="w-16 text-right" />
+          <.queue_header label="global" class="w-16 text-right" />
+          <.queue_header label="rate limit" class="w-32 text-right" />
+          <.queue_header label="started" class="w-20 text-right" />
+          <.queue_header label="pause" class="w-20 pr-6 text-right" />
+        </div>
+      </ul>
 
-      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-        <%= if Enum.any?(@queues) do %>
-          <.queue_row
-            :for={{queue, counts, checks} <- @queues}
-            access={@access}
-            checks={checks}
-            counts={counts}
-            myself={@myself}
-            queue={queue}
-          />
-        <% else %>
-          <tr>
-            <td colspan="9" class="text-lg text-center text-gray-500 dark:text-gray-400 py-12">
-              <div class="flex items-center justify-center space-x-2">
-                <Icons.queue_list /> <span>No active queues.</span>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+      <div :if={Enum.empty?(@queues)} class="flex items-center justify-center space-x-2">
+        <Icons.queue_list /> <span>No queues are currently running.</span>
+      </div>
+
+      <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+        <.queue_row
+          :for={{queue, counts, checks} <- @queues}
+          access={@access}
+          checks={checks}
+          counts={counts}
+          myself={@myself}
+          queue={queue}
+        />
+      </ul>
+    </div>
     """
   end
 
@@ -68,15 +59,15 @@ defmodule Oban.Web.Queues.TableComponent do
   attr :label, :string, required: true
   attr :class, :string, default: ""
 
-  defp th(assigns) do
+  defp queue_header(assigns) do
     ~H"""
-    <th scope="col" class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
+    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
       <%= @label %>
-    </th>
+    </span>
     """
   end
 
-  attr :access, :any, required: true
+  attr :access, :map, required: true
   attr :checks, :map, required: true
   attr :counts, :map, required: true
   attr :myself, :any, required: true
@@ -84,61 +75,63 @@ defmodule Oban.Web.Queues.TableComponent do
 
   defp queue_row(assigns) do
     ~H"""
-    <tr
-      id={"queue-#{@queue}"}
-      class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-950/30"
-    >
-      <td class="pl-4 py-3 text-gray-700 dark:text-gray-300 flex items-center space-x-2">
-        <.link
-          patch={oban_path([:queues, @queue])}
-          data-title={"View and configure #{@queue} details"}
-          class="block font-semibold text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-400"
-          phx-hook="Tippy"
-          rel="name"
-        >
+    <li id={"queue-#{@queue}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
+      <button class="p-6 group" phx-click="toggle-select" phx-value-id={@queue}>
+        <div class="w-4 h-4 border border-2 border-gray-400 rounded group-hover:bg-gray-400">
+          <Icons.check class="w-3 h-3 text-white hover:text-white" />
+        </div>
+      </button>
+
+      <.link
+        patch={oban_path([:queues, @queue])}
+        class="py-3 flex flex-grow items-center"
+      >
+        <div rel="name" class="py-3 w-1/3 font-semibold text-gray-700 dark:text-gray-300">
           <%= @queue %>
-        </.link>
-      </td>
+        </div>
 
-      <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= nodes_count(@checks) %>
-      </td>
+        <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
+          <span rel="nodes" class="w-16 text-right">
+            <%= nodes_count(@checks) %>
+          </span>
 
-      <td rel="executing" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= executing_count(@checks) %>
-      </td>
+          <span rel="executing" class="w-16 text-right">
+            <%= executing_count(@checks) %>
+          </span>
 
-      <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= integer_to_estimate(@counts) %>
-      </td>
+          <span rel="available" class="w-16 text-right">
+            <%= integer_to_estimate(@counts) %>
+          </span>
 
-      <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= local_limit(@checks) %>
-      </td>
+          <span rel="local" class="w-16 text-right">
+            <%= local_limit(@checks) %>
+          </span>
 
-      <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= global_limit_to_words(@checks) %>
-      </td>
+          <span rel="global" class="w-16 text-right">
+            <%= global_limit_to_words(@checks) %>
+          </span>
 
-      <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= rate_limit_to_words(@checks) %>
-      </td>
+          <span rel="rate" class="w-32 text-right">
+            <%= rate_limit_to_words(@checks) %>
+          </span>
 
-      <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= started_at(@checks) %>
-      </td>
+          <span rel="started" class="w-20 text-right">
+            <%= started_at(@checks) %>
+          </span>
 
-      <td class="py-3 pr-6 flex justify-end border-r border-transparent">
-        <Core.pause_button
-          click="toggle-pause"
-          disabled={not can?(:pause_queues, @access)}
-          queue={@queue}
-          target={@myself}
-          paused={any_paused?(@checks)}
-          title={pause_title(@checks)}
-        />
-      </td>
-    </tr>
+          <span class="w-20 pr-6 flex justify-end border-r border-transparent">
+            <Core.pause_button
+              click="toggle-pause"
+              disabled={not can?(:pause_queues, @access)}
+              queue={@queue}
+              target={@myself}
+              paused={any_paused?(@checks)}
+              title={pause_title(@checks)}
+            />
+          </span>
+        </div>
+      </.link>
+    </li>
     """
   end
 
