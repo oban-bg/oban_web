@@ -30,11 +30,7 @@ defmodule Oban.Web.QueuesPage do
               class="pr-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700"
             >
               <div class="flex items-center">
-                <button class="p-6 group" phx-click="toggle-select-all">
-                  <div class="w-4 h-4 border border-2 border-gray-400 rounded group-hover:bg-gray-400">
-                    <Icons.check class="w-3 h-3 text-white hover:text-white" />
-                  </div>
-                </button>
+                <Core.row_checkbox click="do-nothing" value="all" checked={false} myself={@myself} />
 
                 <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
               </div>
@@ -53,6 +49,7 @@ defmodule Oban.Web.QueuesPage do
               counts={@counts}
               checks={@checks}
               params={@params}
+              selected={@selected}
             />
           <% end %>
         </div>
@@ -61,12 +58,12 @@ defmodule Oban.Web.QueuesPage do
     """
   end
 
-  attr(:action, :string, required: true)
-  attr(:access, :any)
-  attr(:checks, :any)
-  attr(:disabled, :boolean, default: true)
-  attr(:myself, :any)
-  slot(:icon, required: true)
+  attr :action, :string, required: true
+  attr :access, :any
+  attr :checks, :any
+  attr :disabled, :boolean, default: true
+  attr :myself, :any
+  slot :icon, required: true
 
   defp all_button(assigns) do
     ~H"""
@@ -95,11 +92,12 @@ defmodule Oban.Web.QueuesPage do
     default = fn -> %{sort_by: "name", sort_dir: "asc"} end
 
     socket
-    |> assign_new(:detail, fn -> nil end)
-    |> assign_new(:params, default)
-    |> assign_new(:default_params, default)
     |> assign_new(:checks, fn -> checks(socket.assigns.conf) end)
     |> assign_new(:counts, fn -> counts(socket.assigns.conf) end)
+    |> assign_new(:default_params, default)
+    |> assign_new(:detail, fn -> nil end)
+    |> assign_new(:params, default)
+    |> assign_new(:selected, &MapSet.new/0)
   end
 
   @impl Page
@@ -209,6 +207,19 @@ defmodule Oban.Web.QueuesPage do
     end)
 
     {:noreply, flash(socket, :info, "All queues resumed")}
+  end
+
+  def handle_info({:toggle_select, queue}, socket) do
+    selected = socket.assigns.selected
+
+    selected =
+      if MapSet.member?(selected, queue) do
+        MapSet.delete(selected, queue)
+      else
+        MapSet.put(selected, queue)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
   end
 
   def handle_info({:scale_queue, queue, name, node, limit}, socket) do

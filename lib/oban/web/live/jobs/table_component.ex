@@ -26,10 +26,27 @@ defmodule Oban.Web.Jobs.TableComponent do
     {:ok, socket}
   end
 
+  attr :label, :string, required: true
+  attr :class, :string, default: ""
+
+  defp header(assigns) do
+    ~H"""
+    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
+      <%= @label %>
+    </span>
+    """
+  end
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="jobs-table" class="min-w-full">
+      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
+        <.header label="details" class="ml-12" />
+        <.header label="queue" class="ml-auto text-right" />
+        <.header label="time" class="w-20 pr-3 text-right" />
+      </ul>
+
       <div :if={Enum.empty?(@jobs)} class="text-lg text-center py-12">
         <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
           <Icons.no_symbol /> <span>No jobs match the current set of filters.</span>
@@ -63,61 +80,56 @@ defmodule Oban.Web.Jobs.TableComponent do
 
   defp job_row(assigns) do
     ~H"""
-    <li id={"job-#{@job.id}"} class={"flex items-center #{select_class(@selected, @job)} #{hidden_class(@job)}"}>
-      <button
-        class="p-3"
-        rel="toggle-select"
-        phx-click="toggle-select"
-        phx-target={@myself}
-        phx-value-id={@job.id}
-      >
-        <%= if MapSet.member?(@selected, @job.id) do %>
-          <Icons.check_selected class="w-5 h-5 text-blue-500" />
-        <% else %>
-          <Icons.check_empty class="w-5 h-5 text-gray-400 hover:text-blue-500" />
-        <% end %>
-      </button>
+    <li
+      id={"job-#{@job.id}"}
+      class={["flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30", hidden_class(@job)]}
+    >
+      <Core.row_checkbox
+        click="toggle-select"
+        value={@job.id}
+        checked={MapSet.member?(@selected, @job.id)}
+        myself={@myself}
+      />
 
-      <div class="py-3">
-        <.link
-          class="block font-semibold text-sm text-blue-600 dark:text-blue-300 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none focus:text-blue-500"
-          patch={oban_path([:jobs, @job.id])}
-          rel="worker"
-        >
-          <%= @job.worker %>
-        </.link>
+      <.link patch={oban_path([:jobs, @job.id])} class="flex flex-grow items-center">
+        <div class="py-2.5">
+          <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300" rel="worker">
+            <%= @job.worker %>
+          </span>
 
-        <span class="tabular text-xs text-gray-600 dark:text-gray-300" rel="attempts">
-          <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
-        </span>
-        <samp class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400" rel="args">
-          <%= format_args(@job, @resolver) %>
-        </samp>
-      </div>
+          <span class="tabular text-xs text-gray-600 dark:text-gray-300" rel="attempts">
+            <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
+          </span>
 
-      <div class="ml-auto py-3 pr-3 flex items-center space-x-1">
-        <p class="py-1.5 px-2 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
-          <%= @job.queue %>
-        </p>
+          <samp class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400" rel="args">
+            <%= format_args(@job, @resolver) %>
+          </samp>
+        </div>
 
-        <Icons.life_buoy
-          :if={Map.has_key?(@job.meta, "rescued")}
-          class="h-5 w-5 text-gray-500 dark:text-gray-300"
-          id={"job-rescued-#{assigns.job.id}"}
-          phx-hook="Tippy"
-          data-title="Rescued by the DynamicLifeline plugin"
-        />
+        <div class="ml-auto flex items-center space-x-1">
+          <Icons.life_buoy
+            :if={Map.has_key?(@job.meta, "rescued")}
+            class="h-5 w-5 text-gray-500 dark:text-gray-300"
+            id={"job-rescued-#{assigns.job.id}"}
+            phx-hook="Tippy"
+            data-title="Rescued by the DynamicLifeline plugin"
+          />
 
-        <Icons.crossbones_circle
-          :if={orphaned?(@job, @producers)}
-          class="h-5 w-5 text-gray-500 dark:text-gray-300"
-          id={"job-orphaned-#{assigns.job.id}"}
-          phx-hook="Tippy"
-          data-title="Orphaned, host node shut down"
-        />
+          <Icons.crossbones_circle
+            :if={orphaned?(@job, @producers)}
+            class="h-5 w-5 text-gray-500 dark:text-gray-300"
+            id={"job-orphaned-#{assigns.job.id}"}
+            phx-hook="Tippy"
+            data-title="Orphaned, host node shut down"
+          />
+
+          <span class="py-1.5 px-2 tabular truncate text-xs rounded-md bg-gray-100 dark:bg-gray-950">
+            <%= @job.queue %>
+          </span>
+        </div>
 
         <div
-          class="w-16 tabular text-sm text-right text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
+          class="w-20 pr-3 text-sm text-right tabular text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
           data-timestamp={timestamp(@job)}
           data-relative-mode={relative_mode(@job)}
           id={"job-ts-#{@job.id}"}
@@ -126,7 +138,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         >
           00:00
         </div>
-      </div>
+      </.link>
     </li>
     """
   end
@@ -207,14 +219,6 @@ defmodule Oban.Web.Jobs.TableComponent do
   end
 
   # Class Helpers
-
-  defp select_class(selected, job) do
-    if MapSet.member?(selected, job.id) do
-      "bg-blue-50 dark:bg-blue-950"
-    else
-      "hover:bg-gray-50 dark:hover:bg-gray-950/30"
-    end
-  end
 
   defp hidden_class(%{hidden?: true}), do: "opacity-25 pointer-events-none"
   defp hidden_class(_job), do: ""

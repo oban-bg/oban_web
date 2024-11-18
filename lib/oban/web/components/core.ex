@@ -125,7 +125,7 @@ defmodule Oban.Web.Components.Core do
         tabindex="-1"
       >
         <%= for option <- @options do %>
-          <.option name={@name} value={option} selected={@selected} target={@target} />
+          <.dropdown_option name={@name} value={option} selected={@selected} target={@target} />
         <% end %>
       </ul>
     </div>
@@ -137,7 +137,7 @@ defmodule Oban.Web.Components.Core do
   attr :selected, :any, required: true
   attr :target, :any
 
-  defp option(assigns) do
+  defp dropdown_option(assigns) do
     class =
       if assigns.selected == assigns.value do
         "text-blue-500 dark:text-blue-400"
@@ -167,6 +167,30 @@ defmodule Oban.Web.Components.Core do
         <%= @value |> to_string() |> String.replace("_", " ") %>
       </span>
     </li>
+    """
+  end
+
+  attr :checked, :boolean, default: false
+  attr :click, :string, required: true
+  attr :myself, :any, required: true
+  attr :value, :string, required: true
+
+  def row_checkbox(assigns) do
+    style =
+      if assigns.checked do
+        "border-blue-500 bg-blue-500"
+      else
+        "border-gray-400 dark:border-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-600"
+      end
+
+    assigns = assign(assigns, :style, style)
+
+    ~H"""
+    <button class="p-6 group" phx-click={@click} phx-target={@myself} phx-value-id={@value}>
+      <div class={["w-4 h-4 rounded border", @style]}>
+        <Icons.check class="w-3.5 h-3.5 text-transparent group-hover:text-white dark:group-hover:text-gray-950" />
+      </div>
+    </button>
     """
   end
 end

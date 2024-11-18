@@ -3,8 +3,6 @@ defmodule Oban.Web.Queues.TableComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
-  alias Oban.Web.Components.Core
-
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     {sort_by, sort_dir} = atomize_sort(assigns.params)
@@ -15,14 +13,20 @@ defmodule Oban.Web.Queues.TableComponent do
       |> Enum.sort_by(&table_sort(&1, assigns.counts, sort_by), sort_dir)
       |> queues_to_rows(assigns.counts)
 
-    {:ok, assign(socket, access: assigns.access, params: assigns.params, queues: queues)}
+    {:ok,
+     assign(socket,
+       access: assigns.access,
+       params: assigns.params,
+       queues: queues,
+       selected: assigns.selected
+     )}
   end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="queues-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 text-gray-400 dark:text-gray-600">
+      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
         <.queue_header label="name" class="ml-12 w-1/3 text-left" />
         <div class="ml-auto flex items-center space-x-6">
           <.queue_header label="nodes" class="w-16 text-right" />
@@ -31,8 +35,8 @@ defmodule Oban.Web.Queues.TableComponent do
           <.queue_header label="local" class="w-16 text-right" />
           <.queue_header label="global" class="w-16 text-right" />
           <.queue_header label="rate limit" class="w-32 text-right" />
-          <.queue_header label="started" class="w-20 text-right" />
-          <.queue_header label="pause" class="w-20 pr-6 text-right" />
+          <.queue_header label="started" class="w-28 text-right" />
+          <.queue_header label="statuses" class="w-28 pr-6 text-right" />
         </div>
       </ul>
 
@@ -48,6 +52,7 @@ defmodule Oban.Web.Queues.TableComponent do
           counts={counts}
           myself={@myself}
           queue={queue}
+          selected={MapSet.member?(@selected, queue)}
         />
       </ul>
     </div>
@@ -72,21 +77,15 @@ defmodule Oban.Web.Queues.TableComponent do
   attr :counts, :map, required: true
   attr :myself, :any, required: true
   attr :queue, :string, required: true
+  attr :selected, :boolean, default: false
 
   defp queue_row(assigns) do
     ~H"""
     <li id={"queue-#{@queue}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
-      <button class="p-6 group" phx-click="toggle-select" phx-value-id={@queue}>
-        <div class="w-4 h-4 border border-2 border-gray-400 rounded group-hover:bg-gray-400">
-          <Icons.check class="w-3 h-3 text-white hover:text-white" />
-        </div>
-      </button>
+      <Core.row_checkbox click="toggle-select" value={@queue} checked={@selected} myself={@myself} />
 
-      <.link
-        patch={oban_path([:queues, @queue])}
-        class="py-3 flex flex-grow items-center"
-      >
-        <div rel="name" class="py-3 w-1/3 font-semibold text-gray-700 dark:text-gray-300">
+      <.link patch={oban_path([:queues, @queue])} class="py-3 flex flex-grow items-center">
+        <div rel="name" class="w-1/3 font-semibold text-gray-700 dark:text-gray-300">
           <%= @queue %>
         </div>
 
@@ -115,20 +114,44 @@ defmodule Oban.Web.Queues.TableComponent do
             <%= rate_limit_to_words(@checks) %>
           </span>
 
-          <span rel="started" class="w-20 text-right">
+          <span rel="started" class="w-28 text-right">
             <%= started_at(@checks) %>
           </span>
 
-          <span class="w-20 pr-6 flex justify-end border-r border-transparent">
-            <Core.pause_button
-              click="toggle-pause"
-              disabled={not can?(:pause_queues, @access)}
-              queue={@queue}
-              target={@myself}
-              paused={any_paused?(@checks)}
-              title={pause_title(@checks)}
+          <div class="w-28 pr-6 flex justify-end items-center space-x-1">
+            <Icons.arrow_trending_down
+              :if={true}
+              class="w-4 h-4"
+              data-title="Rate limited"
+              id={"#{@queue}-is-rate-limited"}
+              phx-hook="Tippy"
+              rel="is-rate-limited"
             />
-          </span>
+            <Icons.globe
+              :if={true}
+              class="w-4 h-4"
+              data-title="Globally limited"
+              id={"#{@queue}-is-global"}
+              phx-hook="Tippy"
+              rel="is-global"
+            />
+            <Icons.pause_circle
+              :if={true}
+              class="w-4 h-4"
+              data-title="All paused"
+              id={"#{@queue}-is-paused"}
+              phx-hook="Tippy"
+              rel="is-paused"
+            />
+            <Icons.play_pause_circle
+              :if={true}
+              class="w-4 h-4"
+              data-title="Some paused"
+              id={"#{@queue}-is-some-paused"}
+              phx-hook="Tippy"
+              rel="has-some-paused"
+            />
+          </div>
         </div>
       </.link>
     </li>
@@ -146,6 +169,12 @@ defmodule Oban.Web.Queues.TableComponent do
 
       send(self(), {action, queue})
     end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-select", %{"id" => queue}, socket) do
+    send(self(), {:toggle_select, queue})
 
     {:noreply, socket}
   end
