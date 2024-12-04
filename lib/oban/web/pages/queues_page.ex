@@ -46,7 +46,11 @@ defmodule Oban.Web.QueuesPage do
               <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
             </div>
 
-            <div :if={@select_mode != :none} class="ml-6 flex items-center space-x-3">
+            <div
+              :if={@select_mode != :none}
+              id="bulk-actions"
+              class="ml-6 flex items-center space-x-3"
+            >
               <Core.action_button label="Pause" click="pause-queues" target={@myself}>
                 <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
                 <:title>Pause Queues</:title>
@@ -70,6 +74,7 @@ defmodule Oban.Web.QueuesPage do
 
               <SortComponent.select
                 :if={@select_mode == :none}
+                id="queues-sort"
                 by={~w(name nodes avail exec local global rate_limit started)}
                 page={:queues}
                 params={@params}
@@ -78,6 +83,7 @@ defmodule Oban.Web.QueuesPage do
           </div>
 
           <.live_component
+            :if={is_nil(@detail)}
             id="queues-table"
             module={TableComponent}
             access={@access}

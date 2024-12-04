@@ -18,21 +18,8 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
     refresh(live)
 
-    assert has_element?(live, "#queues-header h3")
-    assert has_element?(live, "#queues-table tr", "alpha")
-    assert has_element?(live, "#queues-table tr", "gamma")
-  end
-
-  test "expanding queues to see node details", %{live: live} do
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.2", queue: "alpha")
-
-    refresh(live)
-
-    expand_queue(live, "alpha")
-
-    assert has_element?(live, "#queue-alpha-node-web_1")
-    assert has_element?(live, "#queue-alpha-node-web_2")
+    assert has_element?(live, "#queues-table li#queue-alpha")
+    assert has_element?(live, "#queues-table li#queue-gamma")
   end
 
   test "viewing aggregate rate-limit details", %{live: live} do
@@ -49,14 +36,9 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     refresh(live)
 
     assert has_element?(live, "#queue-alpha [rel=rate]", "6/10 per 1m")
-
-    expand_queue(live, "alpha")
-
-    assert has_element?(live, "#queue-alpha-node-web_1 [rel=rate]", "3/10 per 1m")
-    assert has_element?(live, "#queue-alpha-node-web_2 [rel=rate]", "3/10 per 1m")
   end
 
-  test "pausing and resuming all queues", %{live: live} do
+  test "pausing and resuming selected queues", %{live: live} do
     :telemetry_test.attach_event_handlers(self(), [[:oban_web, :action, :stop]])
 
     gossip(node: "web.1", queue: "alpha")
@@ -64,43 +46,25 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
     refresh(live)
 
-    assert has_element?(live, "#toggle-pause-all", "Pause All")
-
     live
-    |> element("#toggle-pause-all")
+    |> element("#queue-alpha button[rel=check]")
     |> render_click()
 
-    assert_receive {_event, _ref, _timing, %{action: :pause_all_queues}}
-
-    gossip(node: "web.1", queue: "alpha", paused: true)
-    gossip(node: "web.2", queue: "bravo", paused: true)
-
-    refresh(live)
-
-    assert has_element?(live, "#toggle-resume-all", "Resume All")
-
     live
-    |> element("#toggle-resume-all")
+    |> element("#bulk-actions #pause-queues")
     |> render_click()
 
-    assert_receive {_event, _ref, _timing, %{action: :resume_all_queues}}
-  end
-
-  test "pausing and resuming active queues", %{live: live} do
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.2", queue: "alpha")
-
-    refresh(live)
+    assert_receive {_event, _ref, _timing, %{action: :pause_queues}}
 
     live
-    |> element("#queue-alpha button[rel=toggle-pause]")
+    |> element("#queue-alpha button[rel=check]")
     |> render_click()
-
-    expand_queue(live, "alpha")
 
     live
-    |> element("#queue-alpha-node-web_2 button[rel=toggle-pause]")
+    |> element("#bulk-actions #resume-queues")
     |> render_click()
+
+    assert_receive {_event, _ref, _timing, %{action: :resume_queues}}
   end
 
   test "sorting queues by different properties", %{live: live} do
@@ -116,17 +80,13 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
     refresh(live)
 
-    for mode <- ~w(nodes exec avail local global started) do
+    assert has_element?(live, "#queues-sort")
+
+    for mode <- ~w(nodes exec avail local global rate_limit started) do
       change_sort(live, mode)
 
       assert_patch(live, queues_path(sort_by: mode, sort_dir: "asc"))
     end
-
-    change_sort(live, "rate limit")
-    assert_patch(live, queues_path(sort_by: "rate_limit", sort_dir: "asc"))
-
-    change_sort(live, "rate limit")
-    assert_patch(live, queues_path(sort_by: "rate_limit", sort_dir: "desc"))
   end
 
   defp queues_path(params) do
@@ -137,15 +97,9 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     send(live.pid, :refresh)
   end
 
-  defp expand_queue(live, queue) do
-    live
-    |> element("#queue-#{queue} button[rel=expand]")
-    |> render_click()
-  end
-
   defp change_sort(live, mode) do
     live
-    |> element("#queues-table a[rel=sort]", mode)
+    |> element("a#sort-#{mode}")
     |> render_click()
   end
 

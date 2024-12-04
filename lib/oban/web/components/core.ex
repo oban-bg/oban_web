@@ -101,38 +101,6 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
-  @doc """
-  A queue specific pause/resume button.
-  """
-  def pause_button(assigns) do
-    assigns =
-      assigns
-      |> assign_new(:id, fn -> "#{assigns.queue}-toggle-pause" end)
-      |> assign_new(:title, fn -> if assigns.paused, do: "Resume queue", else: "Pause queue" end)
-
-    ~H"""
-    <button
-      rel="toggle-pause"
-      class="block text-gray-400 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-500"
-      disabled={@disabled}
-      id={@id}
-      data-title={@title}
-      type="button"
-      phx-click={@click}
-      phx-target={@target}
-      phx-throttle="2000"
-      phx-hook="Tippy"
-      phx-value-queue={@queue}
-    >
-      <%= if @paused do %>
-        <Icons.play_circle_solid class="w-5 h-5" />
-      <% else %>
-        <Icons.pause_circle_solid class="w-5 h-5" />
-      <% end %>
-    </button>
-    """
-  end
-
   slot :inner_block, required: true
   attr :name, :string, required: true
   attr :options, :list, required: true
@@ -226,7 +194,13 @@ defmodule Oban.Web.Components.Core do
     assigns = assign(assigns, :style, style)
 
     ~H"""
-    <button class="p-6 group" phx-click={@click} phx-target={@myself} phx-value-id={@value}>
+    <button
+      class="p-6 group"
+      phx-click={@click}
+      phx-target={@myself}
+      phx-value-id={@value}
+      rel="check"
+    >
       <div class={["w-4 h-4 rounded border", @style]}>
         <Icons.check class="w-3.5 h-3.5 text-white dark:text-gray-900" />
       </div>

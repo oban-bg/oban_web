@@ -14,6 +14,7 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
     socket =
       socket
       |> assign(access: assigns.access, checks: assigns.checks)
+      |> assign_new(:queue, fn -> assigns.checks["queue"] end)
       |> assign_new(:paused, fn -> assigns.checks["paused"] end)
       |> assign_new(:local_limit, fn -> assigns.checks["local_limit"] end)
 
@@ -28,10 +29,12 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
       <td class="text-right py-3"><%= executing_count(@checks) %></td>
       <td class="text-right py-3"><%= started_at(@checks) %></td>
       <td class="pl-9 py-3">
-        <Core.pause_button
-          click="toggle-pause"
+        <.pause_button
           disabled={not can?(:pause_queues, @access)}
+          node={node_name(@checks)}
           paused={@paused}
+          queue={@queue}
+          target={@myself}
         />
       </td>
       <td class="pr-3 py-3">
@@ -60,6 +63,32 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
         </form>
       </td>
     </tr>
+    """
+  end
+
+  defp pause_button(assigns) do
+    assigns =
+      assigns
+      |> assign_new(:id, fn -> "#{assigns.queue}-toggle-pause" end)
+      |> assign_new(:title, fn -> if assigns.paused, do: "Resume queue", else: "Pause queue" end)
+
+    ~H"""
+    <button
+      rel="toggle-pause"
+      class="block text-gray-400 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-500"
+      disabled={@disabled}
+      phx-click="toggle-pause"
+      phx-target={@target}
+      phx-value-queue={@queue}
+      phx-value-node={@node}
+      type="button"
+    >
+      <%= if @paused do %>
+        <Icons.play_circle_solid class="w-5 h-5" />
+      <% else %>
+        <Icons.pause_circle_solid class="w-5 h-5" />
+      <% end %>
+    </button>
     """
   end
 

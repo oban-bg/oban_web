@@ -308,7 +308,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   defp select_jobs(live, jobs) do
     for %{id: id} <- jobs do
       live
-      |> element("#jobs-table #job-#{id} [rel=toggle-select]")
+      |> element("#jobs-table #job-#{id} button[rel=check]")
       |> render_click()
     end
   end
