@@ -293,6 +293,16 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def indeterminate(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <line stroke-linecap="round" stroke-linejoin="round" x1="5" x2="19" y1="12" y2="12"></line>
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def check_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>
@@ -302,53 +312,6 @@ defmodule Oban.Web.Components.Icons do
         d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
       />
     </.svg_outline>
-    """
-  end
-
-  attr :rest, :global
-
-  def check_empty(assigns) do
-    ~H"""
-    <.svg_outline {@rest}>
-      <path
-        d="M3.455 19h13.09A2.455 2.455 0 0 0 19 16.545V3.455A2.455 2.455 0 0 0 16.545 1H3.455A2.455 2.455 0 0 0 1 3.455v13.09A2.455 2.455 0 0 0 3.455 19Z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </.svg_outline>
-    """
-  end
-
-  attr :rest, :global
-
-  def check_partial_solid(assigns) do
-    ~H"""
-    <.svg_solid {@rest}>
-      <path d="M17.273 0A2.727 2.727 0 0 1 20 2.727v14.546A2.727 2.727 0 0 1 17.273 20H2.727A2.727 2.727 0 0 1 0 17.273V2.727A2.727 2.727 0 0 1 2.727 0ZM15 9H5a1 1 0 1 0 0 2h10a1 1 0 0 0 0-2Z" />
-    </.svg_solid>
-    """
-  end
-
-  attr :rest, :global
-
-  def check_selected(assigns) do
-    ~H"""
-    <.svg_outline {@rest}>
-      <g stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3.455 19h13.09A2.455 2.455 0 0 0 19 16.545V3.455A2.455 2.455 0 0 0 16.545 1H3.455A2.455 2.455 0 0 0 1 3.455v13.09A2.455 2.455 0 0 0 3.455 19Z" />
-        <path d="m5 11 4 4 6-9" />
-      </g>
-    </.svg_outline>
-    """
-  end
-
-  attr :rest, :global
-
-  def check_selected_solid(assigns) do
-    ~H"""
-    <.svg_solid {@rest}>
-      <path d="M17.273 0A2.727 2.727 0 0 1 20 2.727v14.546A2.727 2.727 0 0 1 17.273 20H2.727A2.727 2.727 0 0 1 0 17.273V2.727A2.727 2.727 0 0 1 2.727 0Zm-1.857 5.376a.75.75 0 0 0-1.04.208l-5.493 8.238L5.53 10.47a.75.75 0 0 0-1.06 1.06l4 4a.75.75 0 0 0 1.154-.114l6-9a.75.75 0 0 0-.208-1.04Z" />
-    </.svg_solid>
     """
   end
 

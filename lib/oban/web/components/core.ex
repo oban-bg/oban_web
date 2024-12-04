@@ -188,7 +188,42 @@ defmodule Oban.Web.Components.Core do
     ~H"""
     <button class="p-6 group" phx-click={@click} phx-target={@myself} phx-value-id={@value}>
       <div class={["w-4 h-4 rounded border", @style]}>
-        <Icons.check class="w-3.5 h-3.5 text-transparent group-hover:text-white dark:group-hover:text-gray-950" />
+        <Icons.check class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+      </div>
+    </button>
+    """
+  end
+
+  attr :checked, :atom, required: true
+  attr :click, :string, required: true
+  attr :myself, :any, required: true
+
+  def all_checkbox(assigns) do
+    style =
+      if assigns.checked in [:all, :some] do
+        "border-blue-500 bg-blue-500"
+      else
+        "border-gray-400 dark:border-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-600"
+      end
+
+    assigns = assign(assigns, :style, style)
+
+    ~H"""
+    <button
+      class="p-6 group"
+      data-title="Select All"
+      id="toggle-select"
+      phx-click={@click}
+      phx-hook="Tippy"
+      phx-target={@myself}
+      type="button"
+    >
+      <div class={["w-4 h-4 rounded border", @style]}>
+        <%= if @checked == :some do %>
+          <Icons.indeterminate class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+        <% else %>
+          <Icons.check class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+        <% end %>
       </div>
     </button>
     """

@@ -19,24 +19,7 @@ defmodule Oban.Web.Jobs.HeaderComponent do
   def render(assigns) do
     ~H"""
     <div id="jobs-header" class="h-10 w-44 pr-3 flex-none flex items-center">
-      <button
-        id="toggle-select"
-        class="mt-0.5 text-gray-400 hover:text-blue-500"
-        data-title="Select All"
-        phx-target={@myself}
-        phx-click="toggle-select"
-        phx-hook="Tippy"
-        type="button"
-      >
-        <%= case @select_mode do %>
-          <% :all -> %>
-            <Icons.check_selected_solid class="w-5 h-5 text-blue-500" />
-          <% :some -> %>
-            <Icons.check_partial_solid class="w-5 h-5 text-blue-500" />
-          <% :none -> %>
-            <Icons.check_empty class="w-5 h-5" />
-        <% end %>
-      </button>
+      <Core.all_checkbox click="toggle-select" checked={@select_mode} myself={@myself} />
 
       <h2 class="capitalize ml-2 text-base font-semibold dark:text-gray-200"><%= @state %> Jobs</h2>
     </div>

@@ -30,7 +30,7 @@ defmodule Oban.Web.QueuesPage do
               class="pr-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700"
             >
               <div class="flex items-center">
-                <Core.row_checkbox click="do-nothing" value="all" checked={false} myself={@myself} />
+                <Core.all_checkbox click="do-nothing" checked={:some} myself={@myself} />
 
                 <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
               </div>

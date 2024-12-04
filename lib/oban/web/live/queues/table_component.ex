@@ -189,14 +189,6 @@ defmodule Oban.Web.Queues.TableComponent do
     end)
   end
 
-  defp pause_title(checks) do
-    cond do
-      Enum.all?(checks, & &1["paused"]) -> "Resume all instances"
-      Enum.any?(checks, & &1["paused"]) -> "Resume paused instances"
-      true -> "Pause all instances"
-    end
-  end
-
   defp nodes_count(checks), do: length(checks)
 
   defp local_limit(checks) do
