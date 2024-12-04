@@ -84,7 +84,7 @@ defmodule Oban.Web.Queues.TableComponent do
     <li id={"queue-#{@queue}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
       <Core.row_checkbox click="toggle-select" value={@queue} checked={@selected} myself={@myself} />
 
-      <.link patch={oban_path([:queues, @queue])} class="py-3 flex flex-grow items-center">
+      <.link patch={oban_path([:queues, @queue])} class="py-5 flex flex-grow items-center">
         <div rel="name" class="w-1/3 font-semibold text-gray-700 dark:text-gray-300">
           <%= @queue %>
         </div>
@@ -120,7 +120,7 @@ defmodule Oban.Web.Queues.TableComponent do
 
           <div class="w-28 pr-6 flex justify-end items-center space-x-1">
             <Icons.arrow_trending_down
-              :if={true}
+              :if={rate_limited?(@checks)}
               class="w-4 h-4"
               data-title="Rate limited"
               id={"#{@queue}-is-rate-limited"}
@@ -128,7 +128,7 @@ defmodule Oban.Web.Queues.TableComponent do
               rel="is-rate-limited"
             />
             <Icons.globe
-              :if={true}
+              :if={global?(@checks)}
               class="w-4 h-4"
               data-title="Globally limited"
               id={"#{@queue}-is-global"}
@@ -136,7 +136,7 @@ defmodule Oban.Web.Queues.TableComponent do
               rel="is-global"
             />
             <Icons.pause_circle
-              :if={true}
+              :if={all_paused?(@checks)}
               class="w-4 h-4"
               data-title="All paused"
               id={"#{@queue}-is-paused"}
@@ -144,12 +144,20 @@ defmodule Oban.Web.Queues.TableComponent do
               rel="is-paused"
             />
             <Icons.play_pause_circle
-              :if={true}
+              :if={any_paused?(@checks) and not all_paused?(@checks)}
               class="w-4 h-4"
               data-title="Some paused"
               id={"#{@queue}-is-some-paused"}
               phx-hook="Tippy"
               rel="has-some-paused"
+            />
+            <Icons.power
+              :if={shutting_down?(@checks)}
+              class="w-4 h-4"
+              data-title="Shutting down"
+              id={"#{@queue}-is-shutting-down"}
+              phx-hook="Tippy"
+              rel="shutting-down"
             />
           </div>
         </div>
@@ -202,6 +210,14 @@ defmodule Oban.Web.Queues.TableComponent do
   end
 
   defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
+
+  defp all_paused?(checks), do: Enum.all?(checks, & &1["paused"])
+
+  defp global?(checks), do: Enum.any?(checks, &is_map(&1["global_limit"]))
+
+  defp rate_limited?(checks), do: Enum.any?(checks, &is_map(&1["rate_limit"]))
+
+  defp shutting_down?(checks), do: Enum.any?(checks, & &1["shutdown_started_at"])
 
   # Sorting
 

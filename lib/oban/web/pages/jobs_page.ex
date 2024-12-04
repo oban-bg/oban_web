@@ -48,7 +48,7 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <div class="flex items-start justify-between space-x-3 px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-start justify-between space-x-3 pr-3 py-3 border-b border-gray-200 dark:border-gray-700">
               <.live_component
                 id="header"
                 module={HeaderComponent}

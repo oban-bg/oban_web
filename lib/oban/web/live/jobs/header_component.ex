@@ -18,10 +18,10 @@ defmodule Oban.Web.Jobs.HeaderComponent do
 
   def render(assigns) do
     ~H"""
-    <div id="jobs-header" class="h-10 w-44 pr-3 flex-none flex items-center">
+    <div id="jobs-header" class="h-10 pr-3 flex-none flex items-center">
       <Core.all_checkbox click="toggle-select" checked={@select_mode} myself={@myself} />
 
-      <h2 class="capitalize ml-2 text-base font-semibold dark:text-gray-200"><%= @state %> Jobs</h2>
+      <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
     </div>
     """
   end

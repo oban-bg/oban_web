@@ -3,11 +3,21 @@ defmodule Oban.Web.QueuesPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.{Met, Notifier}
+  alias Oban.Met
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, SortComponent, Telemetry}
 
   @flash_timing 5_000
+
+  @impl Phoenix.LiveComponent
+  def update(assigns, socket) do
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign(:select_mode, select_mode(assigns.checks, assigns.selected))
+
+    {:ok, socket}
+  end
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -15,75 +25,70 @@ defmodule Oban.Web.QueuesPage do
     <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
-          <%= if @detail do %>
-            <.live_component
-              id="detail"
-              access={@access}
-              conf={@conf}
-              checks={@checks}
-              module={DetailComponent}
-              queue={@detail}
-            />
-          <% else %>
-            <div
-              id="queues-header"
-              class="pr-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700"
-            >
-              <div class="flex items-center">
-                <Core.all_checkbox click="do-nothing" checked={:some} myself={@myself} />
+          <.live_component
+            :if={@detail}
+            id="detail"
+            access={@access}
+            conf={@conf}
+            checks={@checks}
+            module={DetailComponent}
+            queue={@detail}
+          />
 
-                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
-              </div>
+          <div
+            :if={is_nil(@detail)}
+            id="queues-header"
+            class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
+          >
+            <div class="flex items-center">
+              <Core.all_checkbox click="toggle-select-all" checked={@select_mode} myself={@myself} />
+
+              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+            </div>
+
+            <div :if={@select_mode != :none} class="ml-6 flex items-center space-x-3">
+              <Core.action_button label="Pause" click="pause-queues" target={@myself}>
+                <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
+                <:title>Pause Queues</:title>
+              </Core.action_button>
+
+              <Core.action_button label="Resume" click="resume-queues" target={@myself}>
+                <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
+                <:title>Resume Queues</:title>
+              </Core.action_button>
+
+              <Core.action_button label="Stop" click="stop-queues" target={@myself} danger={true}>
+                <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                <:title>Stop Queues</:title>
+              </Core.action_button>
+            </div>
+
+            <div class="ml-auto">
+              <span :if={@select_mode != :none} class="block text-sm font-semibold mr-3">
+                <%= MapSet.size(@selected) %> Selected
+              </span>
 
               <SortComponent.select
+                :if={@select_mode == :none}
                 by={~w(name nodes avail exec local global rate_limit started)}
                 page={:queues}
                 params={@params}
               />
             </div>
+          </div>
 
-            <.live_component
-              id="queues-table"
-              module={TableComponent}
-              access={@access}
-              counts={@counts}
-              checks={@checks}
-              params={@params}
-              selected={@selected}
-            />
-          <% end %>
+          <.live_component
+            id="queues-table"
+            module={TableComponent}
+            access={@access}
+            counts={@counts}
+            checks={@checks}
+            params={@params}
+            selected={@selected}
+          />
         </div>
       </div>
     </div>
-    """
-  end
-
-  attr :action, :string, required: true
-  attr :access, :any
-  attr :checks, :any
-  attr :disabled, :boolean, default: true
-  attr :myself, :any
-  slot :icon, required: true
-
-  defp all_button(assigns) do
-    ~H"""
-    <button
-      rel={"toggle-#{@action}"}
-      class="flex items-center space-x-2 p-2 text-sm bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-200
-      border border-gray-300 dark:border-gray-700 rounded-md
-      focus:outline-none hover:text-blue-500 hover:border-blue-500 dark:hover:border-blue-500
-      disabled:text-gray-300 disabled:border-gray-200 dark:disabled:text-gray-600 dark:disabled:border-gray-700"
-      data-title={"#{String.capitalize(@action)} all queues"}
-      disabled={@disabled or not can?(:pause_queues, @access)}
-      id={"toggle-#{@action}-all"}
-      type="button"
-      phx-click={"toggle-#{@action}-all"}
-      phx-target={@myself}
-      phx-hook="Tippy"
-    >
-      <span><%= String.capitalize(@action) %> All</span>
-      <%= render_slot(@icon) %>
-    </button>
     """
   end
 
@@ -115,6 +120,16 @@ defmodule Oban.Web.QueuesPage do
     Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
   end
 
+  defp select_mode(checks, selected) do
+    total = checks |> Enum.uniq_by(&Map.get(&1, "queue")) |> Enum.count()
+
+    cond do
+      Enum.any?(selected) and Enum.count(selected) == total -> :all
+      Enum.any?(selected) -> :some
+      true -> :none
+    end
+  end
+
   # Handlers
 
   @impl Page
@@ -144,14 +159,26 @@ defmodule Oban.Web.QueuesPage do
   end
 
   @impl Phoenix.LiveComponent
-  def handle_event("toggle-pause-all", _params, socket) do
-    send(self(), :toggle_pause_all)
+  def handle_event("pause-queues", _params, socket) do
+    send(self(), :pause_queues)
 
     {:noreply, socket}
   end
 
-  def handle_event("toggle-resume-all", _params, socket) do
-    send(self(), :toggle_resume_all)
+  def handle_event("resume-queues", _params, socket) do
+    send(self(), :resume_queues)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("stop-queues", _params, socket) do
+    send(self(), :stop_queues)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-select-all", _params, socket) do
+    send(self(), :toggle_select_all)
 
     {:noreply, socket}
   end
@@ -167,7 +194,7 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_info({:pause_queue, queue, name, node}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue, name: name, node: node], fn ->
-      notify_scoped(socket.assigns.conf, name, node, action: :pause, queue: queue)
+      Oban.pause_queue(socket.assigns.conf.name, node: node, queue: queue)
     end)
 
     {:noreply, socket}
@@ -183,30 +210,55 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_info({:resume_queue, queue, name, node}, socket) do
     Telemetry.action(:resume_queue, socket, [queue: queue, name: name, node: node], fn ->
-      notify_scoped(socket.assigns.conf, name, node, action: :resume, queue: queue)
+      Oban.resume_queue(socket.assigns.conf.name, node: node, queue: queue)
     end)
 
     {:noreply, socket}
   end
 
-  def handle_info(:toggle_pause_all, socket) do
+  def handle_info(:pause_queues, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    Telemetry.action(:pause_all_queues, socket, [], fn ->
-      Oban.pause_all_queues(socket.assigns.conf.name)
+    Telemetry.action(:pause_queues, socket, [], fn ->
+      Enum.each(socket.assigns.selected, &Oban.pause_queue(socket.assigns.conf.name, queue: &1))
     end)
 
-    {:noreply, flash(socket, :info, "All queues paused")}
+    socket =
+      socket
+      |> assign(:selected, MapSet.new())
+      |> flash(:info, "Selected queues paused")
+
+    {:noreply, socket}
   end
 
-  def handle_info(:toggle_resume_all, socket) do
+  def handle_info(:resume_queues, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    Telemetry.action(:resume_all_queues, socket, [], fn ->
-      Oban.resume_all_queues(socket.assigns.conf.name)
+    Telemetry.action(:resume_queues, socket, [], fn ->
+      Enum.each(socket.assigns.selected, &Oban.resume_queue(socket.assigns.conf.name, queue: &1))
     end)
 
-    {:noreply, flash(socket, :info, "All queues resumed")}
+    socket =
+      socket
+      |> assign(:selected, MapSet.new())
+      |> flash(:info, "Selected queues resumed")
+
+    {:noreply, socket}
+  end
+
+  def handle_info(:stop_queues, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    Telemetry.action(:stop_queues, socket, [], fn ->
+      Enum.each(socket.assigns.selected, &Oban.stop_queue(socket.assigns.conf.name, queue: &1))
+    end)
+
+    socket =
+      socket
+      |> assign(:selected, MapSet.new())
+      |> flash(:info, "Selected queues stopped")
+
+    {:noreply, socket}
   end
 
   def handle_info({:toggle_select, queue}, socket) do
@@ -222,11 +274,22 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, assign(socket, selected: selected)}
   end
 
+  def handle_info(:toggle_select_all, socket) do
+    selected =
+      if MapSet.size(socket.assigns.selected) > 0 do
+        MapSet.new()
+      else
+        MapSet.new(socket.assigns.checks, & &1["queue"])
+      end
+
+    {:noreply, assign(socket, selected: selected)}
+  end
+
   def handle_info({:scale_queue, queue, name, node, limit}, socket) do
     meta = [queue: queue, name: name, node: node, limit: limit]
 
     Telemetry.action(:scale_queue, socket, meta, fn ->
-      notify_scoped(socket.assigns.conf, name, node, action: :scale, queue: queue, limit: limit)
+      Oban.scale_queue(socket.assigns.conf.name, node: node, queue: queue, limit: limit)
     end)
 
     send_update(DetailComponent, id: "detail", local_limit: limit)
@@ -279,17 +342,5 @@ defmodule Oban.Web.QueuesPage do
       Keyword.has_key?(opts, :limit) ->
         "Local limit set for #{queue} queue"
     end
-  end
-
-  # Send the notification ourselves because Oban doesn't currently support custom ident pausing.
-  # At this point the name and node are already strings and we can combine the names rather than
-  # using Config.to_ident.
-  defp notify_scoped(conf, name, node, data) do
-    message =
-      data
-      |> Map.new()
-      |> Map.put(:ident, name <> "." <> node)
-
-    Notifier.notify(conf, :signal, message)
   end
 end

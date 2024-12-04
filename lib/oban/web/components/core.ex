@@ -1,6 +1,46 @@
 defmodule Oban.Web.Components.Core do
   use Oban.Web, :html
 
+  attr :click, :string, required: true
+  attr :danger, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :label, :string, required: true
+  attr :target, :any
+  slot :icon
+  slot :title
+
+  def action_button(assigns) do
+    class =
+      cond do
+        assigns.disabled ->
+          "text-gray-400"
+
+        assigns.danger ->
+          "text-red-500 group-hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-950"
+
+        true ->
+          "text-gray-500 group-hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-950"
+      end
+
+    assigns = assign(assigns, :class, class)
+
+    ~H"""
+    <button
+      class={["flex items-center space-x-2 px-3 py-1.5 rounded text-sm", @class]}
+      data-title={render_slot(@title)}
+      disabled={@disabled}
+      id={@click}
+      phx-click={@click}
+      phx-hook="Tippy"
+      phx-target={@target}
+      type="button"
+    >
+      <%= render_slot(@icon) %>
+      <span class="block"><%= @label %></span>
+    </button>
+    """
+  end
+
   @doc """
   A numerical input with increment and decrement buttons.
   """

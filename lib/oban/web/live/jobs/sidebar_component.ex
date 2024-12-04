@@ -22,10 +22,10 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     """
   end
 
-  slot :icon
   attr :id, :string, required: true
   attr :name, :string, required: true
   attr :headers, :list, required: true
+  slot :icon
 
   defp section(assigns) do
     ~H"""
