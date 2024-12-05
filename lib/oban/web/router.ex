@@ -156,6 +156,10 @@ defmodule Oban.Web.Router do
 
   ## Options
 
+  * `:as` — override the route name; otherwise defaults to `:oban_dashboard`
+
+  * `:on_mount` — declares additional module callbacks to be invoked when the dashboard mounts
+
   * `:oban_name` — name of the Oban instance the dashboard will use for configuration and
     notifications, defaults to `Oban`
 
