@@ -4,7 +4,7 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.Jobs.{BulkActionComponent, ChartComponent, DetailComponent, HeaderComponent}
+  alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
   alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, TableComponent}
   alias Oban.Web.{Page, Query, SortComponent, Telemetry}
 
@@ -48,31 +48,85 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <div class="flex items-start justify-between space-x-3 pr-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-start pr-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <div id="jobs-header" class="h-10 pr-12 flex-none flex items-center">
+                <Core.all_checkbox
+                  click="toggle-select-all"
+                  checked={checked_mode(@jobs, @selected)}
+                  myself={@myself}
+                />
+
+                <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
+              </div>
+
+              <div
+                :if={Enum.any?(@selected)}
+                id="bulk-actions"
+                class="pt-1 flex items-center space-x-3"
+              >
+                <Core.action_button
+                  :if={cancelable?(@jobs, @access)}
+                  label="Cancel"
+                  click="cancel-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                  <:title>Cancel Jobs</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={retryable?(@jobs, @access)}
+                  label="Retry"
+                  click="retry-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:title>Retry Jobs</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={runnable?(@jobs, @access)}
+                  label="Run Now"
+                  click="retry-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:title>Run Jobs Now</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={deletable?(@jobs, @access)}
+                  label="Delete"
+                  click="delete-jobs"
+                  target={@myself}
+                  danger={true}
+                >
+                  <:icon><Icons.trash class="w-5 h-5" /></:icon>
+                  <:title>Delete Jobs</:title>
+                </Core.action_button>
+              </div>
+
               <.live_component
-                id="header"
-                module={HeaderComponent}
-                jobs={@jobs}
-                params={@params}
-                selected={@selected}
-              />
-              <.live_component
+                :if={Enum.empty?(@selected)}
+                conf={@conf}
                 id="search"
                 module={SearchComponent}
-                conf={@conf}
                 params={without_defaults(@params, @default_params)}
                 resolver={@resolver}
               />
-              <SortComponent.select params={@params} by={~w(time attempt queue worker)} />
-            </div>
 
-            <.live_component
-              id="jobs-bulk-action"
-              module={BulkActionComponent}
-              access={@access}
-              jobs={@jobs}
-              selected={@selected}
-            />
+              <div class="pl-3 ml-auto">
+                <span :if={Enum.any?(@selected)} class="block py-2 text-sm font-semibold">
+                  <%= MapSet.size(@selected) %> Selected
+                </span>
+
+                <SortComponent.select
+                  :if={Enum.empty?(@selected)}
+                  params={@params}
+                  by={~w(time attempt queue worker)}
+                />
+              </div>
+            </div>
 
             <.live_component
               id="jobs-table"
@@ -161,6 +215,37 @@ defmodule Oban.Web.JobsPage do
     {:noreply, socket}
   end
 
+  @impl Phoenix.LiveComponent
+  def handle_event("toggle-select-all", _params, socket) do
+    send(self(), :toggle_select_all)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel-jobs", _params, socket) do
+    if can?(:cancel_jobs, socket.assigns.access) do
+      send(self(), :cancel_selected)
+    end
+
+    {:noreply, assign(socket, expanded?: false)}
+  end
+
+  def handle_event("retry-jobs", _params, socket) do
+    if can?(:retry_jobs, socket.assigns.access) do
+      send(self(), :retry_selected)
+    end
+
+    {:noreply, assign(socket, expanded?: false)}
+  end
+
+  def handle_event("delete-jobs", _params, socket) do
+    if can?(:delete_jobs, socket.assigns.access) do
+      send(self(), :delete_selected)
+    end
+
+    {:noreply, assign(socket, expanded?: false)}
+  end
+
   # Queues
 
   @impl Page
@@ -236,12 +321,15 @@ defmodule Oban.Web.JobsPage do
     {:noreply, assign(socket, selected: selected)}
   end
 
-  def handle_info(:select_all, socket) do
-    {:noreply, assign(socket, selected: MapSet.new(socket.assigns.jobs, & &1.id))}
-  end
+  def handle_info(:toggle_select_all, socket) do
+    selected =
+      if Enum.any?(socket.assigns.selected) do
+        MapSet.new()
+      else
+        MapSet.new(socket.assigns.jobs, & &1.id)
+      end
 
-  def handle_info(:deselect_all, socket) do
-    {:noreply, assign(socket, selected: MapSet.new())}
+    {:noreply, assign(socket, selected: selected)}
   end
 
   def handle_info(:cancel_selected, socket) do
@@ -314,6 +402,32 @@ defmodule Oban.Web.JobsPage do
     Process.send_after(self(), :clear_flash, @flash_timing)
 
     put_flash(socket, mode, message)
+  end
+
+  # State Helpers
+
+  defp checked_mode(jobs, selected) do
+    cond do
+      Enum.any?(selected) and Enum.count(selected) == Enum.count(jobs) -> :all
+      Enum.any?(selected) -> :some
+      true -> :none
+    end
+  end
+
+  defp cancelable?(jobs, access) do
+    can?(:cancel_jobs, access) and Enum.any?(jobs, &cancelable?/1)
+  end
+
+  defp runnable?(jobs, access) do
+    can?(:retry_jobs, access) and Enum.any?(jobs, &runnable?/1)
+  end
+
+  defp retryable?(jobs, access) do
+    can?(:retry_jobs, access) and Enum.any?(jobs, &retryable?/1)
+  end
+
+  defp deletable?(jobs, access) do
+    can?(:delete_jobs, access) and Enum.any?(jobs, &deletable?/1)
   end
 
   # Metrics Helpers

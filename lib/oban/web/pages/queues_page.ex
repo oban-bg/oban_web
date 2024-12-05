@@ -10,88 +10,97 @@ defmodule Oban.Web.QueuesPage do
   @flash_timing 5_000
 
   @impl Phoenix.LiveComponent
-  def update(assigns, socket) do
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign(:select_mode, select_mode(assigns.checks, assigns.selected))
-
-    {:ok, socket}
-  end
-
-  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
-          <.live_component
-            :if={@detail}
-            id="detail"
-            access={@access}
-            conf={@conf}
-            checks={@checks}
-            module={DetailComponent}
-            queue={@detail}
-          />
-
-          <div
-            :if={is_nil(@detail)}
-            id="queues-header"
-            class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
-          >
-            <div class="flex items-center">
-              <Core.all_checkbox click="toggle-select-all" checked={@select_mode} myself={@myself} />
-
-              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
-            </div>
-
+          <%= if @detail do %>
+            <.live_component
+              id="detail"
+              access={@access}
+              conf={@conf}
+              checks={@checks}
+              module={DetailComponent}
+              queue={@detail}
+            />
+          <% else %>
             <div
-              :if={@select_mode != :none}
-              id="bulk-actions"
-              class="ml-6 flex items-center space-x-3"
+              id="queues-header"
+              class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
             >
-              <Core.action_button label="Pause" click="pause-queues" target={@myself}>
-                <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
-                <:title>Pause Queues</:title>
-              </Core.action_button>
+              <div class="flex items-center">
+                <Core.all_checkbox
+                  click="toggle-select-all"
+                  checked={select_mode(@checks, @selected)}
+                  myself={@myself}
+                />
 
-              <Core.action_button label="Resume" click="resume-queues" target={@myself}>
-                <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
-                <:title>Resume Queues</:title>
-              </Core.action_button>
+                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+              </div>
 
-              <Core.action_button label="Stop" click="stop-queues" target={@myself} danger={true}>
-                <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
-                <:title>Stop Queues</:title>
-              </Core.action_button>
+              <div
+                :if={Enum.any?(@selected)}
+                id="bulk-actions"
+                class="ml-6 flex items-center space-x-3"
+              >
+                <Core.action_button
+                  :if={can?(:pause_queues, @access)}
+                  label="Pause"
+                  click="pause-queues"
+                  target={@myself}
+                >
+                  <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
+                  <:title>Pause Queues</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={can?(:resume_queues, @access)}
+                  label="Resume"
+                  click="resume-queues"
+                  target={@myself}
+                >
+                  <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
+                  <:title>Resume Queues</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={can?(:stop_queues, @access)}
+                  label="Stop"
+                  click="stop-queues"
+                  target={@myself}
+                  danger={true}
+                >
+                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                  <:title>Stop Queues</:title>
+                </Core.action_button>
+              </div>
+
+              <div class="ml-auto">
+                <span :if={Enum.any?(@selected)} class="block text-sm font-semibold mr-3">
+                  <%= MapSet.size(@selected) %> Selected
+                </span>
+
+                <SortComponent.select
+                  :if={Enum.empty?(@selected)}
+                  id="queues-sort"
+                  by={~w(name nodes avail exec local global rate_limit started)}
+                  page={:queues}
+                  params={@params}
+                />
+              </div>
             </div>
 
-            <div class="ml-auto">
-              <span :if={@select_mode != :none} class="block text-sm font-semibold mr-3">
-                <%= MapSet.size(@selected) %> Selected
-              </span>
-
-              <SortComponent.select
-                :if={@select_mode == :none}
-                id="queues-sort"
-                by={~w(name nodes avail exec local global rate_limit started)}
-                page={:queues}
-                params={@params}
-              />
-            </div>
-          </div>
-
-          <.live_component
-            :if={is_nil(@detail)}
-            id="queues-table"
-            module={TableComponent}
-            access={@access}
-            counts={@counts}
-            checks={@checks}
-            params={@params}
-            selected={@selected}
-          />
+            <.live_component
+              id="queues-table"
+              module={TableComponent}
+              access={@access}
+              counts={@counts}
+              checks={@checks}
+              params={@params}
+              selected={@selected}
+            />
+          <% end %>
         </div>
       </div>
     </div>
@@ -282,7 +291,7 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_info(:toggle_select_all, socket) do
     selected =
-      if MapSet.size(socket.assigns.selected) > 0 do
+      if Enum.any?(socket.assigns.selected) do
         MapSet.new()
       else
         MapSet.new(socket.assigns.checks, & &1["queue"])

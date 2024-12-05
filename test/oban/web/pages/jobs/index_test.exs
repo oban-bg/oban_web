@@ -227,7 +227,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_state(live, "available")
       select_jobs(live, [job_1, job_3])
-      click_bulk_action(live, "cancel")
+      click_bulk_action(live, "cancel-jobs")
 
       hidden_job?(live, job_1)
       hidden_job?(live, job_3)
@@ -243,7 +243,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_state(live, "available")
       select_jobs(live, [job_1, job_3])
-      click_bulk_action(live, "delete")
+      click_bulk_action(live, "delete-jobs")
 
       hidden_job?(live, job_1)
       hidden_job?(live, job_3)
@@ -280,7 +280,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp click_bulk_action(live, action) do
     live
-    |> element("#bulk-action #bulk-#{action}")
+    |> element("#bulk-actions ##{action}")
     |> render_click()
   end
 
