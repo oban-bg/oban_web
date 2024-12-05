@@ -26,7 +26,7 @@ defmodule Oban.Web.Components.Core do
 
     ~H"""
     <button
-      class={["flex items-center space-x-2 px-3 py-1.5 rounded text-sm", @class]}
+      class={["flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm", @class]}
       data-title={render_slot(@title)}
       disabled={@disabled}
       id={@click}

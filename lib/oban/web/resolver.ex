@@ -43,6 +43,9 @@ defmodule Oban.Web.Resolver do
 
     @impl true
     def hint_query_limit(_qualifier), do: 10_000
+
+    @impl true
+    def bulk_action_limit(_state), do: 1_000
   end
   ```
 
@@ -303,14 +306,14 @@ defmodule Oban.Web.Resolver do
   The limit may be determined by state, e.g. `:completed` or `:cancelled`, to fine-tune query
   performance for larger states. Limiting may be disabled with `:infinity`.
 
-  Without a callback impleted, the `:completed` state defaults to a conservative 100k jobs and all
+  Without a callback implemented, the `:completed` state defaults to a conservative 100k jobs and all
   other states are `:infinite`.
 
   ## Example
 
   Restrict the limit for all states:
 
-      def jobs_query_limit(_qualifier), do: 50_000
+      def jobs_query_limit(_state), do: 50_000
 
   Use a conservative the limit for `:completed` without any limit for other states (this is the
   default):
@@ -342,9 +345,31 @@ defmodule Oban.Web.Resolver do
   """
   @callback hint_query_limit(qualifier()) :: :infinity | pos_integer()
 
+  @doc """
+  The maximum number of jobs that can be selected and operated on in bulk.
+
+  The limit may be determined by state, e.g. `:completed` or `:cancelled`, to fine-tune query
+  performance for larger states. Limiting may be disabled with `:infinity`.
+
+  Without a callback implemented all states default to 1000 jobs.
+
+  ## Example
+
+  Bump the limit for all states:
+
+      def bulk_action_limit(_state), do: 5_000
+
+  Use a lower limit for `:completed` without any limit for other states:
+
+      def bulk_action_limit(:completed), do: 10_000
+      def bulk_action_limit(_state), do: :infinity
+  """
+  @callback bulk_action_limit(Job.unique_state()) :: :infinity | pos_integer()
+
   @optional_callbacks format_job_args: 1,
                       format_job_meta: 1,
                       format_recorded: 2,
+                      bulk_action_limit: 1,
                       hint_query_limit: 1,
                       jobs_query_limit: 1,
                       resolve_user: 1,
@@ -412,4 +437,7 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def hint_query_limit(_qualifier), do: 10_000
+
+  @doc false
+  def bulk_action_limit(_state), do: 1_000
 end

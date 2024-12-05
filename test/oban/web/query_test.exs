@@ -411,6 +411,23 @@ defmodule Oban.Web.QueryTest do
     end
   end
 
+  describe "all_job_ids/3" do
+    test "returning all ids within the current filters" do
+      job_1 = insert_job!(%{ref: 1}, worker: MyApp.VideoA)
+      job_2 = insert_job!(%{ref: 2}, worker: MyApp.VideoB)
+      job_3 = insert_job!(%{ref: 3}, worker: MyApp.VideoB)
+
+      all_job_ids = fn params, opts ->
+        params
+        |> Map.put_new(:state, "available")
+        |> Query.all_job_ids(@conf, opts)
+      end
+
+      assert [job_1.id, job_2.id, job_3.id] == all_job_ids.(%{}, [])
+      assert [job_2.id, job_3.id] == all_job_ids.(%{workers: ~w(MyApp.VideoB)}, [])
+    end
+  end
+
   defp filter_refs(params, opts \\ []) do
     params =
       params

@@ -169,9 +169,15 @@ defmodule Oban.Web.JobsPage do
     jobs = Query.all_jobs(params, conf, resolver: resolver)
 
     selected =
-      jobs
-      |> MapSet.new(& &1.id)
-      |> MapSet.intersection(socket.assigns.selected)
+      if Enum.any?(socket.assigns.selected) do
+        all_job_ids = Query.all_job_ids(params, conf, resolver: resolver)
+
+        all_job_ids
+        |> MapSet.new()
+        |> MapSet.intersection(socket.assigns.selected)
+      else
+        MapSet.new()
+      end
 
     assign(socket,
       detailed: Query.refresh_job(conf, socket.assigns.detailed),
@@ -326,7 +332,14 @@ defmodule Oban.Web.JobsPage do
       if Enum.any?(socket.assigns.selected) do
         MapSet.new()
       else
-        MapSet.new(socket.assigns.jobs, & &1.id)
+        # Always include the jobs we can see currently to compensate for slower refresh rates.
+        # Without this, visible jobs may not be selected and the interface looks broken.
+        local_set = MapSet.new(socket.assigns.jobs, & &1.id)
+
+        socket.assigns.params
+        |> Query.all_job_ids(socket.assigns.conf)
+        |> MapSet.new()
+        |> MapSet.union(local_set)
       end
 
     {:noreply, assign(socket, selected: selected)}
@@ -408,9 +421,9 @@ defmodule Oban.Web.JobsPage do
 
   defp checked_mode(jobs, selected) do
     cond do
-      Enum.any?(selected) and Enum.count(selected) == Enum.count(jobs) -> :all
-      Enum.any?(selected) -> :some
-      true -> :none
+      Enum.empty?(selected) -> :none
+      Enum.all?(jobs, &MapSet.member?(selected, &1.id)) -> :all
+      true -> :some
     end
   end
 

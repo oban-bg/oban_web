@@ -365,12 +365,7 @@ defmodule Oban.Web.Query do
   # Queries
 
   def all_jobs(params, conf, opts \\ []) do
-    params =
-      @defaults
-      |> Map.merge(params)
-      |> Map.update!(:sort_by, &maybe_atomize/1)
-      |> Map.update!(:sort_dir, &maybe_atomize/1)
-
+    params = params_with_defaults(params)
     conditions = Enum.reduce(params, true, &filter/2)
 
     query =
@@ -384,6 +379,29 @@ defmodule Oban.Web.Query do
     Repo.all(conf, query)
   end
 
+  def all_job_ids(params, conf, opts \\ []) do
+    params = params_with_defaults(params)
+    conditions = Enum.reduce(params, true, &filter/2)
+    limit = bulk_action_limit(params.state, opts)
+
+    query =
+      params.state
+      |> jobs_limit_query(opts)
+      |> select([j], j.id)
+      |> where(^conditions)
+      |> order(params.sort_by, params.state, params.sort_dir)
+      |> limit(^limit)
+
+    Repo.all(conf, query)
+  end
+
+  defp params_with_defaults(params) do
+    @defaults
+    |> Map.merge(params)
+    |> Map.update!(:sort_by, &maybe_atomize/1)
+    |> Map.update!(:sort_dir, &maybe_atomize/1)
+  end
+
   defp jobs_limit_query(state, opts) do
     @states
     |> Map.fetch!(state)
@@ -394,13 +412,12 @@ defmodule Oban.Web.Query do
     limit_query(qual, :hint_query_limit, opts)
   end
 
+  defp bulk_action_limit(state, opts) do
+    resolver(:bulk_action_limit, opts).bulk_action_limit(state)
+  end
+
   defp limit_query(value, fun, opts) do
-    resolver =
-      if function_exported?(opts[:resolver], fun, 1) do
-        opts[:resolver]
-      else
-        Resolver
-      end
+    resolver = resolver(fun, opts)
 
     case apply(resolver, fun, [value]) do
       :infinity ->
@@ -414,6 +431,14 @@ defmodule Oban.Web.Query do
           |> limit(1)
 
         where(Job, [j], j.id >= subquery(sublimit))
+    end
+  end
+
+  defp resolver(fun, opts) do
+    if function_exported?(opts[:resolver], fun, 1) do
+      opts[:resolver]
+    else
+      Resolver
     end
   end
 
