@@ -3,7 +3,7 @@
   "license": "MIT",
   "scripts": {},
   "dependencies": {
-    "chart.js": "^4.3.0",
+    "chart.js": "^4.4.7",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
     "phoenix_live_view": "file:../deps/phoenix_live_view",
