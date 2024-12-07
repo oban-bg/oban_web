@@ -3,6 +3,8 @@ defmodule Oban.Web.Live.Connectivity do
 
   alias Oban.Notifier
 
+  @refresh :timer.seconds(15)
+
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
     status = Notifier.status(assigns.conf)
@@ -20,7 +22,7 @@ defmodule Oban.Web.Live.Connectivity do
       |> assign(status: status, title: title)
 
     if connected?(socket) do
-      send_update_after(__MODULE__, %{socket.assigns | status: :reset}, :timer.seconds(15))
+      send_update_after(__MODULE__, %{socket.assigns | status: :reset}, @refresh)
     end
 
     {:ok, socket}

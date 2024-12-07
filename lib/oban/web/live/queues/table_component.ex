@@ -67,7 +67,7 @@ defmodule Oban.Web.Queues.TableComponent do
   defp queue_header(assigns) do
     ~H"""
     <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
-      <%= @label %>
+      {@label}
     </span>
     """
   end
@@ -86,36 +86,36 @@ defmodule Oban.Web.Queues.TableComponent do
 
       <.link patch={oban_path([:queues, @queue])} class="py-5 flex flex-grow items-center">
         <div rel="name" class="w-1/3 font-semibold text-gray-700 dark:text-gray-300">
-          <%= @queue %>
+          {@queue}
         </div>
 
         <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
           <span rel="nodes" class="w-16 text-right">
-            <%= nodes_count(@checks) %>
+            {nodes_count(@checks)}
           </span>
 
           <span rel="executing" class="w-16 text-right">
-            <%= executing_count(@checks) %>
+            {executing_count(@checks)}
           </span>
 
           <span rel="available" class="w-16 text-right">
-            <%= integer_to_estimate(@counts) %>
+            {integer_to_estimate(@counts)}
           </span>
 
           <span rel="local" class="w-16 text-right">
-            <%= local_limit(@checks) %>
+            {local_limit(@checks)}
           </span>
 
           <span rel="global" class="w-16 text-right">
-            <%= global_limit_to_words(@checks) %>
+            {global_limit_to_words(@checks)}
           </span>
 
           <span rel="rate" class="w-32 text-right">
-            <%= rate_limit_to_words(@checks) %>
+            {rate_limit_to_words(@checks)}
           </span>
 
           <span rel="started" class="w-28 text-right">
-            <%= started_at(@checks) %>
+            {started_at(@checks)}
           </span>
 
           <div class="w-28 pr-6 flex justify-end items-center space-x-1">

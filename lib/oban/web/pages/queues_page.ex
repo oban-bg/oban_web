@@ -78,7 +78,7 @@ defmodule Oban.Web.QueuesPage do
 
               <div class="ml-auto">
                 <span :if={Enum.any?(@selected)} class="block text-sm font-semibold mr-3">
-                  <%= MapSet.size(@selected) %> Selected
+                  {MapSet.size(@selected)} Selected
                 </span>
 
                 <SortComponent.select

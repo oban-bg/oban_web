@@ -16,7 +16,7 @@ defmodule Oban.Web.Components.Icons do
   defp svg_mini(assigns) do
     ~H"""
     <svg {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </svg>
     """
   end
@@ -35,7 +35,7 @@ defmodule Oban.Web.Components.Icons do
   defp svg_outline(assigns) do
     ~H"""
     <svg {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </svg>
     """
   end
@@ -53,7 +53,7 @@ defmodule Oban.Web.Components.Icons do
   defp svg_solid(assigns) do
     ~H"""
     <svg xmlns="http://www.w3.org/2000/svg" {@rest}>
-      <%= render_slot(@inner_block) %>
+      {render_slot(@inner_block)}
     </svg>
     """
   end

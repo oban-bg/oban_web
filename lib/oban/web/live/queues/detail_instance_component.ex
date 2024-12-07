@@ -25,9 +25,9 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
   def render(assigns) do
     ~H"""
     <tr>
-      <td class="pl-3 py-3"><%= node_name(@checks) %></td>
-      <td class="text-right py-3"><%= executing_count(@checks) %></td>
-      <td class="text-right py-3"><%= started_at(@checks) %></td>
+      <td class="pl-3 py-3">{node_name(@checks)}</td>
+      <td class="text-right py-3">{executing_count(@checks)}</td>
+      <td class="text-right py-3">{started_at(@checks)}</td>
       <td class="pl-9 py-3">
         <.pause_button
           disabled={not can?(:pause_queues, @access)}

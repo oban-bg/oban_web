@@ -107,7 +107,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
 
           <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
             <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
-            <span class="text-gray-700">No suggestions matching <b>"<%= @buffer %>"</b></span>
+            <span class="text-gray-700">No suggestions matching <b>"{@buffer}"</b></span>
           </div>
         </div>
 
@@ -132,7 +132,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     ~H"""
     <div class="my-1.5 flex items-center text-sm font-medium" id={"search-filter-#{@param}"}>
       <span class="pl-1.5 pr-0.5 py-1 text-gray-700 dark:text-violet-950 bg-violet-100 dark:bg-violet-300 rounded-s-md whitespace-nowrap">
-        <%= format_filter(@param, @terms) %>
+        {format_filter(@param, @terms)}
       </span>
 
       <button
@@ -175,13 +175,13 @@ defmodule Oban.Web.Jobs.SearchComponent do
       type="button"
     >
       <span class="block px-1 py-0.5 font-medium rounded-md bg-gray-100 dark:bg-gray-900">
-        <%= highlight(@name, @buff) %>
+        {highlight(@name, @buff)}
       </span>
       <span class="block ml-2 text-gray-600 dark:text-gray-300 group-hover:text-white">
-        <%= @desc %>
+        {@desc}
       </span>
       <span class="block ml-auto text-right text-gray-400 dark:text-gray-500 group-hover:text-white">
-        <%= @exmp %>
+        {@exmp}
       </span>
     </button>
     """

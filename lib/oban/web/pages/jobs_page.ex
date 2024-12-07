@@ -117,7 +117,7 @@ defmodule Oban.Web.JobsPage do
 
               <div class="pl-3 ml-auto">
                 <span :if={Enum.any?(@selected)} class="block py-2 text-sm font-semibold">
-                  <%= MapSet.size(@selected) %> Selected
+                  {MapSet.size(@selected)} Selected
                 </span>
 
                 <SortComponent.select

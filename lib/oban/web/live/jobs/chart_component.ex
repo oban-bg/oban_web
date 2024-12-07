@@ -61,11 +61,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
           </button>
 
           <h3 class="text-base font-semibold">
-            <%= metric_label(@series) %>
+            {metric_label(@series)}
           </h3>
 
           <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
-            (<%= @period %> by <%= String.capitalize(@group) %>)
+            ({@period} by {String.capitalize(@group)})
           </span>
 
           <span

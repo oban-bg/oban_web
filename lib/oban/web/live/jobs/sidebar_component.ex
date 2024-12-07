@@ -41,15 +41,15 @@ defmodule Oban.Web.Jobs.SidebarComponent do
           <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
         </button>
 
-        <h3 class="dark:text-gray-200 font-bold"><%= @name %></h3>
+        <h3 class="dark:text-gray-200 font-bold">{@name}</h3>
 
         <div class="ml-auto flex text-xs text-gray-600 dark:text-gray-400 uppercase text-right">
-          <span :for={header <- @headers} class=" w-10"><%= header %></span>
+          <span :for={header <- @headers} class=" w-10">{header}</span>
         </div>
       </header>
 
       <div id={"#{@id}-rows"}>
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </div>
     </div>
     """
@@ -85,13 +85,13 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         "pl-2 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate",
         if(@active?, do: "font-semibold text-gray-950 dark:text-gray-100")
       ]}>
-        <%= @state.name %>
+        {@state.name}
       </span>
       <span class={[
         "pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular",
         if(@active?, do: "text-gray-800 dark:text-gray-200")
       ]}>
-        <%= integer_to_estimate(@state.count) %>
+        {integer_to_estimate(@state.count)}
       </span>
     </.link>
     """
@@ -112,14 +112,14 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       ]}
     >
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left tabular font-medium truncate">
-        <%= String.downcase(@node.name) %>
+        {String.downcase(@node.name)}
       </span>
       <div class="flex-none">
         <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right tabular">
-          <%= integer_to_estimate(@node.count) %>
+          {integer_to_estimate(@node.count)}
         </span>
         <span class="pr-3 text-sm text-gray-600 dark:text-gray-400 text-right w-10 tabular">
-          <%= integer_to_estimate(@node.limit) %>
+          {integer_to_estimate(@node.limit)}
         </span>
       </div>
     </.link>
@@ -147,7 +147,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
           else: "text-gray-700 dark:text-gray-300"
         )
       ]}>
-        <%= @queue.name %>
+        {@queue.name}
       </span>
 
       <div class="pr-3 flex items-center flex-none text-gray-600 dark:text-gray-400">
@@ -184,13 +184,13 @@ defmodule Oban.Web.Jobs.SidebarComponent do
             phx-hook="Tippy"
             rel="has-some-paused"
           />
-          <div class="text-sm w-10 tabular" rel="limit"><%= integer_to_estimate(@queue.limit) %></div>
+          <div class="text-sm w-10 tabular" rel="limit">{integer_to_estimate(@queue.limit)}</div>
         </div>
         <div class="text-sm text-right w-10 tabular" rel="executing">
-          <%= integer_to_estimate(@queue.execu) %>
+          {integer_to_estimate(@queue.execu)}
         </div>
         <div class="text-sm text-right w-10 tabular" rel="available">
-          <%= integer_to_estimate(@queue.avail) %>
+          {integer_to_estimate(@queue.avail)}
         </div>
       </div>
     </.link>

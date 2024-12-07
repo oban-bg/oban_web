@@ -38,10 +38,10 @@ defmodule Oban.Web.Jobs.TimelineComponent do
         <% end %>
       </span>
       <span class="block text-sm text-center font-semibold mt-2">
-        <%= timestamp_name(@state, @job) %>
+        {timestamp_name(@state, @job)}
       </span>
       <span class="block text-sm text-center tabular">
-        <%= timeline_time(@state, @job, @os_time) %>
+        {timeline_time(@state, @job, @os_time)}
       </span>
     </div>
     """

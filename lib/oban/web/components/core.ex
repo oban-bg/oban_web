@@ -35,8 +35,8 @@ defmodule Oban.Web.Components.Core do
       phx-target={@target}
       type="button"
     >
-      <%= render_slot(@icon) %>
-      <span class="block"><%= @label %></span>
+      {render_slot(@icon)}
+      <span class="block">{@label}</span>
     </button>
     """
   end
@@ -52,7 +52,7 @@ defmodule Oban.Web.Components.Core do
           for={@name}
           class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "opacity-50"}"}
         >
-          <%= @label %>
+          {@label}
         </label>
       <% end %>
 
@@ -123,7 +123,7 @@ defmodule Oban.Web.Components.Core do
         phx-click={JS.toggle(to: "##{@name}-menu")}
         type="button"
       >
-        <%= render_slot(@inner_block) %>
+        {render_slot(@inner_block)}
       </button>
 
       <ul
@@ -172,7 +172,7 @@ defmodule Oban.Web.Components.Core do
       <% end %>
 
       <span class="capitalize text-gray-800 dark:text-gray-200">
-        <%= @value |> to_string() |> String.replace("_", " ") %>
+        {@value |> to_string() |> String.replace("_", " ")}
       </span>
     </li>
     """

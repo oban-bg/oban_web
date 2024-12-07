@@ -36,7 +36,7 @@ defmodule Oban.Web.Live.Refresh do
         type="button"
       >
         <Icons.arrow_path_rounded />
-        <span class="ml-1 leading-6 text-sm"><%= :proplists.get_value(@refresh, @options) %></span>
+        <span class="ml-1 leading-6 text-sm">{:proplists.get_value(@refresh, @options)}</span>
       </button>
 
       <ul
@@ -82,7 +82,7 @@ defmodule Oban.Web.Live.Refresh do
         <span class="block w-5 h-5"></span>
       <% end %>
 
-      <span class="text-gray-800 dark:text-gray-200"><%= @display %></span>
+      <span class="text-gray-800 dark:text-gray-200">{@display}</span>
     </li>
     """
   end

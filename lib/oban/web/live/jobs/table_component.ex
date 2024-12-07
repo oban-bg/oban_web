@@ -32,7 +32,7 @@ defmodule Oban.Web.Jobs.TableComponent do
   defp header(assigns) do
     ~H"""
     <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
-      <%= @label %>
+      {@label}
     </span>
     """
   end
@@ -52,7 +52,7 @@ defmodule Oban.Web.Jobs.TableComponent do
           <Icons.no_symbol /> <span>No jobs match the current set of filters.</span>
         </div>
         <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          Filtering limited to latest <%= integer_to_delimited(@query_limit) %> jobs. See <a
+          Filtering limited to latest {integer_to_delimited(@query_limit)} jobs. See <a
             class="underline"
             href="https://getoban.pro/docs/web/filtering.html"
           >filtering docs</a>.
@@ -94,15 +94,15 @@ defmodule Oban.Web.Jobs.TableComponent do
       <.link patch={oban_path([:jobs, @job.id])} class="flex flex-grow items-center">
         <div class="py-2.5">
           <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300" rel="worker">
-            <%= @job.worker %>
+            {@job.worker}
           </span>
 
           <span class="tabular text-xs text-gray-600 dark:text-gray-300" rel="attempts">
-            <%= @job.attempt %> ⁄ <%= @job.max_attempts %>
+            {@job.attempt} ⁄ {@job.max_attempts}
           </span>
 
           <samp class="ml-2 font-mono truncate text-xs text-gray-500 dark:text-gray-400" rel="args">
-            <%= format_args(@job, @resolver) %>
+            {format_args(@job, @resolver)}
           </samp>
         </div>
 
@@ -124,7 +124,7 @@ defmodule Oban.Web.Jobs.TableComponent do
           />
 
           <span class="py-1.5 px-2 tabular truncate text-xs rounded-md bg-gray-100 dark:bg-gray-950">
-            <%= @job.queue %>
+            {@job.queue}
           </span>
         </div>
 
@@ -151,7 +151,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       phx-target={@myself}
       phx-click={@click}
     >
-      <%= @label %>
+      {@label}
     </button>
     """
   end

@@ -82,9 +82,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
       <div class="bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25 border-b border-gray-200 dark:border-gray-700 px-3 py-6">
         <div class="flex justify-between">
           <div>
-            <span class="text-md text-gray-500 dark:text-gray-400 tabular"><%= @job.id %></span>
+            <span class="text-md text-gray-500 dark:text-gray-400 tabular">{@job.id}</span>
             <span class="text-lg font-bold text-gray-900 dark:text-gray-200 ml-1">
-              <%= @job.worker %>
+              {@job.worker}
             </span>
           </div>
 
@@ -114,43 +114,43 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Queue
             </span>
-            <%= @job.queue %>
+            {@job.queue}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Attempt
             </span>
-            <%= @job.attempt %> of <%= @job.max_attempts %>
+            {@job.attempt} of {@job.max_attempts}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Priority
             </span>
-            <%= @job.priority %>
+            {@job.priority}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Tags
             </span>
-            <%= formatted_tags(@job) %>
+            {formatted_tags(@job)}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Node
             </span>
-            <%= attempted_by(@job) %>
+            {attempted_by(@job)}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Queue Time
             </span>
-            <%= Timing.queue_time(@job) %>
+            {Timing.queue_time(@job)}
           </div>
           <div class="mr-6">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
               Run Time
             </span>
-            <%= Timing.run_time(@job) %>
+            {Timing.run_time(@job)}
           </div>
         </div>
       </div>
@@ -200,7 +200,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <div class="mb-12">
               <h4 class="mb-3 flex items-center space-x-2">
                 <div class="text-sm font-semibold">
-                  Attempt <%= attempt %>&mdash;<%= Timing.iso8601_to_words(at) %>
+                  Attempt {attempt}&mdash;{Timing.iso8601_to_words(at)}
                 </div>
                 <div id={at} data-title={at} phx-hook="Tippy">
                   <Icons.info_circle class="w-5 h-5 text-gray-500 dark:text-gray-400" />
