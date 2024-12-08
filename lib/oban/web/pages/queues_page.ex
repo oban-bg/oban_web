@@ -7,8 +7,6 @@ defmodule Oban.Web.QueuesPage do
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, SortComponent, Telemetry}
 
-  @flash_timing 5_000
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -241,7 +239,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> flash(:info, "Selected queues paused")
+      |> put_flash_with_clear(:info, "Selected queues paused")
 
     {:noreply, socket}
   end
@@ -256,7 +254,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> flash(:info, "Selected queues resumed")
+      |> put_flash_with_clear(:info, "Selected queues resumed")
 
     {:noreply, socket}
   end
@@ -271,7 +269,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> flash(:info, "Selected queues stopped")
+      |> put_flash_with_clear(:info, "Selected queues stopped")
 
     {:noreply, socket}
   end
@@ -309,7 +307,8 @@ defmodule Oban.Web.QueuesPage do
 
     send_update(DetailComponent, id: "detail", local_limit: limit)
 
-    {:noreply, flash(socket, :info, "Local limit set for #{queue} queue on #{node}")}
+    {:noreply,
+     put_flash_with_clear(socket, :info, "Local limit set for #{queue} queue on #{node}")}
   end
 
   def handle_info({:scale_queue, queue, opts}, socket) do
@@ -325,7 +324,7 @@ defmodule Oban.Web.QueuesPage do
       end
     end
 
-    {:noreply, flash(socket, :info, scale_message(queue, opts))}
+    {:noreply, put_flash_with_clear(socket, :info, scale_message(queue, opts))}
   end
 
   def handle_info(_, socket) do
@@ -333,12 +332,6 @@ defmodule Oban.Web.QueuesPage do
   end
 
   # Socket Helpers
-
-  defp flash(socket, mode, message) do
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    put_flash(socket, mode, message)
-  end
 
   defp scale_message(queue, opts) do
     cond do

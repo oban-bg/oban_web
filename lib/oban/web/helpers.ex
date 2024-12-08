@@ -3,7 +3,7 @@ defmodule Oban.Web.Helpers do
 
   alias Oban.Job
   alias Oban.Web.{AccessError, Query}
-  alias Phoenix.VerifiedRoutes
+  alias Phoenix.{LiveView, VerifiedRoutes}
 
   # Routing Helpers
 
@@ -37,6 +37,15 @@ defmodule Oban.Web.Helpers do
       nil ->
         raise RuntimeError, "nothing stored in the :routing key"
     end
+  end
+
+  @doc """
+  Put a flash message that will clear automatically after a timeout.
+  """
+  def put_flash_with_clear(socket, mode, message, timing \\ 5_000) do
+    Process.send_after(self(), :clear_flash, timing)
+
+    LiveView.put_flash(socket, mode, message)
   end
 
   @doc """

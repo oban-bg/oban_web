@@ -8,7 +8,6 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, TableComponent}
   alias Oban.Web.{Page, Query, SortComponent, Telemetry}
 
-  @flash_timing 5_000
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
@@ -355,7 +354,7 @@ defmodule Oban.Web.JobsPage do
     socket =
       socket
       |> hide_and_clear_selected()
-      |> flash(:info, "Selected jobs canceled")
+      |> put_flash_with_clear(:info, "Selected jobs canceled")
 
     {:noreply, handle_refresh(socket)}
   end
@@ -370,7 +369,7 @@ defmodule Oban.Web.JobsPage do
     socket =
       socket
       |> hide_and_clear_selected()
-      |> flash(:info, "Selected jobs scheduled to run immediately")
+      |> put_flash_with_clear(:info, "Selected jobs scheduled to run immediately")
 
     {:noreply, handle_refresh(socket)}
   end
@@ -385,7 +384,7 @@ defmodule Oban.Web.JobsPage do
     socket =
       socket
       |> hide_and_clear_selected()
-      |> flash(:info, "Selected jobs deleted")
+      |> put_flash_with_clear(:info, "Selected jobs deleted")
 
     {:noreply, handle_refresh(socket)}
   end
@@ -409,12 +408,6 @@ defmodule Oban.Web.JobsPage do
     jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
 
     assign(socket, jobs: jobs, selected: MapSet.new())
-  end
-
-  defp flash(socket, mode, message) do
-    Process.send_after(self(), :clear_flash, @flash_timing)
-
-    put_flash(socket, mode, message)
   end
 
   # State Helpers
