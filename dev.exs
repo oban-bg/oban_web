@@ -490,6 +490,7 @@ Application.put_env(:phoenix, :persistent, true)
 
 oban_opts = [
   engine: Oban.Pro.Engines.Smart,
+  notifier: Oban.Notifiers.PG,
   repo: WebDev.Repo,
   queues: [
     analysis: 30,
@@ -508,11 +509,19 @@ oban_opts = [
   ]
 ]
 
+slow_oban_opts = [
+  engine: Oban.Pro.Engines.Smart,
+  name: Oban.Slow,
+  notifier: {Oban.Notifiers.PG, namespace: :slow},
+  repo: WebDev.Repo
+]
+
 Task.async(fn ->
   children = [
     {Phoenix.PubSub, [name: WebDev.PubSub, adapter: Phoenix.PubSub.PG2]},
     {WebDev.Repo, []},
     {Oban, oban_opts},
+    {Oban, slow_oban_opts},
     {WebDev.Generator, []},
     {WebDev.Endpoint, []}
   ]

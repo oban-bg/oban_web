@@ -10,14 +10,20 @@ defmodule Oban.Web.DashboardLive do
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
     %{"refresh" => refresh} = session
 
+    refresh = restore_state(socket, "refresh", refresh)
+    theme = restore_state(socket, "theme", "system")
+
+    oban =
+      socket
+      |> restore_state("instance", inspect(oban))
+      |> String.split(".")
+      |> Module.safe_concat()
+
     conf = await_init([oban], :supervisor)
     _met = await_init([oban, Oban.Met], :met)
     page = resolve_page(params)
 
     Process.put(:routing, {socket, prefix})
-
-    refresh = restore_state(socket, "refresh", refresh)
-    theme = restore_state(socket, "theme", "system")
 
     socket =
       socket
@@ -92,6 +98,21 @@ defmodule Oban.Web.DashboardLive do
     else
       {:noreply, socket}
     end
+  end
+
+  def handle_info({:select_instance, name}, socket) do
+    conf = Oban.config(name)
+    name = inspect(name)
+    page = socket.assigns.page
+
+    socket =
+      socket
+      |> assign(oban: name, conf: conf)
+      |> page.comp.handle_refresh()
+      |> push_event("select-instance", %{name: name})
+      |> put_flash_with_clear(:info, "Switched instance to #{name}")
+
+    {:noreply, socket}
   end
 
   def handle_info(:toggle_refresh, socket) do

@@ -71,10 +71,10 @@ defmodule Oban.Web.Live.Refresh do
     <li
       class={"block w-full py-1 px-2 flex items-center cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
       role="option"
-      value={@value}
       phx-click="select-refresh"
       phx-click-away={JS.hide(to: "#refresh-menu")}
       phx-target="#refresh-selector"
+      phx-value-interval={@value}
     >
       <%= if @value == @refresh do %>
         <Icons.check class="w-5 h-5" />
@@ -102,8 +102,8 @@ defmodule Oban.Web.Live.Refresh do
     {:noreply, socket}
   end
 
-  def handle_event("select-refresh", %{"value" => value}, socket) do
-    value = if is_binary(value), do: String.to_integer(value), else: value
+  def handle_event("select-refresh", %{"interval" => interval}, socket) do
+    value = if is_binary(interval), do: String.to_integer(interval), else: interval
 
     send(self(), {:update_refresh, value})
 

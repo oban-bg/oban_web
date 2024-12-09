@@ -7,13 +7,14 @@ import { loadAll } from "./lib/settings"
 
 import Charter from "./hooks/charter"
 import Completer from "./hooks/completer"
+import Instantiator from "./hooks/instantiator"
 import Refresher from "./hooks/refresher"
 import Relativize from "./hooks/relativize"
 import Shortcuts from "./hooks/shortcuts"
 import Themer from "./hooks/themer"
 import Tippy from "./hooks/tippy"
 
-const hooks = { Charter, Completer, Refresher, Relativize, Shortcuts, Themer, Tippy }
+const hooks = { Charter, Completer, Instantiator, Refresher, Relativize, Shortcuts, Themer, Tippy }
 
 // Topbar ---
 
