@@ -346,12 +346,14 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{ref: 0, mode: "audio", bar: %{baz: 1}})
       insert_job!(%{ref: 1, mode: "video", bar: %{baz: 2}})
       insert_job!(%{ref: 2, mode: "media", bar: %{bat: 3}})
+      insert_job!(%{ref: 3, mode: "pizza", bar: %{bat: "3"}})
 
       assert [0] = filter_refs(args: [~w(mode), "audio"])
       assert [1] = filter_refs(args: [~w(mode), "video"])
 
       assert [0] = filter_refs(args: [~w(bar baz), "1"])
       assert [2] = filter_refs(args: [~w(bar bat), "3"])
+      assert [3] = filter_refs(args: [~w(bar bat), ~s("3")])
       assert [] = filter_refs(args: [~w(bar bat), "4"])
     end
 

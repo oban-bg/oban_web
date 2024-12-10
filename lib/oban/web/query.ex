@@ -614,7 +614,7 @@ defmodule Oban.Web.Query do
   defp cast_val(val) do
     case Integer.parse(val) do
       {int, ""} -> int
-      _ -> val
+      _ -> String.trim(val, "\"")
     end
   end
 
