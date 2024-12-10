@@ -53,7 +53,7 @@ defmodule Oban.Web.QueuesPage do
                 </Core.action_button>
 
                 <Core.action_button
-                  :if={can?(:resume_queues, @access)}
+                  :if={can?(:pause_queues, @access)}
                   label="Resume"
                   click="resume-queues"
                   target={@myself}
@@ -260,7 +260,7 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_info(:stop_queues, socket) do
-    enforce_access!(:pause_queues, socket.assigns.access)
+    enforce_access!(:stop_queues, socket.assigns.access)
 
     Telemetry.action(:stop_queues, socket, [], fn ->
       Enum.each(socket.assigns.selected, &Oban.stop_queue(socket.assigns.conf.name, queue: &1))
