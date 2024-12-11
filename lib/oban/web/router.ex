@@ -252,7 +252,7 @@ defmodule Oban.Web.Router do
 
   @doc false
   def __session__(conn, prefix, oban, resolver, live_path, live_transport, csp_key) do
-    user = resolve_with_fallback(resolver, :resolve_user, [conn])
+    user = Resolver.call_with_fallback(resolver, :resolve_user, [conn])
 
     csp_keys = expand_csp_nonce_keys(csp_key)
 
@@ -261,8 +261,8 @@ defmodule Oban.Web.Router do
       "oban" => oban,
       "user" => user,
       "resolver" => resolver,
-      "access" => resolve_with_fallback(resolver, :resolve_access, [user]),
-      "refresh" => resolve_with_fallback(resolver, :resolve_refresh, [user]),
+      "access" => Resolver.call_with_fallback(resolver, :resolve_access, [user]),
+      "refresh" => Resolver.call_with_fallback(resolver, :resolve_refresh, [user]),
       "live_path" => live_path,
       "live_transport" => live_transport,
       "csp_nonces" => %{
@@ -276,12 +276,6 @@ defmodule Oban.Web.Router do
   defp expand_csp_nonce_keys(nil), do: %{img: nil, style: nil, script: nil}
   defp expand_csp_nonce_keys(key) when is_atom(key), do: %{img: key, style: key, script: key}
   defp expand_csp_nonce_keys(map) when is_map(map), do: map
-
-  defp resolve_with_fallback(resolver, function, args) do
-    resolver = if function_exported?(resolver, function, 1), do: resolver, else: Resolver
-
-    apply(resolver, function, args)
-  end
 
   defp validate_opt!({:csp_nonce_assign_key, key}) do
     unless is_nil(key) or is_atom(key) or is_map(key) do

@@ -21,7 +21,14 @@ defmodule Oban.Web.ErrorHTML do
   end
 end
 
-defmodule ForbiddenResolver do
+defmodule PrivateResolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl Oban.Web.Resolver
+  def resolve_instances(_user), do: [ObanPrivate]
+end
+
+defmodule LimitedResolver do
   @behaviour Oban.Web.Resolver
 
   @impl Oban.Web.Resolver
@@ -46,8 +53,12 @@ defmodule Oban.Web.Test.Router do
     pipe_through :browser
 
     oban_dashboard "/oban"
-    oban_dashboard "/oban-limited", as: :oban_limited_dashboard, resolver: ForbiddenResolver
-    oban_dashboard "/oban-private", as: :oban_private_dashboard, oban_name: ObanPrivate
+    oban_dashboard "/oban-limited", as: :oban_limited, resolver: LimitedResolver
+
+    oban_dashboard "/oban-private",
+      as: :oban_private,
+      oban_name: ObanPrivate,
+      resolver: PrivateResolver
   end
 end
 

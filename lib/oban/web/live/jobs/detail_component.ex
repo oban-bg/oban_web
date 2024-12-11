@@ -168,7 +168,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <Icons.command_line />
           <span>Args</span>
         </h3>
-        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_args(@job, @resolver) %></pre>
+        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_args(@job, @resolver)}</pre>
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
@@ -176,7 +176,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <Icons.hashtag />
           <span>Meta</span>
         </h3>
-        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_meta(@job, @resolver) %></pre>
+        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
       </div>
 
       <%= if @job.meta["recorded"] do %>
@@ -247,23 +247,20 @@ defmodule Oban.Web.Jobs.DetailComponent do
   # Helpers
 
   defp format_args(job, resolver) do
-    resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
-
-    resolver.format_job_args(job)
+    Resolver.call_with_fallback(resolver, :format_job_args, [job])
   end
 
   defp format_meta(job, resolver) do
-    resolver = if function_exported?(resolver, :format_job_meta, 1), do: resolver, else: Resolver
-
-    resolver.format_job_meta(job)
+    Resolver.call_with_fallback(resolver, :format_job_meta, [job])
   end
 
   defp format_recorded(%{meta: meta} = job, resolver) do
-    resolver = if function_exported?(resolver, :format_recorded, 2), do: resolver, else: Resolver
-
     case meta do
-      %{"recorded" => true, "return" => value} -> resolver.format_recorded(value, job)
-      _ -> "No Recording Yet"
+      %{"recorded" => true, "return" => value} ->
+        Resolver.call_with_fallback(resolver, :format_recorded, [value, job])
+
+      _ ->
+        "No Recording Yet"
     end
   end
 end

@@ -57,6 +57,30 @@ defmodule Oban.Web.DashboardTest do
       assert {:error, {:live_redirect, %{to: "/oban-private/queues"}}} =
                live(build_conn(), "/oban-private/queues/omicron")
     end
+
+    test "switching between actively running instances" do
+      start_supervised_oban!(name: Oban)
+      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+
+      {:ok, live, _html} = live(build_conn(), "/oban")
+
+      assert has_element?(live, "#instance-select li[phx-value-name=Oban]")
+      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+
+      change_instance(live, "ObanPrivate")
+
+      assert has_element?(live, "#instance-select-button", "ObanPrivate")
+    end
+
+    test "disallowing switching to unresolved instances" do
+      start_supervised_oban!(name: Oban)
+      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+
+      {:ok, live, _html} = live(build_conn(), "/oban-private")
+
+      refute has_element?(live, "#instance-select li[phx-value-name=Oban]")
+      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+    end
   end
 
   defp click_state(live, state) do
@@ -65,5 +89,11 @@ defmodule Oban.Web.DashboardTest do
     |> render_click()
 
     render(live)
+  end
+
+  defp change_instance(live, name) do
+    live
+    |> element("#instance-select li[role=option]", name)
+    |> render_click()
   end
 end

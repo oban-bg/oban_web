@@ -101,6 +101,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info({:select_instance, name}, socket) do
+    name = name |> String.split(".") |> Module.safe_concat()
     conf = Oban.config(name)
     name = inspect(name)
     page = socket.assigns.page

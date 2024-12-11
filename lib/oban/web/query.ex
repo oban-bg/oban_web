@@ -413,13 +413,11 @@ defmodule Oban.Web.Query do
   end
 
   defp bulk_action_limit(state, opts) do
-    resolver(:bulk_action_limit, opts).bulk_action_limit(state)
+    Resolver.call_with_fallback(opts[:resolver], :bulk_action_limit, [state])
   end
 
   defp limit_query(value, fun, opts) do
-    resolver = resolver(fun, opts)
-
-    case apply(resolver, fun, [value]) do
+    case Resolver.call_with_fallback(opts[:resolver], fun, [value]) do
       :infinity ->
         Job
 
@@ -431,14 +429,6 @@ defmodule Oban.Web.Query do
           |> limit(1)
 
         where(Job, [j], j.id >= subquery(sublimit))
-    end
-  end
-
-  defp resolver(fun, opts) do
-    if function_exported?(opts[:resolver], fun, 1) do
-      opts[:resolver]
-    else
-      Resolver
     end
   end
 

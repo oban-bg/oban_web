@@ -182,18 +182,14 @@ defmodule Oban.Web.Jobs.TableComponent do
   # Resolver Helpers
 
   defp query_limit(resolver, params) do
-    resolver = if function_exported?(resolver, :jobs_query_limit, 1), do: resolver, else: Resolver
+    state = String.to_existing_atom(params.state)
 
-    params.state
-    |> String.to_existing_atom()
-    |> resolver.jobs_query_limit()
+    Resolver.call_with_fallback(resolver, :jobs_query_limit, [state])
   end
 
   defp format_args(job, resolver) do
-    resolver = if function_exported?(resolver, :format_job_args, 1), do: resolver, else: Resolver
-
-    job
-    |> resolver.format_job_args()
+    resolver
+    |> Resolver.call_with_fallback(:format_job_args, [job])
     |> truncate(0..98)
   end
 

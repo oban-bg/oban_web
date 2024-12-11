@@ -1,6 +1,9 @@
 defmodule Oban.Web.Live.Instances do
   use Oban.Web, :live_component
 
+  alias Oban.Registry
+  alias Oban.Web.Resolver
+
   # Only the top level instance is registered as an atom, all other keys are tuples
   @pattern [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}]
 
@@ -8,17 +11,13 @@ defmodule Oban.Web.Live.Instances do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    instances =
-      Oban.Registry
-      |> Registry.select(@pattern)
-      |> Enum.map(&inspect/1)
-      |> Enum.sort()
-
+    instances = available_instances(assigns.resolver, assigns.user)
     active = inspect(assigns.conf.name)
 
     socket =
       socket
       |> assign(conf: assigns.conf, id: assigns.id)
+      |> assign(resolver: assigns.resolver, user: assigns.user)
       |> assign(active: active, instances: instances)
 
     if connected?(socket) do
@@ -26,6 +25,20 @@ defmodule Oban.Web.Live.Instances do
     end
 
     {:ok, socket}
+  end
+
+  defp available_instances(resolver, user) do
+    instances = Registry.select(@pattern)
+
+    available =
+      case Resolver.call_with_fallback(resolver, :resolve_instances, [user]) do
+        :all -> instances
+        list -> Enum.filter(instances, &(&1 in list))
+      end
+
+    available
+    |> Enum.map(&inspect/1)
+    |> Enum.sort()
   end
 
   @impl Phoenix.LiveComponent
@@ -38,7 +51,7 @@ defmodule Oban.Web.Live.Instances do
         class="rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800
         dark:hover:text-gray-200 ring-1 ring-inset ring-gray-400 dark:ring-gray-700
         focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
-        data-title="Switch Oban instance"
+        data-title="Change Oban instance"
         id="instance-select-button"
         phx-click={JS.toggle(to: "#instance-select-menu")}
         phx-hook="Tippy"
@@ -48,7 +61,7 @@ defmodule Oban.Web.Live.Instances do
       </button>
 
       <ul
-        class="w-48 hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5"
+        class="hidden absolute z-10 mt-1 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5"
         id="instance-select-menu"
       >
         <li
@@ -76,12 +89,13 @@ defmodule Oban.Web.Live.Instances do
 
   @impl Phoenix.LiveComponent
   def handle_event("select-instance", %{"name" => name}, socket) do
-    oban_name =
-      name
-      |> String.split(".")
-      |> Module.safe_concat()
+    %{resolver: resolver, user: user} = socket.assigns
 
-    send(self(), {:select_instance, oban_name})
+    allowed = Resolver.call_with_fallback(resolver, :resolve_instances, [user])
+
+    if allowed == :all or Enum.member?(allowed, name) do
+      send(self(), {:select_instance, name})
+    end
 
     {:noreply, socket}
   end

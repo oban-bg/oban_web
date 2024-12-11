@@ -19,6 +19,9 @@ defmodule Oban.Web.Resolver do
     def resolve_access(_user), do: :all
 
     @impl true
+    def resolve_instances(_user), do: :all
+
+    @impl true
     def resolve_refresh(_user), do: 1
 
     @impl true
@@ -77,6 +80,9 @@ defmodule Oban.Web.Resolver do
   * [Hint Query Limit](#c:hint_query_limit/1)—Control the maximum number of jobs to search for
   auto-complete hints.
 
+  * [Bulk Action Limit](#c:bulk_action_limit/1)—Control the maximum number of jobs that can be
+  acted on at once, e.g. cancelled.
+
   * [Format Job Args](#c:format_job_args/1)—Override the default verbose args formatting.
 
   * [Format Job Meta](#c:format_meta_args/1)—Override the default verbose meta formatting.
@@ -115,13 +121,26 @@ defmodule Oban.Web.Resolver do
 
   @type access :: :all | :read_only | [access_option()] | {:forbidden, Path.t()}
 
-  @type access_option :: :pause_queues | :scale_queues | :stop_queues | :cancel_jobs | :delete_jobs | :retry_jobs
+  @type access_option ::
+          :pause_queues | :scale_queues | :stop_queues | :cancel_jobs | :delete_jobs | :retry_jobs
 
   @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
   @type refresh :: 1 | 2 | 5 | 15 | 60 | -1
 
   @type user :: term()
+
+  @doc """
+  Explicitly allow Oban instances to be selectable.
+
+  ## Examples
+
+  Allow admins to access all instances and others to only access the default:
+
+      def resolve_instances(%{admin?: true}), do: :all
+      def resolve_instances(_user), do: [Oban]
+  """
+  @callback resolve_instances(user :: user()) :: :all | [GenServer.name()]
 
   @doc """
   Customize the formatting of job args wherever they are displayed.
@@ -374,6 +393,7 @@ defmodule Oban.Web.Resolver do
                       jobs_query_limit: 1,
                       resolve_user: 1,
                       resolve_access: 1,
+                      resolve_instances: 1,
                       resolve_refresh: 1
 
   @inspect_opts [charlists: :as_lists, pretty: true]
@@ -404,6 +424,13 @@ defmodule Oban.Web.Resolver do
   end
 
   @doc false
+  def call_with_fallback(resolver, fun, args) when is_atom(fun) and is_list(args) do
+    resolver = if function_exported?(resolver, fun, length(args)), do: resolver, else: __MODULE__
+
+    apply(resolver, fun, args)
+  end
+
+  @doc false
   def format_job_args(%Job{args: args, meta: %{"decorated" => true}}) do
     args
     |> Map.update!("arg", &(&1 |> String.trim_leading("term-") |> decode_recorded()))
@@ -427,6 +454,9 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def resolve_access(_user), do: :all
+
+  @doc false
+  def resolve_instances(_user), do: :all
 
   @doc false
   def resolve_refresh(_user), do: 1
