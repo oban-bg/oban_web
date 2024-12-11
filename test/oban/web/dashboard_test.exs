@@ -81,6 +81,15 @@ defmodule Oban.Web.DashboardTest do
       refute has_element?(live, "#instance-select li[phx-value-name=Oban]")
       assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
     end
+
+    test "defaulting to the first found running instance" do
+      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+
+      {:ok, live, _html} = live(build_conn(), "/oban")
+
+      refute has_element?(live, "#instance-select li[phx-value-name=Oban]")
+      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+    end
   end
 
   defp click_state(live, state) do

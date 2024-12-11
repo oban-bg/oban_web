@@ -1,13 +1,7 @@
 defmodule Oban.Web.Live.Instances do
   use Oban.Web, :live_component
 
-  alias Oban.Registry
   alias Oban.Web.Resolver
-
-  # Only the top level instance is registered as an atom, all other keys are tuples
-  @pattern [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}]
-
-  @refresh :timer.seconds(15)
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
@@ -20,15 +14,11 @@ defmodule Oban.Web.Live.Instances do
       |> assign(resolver: assigns.resolver, user: assigns.user)
       |> assign(active: active, instances: instances)
 
-    if connected?(socket) do
-      send_update_after(__MODULE__, %{socket.assigns | instances: []}, @refresh)
-    end
-
     {:ok, socket}
   end
 
   defp available_instances(resolver, user) do
-    instances = Registry.select(@pattern)
+    instances = oban_instances()
 
     available =
       case Resolver.call_with_fallback(resolver, :resolve_instances, [user]) do

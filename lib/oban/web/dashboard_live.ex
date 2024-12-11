@@ -5,19 +5,14 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
-    %{"oban" => oban, "prefix" => prefix, "resolver" => resolver} = session
+    %{"prefix" => prefix, "resolver" => resolver} = session
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
     %{"refresh" => refresh} = session
 
     refresh = restore_state(socket, "refresh", refresh)
     theme = restore_state(socket, "theme", "system")
-
-    oban =
-      socket
-      |> restore_state("instance", inspect(oban))
-      |> String.split(".")
-      |> Module.safe_concat()
+    oban = current_oban_instance(session, socket)
 
     conf = await_init([oban], :supervisor)
     _met = await_init([oban, Oban.Met], :met)
@@ -37,6 +32,16 @@ defmodule Oban.Web.DashboardLive do
     {:ok, socket}
   end
 
+  defp current_oban_instance(session, socket) do
+    stashed = restore_state(socket, "instance")
+    default = List.first(oban_instances())
+
+    case stashed || session["oban"] || default || Oban do
+      name when is_binary(name) -> name |> String.split(".") |> Module.safe_concat()
+      name -> name
+    end
+  end
+
   defp init_state(socket) do
     case get_connect_params(socket) do
       %{"init_state" => state} -> state
@@ -44,7 +49,7 @@ defmodule Oban.Web.DashboardLive do
     end
   end
 
-  defp restore_state(socket, key, default) do
+  defp restore_state(socket, key, default \\ nil) do
     socket
     |> init_state()
     |> Map.get("oban:" <> key, default)
@@ -109,9 +114,9 @@ defmodule Oban.Web.DashboardLive do
     socket =
       socket
       |> assign(oban: name, conf: conf)
-      |> page.comp.handle_refresh()
       |> push_event("select-instance", %{name: name})
       |> put_flash_with_clear(:info, "Switched instance to #{name}")
+      |> page.comp.handle_refresh()
 
     {:noreply, socket}
   end

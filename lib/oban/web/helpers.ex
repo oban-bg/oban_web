@@ -1,9 +1,20 @@
 defmodule Oban.Web.Helpers do
   @moduledoc false
 
-  alias Oban.Job
+  alias Oban.{Job, Registry}
   alias Oban.Web.{AccessError, Query}
   alias Phoenix.{LiveView, VerifiedRoutes}
+
+  # Instance Helpers
+
+  def oban_instances do
+    # Only the top level instance is registered as an atom, all other keys are tuples
+    pattern = [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}]
+
+    pattern
+    |> Registry.select()
+    |> Enum.sort_by(&if &1 == Oban, do: 0, else: &1)
+  end
 
   # Routing Helpers
 

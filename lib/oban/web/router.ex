@@ -32,23 +32,10 @@ defmodule Oban.Web.Router do
 
   ### Running Multiple Dashboards
 
-  Applications that run multiple Oban instances can mount a dashboard for each instance. Set the
-  mounted dashboard's `:oban_name` to match the corresponding supervision tree's name. For
-  example, given two configured Oban instances, `Oban` and `MyAdmin.Oban`:
-
-  ```elixir
-  config :my_app, Oban,
-    repo: MyApp.Repo,
-    name: Oban,
-    ...
-
-  config :my_admin, Oban,
-    repo: MyAdmin.Repo,
-    name: MyAdmin.Oban,
-    ...
-  ```
-
-  You can then mount both dashboards in your router:
+  A single dashboard may connect to any number of running Oban instances. However, it's also
+  possible to change the default instance via the `:oban_name` option. For example, given two
+  configured Oban instances, `Oban` and `MyAdmin.Oban`, you can then mount both dashboards in your
+  router:
 
   ```elixir
   scope "/" do
@@ -59,8 +46,8 @@ defmodule Oban.Web.Router do
   end
   ```
 
-  Note that the default name is `Oban`, setting `oban_name: Oban` in the example above was purely
-  for demonstration purposes.
+  Note that the default name is `Oban` or the first found instance, setting `oban_name: Oban` in
+  the example above was purely for demonstration purposes.
 
   ### On Mount Hooks
 
@@ -141,7 +128,6 @@ defmodule Oban.Web.Router do
   alias Oban.Web.Resolver
 
   @default_opts [
-    oban_name: Oban,
     resolver: Resolver,
     socket_path: "/live",
     transport: "websocket"
@@ -161,7 +147,7 @@ defmodule Oban.Web.Router do
   * `:on_mount` — declares additional module callbacks to be invoked when the dashboard mounts
 
   * `:oban_name` — name of the Oban instance the dashboard will use for configuration and
-    notifications, defaults to `Oban`
+    notifications, defaults to `Oban` or the first instance that can be found.
 
   * `:resolver` — an `Oban.Web.Resolver` implementation used to customize the dashboard's
     functionality.
