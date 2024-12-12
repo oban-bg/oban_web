@@ -1,7 +1,5 @@
-defmodule Oban.Web.Jobs.SearchComponent do
+defmodule Oban.Web.SearchComponent do
   use Oban.Web, :live_component
-
-  alias Oban.Web.JobQuery
 
   @known ~w(args ids meta nodes priorities queues tags workers)a
 
@@ -16,7 +14,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def update(assigns, socket) do
     suggestions =
       Map.get_lazy(assigns, :suggestions, fn ->
-        JobQuery.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
+        assigns.queryable.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
       end)
 
     socket =
@@ -242,7 +240,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("clear", _params, socket) do
-    suggestions = JobQuery.suggest("", socket.assigns.conf)
+    suggestions = socket.assigns.queryable.suggest("", socket.assigns.conf)
 
     {:noreply,
      socket
@@ -251,7 +249,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
-    buffer = JobQuery.append(socket.assigns.buffer, choice)
+    buffer = socket.assigns.queryable.append(socket.assigns.buffer, choice)
 
     socket
     |> assign(buffer: buffer)
@@ -259,7 +257,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("complete", _params, socket) do
-    buffer = JobQuery.complete(socket.assigns.buffer, socket.assigns.conf)
+    buffer = socket.assigns.queryable.complete(socket.assigns.buffer, socket.assigns.conf)
 
     socket =
       socket
@@ -281,14 +279,14 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   defp handle_submit(socket) do
-    buffer = socket.assigns.buffer
+    %{buffer: buffer, queryable: queryable} = socket.assigns
 
     if String.ends_with?(buffer, ":") or String.ends_with?(buffer, ".") do
       {:noreply, async_suggest(socket, buffer)}
     else
-      parsed = JobQuery.parse(buffer)
+      parsed = queryable.parse(buffer)
       params = Map.merge(socket.assigns.params, parsed, fn _key, old, new -> old ++ new end)
-      suggestions = JobQuery.suggest("", socket.assigns.conf)
+      suggestions = queryable.suggest("", socket.assigns.conf)
 
       {:noreply,
        socket
@@ -309,11 +307,14 @@ defmodule Oban.Web.Jobs.SearchComponent do
     self = self()
 
     fun = fn ->
-      suggestions = JobQuery.suggest(buffer, socket.assigns.conf, resolver: socket.assigns.resolver)
+      suggestions =
+        socket.assigns.queryable.suggest(buffer, socket.assigns.conf,
+          resolver: socket.assigns.resolver
+        )
 
       assigns =
         socket.assigns
-        |> Map.take(~w(id conf params resolver)a)
+        |> Map.take(~w(id conf params queryable resolver)a)
         |> Map.put(:loading, false)
         |> Map.put(:suggestions, suggestions)
 

@@ -3,6 +3,40 @@ defmodule Oban.Web.HelpersTest do
 
   alias Oban.Web.Helpers
 
+  describe "encode_params/1" do
+    import Helpers, only: [encode_params: 1]
+
+    test "encoding fields with multiple values" do
+      assert [nodes: "web-1,web-2"] = encode_params(nodes: ~w(web-1 web-2))
+    end
+
+    test "encoding fields with path qualifiers" do
+      assert [args: "a++x"] = encode_params(args: [~w(a), "x"])
+      assert [args: "a,b++x"] = encode_params(args: [~w(a b), "x"])
+      assert [args: "a,b,c++x"] = encode_params(args: [~w(a b c), "x"])
+    end
+  end
+
+  describe "decode_params/1" do
+    import Helpers, only: [decode_params: 1]
+
+    test "decoding fields with known integers" do
+      assert %{limit: 1} = decode_params(%{"limit" => "1"})
+    end
+
+    test "decoding params with multiple values" do
+      assert %{nodes: ~w(web-1 web-2)} = decode_params(%{"nodes" => "web-1,web-2"})
+      assert %{queues: ~w(alpha gamma)} = decode_params(%{"queues" => "alpha,gamma"})
+      assert %{workers: ~w(A B)} = decode_params(%{"workers" => "A,B"})
+    end
+
+    test "decoding params with path qualifiers" do
+      assert %{args: [~w(a), "x"]} = decode_params(%{"args" => "a++x"})
+      assert %{args: [~w(a b), "x"]} = decode_params(%{"args" => "a,b++x"})
+      assert %{meta: [~w(a), "x"]} = decode_params(%{"meta" => "a++x"})
+    end
+  end
+
   describe "can?/2" do
     test "checking actions against access control lists" do
       assert Helpers.can?(:pause_queues, :all)

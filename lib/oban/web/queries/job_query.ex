@@ -4,7 +4,7 @@ defmodule Oban.Web.JobQuery do
   import Ecto.Query
 
   alias Oban.{Config, Job, Repo}
-  alias Oban.Web.{Cache, Resolver}
+  alias Oban.Web.{Cache, Resolver, Search}
 
   @defaults %{
     limit: 30,
@@ -47,7 +47,6 @@ defmodule Oban.Web.JobQuery do
 
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-  @ignored_chars ~w(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
   defmacrop path_key(key, value) do
     quote do
@@ -65,56 +64,8 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  @doc """
-  Parse a string of qualifiers and values into structured search terms.
-  """
   def parse(terms) when is_binary(terms) do
-    terms
-    |> String.split(@split_pattern)
-    |> Map.new(fn term ->
-      term
-      |> String.replace(@ignored_chars, "")
-      |> parse_term()
-    end)
-  end
-
-  @doc """
-  Prepare parsed params for URI encoding.
-  """
-  def encode_params(params) do
-    for {key, val} <- params, val != nil, val != "" do
-      case val do
-        [path, frag] when is_list(path) ->
-          {key, Enum.join(path, ",") <> "++" <> frag}
-
-        [_ | _] ->
-          {key, Enum.join(val, ",")}
-
-        _ ->
-          {key, val}
-      end
-    end
-  end
-
-  def decode_params(params) do
-    Map.new(params, fn
-      {"limit", val} ->
-        {:limit, String.to_integer(val)}
-
-      {key, val} when key in ~w(args meta) ->
-        val =
-          val
-          |> String.split("++")
-          |> List.update_at(0, &String.split(&1, ","))
-
-        {String.to_existing_atom(key), val}
-
-      {key, val} when key in ~w(ids nodes priorities queues tags workers) ->
-        {String.to_existing_atom(key), String.split(val, ",")}
-
-      {key, val} ->
-        {String.to_existing_atom(key), val}
-    end)
+    Search.parse(terms, &parse_term/1)
   end
 
   @suggest_limit 10
@@ -140,10 +91,8 @@ defmodule Oban.Web.JobQuery do
 
   @known_qualifiers for {qualifier, _, _} <- @suggest_qualifier, into: MapSet.new(), do: qualifier
 
-  @doc """
-  Suggest completions from a search fragment.
-  """
-  @spec suggest(String.t(), Config.t()) :: [{String.t(), String.t(), String.t()}]
+  def filterable, do: ~w(args ids meta nodes priorities queues tags workers)a
+
   def suggest(terms, conf, opts \\ []) do
     terms
     |> String.split(@split_pattern)
@@ -324,9 +273,10 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  @doc """
-  Complete a query by expanding the latest qualifier or fragment.
-  """
+  def append(terms, choice) do
+    Search.append(terms, choice, @known_qualifiers)
+  end
+
   def complete(terms, conf) do
     case suggest(terms, conf) do
       [] ->
@@ -334,31 +284,6 @@ defmodule Oban.Web.JobQuery do
 
       [{match, _, _} | _] ->
         append(terms, match)
-    end
-  end
-
-  @doc """
-  Append to the terms string without any duplication.
-  """
-  def append(terms, choice) do
-    choice = if String.match?(choice, ~r/[\s,]/), do: ~s("#{choice}"), else: choice
-
-    cond do
-      MapSet.member?(@known_qualifiers, choice) ->
-        choice
-
-      String.contains?(terms, ":") ->
-        [qualifier, _] = String.split(terms, ":", parts: 2)
-
-        "#{qualifier}:#{choice}"
-
-      true ->
-        terms
-        |> String.reverse()
-        |> String.split(["."], parts: 2)
-        |> List.last()
-        |> String.reverse()
-        |> Kernel.<>(".#{choice}")
     end
   end
 

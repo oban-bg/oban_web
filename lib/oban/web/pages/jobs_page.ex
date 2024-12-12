@@ -5,8 +5,8 @@ defmodule Oban.Web.JobsPage do
 
   alias Oban.Met
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
-  alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, TableComponent}
-  alias Oban.Web.{JobQuery, Page, SortComponent, Telemetry}
+  alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
+  alias Oban.Web.{JobQuery, Page, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
@@ -111,6 +111,7 @@ defmodule Oban.Web.JobsPage do
                 id="search"
                 module={SearchComponent}
                 params={without_defaults(@params, @default_params)}
+                queryable={JobQuery}
                 resolver={@resolver}
               />
 
@@ -395,7 +396,7 @@ defmodule Oban.Web.JobsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> JobQuery.decode_params()
+      |> decode_params()
 
     Map.merge(socket.assigns.default_params, params)
   end

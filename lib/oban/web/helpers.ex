@@ -2,7 +2,7 @@ defmodule Oban.Web.Helpers do
   @moduledoc false
 
   alias Oban.{Job, Registry}
-  alias Oban.Web.{AccessError, JobQuery}
+  alias Oban.Web.AccessError
   alias Phoenix.{LiveView, VerifiedRoutes}
 
   # Instance Helpers
@@ -36,7 +36,7 @@ defmodule Oban.Web.Helpers do
     params =
       params
       |> Enum.sort()
-      |> JobQuery.encode_params()
+      |> encode_params()
 
     case Process.get(:routing) do
       {socket, prefix} ->
@@ -48,6 +48,48 @@ defmodule Oban.Web.Helpers do
       nil ->
         raise RuntimeError, "nothing stored in the :routing key"
     end
+  end
+
+  @doc """
+  Prepare parsed params for URI encoding.
+  """
+  def encode_params(params) do
+    for {key, val} <- params, val != nil, val != "" do
+      case val do
+        [path, frag] when is_list(path) ->
+          {key, Enum.join(path, ",") <> "++" <> frag}
+
+        [_ | _] ->
+          {key, Enum.join(val, ",")}
+
+        _ ->
+          {key, val}
+      end
+    end
+  end
+
+  @doc """
+  Restore params from URI encoding.
+  """
+  def decode_params(params) do
+    Map.new(params, fn
+      {"limit", val} ->
+        {:limit, String.to_integer(val)}
+
+      {key, val} when key in ~w(args meta) ->
+        val =
+          val
+          |> String.split("++")
+          |> List.update_at(0, &String.split(&1, ","))
+
+        {String.to_existing_atom(key), val}
+
+      {key, val} when key in ~w(ids nodes priorities queues tags workers) ->
+        {String.to_existing_atom(key), String.split(val, ",")}
+
+      {key, val} ->
+        {String.to_existing_atom(key), val}
+    end)
   end
 
   @doc """

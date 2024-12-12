@@ -23,40 +23,6 @@ defmodule Oban.Web.JobQueryTest do
     end
   end
 
-  describe "encode_params/1" do
-    import JobQuery, only: [encode_params: 1]
-
-    test "encoding fields with multiple values" do
-      assert [nodes: "web-1,web-2"] = encode_params(nodes: ~w(web-1 web-2))
-    end
-
-    test "encoding fields with path qualifiers" do
-      assert [args: "a++x"] = encode_params(args: [~w(a), "x"])
-      assert [args: "a,b++x"] = encode_params(args: [~w(a b), "x"])
-      assert [args: "a,b,c++x"] = encode_params(args: [~w(a b c), "x"])
-    end
-  end
-
-  describe "decode_params/1" do
-    import JobQuery, only: [decode_params: 1]
-
-    test "decoding fields with known integers" do
-      assert %{limit: 1} = decode_params(%{"limit" => "1"})
-    end
-
-    test "decoding params with multiple values" do
-      assert %{nodes: ~w(web-1 web-2)} = decode_params(%{"nodes" => "web-1,web-2"})
-      assert %{queues: ~w(alpha gamma)} = decode_params(%{"queues" => "alpha,gamma"})
-      assert %{workers: ~w(A B)} = decode_params(%{"workers" => "A,B"})
-    end
-
-    test "decoding params with path qualifiers" do
-      assert %{args: [~w(a), "x"]} = decode_params(%{"args" => "a++x"})
-      assert %{args: [~w(a b), "x"]} = decode_params(%{"args" => "a,b++x"})
-      assert %{meta: [~w(a), "x"]} = decode_params(%{"meta" => "a++x"})
-    end
-  end
-
   describe "suggest/2" do
     def suggest(terms), do: JobQuery.suggest(terms, @conf)
 
@@ -244,26 +210,6 @@ defmodule Oban.Web.JobQueryTest do
 
       assert "workers:MyApp.Alpha" == complete("workers:My")
       assert "workers:MyApp.Alpha" == complete("workers:MyApp.A")
-    end
-  end
-
-  describe "append/2" do
-    import JobQuery, only: [append: 2]
-
-    test "appending new qualifiers" do
-      assert "queues:" == append("qu", "queues:")
-      assert "queues:" == append("queue", "queues:")
-      assert "queues:" == append("queue:", "queues:")
-      assert "args." == append("arg", "args.")
-    end
-
-    test "preventing duplicate qualifier values" do
-      assert "queues:" == append("queues:", "queues:")
-    end
-
-    test "quoting terms with whitespace" do
-      assert ~s(args.account:"A B C") == append("args.account:A", "A B C")
-      assert ~s(args.account:"A,B,C") == append("args.account:A", "A,B,C")
     end
   end
 

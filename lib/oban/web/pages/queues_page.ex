@@ -5,7 +5,9 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Met
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
-  alias Oban.Web.{Page, QueueQuery, SortComponent, Telemetry}
+  alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
+
+  @known_params ~w(paused sort_by sort_dir)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -27,7 +29,7 @@ defmodule Oban.Web.QueuesPage do
               id="queues-header"
               class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
             >
-              <div class="flex items-center">
+              <div class="flex-none flex items-center pr-12">
                 <Core.all_checkbox
                   click="toggle-select-all"
                   checked={select_mode(@checks, @selected)}
@@ -74,7 +76,17 @@ defmodule Oban.Web.QueuesPage do
                 </Core.action_button>
               </div>
 
-              <div class="ml-auto">
+              <.live_component
+                :if={Enum.empty?(@selected)}
+                conf={@conf}
+                id="search"
+                module={SearchComponent}
+                params={@params}
+                queryable={QueueQuery}
+                resolver={@resolver}
+              />
+
+              <div class="pl-3 ml-auto">
                 <span :if={Enum.any?(@selected)} class="block text-sm font-semibold mr-3">
                   {MapSet.size(@selected)} Selected
                 </span>
@@ -158,7 +170,10 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_params(params, _uri, socket) do
-    params = Map.take(params, ["sort_by", "sort_dir"])
+    params =
+      params
+      |> Map.take(@known_params)
+      |> decode_params()
 
     socket =
       socket
