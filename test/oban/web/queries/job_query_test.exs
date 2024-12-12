@@ -1,13 +1,13 @@
-defmodule Oban.Web.QueryTest do
+defmodule Oban.Web.JobQueryTest do
   use Oban.Web.Case, async: true
 
   alias Oban.Config
-  alias Oban.Web.{Query, Repo}
+  alias Oban.Web.{JobQuery, Repo}
 
   @conf Config.new(repo: Repo)
 
   describe "parse/1" do
-    import Query, only: [parse: 1]
+    import JobQuery, only: [parse: 1]
 
     test "splitting multiple values" do
       assert %{nodes: ["worker-1"]} = parse("nodes:worker-1")
@@ -24,7 +24,7 @@ defmodule Oban.Web.QueryTest do
   end
 
   describe "encode_params/1" do
-    import Query, only: [encode_params: 1]
+    import JobQuery, only: [encode_params: 1]
 
     test "encoding fields with multiple values" do
       assert [nodes: "web-1,web-2"] = encode_params(nodes: ~w(web-1 web-2))
@@ -38,7 +38,7 @@ defmodule Oban.Web.QueryTest do
   end
 
   describe "decode_params/1" do
-    import Query, only: [decode_params: 1]
+    import JobQuery, only: [decode_params: 1]
 
     test "decoding fields with known integers" do
       assert %{limit: 1} = decode_params(%{"limit" => "1"})
@@ -58,11 +58,11 @@ defmodule Oban.Web.QueryTest do
   end
 
   describe "suggest/2" do
-    def suggest(terms), do: Query.suggest(terms, @conf)
+    def suggest(terms), do: JobQuery.suggest(terms, @conf)
 
     def sorted_suggest(terms) do
       terms
-      |> Query.suggest(@conf)
+      |> JobQuery.suggest(@conf)
       |> Enum.map(&elem(&1, 0))
       |> Enum.sort()
     end
@@ -213,14 +213,14 @@ defmodule Oban.Web.QueryTest do
       insert_job!(%{}, queue: :gamma, worker: MyApp.Gamma)
       insert_job!(%{}, queue: :delta, worker: MyApp.Delta)
 
-      assert [_, _] = Query.suggest("workers:", @conf, resolver: HintResolver)
-      assert [_, _, _] = Query.suggest("queues:", @conf, resolver: HintResolver)
+      assert [_, _] = JobQuery.suggest("workers:", @conf, resolver: HintResolver)
+      assert [_, _, _] = JobQuery.suggest("queues:", @conf, resolver: HintResolver)
     end
   end
 
   describe "complete/2" do
     def complete(terms) do
-      Query.complete(terms, @conf)
+      JobQuery.complete(terms, @conf)
     end
 
     test "completing with an unknown qualifier" do
@@ -248,7 +248,7 @@ defmodule Oban.Web.QueryTest do
   end
 
   describe "append/2" do
-    import Query, only: [append: 2]
+    import JobQuery, only: [append: 2]
 
     test "appending new qualifiers" do
       assert "queues:" == append("qu", "queues:")
@@ -386,12 +386,12 @@ defmodule Oban.Web.QueryTest do
 
       assert [job_c.id, job_a.id, job_b.id] ==
                %{state: "cancelled"}
-               |> Query.all_jobs(@conf)
+               |> JobQuery.all_jobs(@conf)
                |> Enum.map(& &1.id)
 
       assert [job_b.id, job_a.id, job_c.id] ==
                %{state: "cancelled", sort_dir: "desc"}
-               |> Query.all_jobs(@conf)
+               |> JobQuery.all_jobs(@conf)
                |> Enum.map(& &1.id)
     end
 
@@ -422,7 +422,7 @@ defmodule Oban.Web.QueryTest do
       all_job_ids = fn params, opts ->
         params
         |> Map.put_new(:state, "available")
-        |> Query.all_job_ids(@conf, opts)
+        |> JobQuery.all_job_ids(@conf, opts)
       end
 
       assert [job_1.id, job_2.id, job_3.id] == all_job_ids.(%{}, [])
@@ -437,7 +437,7 @@ defmodule Oban.Web.QueryTest do
       |> Map.put_new(:state, "available")
 
     params
-    |> Query.all_jobs(@conf, opts)
+    |> JobQuery.all_jobs(@conf, opts)
     |> Enum.map(& &1.args["ref"])
     |> Enum.sort()
   end

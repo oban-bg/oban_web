@@ -2,7 +2,7 @@ defmodule Oban.Web.Helpers do
   @moduledoc false
 
   alias Oban.{Job, Registry}
-  alias Oban.Web.{AccessError, Query}
+  alias Oban.Web.{AccessError, JobQuery}
   alias Phoenix.{LiveView, VerifiedRoutes}
 
   # Instance Helpers
@@ -36,7 +36,7 @@ defmodule Oban.Web.Helpers do
     params =
       params
       |> Enum.sort()
-      |> Query.encode_params()
+      |> JobQuery.encode_params()
 
     case Process.get(:routing) do
       {socket, prefix} ->

@@ -5,7 +5,7 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Met
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
-  alias Oban.Web.{Page, SortComponent, Telemetry}
+  alias Oban.Web.{Page, QueueQuery, SortComponent, Telemetry}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -93,9 +93,8 @@ defmodule Oban.Web.QueuesPage do
               id="queues-table"
               module={TableComponent}
               access={@access}
-              counts={@counts}
-              checks={@checks}
               params={@params}
+              queues={@queues}
               selected={@selected}
             />
           <% end %>
@@ -115,14 +114,16 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:params, default)
+    |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
   end
 
   @impl Page
   def handle_refresh(socket) do
     conf = socket.assigns.conf
+    queues = QueueQuery.all_queues(socket.assigns.params, conf)
 
-    assign(socket, counts: counts(conf), checks: checks(conf))
+    assign(socket, counts: counts(conf), checks: checks(conf), queues: queues)
   end
 
   defp checks(conf) do
@@ -157,10 +158,7 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_params(params, _uri, socket) do
-    params =
-      params
-      |> Map.take(["sort_by", "sort_dir"])
-      |> Map.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
+    params = Map.take(params, ["sort_by", "sort_dir"])
 
     socket =
       socket

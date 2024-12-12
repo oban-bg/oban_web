@@ -6,7 +6,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
   alias Oban.Web.Jobs.{SearchComponent, SidebarComponent, TableComponent}
-  alias Oban.Web.{Page, Query, SortComponent, Telemetry}
+  alias Oban.Web.{JobQuery, Page, SortComponent, Telemetry}
 
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
@@ -165,11 +165,11 @@ defmodule Oban.Web.JobsPage do
   def handle_refresh(socket) do
     %{conf: conf, params: params, resolver: resolver} = socket.assigns
 
-    jobs = Query.all_jobs(params, conf, resolver: resolver)
+    jobs = JobQuery.all_jobs(params, conf, resolver: resolver)
 
     selected =
       if Enum.any?(socket.assigns.selected) do
-        all_job_ids = Query.all_job_ids(params, conf, resolver: resolver)
+        all_job_ids = JobQuery.all_job_ids(params, conf, resolver: resolver)
 
         all_job_ids
         |> MapSet.new()
@@ -179,7 +179,7 @@ defmodule Oban.Web.JobsPage do
       end
 
     assign(socket,
-      detailed: Query.refresh_job(conf, socket.assigns.detailed),
+      detailed: JobQuery.refresh_job(conf, socket.assigns.detailed),
       jobs: jobs,
       nodes: nodes(conf),
       os_time: System.os_time(:second),
@@ -193,7 +193,7 @@ defmodule Oban.Web.JobsPage do
   def handle_params(%{"id" => job_id} = params, _uri, socket) do
     params = params_with_defaults(params, socket)
 
-    case Query.refresh_job(socket.assigns.conf, job_id) do
+    case JobQuery.refresh_job(socket.assigns.conf, job_id) do
       nil ->
         {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
 
@@ -214,7 +214,7 @@ defmodule Oban.Web.JobsPage do
       socket
       |> assign(detailed: nil, page_title: page_title("Jobs"))
       |> assign(params: params)
-      |> assign(jobs: Query.all_jobs(params, conf, resolver: resolver))
+      |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
       |> assign(nodes: nodes(conf), queues: queues(conf), states: states(conf))
 
     {:noreply, socket}
@@ -295,7 +295,7 @@ defmodule Oban.Web.JobsPage do
 
   def handle_info({:delete_job, job}, socket) do
     Telemetry.action(:delete_jobs, socket, [job_ids: [job.id]], fn ->
-      Query.delete_jobs(socket.assigns.conf, [job.id])
+      JobQuery.delete_jobs(socket.assigns.conf, [job.id])
     end)
 
     {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
@@ -303,7 +303,7 @@ defmodule Oban.Web.JobsPage do
 
   def handle_info({:retry_job, job}, socket) do
     Telemetry.action(:retry_jobs, socket, [job_ids: [job.id]], fn ->
-      Query.retry_jobs(socket.assigns.conf, [job.id])
+      JobQuery.retry_jobs(socket.assigns.conf, [job.id])
     end)
 
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
@@ -336,7 +336,7 @@ defmodule Oban.Web.JobsPage do
         local_set = MapSet.new(socket.assigns.jobs, & &1.id)
 
         socket.assigns.params
-        |> Query.all_job_ids(socket.assigns.conf)
+        |> JobQuery.all_job_ids(socket.assigns.conf)
         |> MapSet.new()
         |> MapSet.union(local_set)
       end
@@ -348,7 +348,7 @@ defmodule Oban.Web.JobsPage do
     job_ids = MapSet.to_list(socket.assigns.selected)
 
     Telemetry.action(:cancel_jobs, socket, [job_ids: job_ids], fn ->
-      Query.cancel_jobs(socket.assigns.conf, job_ids)
+      JobQuery.cancel_jobs(socket.assigns.conf, job_ids)
     end)
 
     socket =
@@ -363,7 +363,7 @@ defmodule Oban.Web.JobsPage do
     job_ids = MapSet.to_list(socket.assigns.selected)
 
     Telemetry.action(:retry_jobs, socket, [job_ids: job_ids], fn ->
-      Query.retry_jobs(socket.assigns.conf, job_ids)
+      JobQuery.retry_jobs(socket.assigns.conf, job_ids)
     end)
 
     socket =
@@ -378,7 +378,7 @@ defmodule Oban.Web.JobsPage do
     job_ids = MapSet.to_list(socket.assigns.selected)
 
     Telemetry.action(:delete_jobs, socket, [job_ids: job_ids], fn ->
-      Query.delete_jobs(socket.assigns.conf, job_ids)
+      JobQuery.delete_jobs(socket.assigns.conf, job_ids)
     end)
 
     socket =
@@ -395,7 +395,7 @@ defmodule Oban.Web.JobsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> Query.decode_params()
+      |> JobQuery.decode_params()
 
     Map.merge(socket.assigns.default_params, params)
   end

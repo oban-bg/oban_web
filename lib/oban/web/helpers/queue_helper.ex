@@ -23,11 +23,13 @@ defmodule Oban.Web.Helpers.QueueHelper do
     DateTime.diff(date_time, DateTime.utc_now())
   end
 
+  def nodes_count(checks), do: length(checks)
+
   @doc """
   Count all running jobs in a collection of gossip messages.
   """
-  def executing_count(gossip) do
-    gossip
+  def executing_count(checks) do
+    checks
     |> List.wrap()
     |> Enum.map(&length(&1["running"]))
     |> Enum.sum()

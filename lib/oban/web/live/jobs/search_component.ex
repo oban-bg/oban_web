@@ -1,7 +1,7 @@
 defmodule Oban.Web.Jobs.SearchComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Query
+  alias Oban.Web.JobQuery
 
   @known ~w(args ids meta nodes priorities queues tags workers)a
 
@@ -16,7 +16,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   def update(assigns, socket) do
     suggestions =
       Map.get_lazy(assigns, :suggestions, fn ->
-        Query.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
+        JobQuery.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
       end)
 
     socket =
@@ -242,7 +242,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("clear", _params, socket) do
-    suggestions = Query.suggest("", socket.assigns.conf)
+    suggestions = JobQuery.suggest("", socket.assigns.conf)
 
     {:noreply,
      socket
@@ -251,7 +251,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
-    buffer = Query.append(socket.assigns.buffer, choice)
+    buffer = JobQuery.append(socket.assigns.buffer, choice)
 
     socket
     |> assign(buffer: buffer)
@@ -259,7 +259,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
   end
 
   def handle_event("complete", _params, socket) do
-    buffer = Query.complete(socket.assigns.buffer, socket.assigns.conf)
+    buffer = JobQuery.complete(socket.assigns.buffer, socket.assigns.conf)
 
     socket =
       socket
@@ -286,9 +286,9 @@ defmodule Oban.Web.Jobs.SearchComponent do
     if String.ends_with?(buffer, ":") or String.ends_with?(buffer, ".") do
       {:noreply, async_suggest(socket, buffer)}
     else
-      parsed = Query.parse(buffer)
+      parsed = JobQuery.parse(buffer)
       params = Map.merge(socket.assigns.params, parsed, fn _key, old, new -> old ++ new end)
-      suggestions = Query.suggest("", socket.assigns.conf)
+      suggestions = JobQuery.suggest("", socket.assigns.conf)
 
       {:noreply,
        socket
@@ -309,7 +309,7 @@ defmodule Oban.Web.Jobs.SearchComponent do
     self = self()
 
     fun = fn ->
-      suggestions = Query.suggest(buffer, socket.assigns.conf, resolver: socket.assigns.resolver)
+      suggestions = JobQuery.suggest(buffer, socket.assigns.conf, resolver: socket.assigns.resolver)
 
       assigns =
         socket.assigns

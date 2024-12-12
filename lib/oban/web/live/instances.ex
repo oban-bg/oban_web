@@ -38,8 +38,10 @@ defmodule Oban.Web.Live.Instances do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        class="rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800
-        dark:hover:text-gray-200 ring-1 ring-inset ring-gray-400 dark:ring-gray-700
+        class="rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300
+        hover:text-gray-800 dark:hover:text-gray-200
+        hover:bg-black/5 dark:hover:bg-white/5
+        ring-1 ring-inset ring-gray-400 dark:ring-gray-700
         focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
         data-title="Change Oban instance"
         id="instance-select-button"

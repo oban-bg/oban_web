@@ -1,4 +1,4 @@
-defmodule Oban.Web.Query do
+defmodule Oban.Web.JobQuery do
   @moduledoc false
 
   import Ecto.Query
