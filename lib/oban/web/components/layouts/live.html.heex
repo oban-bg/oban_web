@@ -14,17 +14,17 @@
     <.nav socket={@socket} page={@page.name} />
 
     <div class="ml-auto flex items-center space-x-3">
-      <.live_component module={Shortcuts} id="shortcuts" />
+      <.live_component module={Oban.Web.ShortcutsComponent} id="shortcuts" />
       <.live_component
-        module={Instances}
+        module={Oban.Web.InstancesComponent}
         id="instances"
         conf={@conf}
         resolver={@resolver}
         user={@user}
       />
-      <.live_component module={Connectivity} id="connectivity" conf={@conf} />
-      <.live_component module={Theme} id="theme" theme={@theme} />
-      <.live_component module={Refresh} id="refresh" refresh={@refresh} />
+      <.live_component module={Oban.Web.ConnectivityComponent} id="connectivity" conf={@conf} />
+      <.live_component module={Oban.Web.ThemeComponent} id="theme" theme={@theme} />
+      <.live_component module={Oban.Web.RefreshComponent} id="refresh" refresh={@refresh} />
     </div>
   </header>
   {@inner_content} <.footer />

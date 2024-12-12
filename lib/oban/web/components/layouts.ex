@@ -1,10 +1,6 @@
 defmodule Oban.Web.Layouts do
   use Oban.Web, :html
 
-  import Oban.Web.Helpers
-
-  alias Oban.Web.Live.{Connectivity, Instances, Refresh, Shortcuts, Theme}
-
   @static_path Application.app_dir(:oban_web, ["priv", "static"])
 
   @external_resource Path.join(@static_path, "app.css")

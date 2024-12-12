@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.Shortcuts do
+defmodule Oban.Web.ShortcutsComponent do
   use Oban.Web, :live_component
 
   @impl Phoenix.LiveComponent

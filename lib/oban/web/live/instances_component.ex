@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.Instances do
+defmodule Oban.Web.InstancesComponent do
   use Oban.Web, :live_component
 
   alias Oban.Web.Resolver

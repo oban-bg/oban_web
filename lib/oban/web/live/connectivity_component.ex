@@ -1,4 +1,4 @@
-defmodule Oban.Web.Live.Connectivity do
+defmodule Oban.Web.ConnectivityComponent do
   use Oban.Web, :live_component
 
   alias Oban.Notifier
