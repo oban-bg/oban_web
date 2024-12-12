@@ -110,6 +110,7 @@ defmodule Oban.Web.JobsPage do
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
+                page={:jobs}
                 params={without_defaults(@params, @default_params)}
                 queryable={JobQuery}
                 resolver={@resolver}

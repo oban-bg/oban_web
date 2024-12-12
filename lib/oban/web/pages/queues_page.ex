@@ -81,7 +81,8 @@ defmodule Oban.Web.QueuesPage do
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
-                params={@params}
+                page={:queues}
+                params={without_defaults(@params, @default_params)}
                 queryable={QueueQuery}
                 resolver={@resolver}
               />

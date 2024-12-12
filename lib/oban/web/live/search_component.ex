@@ -50,7 +50,7 @@ defmodule Oban.Web.SearchComponent do
         </div>
 
         <div class="w-full flex flex-wrap space-x-1.5">
-          <.filter :for={{param, terms} <- filterable(@params)} param={param} terms={terms} />
+          <.filter :for={{param, terms} <- filterable(@params, @queryable)} param={param} terms={terms} />
 
           <input
             aria-label="Add filters"
@@ -74,7 +74,7 @@ defmodule Oban.Web.SearchComponent do
       <button
         class={[
           "absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500",
-          unless(clearable?(@buffer, @params), do: "hidden")
+          unless(clearable?(@buffer, @params, @queryable), do: "hidden")
         ]}
         data-title="Clear filters"
         id="search-reset"
@@ -185,11 +185,11 @@ defmodule Oban.Web.SearchComponent do
     """
   end
 
-  defp clearable?(buffer, params) do
-    String.length(buffer) > 0 or map_size(filterable(params)) > 0
+  defp clearable?(buffer, params, queryable) do
+    String.length(buffer) > 0 or map_size(filterable(params, queryable)) > 0
   end
 
-  defp filterable(params), do: Map.take(params, @known)
+  defp filterable(params, queryable), do: Map.take(params, queryable.filterable())
 
   defp highlight(value, substr) do
     match =
@@ -245,7 +245,7 @@ defmodule Oban.Web.SearchComponent do
     {:noreply,
      socket
      |> assign(buffer: "", loading: false, suggestions: suggestions)
-     |> push_patch(to: oban_path(:jobs))}
+     |> push_patch(to: oban_path(socket.asigns.page))}
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
@@ -275,7 +275,7 @@ defmodule Oban.Web.SearchComponent do
   def handle_event("remove-filter", %{"param" => param, "terms" => _}, socket) do
     params = Map.delete(socket.assigns.params, String.to_existing_atom(param))
 
-    {:noreply, push_patch(socket, to: oban_path(:jobs, params))}
+    {:noreply, push_patch(socket, to: oban_path(socket.assigns.page, params))}
   end
 
   defp handle_submit(socket) do
@@ -291,7 +291,7 @@ defmodule Oban.Web.SearchComponent do
       {:noreply,
        socket
        |> assign(buffer: "", loading: false, suggestions: suggestions)
-       |> push_patch(to: oban_path(:jobs, params))}
+       |> push_patch(to: oban_path(socket.assigns.page, params))}
     end
   end
 

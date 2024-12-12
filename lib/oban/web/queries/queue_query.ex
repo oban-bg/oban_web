@@ -7,13 +7,13 @@ defmodule Oban.Web.QueueQuery do
   defstruct [:name, :checks, :counts]
 
   @suggest_qualifier [
-    {"global:", "the queue has a global limit"},
-    {"paused:", "whether queue instances are paused or not", "any"}
+    {"global:", "the queue has a global limit", "true"},
+    {"paused:", "whether queue instances are paused or not", "some"}
   ]
 
   @suggest_paused [
     {"all", "the queue on all nodes are paused", "paused:all"},
-    {"any", "the queue on some notes is paused", "paused:any"},
+    {"some", "the queue on some notes is paused", "paused:some"},
     {"none", "the queue isn't paused on any nodes", "paused:none"},
   ]
 
@@ -98,11 +98,15 @@ defmodule Oban.Web.QueueQuery do
   defp filter(_row, conditions) when conditions == %{}, do: true
 
   defp filter(row, conditions) when is_map(conditions) do
-    Enum.all?(conditions, &filter(row, &1)
+    Enum.all?(conditions, &filter(row, &1))
   end
 
-  defp filter(row, {:paused, mode}) do
-    # check thing here
+  defp filter(%{checks: checks}, {:paused, mode}) do
+    case mode do
+      "all" -> Enum.all?(checks, & &1["paused"])
+      "some" -> Enum.any?(checks, & &1["paused"])
+      "none" -> not Enum.any?(checks, & &1["paused"])
+    end
   end
 
   # Sorting
