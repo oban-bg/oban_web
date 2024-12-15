@@ -79,6 +79,15 @@ applications.
   ...
   ```
 
+## v2.10.6 — 2024-12-15
+
+- Support `phoenix_live_view` v1.0.0 or above. The requirement is set to `~> 1.0` so future
+  patches or minor versions will also work.
+
+- Prevent deprecation warnings from changes in Elixir 1.17+
+
+- Prevent deprecation warnings from changes in Phoenix 1.7+
+
 ## v2.10.5 — 2024-07-29
 
 Relax the Oban dependency to allow v2.17.4+ or v2.18.0+
