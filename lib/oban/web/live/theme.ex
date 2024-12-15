@@ -60,7 +60,7 @@ defmodule Oban.Web.Live.Theme do
       role="option"
     >
       <.theme_icon theme={@value} />
-      <span class="capitalize text-gray-800 dark:text-gray-200"><%= @value %></span>
+      <span class="capitalize text-gray-800 dark:text-gray-200">{@value}</span>
     </li>
     """
   end

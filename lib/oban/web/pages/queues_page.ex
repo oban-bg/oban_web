@@ -32,7 +32,7 @@ defmodule Oban.Web.QueuesPage do
               <div class="flex space-x-2">
                 <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
                 <h3 class="text-lg text-gray-500 leading-4 font-normal tabular">
-                  (<%= queues_count(@checks) %>)
+                  ({queues_count(@checks)})
                 </h3>
               </div>
               <div class="flex space-x-2">
@@ -96,8 +96,8 @@ defmodule Oban.Web.QueuesPage do
       phx-target={@myself}
       phx-hook="Tippy"
     >
-      <span><%= String.capitalize(@action) %> All</span>
-      <%= render_slot(@icon) %>
+      <span>{String.capitalize(@action)} All</span>
+      {render_slot(@icon)}
     </button>
     """
   end

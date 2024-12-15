@@ -22,7 +22,7 @@ defmodule Oban.Web.Jobs.BulkActionComponent do
       id="bulk-action"
       class={"flex items-center bg-white dark:bg-gray-900 shadow-inner overflow-hidden transition-all px-3 #{expanded_class(@expanded?)}"}
     >
-      <span class="text-sm font-semibold text-blue-500 tabular"><%= @count %> Jobs Selected</span>
+      <span class="text-sm font-semibold text-blue-500 tabular">{@count} Jobs Selected</span>
 
       <%= if can?(:cancel_jobs, @access) and @cancelable? do %>
         <button

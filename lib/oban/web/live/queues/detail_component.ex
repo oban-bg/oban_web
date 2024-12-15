@@ -63,7 +63,7 @@ defmodule Oban.Web.Queues.DetailComponent do
       <div class="flex justify-between items-center px-3 py-6">
         <.link patch={oban_path(:queues)} id="back-link" class="flex items-center hover:text-blue-500">
           <Icons.arrow_left class="w-5 h-5" />
-          <span class="text-lg capitalize font-bold ml-2"><%= @queue %> Queue</span>
+          <span class="text-lg capitalize font-bold ml-2">{@queue} Queue</span>
         </.link>
       </div>
 
@@ -85,14 +85,14 @@ defmodule Oban.Web.Queues.DetailComponent do
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
                 <Icons.clock class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span><%= started_at(@checks) %></span>
+                <span>{started_at(@checks)}</span>
               </div>
             </td>
 
             <td class="pb-6 px-3">
               <div class="flex items-center space-x-2">
                 <Icons.cog class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span><%= executing_count(@checks) %></span>
+                <span>{executing_count(@checks)}</span>
               </div>
             </td>
 
@@ -100,7 +100,7 @@ defmodule Oban.Web.Queues.DetailComponent do
               <td class="pb-6 px-3">
                 <div class="flex items-center space-x-2">
                   <Icons.square_stack class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                  <span><%= integer_to_estimate(@counts[state]) %></span>
+                  <span>{integer_to_estimate(@counts[state])}</span>
                 </div>
               </td>
             <% end %>
@@ -192,7 +192,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                     class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
                   >
-                    <%= options_for_select(partition_options(), @inputs.global_partition_fields) %>
+                    {options_for_select(partition_options(), @inputs.global_partition_fields)}
                   </select>
                 </div>
 
@@ -283,7 +283,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                     class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
                   >
-                    <%= options_for_select(partition_options(), @inputs.rate_partition_fields) %>
+                    {options_for_select(partition_options(), @inputs.rate_partition_fields)}
                   </select>
                 </div>
 
@@ -581,7 +581,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         disabled={@disabled}
         type="submit"
       >
-        <%= @label %>
+        {@label}
       </button>
     </div>
     """

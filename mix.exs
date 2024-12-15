@@ -51,7 +51,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix, "~> 1.7.0"},
       {:phoenix_html, "~> 3.3 or ~> 4.0"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:phoenix_live_view, "~> 0.20"},
+      {:phoenix_live_view, "~> 1.0"},
       {:postgrex, "~> 0.17"},
 
       # Oban

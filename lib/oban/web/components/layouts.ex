@@ -129,7 +129,7 @@ defmodule Oban.Web.Layouts do
               </div>
               <div class="ml-3 w-0 flex-1 pt-0.5">
                 <p class="text-sm leading-5 font-medium text-gray-900 dark:text-gray-100">
-                  <%= Phoenix.Flash.get(assigns.flash, :info) %>
+                  {Phoenix.Flash.get(assigns.flash, :info)}
                 </p>
               </div>
               <div class="ml-4 flex-shrink-0 flex">
@@ -159,7 +159,7 @@ defmodule Oban.Web.Layouts do
         navigate={oban_path(page)}
         title={"Navigate to #{String.capitalize(to_string(page))}"}
       >
-        <%= String.capitalize(to_string(page)) %>
+        {String.capitalize(to_string(page))}
       </.link>
     </nav>
     """
@@ -176,13 +176,13 @@ defmodule Oban.Web.Layouts do
     ~H"""
     <footer class="flex flex-col px-3 py-6 text-sm justify-center items-center md:flex-row">
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        <%= @oss_version %>
+        {@oss_version}
       </span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        <%= @web_version %>
+        {@web_version}
       </span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0">
-        <%= @pro_version %>
+        {@pro_version}
       </span>
 
       <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">

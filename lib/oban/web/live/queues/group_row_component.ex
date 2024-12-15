@@ -36,30 +36,30 @@ defmodule Oban.Web.Queues.GroupRowComponent do
           class="block font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-500"
           rel="name"
         >
-          <%= @queue %>
+          {@queue}
         </.link>
       </td>
 
       <td rel="nodes" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= nodes_count(@checks) %>
+        {nodes_count(@checks)}
       </td>
       <td rel="executing" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= executing_count(@checks) %>
+        {executing_count(@checks)}
       </td>
       <td rel="available" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= integer_to_estimate(@counts) %>
+        {integer_to_estimate(@counts)}
       </td>
       <td rel="local" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= local_limit(@checks) %>
+        {local_limit(@checks)}
       </td>
       <td rel="global" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= global_limit_to_words(@checks) %>
+        {global_limit_to_words(@checks)}
       </td>
       <td rel="rate" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= rate_limit_to_words(@checks) %>
+        {rate_limit_to_words(@checks)}
       </td>
       <td rel="started" class="py-3 pl-3 text-right text-gray-500 dark:text-gray-300 tabular">
-        <%= started_at(@checks) %>
+        {started_at(@checks)}
       </td>
 
       <td class="py-3 pr-5 flex justify-end border-r border-transparent">

@@ -19,7 +19,7 @@ defmodule Oban.Web.Components.Sort do
         <div class="w-4 h-4"></div>
       <% end %>
 
-      <span class="pl-1"><%= @label %></span>
+      <span class="pl-1">{@label}</span>
     </.link>
     """
   end

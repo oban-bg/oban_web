@@ -22,7 +22,7 @@ defmodule Oban.Web.Jobs.SortComponent do
         <% else %>
           <Icons.bars_arrow_up class="w-4 h-4" />
         <% end %>
-        <span class="ml-1 block capitalize"><%= @params.sort_by %></span>
+        <span class="ml-1 block capitalize">{@params.sort_by}</span>
       </button>
 
       <nav
@@ -66,7 +66,7 @@ defmodule Oban.Web.Jobs.SortComponent do
         <span class="block w-4 h-4"></span>
       <% end %>
       <span class="capitalize text-gray-800 dark:text-gray-200">
-        <%= String.replace(@value, "_", " ") %>
+        {String.replace(@value, "_", " ")}
       </span>
     </.link>
     """

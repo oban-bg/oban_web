@@ -62,10 +62,10 @@ defmodule Oban.Web.Live.Shortcuts do
   defp list_item(assigns) do
     ~H"""
     <div class="py-4 flex justify-between">
-      <dt class="text-gray-700 dark:text-gray-300 font-medium"><%= @description %></dt>
+      <dt class="text-gray-700 dark:text-gray-300 font-medium">{@description}</dt>
       <dd class="text-gray-700 dark:text-gray-300">
         <kbd class="px-2 py-1 bg-gray-50 dark:bg-gray-900 ring-1 ring-zinc-300 rounded-md">
-          <%= @shortcut %>
+          {@shortcut}
         </kbd>
       </dd>
     </div>
