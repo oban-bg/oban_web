@@ -9,7 +9,6 @@ defmodule Oban.Web.SearchTest do
     @known MapSet.new(~w(args. queues:))
 
     test "appending new qualifiers" do
-
       assert "queues:" == append("qu", "queues:", @known)
       assert "queues:" == append("queue", "queues:", @known)
       assert "queues:" == append("queue:", "queues:", @known)

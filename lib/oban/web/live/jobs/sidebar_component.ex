@@ -1,8 +1,6 @@
 defmodule Oban.Web.Jobs.SidebarComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Helpers
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -25,7 +23,6 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :id, :string, required: true
   attr :name, :string, required: true
   attr :headers, :list, required: true
-  slot :icon
 
   defp section(assigns) do
     ~H"""
@@ -48,9 +45,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         </div>
       </header>
 
-      <div id={"#{@id}-rows"}>
-        {render_slot(@inner_block)}
-      </div>
+      <div id={"#{@id}-rows"}>{render_slot(@inner_block)}</div>
     </div>
     """
   end

@@ -17,7 +17,7 @@ defmodule Oban.Web.Queues.TableComponent do
           <.queue_header label="global" class="w-16 text-right" />
           <.queue_header label="rate limit" class="w-32 text-right" />
           <.queue_header label="started" class="w-28 text-right" />
-          <.queue_header label="statuses" class="w-28 pr-6 text-right" />
+          <.queue_header label="status" class="w-20 pr-3 text-right" />
         </div>
       </ul>
 
@@ -61,8 +61,16 @@ defmodule Oban.Web.Queues.TableComponent do
 
   defp queue_row(assigns) do
     ~H"""
-    <li id={"queue-#{@queue.name}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
-      <Core.row_checkbox click="toggle-select" value={@queue.name} checked={@selected} myself={@myself} />
+    <li
+      id={"queue-#{@queue.name}"}
+      class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
+    >
+      <Core.row_checkbox
+        click="toggle-select"
+        value={@queue.name}
+        checked={@selected}
+        myself={@myself}
+      />
 
       <.link patch={oban_path([:queues, @queue.name])} class="py-5 flex flex-grow items-center">
         <div rel="name" class="w-1/3 font-semibold text-gray-700 dark:text-gray-300">
@@ -98,23 +106,7 @@ defmodule Oban.Web.Queues.TableComponent do
             {started_at(@queue.checks)}
           </span>
 
-          <div class="w-28 pr-6 flex justify-end items-center space-x-1">
-            <Icons.arrow_trending_down
-              :if={rate_limited?(@queue.checks)}
-              class="w-4 h-4"
-              data-title="Rate limited"
-              id={"#{@queue.name}-is-rate-limited"}
-              phx-hook="Tippy"
-              rel="is-rate-limited"
-            />
-            <Icons.globe
-              :if={global?(@queue.checks)}
-              class="w-4 h-4"
-              data-title="Globally limited"
-              id={"#{@queue.name}-is-global"}
-              phx-hook="Tippy"
-              rel="is-global"
-            />
+          <div class="w-20 pr-3 flex justify-end items-center space-x-1">
             <Icons.pause_circle
               :if={all_paused?(@queue.checks)}
               class="w-4 h-4"
@@ -170,10 +162,6 @@ defmodule Oban.Web.Queues.TableComponent do
   defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
 
   defp all_paused?(checks), do: Enum.all?(checks, & &1["paused"])
-
-  defp global?(checks), do: Enum.any?(checks, &is_map(&1["global_limit"]))
-
-  defp rate_limited?(checks), do: Enum.any?(checks, &is_map(&1["rate_limit"]))
 
   defp shutting_down?(checks), do: Enum.any?(checks, & &1["shutdown_started_at"])
 end

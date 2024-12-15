@@ -4,6 +4,7 @@ defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
+  alias Oban.Web.SidebarComponents
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
@@ -13,6 +14,19 @@ defmodule Oban.Web.QueuesPage do
   def render(assigns) do
     ~H"""
     <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
+      <SidebarComponents.sidebar>
+        <SidebarComponents.section name="statuses" headers={~w(count)}>
+          <SidebarComponents.filter_row name={"paused"} values={[0]} />
+          <SidebarComponents.filter_row name={"global_limit"} values={[0]} />
+          <SidebarComponents.filter_row name={"rate_limit"} values={[0]} />
+          <SidebarComponents.filter_row name={"terminating"} values={[0]} />
+        </SidebarComponents.section>
+
+        <SidebarComponents.section name="nodes" headers={~w(exec limit)}>
+          <SidebarComponents.filter_row name={"node-123"} values={[4, 1]} />
+        </SidebarComponents.section>
+      </SidebarComponents.sidebar>
+
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detail do %>

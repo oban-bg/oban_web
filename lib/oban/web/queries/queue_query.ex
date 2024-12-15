@@ -14,7 +14,7 @@ defmodule Oban.Web.QueueQuery do
   @suggest_paused [
     {"all", "the queue on all nodes are paused", "paused:all"},
     {"some", "the queue on some notes is paused", "paused:some"},
-    {"none", "the queue isn't paused on any nodes", "paused:none"},
+    {"none", "the queue isn't paused on any nodes", "paused:none"}
   ]
 
   @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)

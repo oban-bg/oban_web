@@ -50,7 +50,11 @@ defmodule Oban.Web.SearchComponent do
         </div>
 
         <div class="w-full flex flex-wrap space-x-1.5">
-          <.filter :for={{param, terms} <- filterable(@params, @queryable)} param={param} terms={terms} />
+          <.filter
+            :for={{param, terms} <- filterable(@params, @queryable)}
+            param={param}
+            terms={terms}
+          />
 
           <input
             aria-label="Add filters"
