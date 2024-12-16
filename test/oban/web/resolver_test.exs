@@ -33,6 +33,31 @@ defmodule Oban.Web.ResolverTest do
     end
   end
 
+  describe "decode_recorded/2" do
+    test "guarding against executable terms in safe mode" do
+      assert_raise ArgumentError, fn ->
+        %{fun: fn -> :no end}
+        |> encode_recorded()
+        |> Resolver.decode_recorded()
+      end
+    end
+
+    test "allowing executable terms in unsafe mode" do
+      term = [fn -> :ok end]
+
+      assert term ==
+               term
+               |> encode_recorded()
+               |> Resolver.decode_recorded([])
+    end
+  end
+
+  defp encode_recorded(data) do
+    data
+    |> :erlang.term_to_binary()
+    |> Base.encode64(padding: false)
+  end
+
   defp json_recode(map) do
     map
     |> Jason.encode!()

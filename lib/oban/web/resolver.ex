@@ -402,7 +402,8 @@ defmodule Oban.Web.Resolver do
   Decode a recorded job's output from a compressed, base64 binary into proper terms.
 
   By default, decoding uses the `:safe` flag to prevent decoding unsafe data that can be used to
-  attack the Erlang runtime.
+  attack the Erlang runtime. In addition to preventing atom creation, the `:safe` flag will also
+  prevent decoding "executable" objects such as functions.
 
   ## Example
 
@@ -418,9 +419,13 @@ defmodule Oban.Web.Resolver do
   """
   @spec decode_recorded(binary(), [:safe]) :: term()
   def decode_recorded(bin, opts \\ [:safe]) do
-    bin
-    |> Base.decode64!(padding: false)
-    |> :erlang.binary_to_term(opts)
+    term = Base.decode64!(bin, padding: false)
+
+    if Enum.member?(opts, :safe) do
+      Plug.Crypto.non_executable_binary_to_term(term, opts)
+    else
+      :erlang.binary_to_term(term)
+    end
   end
 
   @doc false
