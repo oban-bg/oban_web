@@ -5,13 +5,8 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Met
 
-  alias Oban.Web.Queues.{
-    DetailComponent,
-    DetailInsanceComponent,
-    SidebarComponent,
-    TableComponent
-  }
-
+  alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent}
+  alias Oban.Web.Queues.{SidebarComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(is nodes sort_by sort_dir)
@@ -315,7 +310,9 @@ defmodule Oban.Web.QueuesPage do
       if Enum.any?(socket.assigns.selected) do
         MapSet.new()
       else
-        MapSet.new(socket.assigns.checks, & &1["queue"])
+        socket.assigns.params
+        |> QueueQuery.all_queues(socket.assigns.conf)
+        |> MapSet.new(& &1.name)
       end
 
     {:noreply, assign(socket, selected: selected)}

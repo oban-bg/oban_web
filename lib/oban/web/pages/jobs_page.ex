@@ -15,9 +15,7 @@ defmodule Oban.Web.JobsPage do
   def render(assigns) do
     ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
-      <.live_component
-        id="sidebar"
-        module={SidebarComponent}
+      <SidebarComponent.sidebar
         nodes={@nodes}
         params={without_defaults(@params, @default_params)}
         queues={@queues}

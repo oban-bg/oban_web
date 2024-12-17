@@ -51,6 +51,30 @@ defmodule Oban.Web.Helpers do
   end
 
   @doc """
+  Toggle filterable params into a patch path.
+  """
+  def patch_params(params, page, key, value) when is_map(params) and is_atom(page) do
+    param_value = params[key]
+
+    params =
+      cond do
+        value == param_value or [value] == param_value ->
+          Map.delete(params, key)
+
+        is_list(param_value) and value in param_value ->
+          Map.put(params, key, List.delete(param_value, value))
+
+        is_list(param_value) ->
+          Map.put(params, key, [value | param_value])
+
+        true ->
+          Map.put(params, key, value)
+      end
+
+    oban_path(page, params)
+  end
+
+  @doc """
   Prepare parsed params for URI encoding.
   """
   def encode_params(params) do
@@ -90,6 +114,19 @@ defmodule Oban.Web.Helpers do
       {key, val} ->
         {String.to_existing_atom(key), val}
     end)
+  end
+
+  @doc """
+  """
+  def active_filter?(params, :state, value) do
+    params[:state] == value or (is_nil(params[:state]) and value == "executing")
+  end
+
+  def active_filter?(params, key, value) do
+    params
+    |> Map.get(key, [])
+    |> List.wrap()
+    |> Enum.member?(to_string(value))
   end
 
   @doc """
