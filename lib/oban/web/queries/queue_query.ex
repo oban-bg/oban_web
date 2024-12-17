@@ -7,14 +7,14 @@ defmodule Oban.Web.QueueQuery do
   defstruct [:name, :checks, :counts]
 
   @suggest_qualifier [
-    {"global:", "the queue has a global limit", "true"},
-    {"paused:", "whether queue instances are paused or not", "some"}
+    {"is:", "a status such as paused, global, etc.", "paused"}
   ]
 
-  @suggest_paused [
-    {"all", "the queue on all nodes are paused", "paused:all"},
-    {"some", "the queue on some notes is paused", "paused:some"},
-    {"none", "the queue isn't paused on any nodes", "paused:none"}
+  @suggest_status [
+    {"paused", "the queue is paused on some nodes", "paused"},
+    {"global", "the queue is has a global limit", "global"},
+    {"rate_limit", "the queue is has a rate limit", "rate_limit"},
+    {"terminating", "the queue is shutting down", "terminating"}
   ]
 
   @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
@@ -23,7 +23,7 @@ defmodule Oban.Web.QueueQuery do
 
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
 
-  def filterable, do: ~w(paused)a
+  def filterable, do: ~w(is)a
 
   def parse(terms) when is_binary(terms) do
     Search.parse(terms, &parse_term/1)
@@ -40,7 +40,7 @@ defmodule Oban.Web.QueueQuery do
 
       last ->
         case String.split(last, ":", parts: 2) do
-          ["paused", frag] -> suggest_static(frag, @suggest_paused)
+          ["is", frag] -> suggest_static(frag, @suggest_status)
           [frag] -> suggest_static(frag, @suggest_qualifier)
           _ -> []
         end
@@ -67,8 +67,8 @@ defmodule Oban.Web.QueueQuery do
     end
   end
 
-  defp parse_term("paused:" <> boolean) do
-    {:paused, boolean}
+  defp parse_term("is:" <> statuses) do
+    {:is, String.split(statuses, ",")}
   end
 
   defp parse_term(_term), do: {:none, ""}
@@ -78,7 +78,7 @@ defmodule Oban.Web.QueueQuery do
   def all_queues(params, conf) do
     {sort_by, sort_dir} = atomize_sort(params)
 
-    conditions = Map.take(params, ~w(paused)a)
+    conditions = Map.take(params, ~w(is)a)
     counts = Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
 
     conf.name
@@ -101,12 +101,17 @@ defmodule Oban.Web.QueueQuery do
     Enum.all?(conditions, &filter(row, &1))
   end
 
-  defp filter(%{checks: checks}, {:paused, mode}) do
-    case mode do
-      "all" -> Enum.all?(checks, & &1["paused"])
-      "some" -> Enum.any?(checks, & &1["paused"])
-      "none" -> not Enum.any?(checks, & &1["paused"])
-    end
+  # TODO: Share these checks with sidebar and status check
+
+  defp filter(%{checks: checks}, {:is, statuses}) do
+    statuses
+    |> String.split(",")
+    |> Enum.all?(fn
+      "paused" -> Enum.any?(checks, & &1["paused"])
+      "global" -> Enum.any?(checks, &is_map(&1["global_limit"]))
+      "rate_limit" -> Enum.any?(checks, &is_map(&1["rate_limit"]))
+      "terminating" -> Enum.any?(checks, & &1["shutdown_started_at"])
+    end)
   end
 
   # Sorting

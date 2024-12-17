@@ -23,6 +23,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :id, :string, required: true
   attr :name, :string, required: true
   attr :headers, :list, required: true
+  slot :inner_block
 
   defp section(assigns) do
     ~H"""

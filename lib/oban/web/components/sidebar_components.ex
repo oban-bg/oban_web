@@ -9,6 +9,7 @@ defmodule Oban.Web.SidebarComponents do
 
   attr :name, :string, required: true
   attr :headers, :list, required: true
+  slot :inner_block
 
   def section(assigns) do
     ~H"""
@@ -38,20 +39,29 @@ defmodule Oban.Web.SidebarComponents do
 
   attr :name, :string, required: true
   attr :values, :list, required: true
+  attr :patch, :any, required: true
+  attr :active, :boolean, default: false
 
   def filter_row(assigns) do
     ~H"""
     <.link
-      patch={"/"}
+      patch={@patch}
       replace={true}
-      class="flex justify-between pr-2 py-2 my-0.5 border-l-4 border-transparent hover:border-violet-400 focus:border-violet-200",
+      class={[
+        "flex justify-between pr-2 py-2 my-0.5 border-l-4 border-transparent
+        hover:border-violet-400 focus:border-violet-200",
+        if(@active, do: "border-violet-500 hover:border-violet-500 focus:border-violet-500")
+      ]}
     >
       <span class="pl-2 text-sm text-gray-700 dark:text-gray-300 text-left tabular font-medium truncate">
         {String.downcase(@name)}
       </span>
 
       <div class="flex-none flex items-center space-x-3">
-        <span :for={value <- @values} class="block w-12 text-sm text-right tabular text-gray-600 dark:text-gray-400">
+        <span
+          :for={value <- @values}
+          class="block w-12 text-sm text-right tabular text-gray-600 dark:text-gray-400"
+        >
           {integer_to_estimate(value)}
         </span>
       </div>

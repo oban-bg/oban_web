@@ -25,7 +25,7 @@ defmodule Oban.Web.Queues.TableComponent do
         :if={Enum.empty?(@queues)}
         class="flex items-center justify-center py-12 space-x-2 text-lg text-gray-600 dark:text-gray-300"
       >
-        <Icons.queue_list /> <span>No queues are currently running.</span>
+        <Icons.no_symbol /> <span>No queues running match the current set of filters.</span>
       </div>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
