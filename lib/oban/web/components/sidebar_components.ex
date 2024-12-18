@@ -64,9 +64,10 @@ defmodule Oban.Web.SidebarComponents do
 
     ~H"""
     <.link
+      class={["flex justify-between pr-2 py-2 my-0.5 border-l-4 border-transparent", @class]}
+      id={"filter-#{@name}"}
       patch={@patch}
       replace={true}
-      class={["flex justify-between pr-2 py-2 my-0.5 border-l-4 border-transparent", class]}
     >
       <span class={[
         "pl-2 text-sm text-gray-700 dark:text-gray-300 text-left tabular font-medium truncate",

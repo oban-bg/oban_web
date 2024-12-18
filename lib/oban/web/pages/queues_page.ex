@@ -92,7 +92,11 @@ defmodule Oban.Web.QueuesPage do
               />
 
               <div class="pl-3 ml-auto">
-                <span :if={Enum.any?(@selected)} class="block text-sm font-semibold mr-3">
+                <span
+                  :if={Enum.any?(@selected)}
+                  id="selected-count"
+                  class="block text-sm font-semibold mr-3"
+                >
                   {MapSet.size(@selected)} Selected
                 </span>
 

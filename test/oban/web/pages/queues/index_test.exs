@@ -67,6 +67,32 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert_receive {_event, _ref, _timing, %{action: :resume_queues}}
   end
 
+  test "selecting all queues matching the current filters", %{live: live} do
+    gossip(node: "web.1", queue: "alpha")
+    gossip(node: "web.2", queue: "bravo", paused: true)
+
+    refresh(live)
+
+    toggle_select_all(live)
+
+    assert has_element?(live, "#queue-alpha")
+    assert has_element?(live, "#queue-bravo")
+    assert has_element?(live, "#selected-count", "2")
+
+    toggle_select_all(live)
+
+    live
+    |> element("#sidebar #statuses-rows #filter-paused")
+    |> render_click()
+
+    refute has_element?(live, "#queue-alpha")
+    assert has_element?(live, "#queue-bravo")
+
+    toggle_select_all(live)
+
+    assert has_element?(live, "#selected-count", "1")
+  end
+
   test "sorting queues by different properties", %{live: live} do
     rate_limit = %{
       allowed: 10,
@@ -107,5 +133,11 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     Time.utc_now()
     |> Time.truncate(:second)
     |> Time.to_iso8601()
+  end
+
+  defp toggle_select_all(live) do
+    live
+    |> element("#toggle-select")
+    |> render_click()
   end
 end
