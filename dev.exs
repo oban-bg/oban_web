@@ -391,6 +391,96 @@ defmodule Oban.Workers.ArticleSummarizer do
   end
 end
 
+# Cron Workers
+
+defmodule Oban.Workers.HealthChecker do
+  use Oban.Pro.Worker, queue: :health, max_attempts: 3
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(2_000, 5_000)
+  end
+end
+
+defmodule Oban.Workers.CustomerSegmenter do
+  use Oban.Pro.Worker, queue: :default
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(5_000, 20_000)
+  end
+end
+
+defmodule Oban.Workers.TrialCleaner do
+  use Oban.Pro.Worker, queue: :health
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(2_000, 6_000)
+  end
+end
+
+defmodule Oban.Workers.DormantLocker do
+  use Oban.Pro.Worker, queue: :health
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(3_000, 9_000)
+  end
+end
+
+defmodule Oban.Workers.IndexRebuilder do
+  use Oban.Pro.Worker, queue: :health
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(10_000, 20_000)
+  end
+end
+
+defmodule Oban.Workers.SecurityScanner do
+  use Oban.Pro.Worker, queue: :health
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(10_000, 20_000)
+  end
+end
+
+defmodule Oban.Workers.TrafficReport do
+  use Oban.Pro.Worker, queue: :exports
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(3_000, 10_000)
+  end
+end
+
+defmodule Oban.Workers.WeeklyUpdate do
+  use Oban.Pro.Worker, queue: :default
+
+  alias WebDev.Generator
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(2_000, 7_000)
+  end
+end
+
 # Repo
 
 defmodule WebDev.Repo do
@@ -496,6 +586,7 @@ oban_opts = [
     analysis: 30,
     default: 30,
     events: 20,
+    health: [global_limit: 1],
     exports: [global_limit: 8],
     mailers: [local_limit: 10, rate_limit: [allowed: 90, period: 15]],
     media: [
@@ -505,7 +596,18 @@ oban_opts = [
   ],
   plugins: [
     {Oban.Pro.Plugins.DynamicLifeline, []},
-    {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}}
+    {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}},
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"* * * * *", Oban.Workers.HealthChecker},
+       {"*/5 * * * *", Oban.Workers.CustomerSegmenter},
+       {"*/5 * * * *", Oban.Workers.TrialCleaner},
+       {"*/15 * * * *", Oban.Workers.DormantLocker},
+       {"0 * * * *", Oban.Workers.TrafficReport},
+       {"30 */3 * * *", Oban.Workers.IndexRebuilder},
+       {"0 */2 * * *", Oban.Workers.SecurityScanner},
+       {"0 6 * * MON", Oban.Workers.WeeklyUpdate}
+     ]}
   ]
 ]
 
