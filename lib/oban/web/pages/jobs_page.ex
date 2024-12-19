@@ -6,7 +6,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
-  alias Oban.Web.{JobQuery, Page, SearchComponent, SortComponent, Telemetry}
+  alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
@@ -464,42 +464,6 @@ defmodule Oban.Web.JobsPage do
   end
 
   def queues(conf) do
-    avail_counts =
-      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
-
-    execu_counts =
-      Met.latest(conf.name, :full_count, group: "queue", filters: [state: "executing"])
-
-    conf.name
-    |> Met.checks()
-    |> Enum.reduce(%{}, fn %{"queue" => queue} = check, acc ->
-      empty = fn ->
-        %{
-          name: queue,
-          avail: Map.get(avail_counts, queue, 0),
-          execu: Map.get(execu_counts, queue, 0),
-          limit: 0,
-          all_paused?: true,
-          any_paused?: false,
-          global?: false,
-          rate_limited?: false
-        }
-      end
-
-      acc
-      |> Map.put_new_lazy(queue, empty)
-      |> update_in([queue, :limit], &check_limit(&1, check))
-      |> update_in([queue, :global?], &(&1 or is_map(check["global_limit"])))
-      |> update_in([queue, :rate_limited?], &(&1 or is_map(check["rate_limit"])))
-      |> update_in([queue, :all_paused?], &(&1 and check["paused"]))
-      |> update_in([queue, :any_paused?], &(&1 or check["paused"]))
-    end)
-    |> Map.values()
-    |> Enum.sort_by(& &1.name)
+    QueueQuery.all_queues(%{}, conf)
   end
-
-  defp check_limit(_total, %{"global_limit" => %{"allowed" => limit}}), do: limit
-  defp check_limit(total, %{"local_limit" => limit}) when is_integer(limit), do: total + limit
-  defp check_limit(total, %{"limit" => limit}) when is_integer(limit), do: total + limit
-  defp check_limit(total, _payload), do: total
 end

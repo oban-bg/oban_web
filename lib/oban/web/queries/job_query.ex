@@ -68,9 +68,6 @@ defmodule Oban.Web.JobQuery do
     Search.parse(terms, &parse_term/1)
   end
 
-  @suggest_limit 10
-  @suggest_threshold 0.5
-
   @suggest_qualifier [
     {"args.", "a key or value in args", "args.id:123"},
     {"ids:", "one or more job ids", "ids:1,2,3"},
@@ -156,7 +153,7 @@ defmodule Oban.Web.JobQuery do
       [%{keys: [_ | _] = keys}] ->
         keys
         |> Kernel.--(["return:"])
-        |> restrict_suggestions(frag)
+        |> Search.restrict_suggestions(frag)
 
       _ ->
         []
@@ -184,7 +181,7 @@ defmodule Oban.Web.JobQuery do
         vals
         |> Enum.map(&to_string/1)
         |> Enum.map(&String.slice(&1, 0..90))
-        |> restrict_suggestions(frag)
+        |> Search.restrict_suggestions(frag)
 
       _ ->
         []
@@ -201,7 +198,7 @@ defmodule Oban.Web.JobQuery do
 
     :nodes
     |> cache_query(query, conf)
-    |> restrict_suggestions(frag)
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_queues(frag, conf, opts) do
@@ -213,7 +210,7 @@ defmodule Oban.Web.JobQuery do
 
     :queues
     |> cache_query(query, conf)
-    |> restrict_suggestions(frag)
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_tags(frag, conf, opts) do
@@ -225,7 +222,7 @@ defmodule Oban.Web.JobQuery do
       |> select([x], %{tags: fragment("array_agg(distinct ?)", x.tags)})
 
     case cache_query(:tags, query, conf) do
-      [%{tags: [_ | _] = tags}] -> restrict_suggestions(tags, frag)
+      [%{tags: [_ | _] = tags}] -> Search.restrict_suggestions(tags, frag)
       _ -> []
     end
   end
@@ -239,38 +236,11 @@ defmodule Oban.Web.JobQuery do
 
     :workers
     |> cache_query(query, conf)
-    |> restrict_suggestions(frag)
+    |> Search.restrict_suggestions(frag)
   end
 
   defp cache_query(key, query, conf) do
     Cache.fetch(key, fn -> Repo.all(conf, query) end)
-  end
-
-  defp restrict_suggestions(suggestions, "") do
-    suggestions
-    |> Enum.sort()
-    |> Enum.take(@suggest_limit)
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp restrict_suggestions(suggestions, frag) do
-    suggestions
-    |> Enum.filter(&(similarity(&1, frag) >= @suggest_threshold))
-    |> Enum.sort_by(&{1.0 - similarity(&1, frag), &1}, :asc)
-    |> Enum.take(@suggest_limit)
-    |> Enum.map(&{&1, "", ""})
-  end
-
-  defp similarity(value, guess, boost \\ 0.5) do
-    value = String.downcase(value)
-    guess = String.downcase(guess)
-    distance = String.jaro_distance(value, guess)
-
-    if String.contains?(value, guess) do
-      min(distance + boost, 1.0)
-    else
-      distance
-    end
   end
 
   def append(terms, choice) do

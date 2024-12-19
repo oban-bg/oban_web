@@ -134,7 +134,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(nodes: "web-1"))
 
       click_state(live, "available")
-      assert_patch(live, jobs_path(state: "available"))
+      assert_patch(live, jobs_path(nodes: "web-1", state: "available"))
     end
 
     test "filtering jobs by queue", %{live: live} do
@@ -252,7 +252,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp click_node(live, node) do
     live
-    |> element("#sidebar #nodes #node-#{node}")
+    |> element("#sidebar #nodes #filter-#{node}")
     |> render_click()
 
     refresh(live)
@@ -260,7 +260,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp click_queue(live, queue) do
     live
-    |> element("#sidebar #queues #queue-#{queue}")
+    |> element("#sidebar #filter-#{queue}")
     |> render_click()
 
     refresh(live)
@@ -274,7 +274,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp click_state(live, state) do
     live
-    |> element("#sidebar #states #state-#{state}")
+    |> element("#sidebar #filter-#{state}")
     |> render_click()
   end
 

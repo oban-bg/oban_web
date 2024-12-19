@@ -1,6 +1,7 @@
 defmodule Oban.Web.Jobs.SidebarComponent do
   use Oban.Web, :html
 
+  alias Oban.Web.Queue
   alias Oban.Web.SidebarComponents
 
   attr :nodes, :list
@@ -38,11 +39,11 @@ defmodule Oban.Web.Jobs.SidebarComponent do
           name={queue.name}
           active={active_filter?(@params, :queues, queue.name)}
           patch={patch_params(@params, :jobs, :queues, queue.name)}
-          values={[queue.limit, queue.execu, queue.avail]}
+          values={[Queue.total_limit(queue), queue.counts.executing, queue.counts.available]}
         >
           <:statuses>
             <Icons.arrow_trending_down
-              :if={queue.rate_limited?}
+              :if={Queue.rate_limit?(queue)}
               class="w-4 h-4"
               data-title="Rate limited"
               id={"#{queue.name}-is-rate-limited"}
@@ -50,7 +51,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
               rel="is-rate-limited"
             />
             <Icons.globe
-              :if={queue.global?}
+              :if={Queue.global_limit?(queue)}
               class="w-4 h-4"
               data-title="Globally limited"
               id={"#{queue.name}-is-global"}
@@ -58,7 +59,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
               rel="is-global"
             />
             <Icons.pause_circle
-              :if={queue.all_paused?}
+              :if={Queue.all_paused?(queue)}
               class="w-4 h-4"
               data-title="All paused"
               id={"#{queue.name}-is-paused"}
@@ -66,7 +67,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
               rel="is-paused"
             />
             <Icons.play_pause_circle
-              :if={queue.any_paused? and not queue.all_paused?}
+              :if={Queue.any_paused?(queue) and not Queue.all_paused?(queue)}
               class="w-4 h-4"
               data-title="Some paused"
               id={"#{queue.name}-is-some-paused"}

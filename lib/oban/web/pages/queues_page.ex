@@ -9,7 +9,7 @@ defmodule Oban.Web.QueuesPage do
   alias Oban.Web.Queues.{SidebarComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
-  @known_params ~w(is nodes sort_by sort_dir)
+  @known_params ~w(modes nodes sort_by sort_dir stats)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do

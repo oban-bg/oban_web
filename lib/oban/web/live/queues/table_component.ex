@@ -3,6 +3,8 @@ defmodule Oban.Web.Queues.TableComponent do
 
   import Oban.Web.Helpers.QueueHelper
 
+  alias Oban.Web.{Queue, Timing}
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -79,36 +81,36 @@ defmodule Oban.Web.Queues.TableComponent do
 
         <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
           <span rel="nodes" class="w-16 text-right">
-            {nodes_count(@queue.checks)}
+            {length(@queue.checks)}
           </span>
 
           <span rel="executing" class="w-16 text-right">
-            {executing_count(@queue.checks)}
+            {@queue.counts.executing}
           </span>
 
           <span rel="available" class="w-16 text-right">
-            {integer_to_estimate(@queue.counts)}
+            {integer_to_estimate(@queue.counts.available)}
           </span>
 
           <span rel="local" class="w-16 text-right">
-            {local_limit(@queue.checks)}
+            {local_limit(@queue)}
           </span>
 
           <span rel="global" class="w-16 text-right">
-            {global_limit_to_words(@queue.checks)}
+            {global_limit(@queue)}
           </span>
 
           <span rel="rate" class="w-32 text-right">
-            {rate_limit_to_words(@queue.checks)}
+            {rate_limit(@queue)}
           </span>
 
           <span rel="started" class="w-28 text-right">
-            {started_at(@queue.checks)}
+            {started_at(@queue)}
           </span>
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
             <Icons.pause_circle
-              :if={all_paused?(@queue.checks)}
+              :if={Queue.all_paused?(@queue)}
               class="w-4 h-4"
               data-title="All paused"
               id={"#{@queue.name}-is-paused"}
@@ -116,7 +118,7 @@ defmodule Oban.Web.Queues.TableComponent do
               rel="is-paused"
             />
             <Icons.play_pause_circle
-              :if={any_paused?(@queue.checks) and not all_paused?(@queue.checks)}
+              :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
               class="w-4 h-4"
               data-title="Some paused"
               id={"#{@queue.name}-is-some-paused"}
@@ -124,12 +126,12 @@ defmodule Oban.Web.Queues.TableComponent do
               rel="has-some-paused"
             />
             <Icons.power
-              :if={shutting_down?(@queue.checks)}
+              :if={Queue.terminating?(@queue)}
               class="w-4 h-4"
-              data-title="Shutting down"
-              id={"#{@queue.name}-is-shutting-down"}
+              data-title="Terminating"
+              id={"#{@queue.name}-is-terminating"}
               phx-hook="Tippy"
-              rel="shutting-down"
+              rel="terminating"
             />
           </div>
         </div>
@@ -149,8 +151,8 @@ defmodule Oban.Web.Queues.TableComponent do
 
   # Helpers
 
-  defp local_limit(checks) do
-    checks
+  defp local_limit(queue) do
+    queue.checks
     |> Enum.map(& &1["local_limit"])
     |> Enum.min_max()
     |> case do
@@ -159,9 +161,44 @@ defmodule Oban.Web.Queues.TableComponent do
     end
   end
 
-  defp any_paused?(checks), do: Enum.any?(checks, & &1["paused"])
+  defp global_limit(queue) do
+    Queue.global_limit(queue) || "-"
+  end
 
-  defp all_paused?(checks), do: Enum.all?(checks, & &1["paused"])
+  defp rate_limit(queue) do
+    queue.checks
+    |> Enum.map(& &1["rate_limit"])
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [head_limit | _rest] = rate_limits ->
+        %{"allowed" => allowed, "period" => period, "window_time" => time} = head_limit
 
-  defp shutting_down?(checks), do: Enum.any?(checks, & &1["shutdown_started_at"])
+        {prev_total, curr_total} =
+          rate_limits
+          |> Enum.flat_map(& &1["windows"])
+          |> Enum.reduce({0, 0}, fn %{"prev_count" => pcnt, "curr_count" => ccnt}, {pacc, cacc} ->
+            {pacc + pcnt, cacc + ccnt}
+          end)
+
+        unix_now = DateTime.to_unix(DateTime.utc_now(), :second)
+        ellapsed = unix_now - time_to_unix(time)
+        weight = div(max(period - ellapsed, 0), period)
+        remaining = prev_total * weight + curr_total
+
+        period_in_words = Timing.to_words(period, relative: false)
+
+        "#{remaining}/#{allowed} per #{period_in_words}"
+
+      [] ->
+        "-"
+    end
+  end
+
+  defp time_to_unix(unix) when is_integer(unix), do: unix
+
+  defp time_to_unix(time) do
+    Date.utc_today()
+    |> DateTime.new!(Time.from_iso8601!(time))
+    |> DateTime.to_unix(:second)
+  end
 end

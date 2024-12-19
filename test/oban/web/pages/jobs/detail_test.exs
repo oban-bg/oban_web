@@ -64,7 +64,7 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
 
   defp open_state(live, state) do
     live
-    |> element("#sidebar #states #state-#{state}")
+    |> element("#sidebar #states #filter-#{state}")
     |> render_click()
   end
 

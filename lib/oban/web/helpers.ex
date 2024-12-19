@@ -54,6 +54,7 @@ defmodule Oban.Web.Helpers do
   Toggle filterable params into a patch path.
   """
   def patch_params(params, page, key, value) when is_map(params) and is_atom(page) do
+    value = to_string(value)
     param_value = params[key]
 
     params =
@@ -108,7 +109,7 @@ defmodule Oban.Web.Helpers do
 
         {String.to_existing_atom(key), val}
 
-      {key, val} when key in ~w(ids nodes priorities queues tags workers) ->
+      {key, val} when key in ~w(ids modes nodes priorities queues stats tags workers) ->
         {String.to_existing_atom(key), String.split(val, ",")}
 
       {key, val} ->

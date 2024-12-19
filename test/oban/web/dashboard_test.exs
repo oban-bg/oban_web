@@ -94,7 +94,7 @@ defmodule Oban.Web.DashboardTest do
 
   defp click_state(live, state) do
     live
-    |> element("#sidebar #states #state-#{state}")
+    |> element("#sidebar #states #filter-#{state}")
     |> render_click()
 
     render(live)

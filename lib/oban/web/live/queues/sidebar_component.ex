@@ -1,6 +1,7 @@
 defmodule Oban.Web.Queues.SidebarComponent do
   use Oban.Web, :html
 
+  alias Oban.Web.Queue
   alias Oban.Web.SidebarComponents
 
   attr :queues, :list
@@ -9,33 +10,33 @@ defmodule Oban.Web.Queues.SidebarComponent do
   def sidebar(assigns) do
     ~H"""
     <SidebarComponents.sidebar>
-      <SidebarComponents.section name="statuses" headers={~w(count)}>
+      <SidebarComponents.section name="stats" headers={~w(count)}>
         <SidebarComponents.filter_row
           name="paused"
-          active={active_filter?(@params, :is, :paused)}
-          patch={patch_params(@params, :queues, :is, "paused")}
-          values={[count(@queues, :paused)]}
+          active={active_filter?(@params, :stats, :paused)}
+          patch={patch_params(@params, :queues, :stats, :paused)}
+          values={[Enum.count(@queues, &Queue.any_paused?/1)]}
         />
         <SidebarComponents.filter_row
           name="terminating"
-          active={active_filter?(@params, :is, :terminating)}
-          patch={patch_params(@params, :queues, :is, "terminating")}
-          values={[count(@queues, :terminating)]}
+          active={active_filter?(@params, :stats, :terminating)}
+          patch={patch_params(@params, :queues, :stats, :terminating)}
+          values={[Enum.count(@queues, &Queue.terminating?/1)]}
         />
       </SidebarComponents.section>
 
-      <SidebarComponents.section name="limits" headers={~w(count)}>
+      <SidebarComponents.section name="modes" headers={~w(count)}>
         <SidebarComponents.filter_row
-          name="global"
-          active={active_filter?(@params, :is, :global)}
-          patch={patch_params(@params, :queues, :is, "global")}
-          values={[count(@queues, :global_limit)]}
+          name="global-limit"
+          active={active_filter?(@params, :modes, :global_limit)}
+          patch={patch_params(@params, :queues, :modes, :global_limit)}
+          values={[Enum.count(@queues, &Queue.global_limit?/1)]}
         />
         <SidebarComponents.filter_row
-          name="rate-limited"
-          active={active_filter?(@params, :is, :rate_limit)}
-          patch={patch_params(@params, :queues, :is, "rate_limit")}
-          values={[count(@queues, :rate_limit)]}
+          name="rate-limit"
+          active={active_filter?(@params, :modes, :rate_limit)}
+          patch={patch_params(@params, :queues, :modes, :rate_limit)}
+          values={[Enum.count(@queues, &Queue.rate_limit?/1)]}
         />
       </SidebarComponents.section>
 
@@ -56,21 +57,5 @@ defmodule Oban.Web.Queues.SidebarComponent do
     queues
     |> Enum.flat_map(& &1.checks)
     |> Enum.reduce(%{}, fn %{"node" => node}, acc -> Map.update(acc, node, 1, &(&1 + 1)) end)
-  end
-
-  defp count(queues, :paused) do
-    Enum.count(queues, fn %{checks: checks} -> Enum.any?(checks, & &1["paused"]) end)
-  end
-
-  defp count(queues, :global_limit) do
-    Enum.count(queues, fn %{checks: checks} -> Enum.any?(checks, &is_map(&1["global_limit"])) end)
-  end
-
-  defp count(queues, :rate_limit) do
-    Enum.count(queues, fn %{checks: checks} -> Enum.any?(checks, &is_map(&1["rate_limit"])) end)
-  end
-
-  defp count(queues, :terminating) do
-    Enum.count(queues, fn %{checks: checks} -> Enum.any?(checks, & &1["shutdown_started_at"]) end)
   end
 end

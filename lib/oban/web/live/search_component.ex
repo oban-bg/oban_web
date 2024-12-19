@@ -1,8 +1,6 @@
 defmodule Oban.Web.SearchComponent do
   use Oban.Web, :live_component
 
-  @known ~w(args ids meta nodes priorities queues tags workers)a
-
   @spinner_timeout 100
 
   @impl Phoenix.LiveComponent
