@@ -8,15 +8,28 @@ defmodule Oban.Web.CronsPage do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="crons-page" class="w-full flex flex-col my-6 space-x-3 md:flex-row">
-      <div id="sidebar" class="w-fill md:w-84 space-y-3">
-        <p>Stuff goes here</p>
-        <p>More stuff here</p>
-      </div>
-
+    <div id="crons-page" class="w-full flex flex-col my-6 md:flex-row">
       <div class="bg-white dark:bg-gray-900 flex-grow rounded-md shadow-lg overflow-hidden">
-        <div id="crons-table" class="p-3 min-w-full grid grid-cols-[minmax(0,2fr)_minmax(0,0.75fr)_minmax(0,1.5fr)_minmax(0,1fr)] gap-y-6">
-          <ul class="contents text-xs py-1 font-semibold text-gray-400 dark:text-gray-600 uppercase">
+        <div
+          id="crons-header"
+          class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex-none flex items-center pr-12">
+            <Core.all_checkbox
+              click="toggle-select-all"
+              checked={:none}
+              myself={@myself}
+            />
+
+            <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
+          </div>
+        </div>
+
+        <div
+          id="crons-table"
+          class="p-3 min-w-full grid grid-cols-[minmax(0,2.5fr)_minmax(0,0.75fr)_minmax(0,1.5fr)_minmax(0,0.2fr)] gap-y-6"
+        >
+          <ul class="contents text-xs py-1.5 font-medium uppercase tracking-wider text-gray-400 dark:text-gray-600 border-b border-gray-200 dark:border-gray-700">
             <li>Name</li>
             <li>Schedule</li>
             <li>Activity</li>
@@ -43,9 +56,9 @@ defmodule Oban.Web.CronsPage do
 
   defp cron_row(assigns) do
     ~H"""
-    <li class="contents border-y-1 border-gray-100 dark:border-gray-800">
-      <div class="font-semibold text-gray-700 dark:text-gray-300"><%= @worker %></div>
-      <div class="font-mono text-sm"><%= @expr %></div>
+    <li class="contents border-y-1 border-gray-100 dark:border-gray-800 hover:text-red-200">
+      <div class="font-semibold text-gray-700 dark:text-gray-300">{@worker}</div>
+      <div class="font-mono text-sm">{@expr}</div>
       <div class=""></div>
       <div class=""></div>
     </li>
