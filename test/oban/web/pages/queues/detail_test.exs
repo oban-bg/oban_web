@@ -62,7 +62,11 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Global limit set for alpha queue")
 
-    assert_signal(%{"action" => "scale", "global_limit" => %{"allowed" => 10}, "queue" => "alpha"})
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{"allowed" => 10},
+      "queue" => "alpha"
+    })
   end
 
   test "configuring global partitioning" do

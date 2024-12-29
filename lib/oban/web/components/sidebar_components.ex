@@ -77,7 +77,10 @@ defmodule Oban.Web.SidebarComponents do
       </span>
 
       <div class="flex-none flex items-center space-x-2">
-        <div :if={@statuses} class="flex items-center text-right space-x-1 text-gray-600 dark:text-gray-400">
+        <div
+          :if={@statuses}
+          class="flex items-center text-right space-x-1 text-gray-600 dark:text-gray-400"
+        >
           {render_slot(@statuses)}
         </div>
 
