@@ -30,9 +30,24 @@ config :logger, :console, format: "[$level] $message\n"
 
 config :phoenix, json_library: Jason, stacktrace_depth: 20
 
-config :oban_web, ecto_repos: [Oban.Web.Repo]
+config :oban_web, ecto_repos: [Oban.Web.Repo, Oban.Web.LiteRepo, Oban.Web.DolphinRepo]
 
 config :oban_web, Oban.Web.Repo,
-  priv: "test/support/",
-  url: System.get_env("DATABASE_URL") || "postgres://localhost:5432/oban_web_test",
-  pool: Ecto.Adapters.SQL.Sandbox
+  pool: Ecto.Adapters.SQL.Sandbox,
+  priv: "test/support/postgres",
+  show_sensitive_data_on_connection_error: true,
+  stacktrace: true,
+  url: System.get_env("POSTGRES_URL") || "postgres://localhost:5432/oban_web_test"
+
+config :oban_web, Oban.Web.LiteRepo,
+  database: "priv/oban_web_test.db",
+  priv: "test/support/sqlite",
+  stacktrace: true,
+  temp_store: :memory
+
+config :oban_web, Oban.Web.DolphinRepo,
+  priv: "test/support/mysql",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  show_sensitive_data_on_connection_error: true,
+  stacktrace: true,
+  url: System.get_env("MYSQL_URL") || "mysql://root@localhost:3306/oban_web_test"

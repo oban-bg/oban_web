@@ -48,16 +48,20 @@ defmodule Oban.Web.MixProject do
   defp deps do
     [
       {:jason, "~> 1.2"},
-      {:phoenix, "~> 1.7.0"},
+      {:phoenix, "~> 1.7"},
       {:phoenix_html, "~> 3.3 or ~> 4.0"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:phoenix_live_view, "~> 1.0.0"},
-      {:postgrex, "~> 0.17"},
+      {:phoenix_live_view, "~> 1.0"},
 
       # Oban
       {:oban, ">= 2.17.4 and < 2.19.0", github: "oban-bg/oban", override: true},
       {:oban_met, "~> 0.1.7", repo: :oban},
       {:oban_pro, "~> 1.5.0-rc.7", repo: :oban, only: [:test, :dev]},
+
+      # Databases
+      {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},
+      {:myxql, "~> 0.7", only: [:dev, :test]},
+      {:postgrex, "~> 0.19", only: [:dev, :test]},
 
       # Dev Server
       {:bandit, "~> 1.5", only: :dev},
@@ -91,8 +95,8 @@ defmodule Oban.Web.MixProject do
         "hex.publish package --yes",
         "lys.publish"
       ],
-      "test.reset": ["ecto.drop -r Oban.Web.Repo", "test.setup"],
-      "test.setup": ["ecto.create -r Oban.Web.Repo --quiet", "ecto.migrate -r Oban.Web.Repo"],
+      "test.reset": ["ecto.drop --quiet", "test.setup"],
+      "test.setup": ["ecto.create --quiet", "ecto.migrate --quiet"],
       "test.ci": [
         "format --check-formatted",
         "deps.unlock --check-unused",
