@@ -6,7 +6,7 @@ defmodule Oban.Web.Case do
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.{Job, Notifier}
   alias Oban.Pro.Testing
-  alias Oban.Web.Repo
+  alias Oban.Web.{DolphinRepo, LiteRepo, Repo}
 
   using do
     quote do
@@ -25,6 +25,27 @@ defmodule Oban.Web.Case do
 
       @endpoint Oban.Web.Endpoint
     end
+  end
+
+  setup context do
+    cond do
+      context[:lite] ->
+        on_exit(fn ->
+          LiteRepo.delete_all(Oban.Job)
+        end)
+
+      context[:dolphin] ->
+        pid = Sandbox.start_owner!(DolphinRepo, shared: not context[:async])
+
+        on_exit(fn -> Sandbox.stop_owner(pid) end)
+
+      true ->
+        pid = Sandbox.start_owner!(Repo, shared: not context[:async])
+
+        on_exit(fn -> Sandbox.stop_owner(pid) end)
+    end
+
+    :ok
   end
 
   def start_supervised_oban!(opts \\ []) do
@@ -90,6 +111,8 @@ defmodule Oban.Web.Case do
   end
 
   def insert_job!(args, opts \\ []) do
+    {conf, opts} = Keyword.pop(opts, :conf, %{repo: Repo})
+
     opts =
       opts
       |> Keyword.put_new(:queue, :default)
@@ -98,7 +121,7 @@ defmodule Oban.Web.Case do
     args
     |> Map.new()
     |> Job.new(opts)
-    |> Repo.insert!()
+    |> conf.repo.insert!()
   end
 
   # Timing Helpers
@@ -140,13 +163,5 @@ defmodule Oban.Web.Case do
       |> Floki.parse_fragment!()
       |> Floki.find(selector)
       |> Floki.text()
-  end
-
-  setup context do
-    pid = Sandbox.start_owner!(Repo, shared: not context[:async])
-
-    on_exit(fn -> Sandbox.stop_owner(pid) end)
-
-    :ok
   end
 end

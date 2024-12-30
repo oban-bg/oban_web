@@ -48,6 +48,10 @@ defmodule Oban.Web.JobQuery do
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
 
+  defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
+
+  defguardp is_mysql(conf) when conf.engine == Oban.Engines.Dolphin
+
   defmacrop path_key(key, value) do
     quote do
       fragment(
@@ -60,6 +64,22 @@ defmodule Oban.Web.JobQuery do
         unquote(value),
         unquote(key),
         unquote(key)
+      )
+    end
+  end
+
+  defmacrop sqlite_contains_any(column, list) do
+    quote do
+      fragment(
+        """
+        exists (
+          select 1
+          from json_each(?) as t1, json_each(?) as t2
+          where t1.value = t2.value
+        )
+        """,
+        unquote(column),
+        ^Jason.encode!(unquote(list))
       )
     end
   end
@@ -261,7 +281,7 @@ defmodule Oban.Web.JobQuery do
 
   def all_jobs(params, conf, opts \\ []) do
     params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter/2)
+    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
 
     query =
       params.state
@@ -276,7 +296,7 @@ defmodule Oban.Web.JobQuery do
 
   def all_job_ids(params, conf, opts \\ []) do
     params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter/2)
+    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
     limit = bulk_action_limit(params.state, opts)
 
     query =
@@ -444,43 +464,78 @@ defmodule Oban.Web.JobQuery do
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
-  defp filter({:args, [path, term]}, condition) do
+  defp filter({:args, [path, term]}, condition, conf) when is_sqlite(conf) or is_mysql(conf) do
+    json_path = Enum.join(["$" | path], ".")
+    cast_term = cast_val(term)
+
+    dynamic([j], ^condition and fragment("json_extract(?, ?)", j.args, ^json_path) == ^cast_term)
+  end
+
+  defp filter({:args, [path, term]}, condition, _conf) do
     dynamic([j], ^condition and fragment("? @> ?", j.args, ^gen_map(path, term)))
   end
 
-  defp filter({:ids, ids}, condition) do
+  defp filter({:ids, ids}, condition, _conf) do
     dynamic([j], ^condition and j.id in ^ids)
   end
 
-  defp filter({:meta, [path, term]}, condition) do
+  defp filter({:meta, [path, term]}, condition, conf) when is_sqlite(conf) or is_mysql(conf) do
+    json_path = Enum.join(["$" | path], ".")
+    cast_term = cast_val(term)
+
+    dynamic([j], ^condition and fragment("json_extract(?, ?)", j.meta, ^json_path) == ^cast_term)
+  end
+
+  defp filter({:meta, [path, term]}, condition, _conf) do
     dynamic([j], ^condition and fragment("? @> ?", j.meta, ^gen_map(path, term)))
   end
 
-  defp filter({:nodes, nodes}, condition) do
+  defp filter({:nodes, nodes}, condition, conf) when is_mysql(conf) do
+    dynamic([j], ^condition and fragment("json_extract(?, '$[0]')", j.attempted_by) in ^nodes)
+  end
+
+  defp filter({:nodes, nodes}, condition, conf) when is_sqlite(conf) do
+    dynamic([j], ^condition and fragment("?->>0", j.attempted_by) in ^nodes)
+  end
+
+  defp filter({:nodes, nodes}, condition, _conf) do
     dynamic([j], ^condition and fragment("?[1]", j.attempted_by) in ^nodes)
   end
 
-  defp filter({:queues, queues}, condition) do
+  defp filter({:queues, queues}, condition, _conf) do
     dynamic([j], ^condition and j.queue in ^queues)
   end
 
-  defp filter({:priorities, priorities}, condition) do
+  defp filter({:priorities, priorities}, condition, _conf) do
     dynamic([j], ^condition and j.priority in ^priorities)
   end
 
-  defp filter({:state, state}, condition) do
+  defp filter({:state, state}, condition, _conf) do
     dynamic([j], ^condition and j.state == ^state)
   end
 
-  defp filter({:tags, tags}, condition) do
+  defp filter({:tags, tags}, condition, conf) when is_mysql(conf) do
+    subcon =
+      Enum.reduce(tags, false, fn tag, acc ->
+        dynamic([j], ^acc or fragment("json_contains(?, ?)", j.tags, ^[tag]))
+      end)
+
+    dynamic([j], ^condition and ^subcon)
+  end
+
+  defp filter({:tags, tags}, condition, conf) when is_sqlite(conf) do
+    dynamic([j], ^condition and sqlite_contains_any(j.tags, tags))
+  end
+
+  defp filter({:tags, tags}, condition, _conf) do
     dynamic([j], ^condition and fragment("? && ?", j.tags, ^tags))
   end
 
-  defp filter({:workers, workers}, condition) do
+  defp filter({:workers, workers}, condition, _conf) do
     dynamic([j], ^condition and j.worker in ^workers)
   end
 
-  defp filter(_, condition), do: condition
+  defp filter(_, condition, _conf), do: condition
 
   defp gen_map(path, val) do
     gen_map(path, cast_val(val), {[], %{}})

@@ -80,4 +80,7 @@ Oban.Web.DolphinRepo.start_link()
 Oban.Web.LiteRepo.start_link()
 Oban.Web.Endpoint.start_link()
 
+Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.DolphinRepo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
+
 ExUnit.start(assert_receive_timeout: 500, refute_receive_timeout: 50, exclude: [:skip])

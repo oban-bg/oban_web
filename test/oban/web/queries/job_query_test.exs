@@ -6,6 +6,11 @@ defmodule Oban.Web.JobQueryTest do
 
   @conf Config.new(repo: Repo)
 
+  defmodule JobResolver do
+    def jobs_query_limit(:completed), do: 1
+    def jobs_query_limit(:executing), do: 10
+  end
+
   describe "parse/1" do
     import JobQuery, only: [parse: 1]
 
@@ -213,149 +218,183 @@ defmodule Oban.Web.JobQueryTest do
     end
   end
 
-  describe "all_jobs/2" do
-    test "filtering by id" do
-      job_1 = insert_job!(%{ref: 1})
-      job_2 = insert_job!(%{ref: 2})
-      job_3 = insert_job!(%{ref: 3})
-
-      assert [1] = filter_refs(ids: ~w(#{job_1.id}))
-      assert [1, 2] = filter_refs(ids: ~w(#{job_1.id} #{job_2.id}))
-      assert [1, 3] = filter_refs(ids: ~w(#{job_1.id} #{job_3.id}))
-      assert [] = filter_refs(ids: ~w(12345))
-    end
-
-    test "filtering by node" do
-      insert_job!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
-      insert_job!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"])
-
-      assert [1] = filter_refs(nodes: ~w(worker.1))
-      assert [2] = filter_refs(nodes: ~w(worker.2))
-      assert [1, 2] = filter_refs(nodes: ~w(worker.1 worker.2))
-      assert [] = filter_refs(nodes: ~w(web.1))
-    end
-
-    test "filtering by priority" do
-      insert_job!(%{ref: 0}, priority: 0)
-      insert_job!(%{ref: 1}, priority: 1)
-      insert_job!(%{ref: 2}, priority: 2)
-
-      assert [0] = filter_refs(priorities: ~w(0))
-      assert [0, 1] = filter_refs(priorities: ~w(0 1))
-      assert [0, 1, 2] = filter_refs(priorities: ~w(0 1 2 3))
-      assert [] = filter_refs(priorities: ~w(3))
-    end
-
-    test "filtering by queue" do
-      insert_job!(%{ref: 1}, queue: "alpha")
-      insert_job!(%{ref: 2}, queue: "gamma")
-
-      assert [1] = filter_refs(queues: ~w(alpha))
-      assert [2] = filter_refs(queues: ~w(gamma))
-      assert [1, 2] = filter_refs(queues: ~w(alpha gamma))
-      assert [] = filter_refs(queues: ~w(delta))
-    end
-
-    test "filtering by state" do
-      insert_job!(%{ref: 0}, state: "available")
-      insert_job!(%{ref: 1}, state: "available")
-      insert_job!(%{ref: 2}, state: "scheduled")
-      insert_job!(%{ref: 3}, state: "completed")
-
-      assert [0, 1] = filter_refs(state: "available")
-      assert [] = filter_refs(state: "executing")
-    end
-
-    test "filtering by tags" do
-      insert_job!(%{ref: 0}, tags: ["audio"])
-      insert_job!(%{ref: 1}, tags: ["audio", "video"])
-      insert_job!(%{ref: 2}, tags: ["video"])
-
-      assert [0, 1] = filter_refs(tags: ~w(audio))
-      assert [1, 2] = filter_refs(tags: ~w(video))
-      assert [0, 1, 2] = filter_refs(tags: ~w(audio video))
-      assert [0, 1] = filter_refs(tags: ~w(audio nada))
-      assert [] = filter_refs(tags: ~w(nada))
-    end
-
-    test "filtering by worker" do
-      insert_job!(%{ref: 1}, worker: MyApp.VideoA)
-      insert_job!(%{ref: 2}, worker: MyApp.VideoB)
-
-      assert [1] = filter_refs(workers: ~w(MyApp.VideoA))
-      assert [2] = filter_refs(workers: ~w(MyApp.VideoB))
-      assert [1, 2] = filter_refs(workers: ~w(MyApp.VideoA MyApp.VideoB))
-      assert [] = filter_refs(workers: ~w(MyApp.Video))
-    end
-
-    test "searching within args sub-fields" do
-      insert_job!(%{ref: 0, mode: "audio", bar: %{baz: 1}})
-      insert_job!(%{ref: 1, mode: "video", bar: %{baz: 2}})
-      insert_job!(%{ref: 2, mode: "media", bar: %{bat: 3}})
-      insert_job!(%{ref: 3, mode: "pizza", bar: %{bat: "3"}})
-
-      assert [0] = filter_refs(args: [~w(mode), "audio"])
-      assert [1] = filter_refs(args: [~w(mode), "video"])
-
-      assert [0] = filter_refs(args: [~w(bar baz), "1"])
-      assert [2] = filter_refs(args: [~w(bar bat), "3"])
-      assert [3] = filter_refs(args: [~w(bar bat), ~s("3")])
-      assert [] = filter_refs(args: [~w(bar bat), "4"])
-    end
-
-    test "searching within meta sub-fields" do
-      insert_job!(%{ref: 0}, meta: %{mode: "audio", bar: %{baz: "21f8"}})
-      insert_job!(%{ref: 1}, meta: %{mode: "video", bar: %{baz: 7050}})
-      insert_job!(%{ref: 2}, meta: %{mode: "media", bar: %{bat: "4b0e"}})
-
-      assert [0] = filter_refs(meta: [~w(mode), "audio"])
-      assert [0] = filter_refs(meta: [~w(bar baz), "21f8"])
-      assert [1] = filter_refs(meta: [~w(bar baz), "7050"])
-      assert [2] = filter_refs(meta: [~w(bar bat), "4b0e"])
-    end
-
-    test "filtering by multiple terms" do
-      insert_job!(%{ref: 0, mode: "video"}, worker: Media, meta: %{batch_id: 1})
-      insert_job!(%{ref: 1, mode: "audio"}, worker: Media, meta: %{batch_id: 1})
-      insert_job!(%{ref: 2, mode: "multi"}, worker: Media, meta: %{batch_id: 2})
-
-      assert [0, 1] = filter_refs(workers: ~w(Media), meta: [~w(batch_id), "1"])
-      assert [2] = filter_refs(args: [~w(mode), "multi"], meta: [~w(batch_id), "2"])
-    end
-
-    test "ordering fields by state" do
-      ago = fn sec -> DateTime.add(DateTime.utc_now(), -sec) end
-
-      job_a = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(4))
-      job_b = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(6))
-      job_c = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(1))
-
-      assert [job_c.id, job_a.id, job_b.id] ==
-               %{state: "cancelled"}
-               |> JobQuery.all_jobs(@conf)
-               |> Enum.map(& &1.id)
-
-      assert [job_b.id, job_a.id, job_c.id] ==
-               %{state: "cancelled", sort_dir: "desc"}
-               |> JobQuery.all_jobs(@conf)
-               |> Enum.map(& &1.id)
-    end
-
-    test "restrict the query with a resolver that implements jobs_query_limit/1" do
-      defmodule JobResolver do
-        def jobs_query_limit(:completed), do: 1
-        def jobs_query_limit(:executing), do: 10
+  defp conf(repo) do
+    engine =
+      case repo do
+        Oban.Web.Repo -> Oban.Engines.Basic
+        Oban.Web.LiteRepo -> Oban.Engines.Lite
+        Oban.Web.DolphinRepo -> Oban.Engines.Dolphin
       end
 
-      insert_job!(%{ref: 0}, state: "executing")
-      insert_job!(%{ref: 1}, state: "executing")
-      insert_job!(%{ref: 2}, state: "executing")
-      insert_job!(%{ref: 3}, state: "completed")
-      insert_job!(%{ref: 4}, state: "completed")
-      insert_job!(%{ref: 5}, state: "completed")
+    Config.new(repo: repo, engine: engine)
+  end
 
-      assert [0, 1, 2] = filter_refs(%{state: "executing"}, resolver: JobResolver)
-      assert [4, 5] = filter_refs(%{state: "completed"}, resolver: JobResolver)
+  for repo <- [Oban.Web.Repo, Oban.Web.LiteRepo, Oban.Web.DolphinRepo] do
+    describe "all_jobs/2 with #{inspect(repo)}" do
+      @repo repo
+
+      @describetag dolphin: repo == Oban.Web.DolphinRepo
+      @describetag lite: repo == Oban.Web.LiteRepo
+
+      test "filtering by id using" do
+        conf = conf(@repo)
+
+        job_1 = insert_job!(%{ref: 1}, conf: conf)
+        job_2 = insert_job!(%{ref: 2}, conf: conf)
+        job_3 = insert_job!(%{ref: 3}, conf: conf)
+
+        assert [1] = filter_refs(conf, ids: ~w(#{job_1.id}))
+        assert [1, 2] = filter_refs(conf, ids: ~w(#{job_1.id} #{job_2.id}))
+        assert [1, 3] = filter_refs(conf, ids: ~w(#{job_1.id} #{job_3.id}))
+        assert [] = filter_refs(conf, ids: ~w(12345))
+      end
+
+      test "filtering by node" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"], conf: conf)
+        insert_job!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"], conf: conf)
+
+        assert [1] = filter_refs(conf, nodes: ~w(worker.1))
+        assert [2] = filter_refs(conf, nodes: ~w(worker.2))
+        assert [1, 2] = filter_refs(conf, nodes: ~w(worker.1 worker.2))
+        assert [] = filter_refs(conf, nodes: ~w(web.1))
+      end
+
+      test "filtering by priority" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0}, priority: 0, conf: conf)
+        insert_job!(%{ref: 1}, priority: 1, conf: conf)
+        insert_job!(%{ref: 2}, priority: 2, conf: conf)
+
+        assert [0] = filter_refs(conf, priorities: ~w(0))
+        assert [0, 1] = filter_refs(conf, priorities: ~w(0 1))
+        assert [0, 1, 2] = filter_refs(conf, priorities: ~w(0 1 2 3))
+        assert [] = filter_refs(conf, priorities: ~w(3))
+      end
+
+      test "filtering by queue" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 1}, queue: "alpha", conf: conf)
+        insert_job!(%{ref: 2}, queue: "gamma", conf: conf)
+
+        assert [1] = filter_refs(conf, queues: ~w(alpha))
+        assert [2] = filter_refs(conf, queues: ~w(gamma))
+        assert [1, 2] = filter_refs(conf, queues: ~w(alpha gamma))
+        assert [] = filter_refs(conf, queues: ~w(delta))
+      end
+
+      test "filtering by state" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0}, state: "available", conf: conf)
+        insert_job!(%{ref: 1}, state: "available", conf: conf)
+        insert_job!(%{ref: 2}, state: "scheduled", conf: conf)
+        insert_job!(%{ref: 3}, state: "completed", conf: conf)
+
+        assert [0, 1] = filter_refs(conf, state: "available")
+        assert [] = filter_refs(conf, state: "executing")
+      end
+
+      test "filtering by tags" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0}, tags: ["audio"], conf: conf)
+        insert_job!(%{ref: 1}, tags: ["audio", "video"], conf: conf)
+        insert_job!(%{ref: 2}, tags: ["video"], conf: conf)
+
+        assert [0, 1] = filter_refs(conf, tags: ~w(audio))
+        assert [1, 2] = filter_refs(conf, tags: ~w(video))
+        assert [0, 1, 2] = filter_refs(conf, tags: ~w(audio video))
+        assert [0, 1] = filter_refs(conf, tags: ~w(audio nada))
+        assert [] = filter_refs(conf, tags: ~w(nada))
+      end
+
+      test "filtering by worker" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 1}, worker: MyApp.VideoA, conf: conf)
+        insert_job!(%{ref: 2}, worker: MyApp.VideoB, conf: conf)
+
+        assert [1] = filter_refs(conf, workers: ~w(MyApp.VideoA))
+        assert [2] = filter_refs(conf, workers: ~w(MyApp.VideoB))
+        assert [1, 2] = filter_refs(conf, workers: ~w(MyApp.VideoA MyApp.VideoB))
+        assert [] = filter_refs(conf, workers: ~w(MyApp.Video))
+      end
+
+      test "searching within args sub-fields" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0, mode: "audio", bar: %{baz: 1}}, conf: conf)
+        insert_job!(%{ref: 1, mode: "video", bar: %{baz: 2}}, conf: conf)
+        insert_job!(%{ref: 2, mode: "media", bar: %{bat: 3}}, conf: conf)
+
+        assert [0] = filter_refs(conf, args: [~w(mode), "audio"])
+        assert [1] = filter_refs(conf, args: [~w(mode), "video"])
+
+        assert [0] = filter_refs(conf, args: [~w(bar baz), "1"])
+        assert [2] = filter_refs(conf, args: [~w(bar bat), "3"])
+        assert [] = filter_refs(conf, args: [~w(bar bat), "4"])
+      end
+
+      test "searching within meta sub-fields" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0}, meta: %{mode: "audio", bar: %{baz: "21f8"}}, conf: conf)
+        insert_job!(%{ref: 1}, meta: %{mode: "video", bar: %{baz: 7050}}, conf: conf)
+        insert_job!(%{ref: 2}, meta: %{mode: "media", bar: %{bat: "4b0e"}}, conf: conf)
+
+        assert [0] = filter_refs(conf, meta: [~w(mode), "audio"])
+        assert [2] = filter_refs(conf, meta: [~w(bar bat), "4b0e"])
+        assert [0] = filter_refs(conf, meta: [~w(bar baz), "21f8"])
+        assert [1] = filter_refs(conf, meta: [~w(bar baz), "7050"])
+      end
+
+      test "filtering by multiple terms" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0, mode: "video"}, worker: Media, meta: %{batch_id: 1}, conf: conf)
+        insert_job!(%{ref: 1, mode: "audio"}, worker: Media, meta: %{batch_id: 1}, conf: conf)
+        insert_job!(%{ref: 2, mode: "multi"}, worker: Media, meta: %{batch_id: 2}, conf: conf)
+
+        assert [0, 1] = filter_refs(conf, workers: ~w(Media), meta: [~w(batch_id), "1"])
+        assert [2] = filter_refs(conf, args: [~w(mode), "multi"], meta: [~w(batch_id), "2"])
+      end
+
+      test "ordering jobs by state" do
+        conf = conf(@repo)
+        ago = fn sec -> DateTime.add(DateTime.utc_now(), -sec) end
+
+        job_a = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(4), conf: conf)
+        job_b = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(6), conf: conf)
+        job_c = insert_job!(%{}, state: "cancelled", cancelled_at: ago.(1), conf: conf)
+
+        assert [job_c.id, job_a.id, job_b.id] ==
+                 %{state: "cancelled"}
+                 |> JobQuery.all_jobs(conf)
+                 |> Enum.map(& &1.id)
+
+        assert [job_b.id, job_a.id, job_c.id] ==
+                 %{state: "cancelled", sort_dir: "desc"}
+                 |> JobQuery.all_jobs(conf)
+                 |> Enum.map(& &1.id)
+      end
+
+      test "restrict the query with a resolver that implements jobs_query_limit/1" do
+        conf = conf(@repo)
+
+        insert_job!(%{ref: 0}, state: "executing", conf: conf)
+        insert_job!(%{ref: 1}, state: "executing", conf: conf)
+        insert_job!(%{ref: 2}, state: "executing", conf: conf)
+        insert_job!(%{ref: 3}, state: "completed", conf: conf)
+        insert_job!(%{ref: 4}, state: "completed", conf: conf)
+        insert_job!(%{ref: 5}, state: "completed", conf: conf)
+
+        assert [0, 1, 2] = filter_refs(conf, %{state: "executing"}, resolver: JobResolver)
+        assert [4, 5] = filter_refs(conf, %{state: "completed"}, resolver: JobResolver)
+      end
     end
   end
 
@@ -376,14 +415,22 @@ defmodule Oban.Web.JobQueryTest do
     end
   end
 
-  defp filter_refs(params, opts \\ []) do
+  defp filter_refs(conf, params) when is_struct(conf, Config) do
+    filter_refs(conf, params, [])
+  end
+
+  defp filter_refs(params, opts) do
+    filter_refs(@conf, params, opts)
+  end
+
+  defp filter_refs(conf, params, opts) do
     params =
       params
       |> Map.new()
       |> Map.put_new(:state, "available")
 
     params
-    |> JobQuery.all_jobs(@conf, opts)
+    |> JobQuery.all_jobs(conf, opts)
     |> Enum.map(& &1.args["ref"])
     |> Enum.sort()
   end
