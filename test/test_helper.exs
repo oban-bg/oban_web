@@ -76,11 +76,11 @@ defmodule Oban.Web.Endpoint do
 end
 
 Oban.Web.Repo.start_link()
-Oban.Web.DolphinRepo.start_link()
-Oban.Web.LiteRepo.start_link()
+Oban.Web.MyXQLRepo.start_link()
+Oban.Web.SQLiteRepo.start_link()
 Oban.Web.Endpoint.start_link()
 
-Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.DolphinRepo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.MyXQLRepo, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 
 ExUnit.start(assert_receive_timeout: 500, refute_receive_timeout: 50, exclude: [:skip])

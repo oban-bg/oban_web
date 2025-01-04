@@ -48,22 +48,74 @@ defmodule Oban.Web.JobQuery do
   # Split terms using a positive lookahead that skips splitting within double quotes
   @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
 
-  defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
-
   defguardp is_mysql(conf) when conf.engine == Oban.Engines.Dolphin
 
-  defmacrop path_key(key, value) do
+  defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
+
+  defmacrop json_each(field) do
+    quote do
+      fragment("json_each(?)", unquote(field))
+    end
+  end
+
+  defmacrop jsonb_each(field) do
+    quote do
+      fragment("jsonb_each(?)", unquote(field))
+    end
+  end
+
+  defmacrop json_table(field) do
+    quote do
+      fragment("json_table(?, '$[*]' COLUMNS (value TEXT PATH '$'))", unquote(field))
+    end
+  end
+
+  defmacrop json_kv_table(field) do
     quote do
       fragment(
         """
-        case jsonb_typeof(?)
-        when 'object' then ? || '.'
-        else ? || ':'
-        end
+        (SELECT jt.name AS `key`,
+                json_extract(?, CONCAT('$.', jt.name)) AS `value`
+        FROM json_table(json_keys(?), '$[*]' COLUMNS (name TEXT PATH '$')) AS jt)
         """,
-        unquote(value),
+        unquote(field),
+        unquote(field)
+      )
+    end
+  end
+
+  defmacrop json_unnest(field) do
+    quote do
+      fragment("json_array_elements_text(array_to_json(?))", unquote(field))
+    end
+  end
+
+  defmacrop mysql_path_key(key, value) do
+    quote do
+      fragment(
+        "CONCAT(?, (CASE json_type(?) WHEN 'OBJECT' THEN '.' ELSE ':' END))",
         unquote(key),
-        unquote(key)
+        unquote(value)
+      )
+    end
+  end
+
+  defmacrop postgres_path_key(key, value) do
+    quote do
+      fragment(
+        "? || (CASE jsonb_typeof(?) WHEN 'object' THEN '.' ELSE ':' END)",
+        unquote(key),
+        unquote(value)
+      )
+    end
+  end
+
+  defmacrop sqlite_path_key(key, value) do
+    quote do
+      fragment(
+        "? || (CASE json_type(json_quote(?)) WHEN 'object' THEN '.' ELSE ':' END)",
+        unquote(key),
+        unquote(value)
       )
     end
   end
@@ -80,6 +132,18 @@ defmodule Oban.Web.JobQuery do
         """,
         unquote(column),
         ^Jason.encode!(unquote(list))
+      )
+    end
+  end
+
+  defmacrop subtract_unsigned(id, limit) do
+    quote do
+      fragment(
+        "CASE WHEN ? > ? THEN ? - ? ELSE 1 END",
+        unquote(id),
+        unquote(limit),
+        unquote(id),
+        unquote(limit)
       )
     end
   end
@@ -148,73 +212,130 @@ defmodule Oban.Web.JobQuery do
       |> String.split(".")
       |> then(&List.pop_at(&1, length(&1) - 1))
 
+    json_path = Enum.join(["$" | path], ".")
+
+    query = hint_limit_query(field, opts)
+
     subquery =
-      if Enum.empty?(path) do
-        field
-        |> hint_limit_query(opts)
-        |> join(:inner_lateral, [o], j in fragment("jsonb_each(?)", field(o, ^field)), on: true)
-        |> select([_o, j], %{key: path_key(j.key, j.value)})
-      else
-        field
-        |> hint_limit_query(opts)
-        |> join(:inner_lateral, [o], j in fragment("jsonb_each(? #> ?)", field(o, ^field), ^path),
-          on: true
-        )
-        |> select([_o, j], %{key: path_key(j.key, j.value)})
-        |> where([j], fragment("jsonb_typeof(? #> ?) = 'object'", field(j, ^field), ^path))
+      cond do
+        Enum.empty?(path) ->
+          select(query, [j], %{value: field(j, ^field)})
+
+        is_mysql(conf) ->
+          query
+          |> select([j], %{value: fragment("json_extract(?, ?)", field(j, ^field), ^json_path)})
+          |> where(
+            [j],
+            fragment("json_type(json_extract(?, ?)) = 'OBJECT'", field(j, ^field), ^json_path)
+          )
+
+        is_sqlite(conf) ->
+          query
+          |> select([j], %{value: fragment("?->?", field(j, ^field), ^json_path)})
+          |> where([j], fragment("json_type(?->?) = 'object'", field(j, ^field), ^json_path))
+
+        true ->
+          query
+          |> select([j], %{value: fragment("?#>?", field(j, ^field), ^path)})
+          |> where([j], fragment("jsonb_typeof(?#>?) = 'object'", field(j, ^field), ^path))
       end
 
     query =
-      subquery
-      |> subquery()
-      |> select([x], %{keys: fragment("jsonb_agg(distinct ?)", x.key)})
+      cond do
+        is_mysql(conf) ->
+          subquery
+          |> subquery()
+          |> join(:inner_lateral, [o], x in json_kv_table(o.value), on: true)
+          |> select([_, x], mysql_path_key(x.key, x.value))
+          |> distinct(true)
 
-    case cache_query({field, :keys, path}, query, conf) do
-      [%{keys: [_ | _] = keys}] ->
-        keys
-        |> Kernel.--(["return:"])
-        |> Search.restrict_suggestions(frag)
+        is_sqlite(conf) ->
+          subquery
+          |> subquery()
+          |> join(:inner, [o], x in json_each(o.value), on: true)
+          |> select([_, x], sqlite_path_key(x.key, x.value))
+          |> distinct(true)
 
-      _ ->
-        []
-    end
+        true ->
+          subquery
+          |> subquery()
+          |> join(:inner_lateral, [o], x in jsonb_each(o.value), on: true)
+          |> select([_, x], postgres_path_key(x.key, x.value))
+          |> distinct(true)
+      end
+
+    {field, :keys, path}
+    |> cache_query(query, conf)
+    |> Kernel.--(["return:"])
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_json_vals(_field, "", _frag, _conf, _opts), do: []
 
   defp suggest_json_vals(field, path, frag, conf, opts) do
-    path = String.split(path, ".")
-
-    subquery =
-      field
-      |> hint_limit_query(opts)
-      |> select([j], %{vals: fragment("? #> ?", field(j, ^field), ^path)})
+    json_path = "$." <> path
 
     query =
-      subquery
-      |> subquery()
-      |> select([x], %{vals: fragment("jsonb_agg(distinct ?)", x.vals)})
-      |> where([x], fragment("jsonb_typeof(?) = ANY(?)", x.vals, ~w(number string)))
+      field
+      |> hint_limit_query(opts)
+      |> distinct(true)
 
-    case cache_query({field, :vals, path}, query, conf) do
-      [%{vals: [_ | _] = vals}] ->
-        vals
-        |> Enum.map(&to_string/1)
-        |> Enum.map(&String.slice(&1, 0..90))
-        |> Search.restrict_suggestions(frag)
+    query =
+      cond do
+        is_mysql(conf) ->
+          query
+          |> select([j], fragment("json_extract(?, ?)", field(j, ^field), ^json_path))
+          |> where(
+            [j],
+            fragment(
+              "json_type(json_extract(?, ?)) IN ('INTEGER', 'DOUBLE', 'STRING')",
+              field(j, ^field),
+              ^json_path
+            )
+          )
 
-      _ ->
-        []
-    end
+        is_sqlite(conf) ->
+          query
+          |> select([j], fragment("json_extract(?, ?)", field(j, ^field), ^json_path))
+          |> where(
+            [j],
+            fragment(
+              "json_type(?->?) IN ('integer', 'real', 'text')",
+              field(j, ^field),
+              ^json_path
+            )
+          )
+
+        true ->
+          path = String.split(path, ".")
+
+          query
+          |> select([j], fragment("?#>?", field(j, ^field), ^path))
+          |> where(
+            [j],
+            fragment("jsonb_typeof(?#>?) IN ('number', 'string')", field(j, ^field), ^path)
+          )
+      end
+
+    {field, :vals, path}
+    |> cache_query(query, conf)
+    |> Enum.map(&String.slice(to_string(&1), 0..90))
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_nodes(frag, conf, opts) do
     query =
       :nodes
       |> hint_limit_query(opts)
-      |> select([j], fragment("?[1]", j.attempted_by))
       |> distinct(true)
       |> where([j], j.state not in ~w(available scheduled))
+
+    query =
+      if is_sqlite(conf) or is_mysql(conf) do
+        select(query, [j], fragment("?->>'$[0]'", j.attempted_by))
+      else
+        select(query, [j], fragment("?[1]", j.attempted_by))
+      end
 
     :nodes
     |> cache_query(query, conf)
@@ -234,17 +355,28 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp suggest_tags(frag, conf, opts) do
-    query =
-      :tags
-      |> hint_limit_query(opts)
-      |> select([j], %{tags: fragment("unnest(?)", j.tags)})
-      |> subquery()
-      |> select([x], %{tags: fragment("array_agg(distinct ?)", x.tags)})
+    query = hint_limit_query(:tags, opts)
 
-    case cache_query(:tags, query, conf) do
-      [%{tags: [_ | _] = tags}] -> Search.restrict_suggestions(tags, frag)
-      _ -> []
-    end
+    query =
+      cond do
+        is_sqlite(conf) ->
+          join(query, :inner, [j], x in json_each(j.tags), on: true)
+
+        is_mysql(conf) ->
+          join(query, :inner, [j], x in json_table(j.tags), on: true)
+
+        true ->
+          join(query, :inner, [j], x in json_unnest(j.tags), on: true)
+      end
+
+    query =
+      query
+      |> select([_, x], x.value)
+      |> distinct(true)
+
+    :tags
+    |> cache_query(query, conf)
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_workers(frag, conf, opts) do
@@ -339,7 +471,7 @@ defmodule Oban.Web.JobQuery do
       limit ->
         sublimit =
           Job
-          |> select([j], j.id - ^limit)
+          |> select([j], subtract_unsigned(j.id, ^limit))
           |> order_by(desc: :id)
           |> limit(1)
 
@@ -490,12 +622,8 @@ defmodule Oban.Web.JobQuery do
     dynamic([j], ^condition and fragment("? @> ?", j.meta, ^gen_map(path, term)))
   end
 
-  defp filter({:nodes, nodes}, condition, conf) when is_mysql(conf) do
-    dynamic([j], ^condition and fragment("json_extract(?, '$[0]')", j.attempted_by) in ^nodes)
-  end
-
-  defp filter({:nodes, nodes}, condition, conf) when is_sqlite(conf) do
-    dynamic([j], ^condition and fragment("?->>0", j.attempted_by) in ^nodes)
+  defp filter({:nodes, nodes}, condition, conf) when is_sqlite(conf) or is_mysql(conf) do
+    dynamic([j], ^condition and fragment("?->>'$[0]'", j.attempted_by) in ^nodes)
   end
 
   defp filter({:nodes, nodes}, condition, _conf) do

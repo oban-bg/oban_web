@@ -6,7 +6,7 @@ defmodule Oban.Web.Case do
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.{Job, Notifier}
   alias Oban.Pro.Testing
-  alias Oban.Web.{DolphinRepo, LiteRepo, Repo}
+  alias Oban.Web.{MyXQLRepo, Repo, SQLiteRepo}
 
   using do
     quote do
@@ -29,13 +29,13 @@ defmodule Oban.Web.Case do
 
   setup context do
     cond do
-      context[:lite] ->
+      context[:sqlite] ->
         on_exit(fn ->
-          LiteRepo.delete_all(Oban.Job)
+          SQLiteRepo.delete_all(Oban.Job)
         end)
 
-      context[:dolphin] ->
-        pid = Sandbox.start_owner!(DolphinRepo, shared: not context[:async])
+      context[:myxql] ->
+        pid = Sandbox.start_owner!(MyXQLRepo, shared: not context[:async])
 
         on_exit(fn -> Sandbox.stop_owner(pid) end)
 

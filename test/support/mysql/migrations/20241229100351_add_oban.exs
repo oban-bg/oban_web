@@ -1,4 +1,4 @@
-defmodule Oban.Web.DolphinRepo.Migrations.AddOban do
+defmodule Oban.Web.MyXQLRepo.Migrations.AddOban do
   use Ecto.Migration
 
   defdelegate up, to: Oban.Migration

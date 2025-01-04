@@ -1,4 +1,4 @@
-defmodule Oban.Web.LiteRepo.Migrations.AddOban do
+defmodule Oban.Web.SQLiteRepo.Migrations.AddOban do
   use Ecto.Migration
 
   defdelegate up, to: Oban.Migration
