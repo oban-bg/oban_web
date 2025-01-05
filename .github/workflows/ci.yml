@@ -1,6 +1,14 @@
 name: CI
 
-on: push
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'guides/**'
+  pull_request:
+    paths-ignore:
+      - 'guides/**'
 
 jobs:
   ci:
@@ -12,13 +20,15 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: '1.14'
+              elixir: '1.15'
               otp: '24.3'
+              mysql: '8.4'
               postgres: '12.13-alpine'
           - pair:
-              elixir: '1.17'
-              otp: '27.0'
-              postgres: '17.0-alpine'
+              elixir: '1.18'
+              otp: '27.2'
+              mysql: '9.1'
+              postgres: '17.2-alpine'
             lint: lint
 
     runs-on: ubuntu-20.04
@@ -37,6 +47,17 @@ jobs:
           --health-retries 5
         ports:
           - 5432/tcp
+      mysql:
+        image: mysql:${{matrix.pair.mysql}}
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306/tcp
 
     steps:
       - uses: actions/checkout@v4
@@ -57,9 +78,8 @@ jobs:
 
       - name: Authorize with Oban
         env:
-          OBAN_KEY_SHA: ${{secrets.oban_key_sha}}
           OBAN_API_KEY: ${{secrets.oban_api_key}}
-        run: mix hex.repo add oban https://getoban.pro/repo --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc --auth-key $OBAN_API_KEY
+        run: mix hex.repo add oban https://repo.oban.pro --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc --auth-key $OBAN_API_KEY
 
       - name: Seed fake assets
         run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
@@ -69,6 +89,10 @@ jobs:
 
       - name: Run mix format
         run: mix format --check-formatted
+        if: ${{ matrix.lint }}
+
+      - name: Run mix deps.unlock
+        run: mix deps.unlock --check-unused
         if: ${{ matrix.lint }}
 
       - name: Run mix deps.compile
@@ -84,10 +108,12 @@ jobs:
 
       - name: Run mix ecto.migrate
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
+          MYSQL_URL: mysql://root@localhost:${{job.services.mysql.ports[3306]}}/oban_test
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
         run: mix test.setup
 
       - name: Run mix test
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
+          MYSQL_URL: mysql://root@localhost:${{job.services.mysql.ports[3306]}}/oban_test
+          POSTGRES_URL: postgresql://postgres:postgres@localhost:${{job.services.postgres.ports[5432]}}/oban_test
         run: mix test
