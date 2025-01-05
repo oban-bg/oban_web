@@ -1,7 +1,8 @@
 defmodule Oban.Web.MixProject do
   use Mix.Project
 
-  @version "2.10.5"
+  @source_url "https://github.com/oban-bg/oban_web"
+  @version "2.11.0-dev"
 
   def project do
     [
@@ -9,14 +10,13 @@ defmodule Oban.Web.MixProject do
       version: @version,
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      prune_code_paths: false,
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
       aliases: aliases(),
       package: package(),
       name: "Oban Web",
-      description: "Oban Web Component",
+      description: "Dashboard for the Oban job processing framework",
       preferred_cli_env: [
         "test.ci": :test,
         "test.reset": :test,
@@ -24,9 +24,6 @@ defmodule Oban.Web.MixProject do
       ]
     ]
   end
-
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_env), do: ["lib"]
 
   def application do
     [
@@ -36,12 +33,50 @@ defmodule Oban.Web.MixProject do
     ]
   end
 
-  def package do
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
+
+  defp package do
     [
-      organization: "oban",
-      files: ~w(lib priv .formatter.exs mix.exs),
-      licenses: ["Commercial"],
-      links: []
+      maintainers: ["Parker Selbert"],
+      licenses: ["Apache-2.0"],
+      files: ~w(lib priv .formatter.exs mix.exs README* CHANGELOG* LICENSE*),
+      links: %{
+        Website: "https://oban.pro",
+        Changelog: "#{@source_url}/blob/main/CHANGELOG.md",
+        GitHub: @source_url
+      }
+    ]
+  end
+
+  defp docs do
+    [
+      main: "overview",
+      source_ref: "v#{@version}",
+      formatters: ["html"],
+      api_reference: false,
+      extra_section: "GUIDES",
+      extras: extras(),
+      groups_for_extras: groups_for_extras(),
+      logo: "assets/oban-web-logo.svg",
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
+    ]
+  end
+
+  defp extras do
+    [
+      "guides/introduction/overview.md",
+      "guides/introduction/installation.md",
+      "guides/advanced/filtering.md",
+      "guides/advanced/metrics.md",
+      "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
+    ]
+  end
+
+  defp groups_for_extras do
+    [
+      Introduction: ~r/guides\/introduction\/.?/,
+      Advanced: ~r/guides\/advanced\/.?/
     ]
   end
 
@@ -71,29 +106,25 @@ defmodule Oban.Web.MixProject do
       {:tailwind, "~> 0.2", only: :dev, runtime: false},
 
       # Tooling
-      {:credo, "~> 1.6", only: [:test, :dev], runtime: false},
+      {:credo, "~> 1.7", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.33", only: [:test, :dev]},
 
       # Docs and Publishing
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false},
-      {:makeup_diff, "~> 0.1", only: :dev, runtime: false},
-      {:lys_publish, "~> 0.1", only: :dev, runtime: false, optional: true, path: "../lys_publish"}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:makeup_diff, "~> 0.1", only: :dev, runtime: false}
     ]
   end
 
   defp aliases do
     [
       "assets.build": ["tailwind default", "esbuild default"],
-      "assets.watch": ["tailwind watch"],
       dev: "run --no-halt dev.exs",
       release: [
         "assets.build",
-        "cmd git tag v#{@version}",
+        "cmd git tag v#{@version} -f",
         "cmd git push",
         "cmd git push --tags",
-        "docs",
-        "hex.publish package --yes",
-        "lys.publish"
+        "hex.publish --yes"
       ],
       "test.reset": ["ecto.drop --quiet", "test.setup"],
       "test.setup": ["ecto.create --quiet", "ecto.migrate --quiet"],
@@ -103,44 +134,6 @@ defmodule Oban.Web.MixProject do
         "credo --strict",
         "test --raise"
       ]
-    ]
-  end
-
-  defp docs do
-    [
-      main: "overview",
-      source_ref: "v#{@version}",
-      formatters: ["html"],
-      api_reference: false,
-      extra_section: "GUIDES",
-      extras: extras(),
-      groups_for_extras: groups_for_extras(),
-      homepage_url: "/",
-      logo: "assets/oban-web-logo.svg",
-      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
-      before_closing_body_tag: fn _ ->
-        """
-        <script>document.querySelector('footer.footer p').remove()</script>
-        """
-      end
-    ]
-  end
-
-  defp extras do
-    [
-      "guides/introduction/overview.md",
-      "guides/introduction/installation.md",
-      "guides/introduction/open_source.md",
-      "guides/advanced/metrics.md",
-      "guides/advanced/filtering.md",
-      "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
-    ]
-  end
-
-  defp groups_for_extras do
-    [
-      Introduction: ~r/guides\/introduction\/.?/,
-      Advanced: ~r/guides\/advanced\/.?/
     ]
   end
 end
