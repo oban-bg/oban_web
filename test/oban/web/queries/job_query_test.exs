@@ -7,6 +7,14 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
     @repo repo
 
+    @engine (case repo do
+               Oban.Web.MyXQLRepo -> Oban.Engines.Dolphin
+               Oban.Web.Repo -> Oban.Engines.Basic
+               Oban.Web.SQLiteRepo -> Oban.Engines.Lite
+             end)
+
+    @conf Config.new(repo: @repo, engine: @engine)
+
     @moduletag myxql: repo == Oban.Web.MyXQLRepo
     @moduletag sqlite: repo == Oban.Web.SQLiteRepo
 
@@ -39,7 +47,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
     describe "complete/2" do
       def complete(terms) do
-        JobQuery.complete(terms, conf(@repo))
+        JobQuery.complete(terms, @conf)
       end
 
       test "completing with an unknown qualifier" do
@@ -68,12 +76,12 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
     describe "suggest/2 with #{inspect(repo)}" do
       defp suggest(terms, opts \\ []) do
-        JobQuery.suggest(terms, conf(@repo), opts)
+        JobQuery.suggest(terms, @conf, opts)
       end
 
       defp sorted_suggest(terms) do
         terms
-        |> JobQuery.suggest(conf(@repo))
+        |> JobQuery.suggest(@conf)
         |> Enum.map(&elem(&1, 0))
         |> Enum.sort()
       end
@@ -237,7 +245,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
           |> Map.put_new(:state, "available")
 
         params
-        |> JobQuery.all_jobs(conf(@repo), opts)
+        |> JobQuery.all_jobs(@conf, opts)
         |> Enum.map(& &1.args["ref"])
         |> Enum.sort()
       end
@@ -350,7 +358,6 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       end
 
       test "ordering jobs by state" do
-        conf = conf(@repo)
         ago = fn sec -> DateTime.add(DateTime.utc_now(), -sec) end
 
         job_a = insert!(%{}, state: "cancelled", cancelled_at: ago.(4))
@@ -359,12 +366,12 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
         assert [job_c.id, job_a.id, job_b.id] ==
                  %{state: "cancelled"}
-                 |> JobQuery.all_jobs(conf)
+                 |> JobQuery.all_jobs(@conf)
                  |> Enum.map(& &1.id)
 
         assert [job_b.id, job_a.id, job_c.id] ==
                  %{state: "cancelled", sort_dir: "desc"}
-                 |> JobQuery.all_jobs(conf)
+                 |> JobQuery.all_jobs(@conf)
                  |> Enum.map(& &1.id)
       end
 
@@ -383,8 +390,6 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
     describe "all_job_ids/3" do
       test "returning all ids within the current filters" do
-        conf = conf(@repo)
-
         job_1 = insert!(%{ref: 1}, worker: MyApp.VideoA)
         job_2 = insert!(%{ref: 2}, worker: MyApp.VideoB)
         job_3 = insert!(%{ref: 3}, worker: MyApp.VideoB)
@@ -392,7 +397,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         all_job_ids = fn params, opts ->
           params
           |> Map.put_new(:state, "available")
-          |> JobQuery.all_job_ids(conf, opts)
+          |> JobQuery.all_job_ids(@conf, opts)
         end
 
         assert [job_1.id, job_2.id, job_3.id] == all_job_ids.(%{}, [])
@@ -401,20 +406,9 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
     end
 
     defp insert!(args, opts \\ []) do
-      opts = Keyword.put_new(opts, :conf, conf(@repo))
+      opts = Keyword.put_new(opts, :conf, @conf)
 
       insert_job!(args, opts)
-    end
-
-    defp conf(repo) do
-      engine =
-        case repo do
-          Oban.Web.MyXQLRepo -> Oban.Engines.Dolphin
-          Oban.Web.Repo -> Oban.Engines.Basic
-          Oban.Web.SQLiteRepo -> Oban.Engines.Lite
-        end
-
-      Config.new(repo: repo, engine: engine)
     end
   end
 end

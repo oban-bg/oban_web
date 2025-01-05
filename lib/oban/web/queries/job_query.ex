@@ -52,25 +52,19 @@ defmodule Oban.Web.JobQuery do
 
   defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
 
-  defmacrop json_each(field) do
-    quote do
-      fragment("json_each(?)", unquote(field))
-    end
-  end
-
-  defmacrop jsonb_each(field) do
-    quote do
-      fragment("jsonb_each(?)", unquote(field))
-    end
-  end
-
   defmacrop json_table(field) do
     quote do
       fragment("json_table(?, '$[*]' COLUMNS (value TEXT PATH '$'))", unquote(field))
     end
   end
 
-  defmacrop json_kv_table(field) do
+  defmacrop json_unnest(field) do
+    quote do
+      fragment("json_array_elements_text(array_to_json(?))", unquote(field))
+    end
+  end
+
+  defmacrop mysql_kv_table(field) do
     quote do
       fragment(
         """
@@ -81,12 +75,6 @@ defmodule Oban.Web.JobQuery do
         unquote(field),
         unquote(field)
       )
-    end
-  end
-
-  defmacrop json_unnest(field) do
-    quote do
-      fragment("json_array_elements_text(array_to_json(?))", unquote(field))
     end
   end
 
@@ -120,6 +108,24 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
+  defmacrop mysql_extract_type(field, path) do
+    quote do
+      fragment("lower(json_type(json_extract(?, ?)))", unquote(field), unquote(path))
+    end
+  end
+
+  defmacrop sqlite_extract_type(field, path) do
+    quote do
+      fragment("json_type(?->?)", unquote(field), unquote(path))
+    end
+  end
+
+  defmacrop postgres_extract_type(field, path) do
+    quote do
+      fragment("jsonb_typeof(?#>?)", unquote(field), unquote(path))
+    end
+  end
+
   defmacrop sqlite_contains_any(column, list) do
     quote do
       fragment(
@@ -136,6 +142,9 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
+  # MySQL raises an out of bounds error when subtracting from an UNSIGNED value returns a value
+  # less than 0. There's no standard `greatest/max` function that can clamp to 0, so we use a case
+  # statement instead.
   defmacrop subtract_unsigned(id, limit) do
     quote do
       fragment(
@@ -212,7 +221,7 @@ defmodule Oban.Web.JobQuery do
       |> String.split(".")
       |> then(&List.pop_at(&1, length(&1) - 1))
 
-    json_path = Enum.join(["$" | path], ".")
+    json_path = json_path(path)
 
     query = hint_limit_query(field, opts)
 
@@ -224,20 +233,17 @@ defmodule Oban.Web.JobQuery do
         is_mysql(conf) ->
           query
           |> select([j], %{value: fragment("json_extract(?, ?)", field(j, ^field), ^json_path)})
-          |> where(
-            [j],
-            fragment("json_type(json_extract(?, ?)) = 'OBJECT'", field(j, ^field), ^json_path)
-          )
+          |> where([j], mysql_extract_type(field(j, ^field), ^json_path) == "object")
 
         is_sqlite(conf) ->
           query
           |> select([j], %{value: fragment("?->?", field(j, ^field), ^json_path)})
-          |> where([j], fragment("json_type(?->?) = 'object'", field(j, ^field), ^json_path))
+          |> where([j], sqlite_extract_type(field(j, ^field), ^json_path) == "object")
 
         true ->
           query
           |> select([j], %{value: fragment("?#>?", field(j, ^field), ^path)})
-          |> where([j], fragment("jsonb_typeof(?#>?) = 'object'", field(j, ^field), ^path))
+          |> where([j], postgres_extract_type(field(j, ^field), ^path) == "object")
       end
 
     query =
@@ -245,21 +251,21 @@ defmodule Oban.Web.JobQuery do
         is_mysql(conf) ->
           subquery
           |> subquery()
-          |> join(:inner_lateral, [o], x in json_kv_table(o.value), on: true)
+          |> join(:inner_lateral, [o], x in mysql_kv_table(o.value), on: true)
           |> select([_, x], mysql_path_key(x.key, x.value))
           |> distinct(true)
 
         is_sqlite(conf) ->
           subquery
           |> subquery()
-          |> join(:inner, [o], x in json_each(o.value), on: true)
+          |> join(:inner, [o], x in fragment("json_each(?)", o.value), on: true)
           |> select([_, x], sqlite_path_key(x.key, x.value))
           |> distinct(true)
 
         true ->
           subquery
           |> subquery()
-          |> join(:inner_lateral, [o], x in jsonb_each(o.value), on: true)
+          |> join(:inner_lateral, [o], x in fragment("jsonb_each(?)", o.value), on: true)
           |> select([_, x], postgres_path_key(x.key, x.value))
           |> distinct(true)
       end
@@ -273,7 +279,8 @@ defmodule Oban.Web.JobQuery do
   defp suggest_json_vals(_field, "", _frag, _conf, _opts), do: []
 
   defp suggest_json_vals(field, path, frag, conf, opts) do
-    json_path = "$." <> path
+    json_path = json_path(path)
+    scalars = ~w(boolean double integer number real string text)
 
     query =
       field
@@ -285,36 +292,19 @@ defmodule Oban.Web.JobQuery do
         is_mysql(conf) ->
           query
           |> select([j], fragment("json_extract(?, ?)", field(j, ^field), ^json_path))
-          |> where(
-            [j],
-            fragment(
-              "json_type(json_extract(?, ?)) IN ('INTEGER', 'DOUBLE', 'STRING')",
-              field(j, ^field),
-              ^json_path
-            )
-          )
+          |> where([j], mysql_extract_type(field(j, ^field), ^json_path) in ^scalars)
 
         is_sqlite(conf) ->
           query
           |> select([j], fragment("json_extract(?, ?)", field(j, ^field), ^json_path))
-          |> where(
-            [j],
-            fragment(
-              "json_type(?->?) IN ('integer', 'real', 'text')",
-              field(j, ^field),
-              ^json_path
-            )
-          )
+          |> where([j], sqlite_extract_type(field(j, ^field), ^json_path) in ^scalars)
 
         true ->
           path = String.split(path, ".")
 
           query
           |> select([j], fragment("?#>?", field(j, ^field), ^path))
-          |> where(
-            [j],
-            fragment("jsonb_typeof(?#>?) IN ('number', 'string')", field(j, ^field), ^path)
-          )
+          |> where([j], postgres_extract_type(field(j, ^field), ^path) in ^scalars)
       end
 
     {field, :vals, path}
@@ -360,7 +350,7 @@ defmodule Oban.Web.JobQuery do
     query =
       cond do
         is_sqlite(conf) ->
-          join(query, :inner, [j], x in json_each(j.tags), on: true)
+          join(query, :inner, [j], x in fragment("json_each(?)", j.tags), on: true)
 
         is_mysql(conf) ->
           join(query, :inner, [j], x in json_table(j.tags), on: true)
@@ -591,13 +581,16 @@ defmodule Oban.Web.JobQuery do
 
   # Filter Helpers
 
-  defp maybe_atomize(val) when is_binary(val), do: String.to_existing_atom(val)
-  defp maybe_atomize(val), do: val
+  defp json_path(path) when is_list(path), do: Enum.join(["$" | path], ".")
+  defp json_path(path) when is_binary(path), do: "$." <> path
 
   defp only_ids(job_ids), do: where(Job, [j], j.id in ^job_ids)
 
+  defp maybe_atomize(val) when is_binary(val), do: String.to_existing_atom(val)
+  defp maybe_atomize(val), do: val
+
   defp filter({:args, [path, term]}, condition, conf) when is_sqlite(conf) or is_mysql(conf) do
-    json_path = Enum.join(["$" | path], ".")
+    json_path = json_path(path)
     cast_term = cast_val(term)
 
     dynamic([j], ^condition and fragment("json_extract(?, ?)", j.args, ^json_path) == ^cast_term)
@@ -612,7 +605,7 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp filter({:meta, [path, term]}, condition, conf) when is_sqlite(conf) or is_mysql(conf) do
-    json_path = Enum.join(["$" | path], ".")
+    json_path = json_path(path)
     cast_term = cast_val(term)
 
     dynamic([j], ^condition and fragment("json_extract(?, ?)", j.meta, ^json_path) == ^cast_term)
@@ -643,12 +636,7 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp filter({:tags, tags}, condition, conf) when is_mysql(conf) do
-    subcon =
-      Enum.reduce(tags, false, fn tag, acc ->
-        dynamic([j], ^acc or fragment("json_contains(?, ?)", j.tags, ^[tag]))
-      end)
-
-    dynamic([j], ^condition and ^subcon)
+    dynamic([j], ^condition and fragment("json_overlaps(?, ?)", j.tags, ^tags))
   end
 
   defp filter({:tags, tags}, condition, conf) when is_sqlite(conf) do
