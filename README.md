@@ -10,7 +10,7 @@
   </a>
 
   <a href="https://github.com/oban-bg/oban_web/actions">
-    <img alt="CI Status" src="https://github.com/oban-bg/oban_web/workflows/ci/badge.svg" />
+    <img alt="CI Status" src="https://github.com/oban-bg/oban_web/actions/workflows/ci.yml/badge.svg" />
   </a>
 
   <a href="https://opensource.org/licenses/Apache-2.0">
