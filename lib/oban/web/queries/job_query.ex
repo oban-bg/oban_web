@@ -498,8 +498,8 @@ defmodule Oban.Web.JobQuery do
 
   def cancel_jobs(_conf, _ids), do: :ok
 
-  def delete_jobs(%Config{} = conf, [_ | _] = job_ids) do
-    Repo.delete_all(conf, only_ids(job_ids))
+  def delete_jobs(%Config{name: name}, [_ | _] = job_ids) do
+    Oban.delete_all_jobs(name, only_ids(job_ids))
 
     :ok
   end
