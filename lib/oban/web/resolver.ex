@@ -119,7 +119,7 @@ defmodule Oban.Web.Resolver do
 
   alias Oban.Job
 
-  @type access :: :all | :read_only | [access_option()] | {:forbidden, Path.t()}
+  @type access :: :all | :read_only | [{access_option(), boolean()}] | {:forbidden, Path.t()}
 
   @type access_option ::
           :pause_queues | :scale_queues | :stop_queues | :cancel_jobs | :delete_jobs | :retry_jobs
