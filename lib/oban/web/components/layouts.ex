@@ -171,14 +171,14 @@ defmodule Oban.Web.Layouts do
 
     ~H"""
     <footer class="flex flex-col px-3 py-6 text-sm justify-center items-center md:flex-row">
-      <span :if={@oss_version} class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
+      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
         Oban v{@oss_version}
       </span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
         Oban.Web v{@web_version}
       </span>
-      <span :if={@pro_version} class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0">
-        Oban.Pro v{@pro_version}
+      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0">
+        Oban.Pro {if @pro_version, do: "v#{@pro_version}", else: "–"}
       </span>
 
       <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">
