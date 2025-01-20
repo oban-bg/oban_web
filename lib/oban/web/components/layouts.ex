@@ -164,21 +164,21 @@ defmodule Oban.Web.Layouts do
   def footer(assigns) do
     assigns =
       assign(assigns,
-        oss_version: "Oban v#{Application.spec(:oban, :vsn)}",
-        web_version: "Oban.Web v#{Application.spec(:oban_web, :vsn)}",
-        pro_version: "Oban.Pro v#{Application.spec(:oban_pro, :vsn)}"
+        oss_version: Application.spec(:oban, :vsn),
+        web_version: Application.spec(:oban_web, :vsn),
+        pro_version: Application.spec(:oban_pro, :vsn)
       )
 
     ~H"""
     <footer class="flex flex-col px-3 py-6 text-sm justify-center items-center md:flex-row">
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        {@oss_version}
+        Oban v{@oss_version}
       </span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        {@web_version}
+        Oban.Web v{@web_version}
       </span>
       <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0">
-        {@pro_version}
+        Oban.Pro {if @pro_version, do: "v#{@pro_version}", else: "–"}
       </span>
 
       <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">
