@@ -165,21 +165,17 @@ defmodule Oban.Web.Layouts do
     assigns =
       assign(assigns,
         oss_version: Application.spec(:oban, :vsn),
+        met_version: Application.spec(:oban_met, :vsn),
         web_version: Application.spec(:oban_web, :vsn),
         pro_version: Application.spec(:oban_pro, :vsn)
       )
 
     ~H"""
     <footer class="flex flex-col px-3 py-6 text-sm justify-center items-center md:flex-row">
-      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        Oban v{@oss_version}
-      </span>
-      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
-        Oban.Web v{@web_version}
-      </span>
-      <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-3 md:mr-3 md:mb-0">
-        Oban.Pro {if @pro_version, do: "v#{@pro_version}", else: "–"}
-      </span>
+      <.version name="Oban" version={@oss_version} />
+      <.version name="Oban.Web" version={@web_version} />
+      <.version name="Oban.Met" version={@met_version} />
+      <.version name="Oban.Pro" version={@pro_version} />
 
       <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">
         <Icons.soren_logo />
@@ -187,6 +183,17 @@ defmodule Oban.Web.Layouts do
 
       <span class="text-gray-800 dark:text-gray-200 font-semibold">Made by Soren</span>
     </footer>
+    """
+  end
+
+  attr :name, :string
+  attr :version, :string
+
+  defp version(assigns) do
+    ~H"""
+    <span class="text-gray-600 dark:text-gray-400 tabular mr-0 mb-1 md:mr-3 md:mb-0">
+      {@name} {if @version, do: "v#{@version}", else: "–"}
+    </span>
     """
   end
 
