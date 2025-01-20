@@ -79,7 +79,7 @@ To use Web in an application that also runs on non-web nodes, i.e. a system with
 and "worker" applications, you must explicitly include `oban_met` as a dependency for "workers".
 
 ```elixir
-{:oban_met, "~> 0.1", repo: :oban}
+{:oban_met, "~> 1.0"}
 ```
 
 ## Customization
