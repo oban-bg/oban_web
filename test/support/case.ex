@@ -98,8 +98,8 @@ defmodule Oban.Web.Case do
     |> Map.put_new(:uuid, Ecto.UUID.generate())
     |> Map.put_new(:started_at, iso_now)
     |> Map.put_new(:updated_at, iso_now)
-    |> Jason.encode!()
-    |> Jason.decode!()
+    |> Oban.JSON.encode!()
+    |> Oban.JSON.decode!()
   end
 
   def gossip(meta_opts) do

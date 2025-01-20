@@ -60,7 +60,7 @@ defmodule Oban.Web.ResolverTest do
 
   defp json_recode(map) do
     map
-    |> Jason.encode!()
-    |> Jason.decode!()
+    |> Oban.JSON.encode!()
+    |> Oban.JSON.decode!()
   end
 end

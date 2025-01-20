@@ -594,7 +594,7 @@ defmodule Oban.Web.Queues.DetailComponent do
       class="text-center w-full text-sm text-gray-600 dark:text-gray-300 absolute top-1/2 -mt-6 -ml-3"
     >
       Requires
-      <a href="https://getoban.pro" class="text-blue-500 font-semibold">
+      <a href="https://oban.pro" class="text-blue-500 font-semibold">
         Oban Pro <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block align-text-top" />
       </a>
     </span>

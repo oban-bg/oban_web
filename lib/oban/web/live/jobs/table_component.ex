@@ -54,7 +54,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Filtering limited to latest {integer_to_delimited(@query_limit)} jobs. See <a
             class="underline"
-            href="https://getoban.pro/docs/web/filtering.html"
+            href="https://oban.pro/docs/web/filtering.html"
           >filtering docs</a>.
         </p>
       </div>

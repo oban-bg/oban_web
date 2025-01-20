@@ -137,7 +137,7 @@ defmodule Oban.Web.JobQuery do
         )
         """,
         unquote(column),
-        ^Jason.encode!(unquote(list))
+        ^Oban.JSON.encode!(unquote(list))
       )
     end
   end
