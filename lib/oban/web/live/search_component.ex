@@ -247,7 +247,7 @@ defmodule Oban.Web.SearchComponent do
     {:noreply,
      socket
      |> assign(buffer: "", loading: false, suggestions: suggestions)
-     |> push_patch(to: oban_path(socket.asigns.page))}
+     |> push_patch(to: oban_path(socket.assigns.page))}
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
