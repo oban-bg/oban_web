@@ -33,7 +33,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         />
       </SidebarComponents.section>
 
-      <SidebarComponents.section name="nodes" headers={~w(mode limit exec avail)}>
+      <SidebarComponents.section name="queues" headers={~w(mode limit exec avail)}>
         <SidebarComponents.filter_row
           :for={queue <- @queues}
           name={queue.name}
