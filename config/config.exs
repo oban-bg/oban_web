@@ -28,7 +28,7 @@ end
 config :logger, level: :warning
 config :logger, :console, format: "[$level] $message\n"
 
-config :phoenix, json_library: JSON, stacktrace_depth: 20
+config :phoenix, stacktrace_depth: 20
 
 config :oban_web, ecto_repos: [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo]
 
