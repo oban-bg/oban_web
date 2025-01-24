@@ -517,7 +517,7 @@ defmodule Oban.Web.JobQuery do
   # Parsing Helpers
 
   defp parse_term("args:" <> terms) do
-    {:args, String.trim(terms, "\"")}
+    {:args, String.trim(terms)}
   end
 
   defp parse_term("args." <> path_and_term) do
@@ -529,7 +529,7 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp parse_term("meta:" <> terms) do
-    {:meta, String.trim(terms, "\"")}
+    {:meta, String.trim(terms)}
   end
 
   defp parse_term("meta." <> path_and_term) do
@@ -572,7 +572,7 @@ defmodule Oban.Web.JobQuery do
   defp parse_path(field, path_and_term) do
     case String.split(path_and_term, ":", parts: 2) do
       [path, term] ->
-        {field, [String.split(path, "."), String.trim(term, "\"")]}
+        {field, [String.split(path, "."), term]}
 
       [path] ->
         {field, [String.split(path, "."), ""]}

@@ -43,6 +43,13 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert %{args: [~w(account), "Foo"]} = parse("args.account:Foo")
         assert %{args: [~w(account name), "Foo"]} = parse("args.account.name:Foo")
       end
+
+      test "retaining surrounding quotes" do
+        assert %{args: ~s("Foo")} = parse(~s(args:"Foo"))
+        assert %{meta: ~s("Foo")} = parse(~s(meta:"Foo"))
+        assert %{args: [~w(account), ~s("Foo")]} = parse(~s(args.account:"Foo"))
+        assert %{meta: [~w(account), ~s("Foo")]} = parse(~s(meta.account:"Foo"))
+      end
     end
 
     describe "complete/2" do
