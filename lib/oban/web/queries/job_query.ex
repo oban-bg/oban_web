@@ -166,17 +166,23 @@ defmodule Oban.Web.JobQuery do
     {"ids:", "one or more job ids", "ids:1,2,3"},
     {"meta.", "a key or value in meta", "meta.batch_id:123"},
     {"nodes:", "host name", "nodes:machine@somehost"},
-    {"priorities:", "number from 0 to 3", "priorities:1"},
+    {"priorities:", "number from 0 to 9", "priorities:1"},
     {"queues:", "queue name", "queues:default"},
     {"tags:", "tag name", "tags:super,duper"},
     {"workers:", "worker module", "workers:MyApp.SomeWorker"}
   ]
 
   @suggest_priority [
-    {"0", "highest", "priorities:0"},
-    {"1", "medium high", "priorities:1"},
-    {"2", "medium low", "priorities:2"},
-    {"3", "lowest", "priorities:3"}
+    {"0", "critical", "priorities:0"},
+    {"1", "urgent", "priorities:1"},
+    {"2", "high", "priorities:2"},
+    {"3", "medium-high", "priorities:3"},
+    {"4", "medium", "priorities:4"},
+    {"5", "medium-low", "priorities:5"},
+    {"6", "low", "priorities:6"},
+    {"7", "very-low", "priorities:7"},
+    {"8", "minimal", "priorities:8"},
+    {"9", "negligible", "priorities:9"}
   ]
 
   @known_qualifiers for {qualifier, _, _} <- @suggest_qualifier, into: MapSet.new(), do: qualifier

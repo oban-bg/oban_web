@@ -20,7 +20,7 @@ Qualifiers are used to target a specific `Oban.Job` field. The available qualifi
 | `args.`       | a key or value in args | `args.id:123`           |
 | `meta.`       | a key or value in meta | `meta.batch_id:123`     |
 | `nodes:`      | host name              | `nodes:worker@somehost` |
-| `priorities:` | number from 0 to 3     | `priorities:1`          |
+| `priorities:` | number from 0 to 9     | `priorities:1`          |
 | `queues:`     | queue name             | `queues:default`        |
 | `tags:`       | tag name               | `tags:super,duper`      |
 | `workers`     | worker module name     | `workers:MyApp.Worker`  |
