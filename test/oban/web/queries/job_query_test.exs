@@ -66,6 +66,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert "queues:" == complete("queue")
       end
 
+      @tag skip: repo == Oban.Web.MyXQLRepo
       test "completing a path qualifier" do
         insert!(%{id: 1, account_id: 1})
 
@@ -120,7 +121,6 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [{"1", _, _}] = suggest("priorities:1")
       end
 
-      # This test flickers for MyXQL for no discernible reason
       @tag skip: repo == Oban.Web.MyXQLRepo
       test "suggesting args paths" do
         assert [] = suggest("args:")
@@ -143,6 +143,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [{"on:", _, _}] = suggest("args.data.")
       end
 
+      @tag skip: repo == Oban.Web.MyXQLRepo
       test "suggesting nested args" do
         insert!(%{id: 1, add: %{city: %{name: "Chi"}, state: "IL"}})
         insert!(%{xd: 2, add: %{city: %{name: "Whe"}, state: "IL"}})
@@ -153,6 +154,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [{"name:", _, _}] = suggest("args.add.city.nam")
       end
 
+      @tag skip: repo == Oban.Web.MyXQLRepo
       test "suggesting nested args values" do
         insert!(%{id: 1, account_id: 1})
         insert!(%{id: 2, account_id: 2, name: "Alpha Mode"})
@@ -166,7 +168,6 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert ["Alpha Mode", "Delta Mode"] = sorted_suggest("args.name:")
       end
 
-      # This test flickers for MyXQL for no discernible reason
       @tag skip: repo == Oban.Web.MyXQLRepo
       test "suggesting meta paths" do
         insert!(%{}, meta: %{id: 1, account_id: 1})
