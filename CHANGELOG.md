@@ -76,6 +76,47 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.1 — 2025-02-06
+
+### Enhancements
+
+- [Layout] Display Oban.Met version in layout footer
+
+  The Met version is highly relevant to how Web behaves. This also refactors the version display
+  for reuse with consistent conditionals.
+
+- [Layout] Only show Pro version number when available.
+
+  The version footer shows that Pro isn't available rather than showing a `v` followed by a blank
+  space.
+
+- [Jobs] Auto-complete worker priorities from 0 to 9
+
+  Priority completion only matched values from 0..3, but the full range is 0..9.
+
+### Bug Fixes
+
+- [Jobs] Preserve quotes in `args` and `meta` searches.
+
+  Parsing would strip quotes from args and meta queries. This prevented quoted numeric vaalues to
+  be treated as integers. Now quotes are preserved for `args` and `meta`, just as they are for
+  other qualifiers.
+
+- [Queue Details] Eliminate duplicate id warnings for inputs in queue details.
+
+  The latest live_view alerts when nodes in a view have conflicting ids, which caught a number of
+  instances on the queue details page.
+
+- [Queues] Fix duplicate ids for nodes and queues in sidebar.
+
+- [Search] Correct assigns typo in search component handler.
+
+  The key is `assigns`, not `asigns`.
+
+- [Resolver] Fix resolver access typespec.
+
+  Access options must be a keyword list with boolean values, not just a list of option atoms.
+
 ## v2.11.0 — 2025-01-16
 
 ### Enhancements
