@@ -61,7 +61,6 @@ defmodule Oban.Web.Components.Core do
           autocomplete="off"
           class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
           disabled={@disabled}
-          id={@name}
           inputmode="numeric"
           name={@name}
           pattern="[1-9][0-9]*"

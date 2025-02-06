@@ -29,7 +29,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
     live = render_details("alpha")
 
-    assert has_element?(live, "#local_limit[value=5]")
+    assert has_element?(live, "[name=local_limit][value=5]")
 
     live
     |> form("#local-form")
@@ -46,14 +46,14 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     # Initially the input is disabled when the limit is nil
-    assert has_element?(live, "#global_allowed[disabled]")
+    assert has_element?(live, "[name=global_allowed][disabled]")
 
     live
     |> element("#toggle-global")
     |> render_click()
 
     # When the input is enabled it gets the local limit value
-    assert has_element?(live, "#global_allowed[value=5]")
+    assert has_element?(live, "[name=global_allowed][value=5]")
 
     live
     |> form("#global-form")
@@ -74,7 +74,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
     live = render_details("alpha")
 
-    refute has_element?(live, "#global_allowed[disabled]")
+    refute has_element?(live, "[name=global_allowed][disabled]")
 
     live
     |> form("#global-form")
@@ -106,14 +106,14 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     # Initially the input is disabled when the limit is nil
-    assert has_element?(live, "#rate_allowed[disabled]")
+    assert has_element?(live, "[name=rate_allowed][disabled]")
 
     live
     |> element("#toggle-rate-limit")
     |> render_click()
 
-    assert has_element?(live, "#rate_allowed[value=5]")
-    assert has_element?(live, "#rate_period[value=60]")
+    assert has_element?(live, "[name=rate_allowed][value=5]")
+    assert has_element?(live, "[name=rate_period][value=60]")
 
     live
     |> form("#rate-limit-form")
@@ -134,7 +134,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
     live = render_details("alpha")
 
-    refute has_element?(live, "#rate_allowed[disabled]")
+    refute has_element?(live, "[name=rate_allowed][disabled]")
 
     live
     |> form("#rate-limit-form")

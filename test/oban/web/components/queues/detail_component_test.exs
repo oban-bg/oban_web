@@ -20,13 +20,13 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   test "restricting actions based on access" do
     html = render_component(Component, assigns(access: :read_only), router: Router)
 
-    assert has_fragment?(html, "#local_limit[disabled]")
-    assert has_fragment?(html, "#global_allowed[disabled]")
-    assert has_fragment?(html, "#rate_allowed[disabled]")
+    assert has_fragment?(html, "[name=local_limit][disabled]")
+    assert has_fragment?(html, "[name=global_allowed][disabled]")
+    assert has_fragment?(html, "[name=rate_allowed][disabled]")
 
     html = render_component(Component, assigns(access: :all), router: Router)
 
-    refute has_fragment?(html, "#local_limit[disabled]")
+    refute has_fragment?(html, "[name=local_limit][disabled]")
   end
 
   test "listing all queue instances" do
