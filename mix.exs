@@ -91,7 +91,7 @@ defmodule Oban.Web.MixProject do
       # Oban
       {:oban, "~> 2.19"},
       {:oban_met, "~> 1.0"},
-      {:oban_pro, "~> 1.5.0-rc.8", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 1.5", repo: :oban, only: [:test, :dev]},
 
       # Databases
       {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},
