@@ -30,8 +30,8 @@ fully realtime.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/blob/main/assets/oban-web-preview-dark.png" />
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/refs/heads/main/assets/oban-web-preview-light.png" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/main/assets/oban-web-preview-dark.png" />
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/main/assets/oban-web-preview-light.png" />
     <img src="https://raw.githubusercontent.com/oban-bg/oban_web/refs/heads/main/assets/oban-web-preview-light.png" />
   </picture>
 </p>
@@ -41,7 +41,7 @@ fully realtime.
 - **🐦‍🔥 Embedded LiveView** - Mount the dashboard directly in your application without any
   external dependencies.
 
-- **📊 Realtime Charts** - Powered by a custom, distrubted time-series data store that's compacted
+- **📊 Realtime Charts** - Powered by a custom, distributed time-series data store that's compacted
   for hours of efficient storage and filterable by node, queue, state, and worker.
 
 - **🛸 Live Updates** - Monitor background job activity across all queues and nodes in real
@@ -102,4 +102,4 @@ There are a few places to connect and communicate with other Oban users:
 
 [invite]: https://elixir-slack.community/
 [forum]: https://elixirforum.com/
-[issues]: https://github.com/sorentwo/oban/issues
+[issues]: https://github.com/oban-bg/oban/issues
