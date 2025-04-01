@@ -102,4 +102,4 @@ There are a few places to connect and communicate with other Oban users:
 
 [invite]: https://elixir-slack.community/
 [forum]: https://elixirforum.com/
-[issues]: https://github.com/oban-bg/oban/issues
+[issues]: https://github.com/oban-bg/oban_web/issues
