@@ -67,6 +67,7 @@ if Code.ensure_loaded?(Igniter) do
     @impl Igniter.Mix.Task
     def igniter(igniter) do
       web_module = Igniter.Libs.Phoenix.web_module(igniter)
+      app_name = Igniter.Project.Application.app_name(igniter)
 
       case Igniter.Libs.Phoenix.select_router(igniter) do
         {igniter, nil} ->
@@ -86,26 +87,27 @@ if Code.ensure_loaded?(Igniter) do
                          """)},
                       {:dev_routes, {:ok, zipper}} <-
                         {:dev_routes,
-                         Sourceror.Zipper.find(zipper, fn
-                           {:if, _,
-                            [
-                              {{:., _,
-                                [
-                                  {:__aliases__, _, [:Application]},
-                                  :compile_env
-                                ]}, _,
-                               [
-                                 {:__block__, _, [:test]},
-                                 {:__block__, _, [:dev_routes]}
-                               ]},
-                              _
-                            ]} ->
-                             true
+                         Igniter.Code.Function.move_to_function_call(zipper, :if, 2, fn zipper ->
+                           case zipper
+                                |> Igniter.Code.Function.move_to_nth_argument(0) do
+                             {:ok, zipper} ->
+                               if zipper
+                                  |> Igniter.Code.Function.function_call?(
+                                    {Application, :compile_env},
+                                    2
+                                  ) do
+                                 Igniter.Code.Function.argument_equals?(zipper, 0, app_name) &&
+                                   Igniter.Code.Function.argument_equals?(zipper, 1, :dev_routes)
+                               else
+                                 false
+                               end
 
-                           _ ->
-                             false
-                         end)
-                         |> Igniter.Code.Common.move_to_do_block()} do
+                             _ ->
+                               false
+                           end
+                         end)},
+                      {:inside_dev_routes, {:ok, zipper}} <-
+                        {:inside_dev_routes, Igniter.Code.Common.move_to_do_block(zipper)} do
                    {:ok,
                     zipper
                     |> Igniter.Code.Common.add_code("""
