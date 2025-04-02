@@ -109,6 +109,7 @@ defmodule Oban.Web.MixProject do
       # Tooling
       {:credo, "~> 1.7", only: [:test, :dev], runtime: false},
       {:floki, "~> 0.33", only: [:test, :dev]},
+      {:igniter, "~> 0.5", only: [:dev, :test]},
 
       # Docs and Publishing
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
