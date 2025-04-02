@@ -17,6 +17,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
 
     * Adds the required router import
     * Sets up the dashboard route at "/oban"
+      * puts it inside the :dev_routes conditional
 
     ## Example
 
@@ -31,7 +32,6 @@ if Code.ensure_loaded?(Igniter) do
     @shortdoc "#{__MODULE__.Docs.short_doc()}"
 
     @moduledoc __MODULE__.Docs.long_doc()
-
     use Igniter.Mix.Task
 
     @impl Igniter.Mix.Task
@@ -39,28 +39,12 @@ if Code.ensure_loaded?(Igniter) do
       %Igniter.Mix.Task.Info{
         # Groups allow for overlapping arguments for tasks by the same author
         # See the generators guide for more.
-        group: :oban_web,
-        # *other* dependencies to add
-        # i.e `{:foo, "~> 2.0"}`
-        adds_deps: [],
+        group: :oban,
         # *other* dependencies to add and call their associated installers, if they exist
         # i.e `{:foo, "~> 2.0"}`
         installs: [{:oban, "~> 2.0"}],
         # An example invocation
-        example: __MODULE__.Docs.example(),
-        # a list of positional arguments, i.e `[:file]`
-        positional: [],
-        # Other tasks your task composes using `Igniter.compose_task`, passing in the CLI argv
-        # This ensures your option schema includes options from nested tasks
-        composes: [],
-        # `OptionParser` schema
-        schema: [],
-        # Default values for the options in the `schema`
-        defaults: [],
-        # CLI aliases
-        aliases: [],
-        # A list of options in the schema that are required
-        required: []
+        example: __MODULE__.Docs.example()
       }
     end
 
