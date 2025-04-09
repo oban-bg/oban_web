@@ -29,7 +29,7 @@ defmodule Oban.Web.Layouts do
           fill="currentColor"
           fill-rule="nonzero"
         />
-        <g fill="none" fill-rule="evenodd" style="filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.3))">
+        <g fill="none" fill-rule="evenodd" class="drop-shadow-md/30">
           <path fill="#EBECFB" d="M57.95 21.249 54.623 9.372 42.746 6.045l4.453 10.751z" /><path
             fill="#C5B0DF"
             d="m53.497 31.999-6.298-15.203 10.751 4.453z"
