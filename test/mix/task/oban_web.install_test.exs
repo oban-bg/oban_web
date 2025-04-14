@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Oban.Web.InstallTest do
+defmodule Mix.Tasks.ObanWeb.InstallTest do
   use ExUnit.Case
 
   import Igniter.Test
@@ -39,7 +39,7 @@ defmodule Mix.Tasks.Oban.Web.InstallTest do
     end
     """)
     |> apply_igniter!()
-    |> Igniter.compose_task("oban.web.install")
+    |> Igniter.compose_task("oban_web.install")
     |> assert_has_patch("lib/test_web/router.ex", """
          ...|
      2  2   |  use TestWeb, :router
