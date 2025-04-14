@@ -15,9 +15,8 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
 
     This task configures your Phoenix application to use the ObanWeb dashboard:
 
-    * Adds the required router import
-    * Sets up the dashboard route at "/oban"
-      * puts it inside the :dev_routes conditional
+    * Adds the required `Oban.Web.Router` import
+    * Sets up the dashboard route at "/oban" within the :dev_routes conditional
 
     ## Example
 
