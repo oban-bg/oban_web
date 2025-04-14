@@ -56,45 +56,12 @@ if Code.ensure_loaded?(Igniter) do
       end
     end
 
-    def update_router(igniter, router) do
-      web_module = Igniter.Libs.Phoenix.web_module(igniter)
-      app_name = Igniter.Project.Application.app_name(igniter)
-
-      case Igniter.Project.Module.find_and_update_module(igniter, router, fn zipper ->
-             with {:use, {:ok, zipper}} <-
-                    {:use, Igniter.Code.Module.move_to_use(zipper, web_module)},
-                  {:add_import, zipper} <-
-                    {:add_import,
-                     Igniter.Code.Common.add_code(zipper, """
-                     import Oban.Web.Router
-                     """)},
-                  {:dev_routes, {:ok, zipper}} <-
-                    {:dev_routes,
-                     Igniter.Code.Function.move_to_function_call(
-                       zipper,
-                       :if,
-                       2,
-                       &dev_routes?(&1, app_name)
-                     )},
-                  {:inside_dev_routes, {:ok, zipper}} <-
-                    {:inside_dev_routes, Igniter.Code.Common.move_to_do_block(zipper)} do
-               {:ok,
-                zipper
-                |> Igniter.Code.Common.add_code("""
-                scope "/" do
-                  pipe_through :browser
-
-                  oban_dashboard "/oban"
-                end
-                """)}
-             else
-               _ ->
-                 igniter
-                 |> Igniter.add_warning("""
-                 Something went wrong, please check the ObanWeb install docs for manual setup instructions
-                 """)
-             end
-           end) do
+    defp update_router(igniter, router) do
+      case Igniter.Project.Module.find_and_update_module(
+             igniter,
+             router,
+             &do_update_router(igniter, &1)
+           ) do
         {:ok, igniter} ->
           igniter
 
@@ -106,7 +73,63 @@ if Code.ensure_loaded?(Igniter) do
       end
     end
 
-    def dev_routes?(zipper, app_name) do
+    defp do_update_router(igniter, zipper) do
+      web_module = Igniter.Libs.Phoenix.web_module(igniter)
+      app_name = Igniter.Project.Application.app_name(igniter)
+
+      with {:add_import, {:ok, zipper}} <- {:add_import, add_import(zipper, web_module)},
+           {:add_route, {:ok, zipper}} <- {:add_route, add_route(zipper, app_name)} do
+        {:ok, zipper}
+      else
+        _ ->
+          igniter
+          |> Igniter.add_warning("""
+          Something went wrong, please check the ObanWeb install docs for manual setup instructions
+          """)
+      end
+    end
+
+    defp add_import(zipper, web_module) do
+      case Igniter.Code.Module.move_to_use(zipper, web_module) do
+        {:ok, zipper} ->
+          {:ok,
+           Igniter.Code.Common.add_code(zipper, """
+
+           import Oban.Web.Router
+           """)}
+
+        error ->
+          error
+      end
+    end
+
+    defp add_route(zipper, app_name) do
+      with {:dev_routes, {:ok, zipper}} <-
+             {:dev_routes,
+              Igniter.Code.Function.move_to_function_call(
+                zipper,
+                :if,
+                2,
+                &dev_routes?(&1, app_name)
+              )},
+           {:inside_dev_routes, {:ok, zipper}} <-
+             {:inside_dev_routes, Igniter.Code.Common.move_to_do_block(zipper)} do
+        {:ok,
+         zipper
+         |> Igniter.Code.Common.add_code("""
+         scope "/" do
+           pipe_through :browser
+
+           oban_dashboard "/oban"
+         end
+         """)}
+      else
+        error ->
+          error
+      end
+    end
+
+    defp dev_routes?(zipper, app_name) do
       case zipper
            |> Igniter.Code.Function.move_to_nth_argument(0) do
         {:ok, zipper} ->
