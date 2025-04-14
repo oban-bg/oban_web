@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.ObanWeb.InstallTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Igniter.Test
 
