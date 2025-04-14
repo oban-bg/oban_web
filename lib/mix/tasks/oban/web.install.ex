@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.ObanWeb.Install.Docs do
+defmodule Mix.Tasks.Oban.Web.Install.Docs do
   @moduledoc false
 
   def short_doc do
@@ -6,7 +6,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
   end
 
   def example do
-    "mix oban_web.install"
+    "mix oban.web.install"
   end
 
   def long_doc do
@@ -28,7 +28,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
 end
 
 if Code.ensure_loaded?(Igniter) do
-  defmodule Mix.Tasks.ObanWeb.Install do
+  defmodule Mix.Tasks.Oban.Web.Install do
     @shortdoc "#{__MODULE__.Docs.short_doc()}"
 
     @moduledoc __MODULE__.Docs.long_doc()
@@ -102,7 +102,9 @@ if Code.ensure_loaded?(Igniter) do
                     end
                     """)}
                  else
-                   _ ->
+                   x ->
+                     dbg(x)
+
                      igniter
                      |> Igniter.add_warning("""
                      Something went wrong, please check the ObanWeb install docs for manual setup instructions
@@ -122,7 +124,7 @@ if Code.ensure_loaded?(Igniter) do
     end
   end
 else
-  defmodule Mix.Tasks.ObanWeb.Task.Install do
+  defmodule Mix.Tasks.Oban.Web.Task.Install do
     @shortdoc "#{__MODULE__.Docs.short_doc()} | Install `igniter` to use"
 
     @moduledoc __MODULE__.Docs.long_doc()
@@ -131,7 +133,7 @@ else
 
     def run(_argv) do
       Mix.shell().error("""
-      The task 'ObanWeb.Task.Install' requires igniter. Please install igniter and try again.
+      The task 'Oban.Web.Task.Install' requires igniter. Please install igniter and try again.
 
       For more information, see: https://hexdocs.pm/igniter/readme.html#installation
       """)
