@@ -68,7 +68,7 @@ if Code.ensure_loaded?(Igniter) do
         {:error, igniter} ->
           igniter
           |> Igniter.add_warning("""
-          No Phoenix router module found, Phoenix Liveview is needed for ObanWeb
+          Something went wrong, please check the ObanWeb install docs for manual setup instructions
           """)
       end
     end
@@ -77,15 +77,12 @@ if Code.ensure_loaded?(Igniter) do
       web_module = Igniter.Libs.Phoenix.web_module(igniter)
       app_name = Igniter.Project.Application.app_name(igniter)
 
-      with {:add_import, {:ok, zipper}} <- {:add_import, add_import(zipper, web_module)},
-           {:add_route, {:ok, zipper}} <- {:add_route, add_route(zipper, app_name)} do
+      with {:ok, zipper} <- add_import(zipper, web_module),
+           {:ok, zipper} <- add_route(zipper, app_name) do
         {:ok, zipper}
       else
-        _ ->
-          igniter
-          |> Igniter.add_warning("""
-          Something went wrong, please check the ObanWeb install docs for manual setup instructions
-          """)
+        error ->
+          error
       end
     end
 
