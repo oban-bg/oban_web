@@ -73,9 +73,8 @@ if Code.ensure_loaded?(Igniter) do
       web_module = Igniter.Libs.Phoenix.web_module(igniter)
       app_name = Igniter.Project.Application.app_name(igniter)
 
-      with {:ok, zipper} <- add_import(zipper, web_module),
-           {:ok, zipper} <- add_route(zipper, app_name) do
-        {:ok, zipper}
+      with {:ok, zipper} <- add_import(zipper, web_module) do
+        add_route(zipper, app_name)
       end
     end
 
@@ -105,9 +104,6 @@ if Code.ensure_loaded?(Igniter) do
            oban_dashboard "/oban"
          end
          """)}
-      else
-        error ->
-          error
       end
     end
 
