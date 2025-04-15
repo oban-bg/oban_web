@@ -2,7 +2,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
   @moduledoc false
 
   def short_doc do
-    "Installs ObanWeb dashboard into your Phoenix application"
+    "Installs Oban Web into your Phoenix application"
   end
 
   def example do
@@ -13,7 +13,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
     """
     #{short_doc()}
 
-    This task configures your Phoenix application to use the ObanWeb dashboard:
+    This task configures your Phoenix application to use the Oban Web dashboard:
 
     * Adds the required `Oban.Web.Router` import
     * Sets up the dashboard route at "/oban" within the :dev_routes conditional
@@ -46,9 +46,8 @@ if Code.ensure_loaded?(Igniter) do
     def igniter(igniter) do
       case Igniter.Libs.Phoenix.select_router(igniter) do
         {igniter, nil} ->
-          igniter
-          |> Igniter.add_warning("""
-          No Phoenix router found, Phoenix Liveview is needed for ObanWeb
+          Igniter.add_warning(igniter, """
+          No Phoenix router found, Phoenix Liveview is needed for Oban Web
           """)
 
         {igniter, router} ->
@@ -57,18 +56,15 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     defp update_router(igniter, router) do
-      case Igniter.Project.Module.find_and_update_module(
-             igniter,
-             router,
-             &do_update_router(igniter, &1)
-           ) do
+      zipper = &do_update_router(igniter, &1)
+
+      case Igniter.Project.Module.find_and_update_module(igniter, router, zipper) do
         {:ok, igniter} ->
           igniter
 
         {:error, igniter} ->
-          igniter
-          |> Igniter.add_warning("""
-          Something went wrong, please check the ObanWeb install docs for manual setup instructions
+          Igniter.add_warning(igniter, """
+          Something went wrong, please check the Oban Web install docs for manual setup instructions
           """)
       end
     end
@@ -80,23 +76,12 @@ if Code.ensure_loaded?(Igniter) do
       with {:ok, zipper} <- add_import(zipper, web_module),
            {:ok, zipper} <- add_route(zipper, app_name) do
         {:ok, zipper}
-      else
-        error ->
-          error
       end
     end
 
     defp add_import(zipper, web_module) do
-      case Igniter.Code.Module.move_to_use(zipper, web_module) do
-        {:ok, zipper} ->
-          {:ok,
-           Igniter.Code.Common.add_code(zipper, """
-
-           import Oban.Web.Router
-           """)}
-
-        error ->
-          error
+      with {:ok, zipper} <- Igniter.Code.Module.move_to_use(zipper, web_module) do
+        {:ok, Igniter.Code.Common.add_code(zipper, "\nimport Oban.Web.Router")}
       end
     end
 
@@ -127,19 +112,11 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     defp dev_routes?(zipper, app_name) do
-      case zipper
-           |> Igniter.Code.Function.move_to_nth_argument(0) do
+      case Igniter.Code.Function.move_to_nth_argument(zipper, 0) do
         {:ok, zipper} ->
-          if zipper
-             |> Igniter.Code.Function.function_call?(
-               {Application, :compile_env},
-               2
-             ) do
-            Igniter.Code.Function.argument_equals?(zipper, 0, app_name) &&
-              Igniter.Code.Function.argument_equals?(zipper, 1, :dev_routes)
-          else
-            false
-          end
+          Igniter.Code.Function.function_call?(zipper, {Application, :compile_env}, 2) and
+            Igniter.Code.Function.argument_equals?(zipper, 0, app_name) and
+            Igniter.Code.Function.argument_equals?(zipper, 1, :dev_routes)
 
         _ ->
           false
