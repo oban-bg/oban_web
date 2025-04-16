@@ -85,16 +85,10 @@ if Code.ensure_loaded?(Igniter) do
     end
 
     defp add_route(zipper, app_name) do
-      with {:dev_routes, {:ok, zipper}} <-
-             {:dev_routes,
-              Igniter.Code.Function.move_to_function_call(
-                zipper,
-                :if,
-                2,
-                &dev_routes?(&1, app_name)
-              )},
-           {:inside_dev_routes, {:ok, zipper}} <-
-             {:inside_dev_routes, Igniter.Code.Common.move_to_do_block(zipper)} do
+      matcher = &dev_routes?(&1, app_name)
+
+      with {:ok, zipper} <- Igniter.Code.Function.move_to_function_call(zipper, :if, 2, matcher),
+           {:ok, zipper} <- Igniter.Code.Common.move_to_do_block(zipper) do
         {:ok,
          zipper
          |> Igniter.Code.Common.add_code("""
