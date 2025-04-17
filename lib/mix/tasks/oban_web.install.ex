@@ -90,8 +90,7 @@ if Code.ensure_loaded?(Igniter) do
       with {:ok, zipper} <- Igniter.Code.Function.move_to_function_call(zipper, :if, 2, matcher),
            {:ok, zipper} <- Igniter.Code.Common.move_to_do_block(zipper) do
         {:ok,
-         zipper
-         |> Igniter.Code.Common.add_code("""
+         Igniter.Code.Common.add_code(zipper, """
          scope "/" do
            pipe_through :browser
 
