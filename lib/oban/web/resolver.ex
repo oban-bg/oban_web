@@ -436,7 +436,7 @@ defmodule Oban.Web.Resolver do
   end
 
   @doc false
-  def format_job_args(%Job{args: args, meta: %{"decorated" => true}}) do
+  def format_job_args(%Job{args: %{"arg" => "term-" <> _} = args}) do
     args
     |> Map.update!("arg", &(&1 |> String.trim_leading("term-") |> decode_recorded()))
     |> inspect(@inspect_opts)
