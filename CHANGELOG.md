@@ -76,6 +76,12 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.3 - 2025-04-21
+
+### Bug Fixes
+
+- [Installer] Prevent compilation errors when igniter isn't installed.
+
 ## v2.11.2 - 2025-04-21
 
 ### Enhancements

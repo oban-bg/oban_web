@@ -2,7 +2,7 @@ defmodule Oban.Web.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/oban-bg/oban_web"
-  @version "2.11.2"
+  @version "2.11.3"
 
   def project do
     [
