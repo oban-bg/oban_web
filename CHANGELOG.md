@@ -76,6 +76,34 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.2 - 2025-04-21
+
+### Enhancements
+
+- [Installer] Add igniter powered `oban_web` installer.
+
+  It's now possible to install oban_web with a single igniter command:
+
+  ```bash
+  mix igniter.install oban_web
+  ```
+
+  Or install `oban` and `oban_web` at the same time:
+
+  ```bash
+  mix igniter.install oban,oban_web
+  ```
+
+- [Resolver] Pattern match on `arg` rather than checking for `decorated` annotation.
+
+  Matching on term encoded `arg` is more accurate than checking for decorated metadata. This makes
+  the default `format_job_args` compatible with workflow cascade jobs that don't have any `arg`
+  set.
+
+- [Page] Upgrade bundled assets to use the Phoenix LiveView JavaScript version to v1.10
+
+- [Chart] Replace inline styles with tailwind classes to avoid inline style CSP warnings.
+
 ## v2.11.1 — 2025-02-06
 
 ### Enhancements
