@@ -22,6 +22,7 @@ defmodule Mix.Tasks.ObanWeb.Install.Docs do
 
     ```bash
     #{example()}
+    ```
     """
   end
 end
