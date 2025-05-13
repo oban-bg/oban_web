@@ -29,7 +29,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
           name={node.name}
           active={active_filter?(@params, :nodes, node.name)}
           patch={patch_params(@params, :jobs, :nodes, node.name)}
-          values={[node.limit, node.count]}
+          values={[node.count, node.limit]}
         />
       </SidebarComponents.section>
 
