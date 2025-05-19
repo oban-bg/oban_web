@@ -257,6 +257,7 @@ defmodule Oban.Web.Resolver do
 
   * `:pause_queues`
   * `:scale_queues`
+  * `:stop_queues`
   * `:cancel_jobs`
   * `:delete_jobs`
   * `:retry_jobs`
