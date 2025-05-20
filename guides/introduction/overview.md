@@ -10,7 +10,7 @@ fully realtime.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/blob/main/assets/oban-web-preview-dark.png" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/refs/heads/main/assets/oban-web-preview-dark.png" />
     <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/oban-bg/oban_web/refs/heads/main/assets/oban-web-preview-light.png" />
     <img src="https://raw.githubusercontent.com/oban-bg/oban_web/refs/heads/main/assets/oban-web-preview-light.png" />
   </picture>
