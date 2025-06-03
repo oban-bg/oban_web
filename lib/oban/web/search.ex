@@ -3,8 +3,6 @@ defmodule Oban.Web.Search do
 
   # Helpers for the search toolbar
 
-  # Split terms using a positive lookahead that skips splitting within double quotes
-  @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
   @ignored_chars ~w(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
 
   # Suggestion tuning
@@ -16,7 +14,7 @@ defmodule Oban.Web.Search do
   """
   def parse(terms, parser) when is_binary(terms) and is_function(parser, 1) do
     terms
-    |> String.split(@split_pattern, trim: true)
+    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/, trim: true)
     |> Map.new(fn term ->
       term
       |> String.replace(@ignored_chars, "")

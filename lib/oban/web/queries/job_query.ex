@@ -45,9 +45,6 @@ defmodule Oban.Web.JobQuery do
 
   @states Map.new(Oban.Job.states(), &{to_string(&1), &1})
 
-  # Split terms using a positive lookahead that skips splitting within double quotes
-  @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-
   defguardp is_mysql(conf) when conf.engine == Oban.Engines.Dolphin
 
   defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
@@ -191,7 +188,7 @@ defmodule Oban.Web.JobQuery do
 
   def suggest(terms, conf, opts \\ []) do
     terms
-    |> String.split(@split_pattern)
+    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
     |> List.last()
     |> to_string()
     |> case do

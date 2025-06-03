@@ -24,8 +24,6 @@ defmodule Oban.Web.QueueQuery do
 
   # Searching
 
-  @split_pattern ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
-
   def filterable, do: ~w(modes nodes stats)a
 
   def parse(terms) when is_binary(terms) do
@@ -34,7 +32,7 @@ defmodule Oban.Web.QueueQuery do
 
   def suggest(terms, conf, _opts \\ []) do
     terms
-    |> String.split(@split_pattern)
+    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
     |> List.last()
     |> to_string()
     |> case do
