@@ -568,7 +568,7 @@ defmodule Oban.Web.JobQuery do
   defp parse_ints(field, value) do
     {field,
      value
-     |> String.split(",")
+     |> String.split(",", trim: true)
      |> Enum.map(&String.to_integer/1)}
   end
 
