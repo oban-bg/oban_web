@@ -88,9 +88,9 @@ callback][rsc].
 
 ### Bug Fixes
 
-- [Dashboard] Read phoenix js assests at compile time.
+- [Dashboard] Read phoenix js assets at compile time.
 
-  Stop bundling phoenix and liveview assests. Instead, read them at compile time and concatinate
+  Stop bundling phoenix and liveview assets. Instead, read them at compile time and concatenate
   with app js.
 
 - [Search] Trim strings when splitting to parse integers.
