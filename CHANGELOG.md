@@ -53,17 +53,17 @@ The queue and jobs tables are fully rebuilt with shared, reusable components and
 functionality. This makes interacting with jobs clearer while queues gain some much requested
 functionality:
 
-* Sidebar - a new queue sidebar shows status counts and enables filtering by statuses such as
+- Sidebar - a new queue sidebar shows status counts and enables filtering by statuses such as
   `paused` or `terminating`.
 
-* Filtering - queues are auto-complete filterable just like jobs, making it possible to find
+- Filtering - queues are auto-complete filterable just like jobs, making it possible to find
   queues running on a particular node or narrow down by status.
 
-* Shared Sorting - queue sorting now behaves identically to jobs, through a shared dropdown. 
+- Shared Sorting - queue sorting now behaves identically to jobs, through a shared dropdown.
 
-* Uniform Navigation - click on any part of the queue row to navigate to details.
+- Uniform Navigation - click on any part of the queue row to navigate to details.
 
-* Condensed Rows  - simplify the queue page by removing nested row components. Extra queue details
+- Condensed Rows - simplify the queue page by removing nested row components. Extra queue details
   are in the sub-queue page.
 
 ## 🕯️ Operate on Full Selection
@@ -75,6 +75,37 @@ jobs, up to a configurable limit. The limit defaults to 1000 and may be overridd
 callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
+
+## v2.11.4 - 2025-07-31
+
+### Enhancements
+
+- [Connectivity] Consider metric checks for disconnected status.
+
+  The connectivity status is now determined by `Met` output as well as pubsub connectivity.
+  This should make it easier to identify metric issues on solo nodes, e.g. in dev or a
+  staging environment.
+
+### Bug Fixes
+
+- [Dashboard] Read phoenix js assests at compile time.
+
+  Stop bundling phoenix and liveview assests. Instead, read them at compile time and concatinate
+  with app js.
+
+- [Search] Trim strings when splitting to parse integers.
+
+  This prevents "not a textual representation of an integer" errors when splitting on a comma
+  with an empty string.
+
+- [Search] Move all regexes out of module attributes.
+
+  Regexes aren't allowed in module attributes as of OTP 28. This moves them inline rather than
+  hoisted at the top of the module.
+
+- [Sidebar] Fix column header mismatch in sidebar.
+
+  The headers and values in the sidebar were misaligned and showed the wrong values.
 
 ## v2.11.3 - 2025-04-21
 
