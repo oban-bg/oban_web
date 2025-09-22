@@ -138,7 +138,7 @@ defmodule Oban.Web.Timing do
       iex> Oban.Web.Timing.to_words(-1, relative: false)
       "1s"
   """
-  def to_words(ellapsed, opts \\ [relative: true]) when is_integer(ellapsed) do
+  def to_words(ellapsed, opts \\ []) when is_integer(ellapsed) do
     distance =
       case abs(ellapsed) do
         0 -> "now"
@@ -151,7 +151,7 @@ defmodule Oban.Web.Timing do
       end
 
     cond do
-      not opts[:relative] -> distance
+      opts[:relative] == false -> distance
       ellapsed < 0 -> "#{distance} ago"
       ellapsed > 0 -> "in #{distance}"
       true -> distance
@@ -252,14 +252,22 @@ defmodule Oban.Web.Timing do
   defp truncate_sec(datetime), do: NaiveDateTime.truncate(datetime, :second)
 
   @doc """
-  Convert a stringified timestamp (i.e. from an error) into a relative time.
+  Convert a naive date time or iso8601 stringified version to a relative time.
   """
-  def iso8601_to_words(iso8601, now \\ NaiveDateTime.utc_now()) do
+  def datetime_to_words(datetime, opts \\ [])
+
+  def datetime_to_words(nil, _), do: "-"
+
+  def datetime_to_words(iso8601, opts) when is_binary(iso8601) do
     {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
 
+    datetime_to_words(datetime, opts)
+  end
+
+  def datetime_to_words(datetime, opts) do
     datetime
-    |> NaiveDateTime.diff(now)
-    |> to_words()
+    |> NaiveDateTime.diff(NaiveDateTime.utc_now())
+    |> to_words(opts)
   end
 
   defp pad(time, places \\ 2) do

@@ -200,7 +200,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <div class="mb-12">
               <h4 class="mb-3 flex items-center space-x-2">
                 <div class="text-sm font-semibold">
-                  Attempt {attempt}&mdash;{Timing.iso8601_to_words(at)}
+                  Attempt {attempt}&mdash;{Timing.datetime_to_words(at)}
                 </div>
                 <div id={at} data-title={at} phx-hook="Tippy">
                   <Icons.info_circle class="w-5 h-5 text-gray-500 dark:text-gray-400" />

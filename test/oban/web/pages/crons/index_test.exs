@@ -16,11 +16,16 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case, async: true
 
   setup do
-    start_supervised_oban!(plugins: [{Oban.Plugins.Cron, crontab: [
-      {"* * * * *", Oban.Workers.CronA},
-      {"0 * * * *", Oban.Workers.CronA, args: %{special: true}},
-      {"0 0 * * *", Oban.Workers.CronB, priority: 3},
-    ]}])
+    start_supervised_oban!(
+      plugins: [
+        {Oban.Plugins.Cron,
+         crontab: [
+           {"* * * * *", Oban.Workers.CronA},
+           {"0 * * * *", Oban.Workers.CronA, args: %{special: true}},
+           {"0 0 * * *", Oban.Workers.CronB, priority: 3}
+         ]}
+      ]
+    )
 
     {:ok, live, _html} = live(build_conn(), "/oban/crons")
 
