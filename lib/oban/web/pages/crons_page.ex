@@ -3,7 +3,7 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Page
+  alias Oban.Web.{Cron, CronQuery, Page, Timing}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -15,11 +15,7 @@ defmodule Oban.Web.CronsPage do
           class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
         >
           <div class="flex-none flex items-center pr-12">
-            <Core.all_checkbox
-              click="toggle-select-all"
-              checked={:none}
-              myself={@myself}
-            />
+            <Core.all_checkbox click="toggle-select-all" checked={:none} myself={@myself} />
 
             <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
           </div>
@@ -30,7 +26,8 @@ defmodule Oban.Web.CronsPage do
             <.header label="name" class="ml-12 w-1/3 text-left" />
             <div class="ml-auto flex items-center space-x-6">
               <.header label="schedule" class="w-32 text-right" />
-              <.header label="activity" class="w-24 text-right" />
+              <.header label="last run" class="w-32 text-right" />
+              <.header label="next run" class="w-32 text-right" />
               <.header label="status" class="w-20 pr-3 text-right" />
             </div>
           </ul>
@@ -42,19 +39,15 @@ defmodule Oban.Web.CronsPage do
           </div>
 
           <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-            <.cron_row
-              :for={{expr, worker, opts} <- @crontab}
-              expr={expr}
-              worker={worker}
-              opts={opts}
-              myself={@myself}
-            />
+            <.cron_row :for={cron <- @crontab} cron={cron} myself={@myself} />
           </ul>
         </div>
       </div>
     </div>
     """
   end
+
+  # Components
 
   attr :label, :string, required: true
   attr :class, :string, default: ""
@@ -67,47 +60,49 @@ defmodule Oban.Web.CronsPage do
     """
   end
 
-  attr :expr, :string
-  attr :worker, :string
-  attr :opts, :map
+  attr :cron, Cron
   attr :myself, :any
 
   defp cron_row(assigns) do
     ~H"""
     <li
-      id={"cron-#{cron_name(@worker, @opts)}"}
+      id={"cron-#{Cron.name(@cron)}"}
       class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
     >
-      <Core.row_checkbox
-        click="toggle-select"
-        value={@worker}
-        checked={false}
-        myself={@myself}
-      />
+      <Core.row_checkbox click="toggle-select" value={@cron.worker} checked={false} myself={@myself} />
 
       <div class="py-2.5 flex flex-grow items-center">
         <div class="w-1/3">
           <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300">
-            {@worker}
+            {@cron.worker}
           </span>
 
           <samp class="font-mono truncate text-xs text-gray-500 dark:text-gray-400">
-            {format_opts(@opts)}
+            {format_opts(@cron.opts)}
           </samp>
         </div>
 
         <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
           <span class="w-32 text-right font-mono text-sm">
-            {@expr}
+            {@cron.expression}
           </span>
 
-          <span class="w-24 text-right">
-            -
+          <span class="w-32 text-right text-sm">
+            {Timing.datetime_to_words(@cron.last_at)}
+          </span>
+
+          <span class="w-32 text-right text-sm">
+            {Timing.datetime_to_words(@cron.next_at)}
           </span>
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
-            <span class="py-1.5 px-2 text-xs rounded-md bg-gray-100 dark:bg-gray-950">
-              Active
+            <span
+              id={"cron-state-icon-#{@cron.worker}"}
+              class="py-1.5 px-2 text-xs"
+              phx-hook="Tippy"
+              data-title={state_title(@cron)}
+            >
+              <.state_icon state={@cron.last_state} />
             </span>
           </div>
         </div>
@@ -116,16 +111,40 @@ defmodule Oban.Web.CronsPage do
     """
   end
 
-  defp cron_name(worker, opts) do
-    base = String.replace(worker, ".", "-")
-    hash = :erlang.phash2(opts)
+  attr :state, :string, required: true
 
-    "#{base}-#{hash}"
+  defp state_icon(assigns) do
+    ~H"""
+    <%= case @state do %>
+      <% "available" -> %>
+        <Icons.pause_circle class="w-5 h-5 text-teal-400" />
+      <% "cancelled" -> %>
+        <Icons.x_circle class="w-5 h-5 text-violet-400" />
+      <% "completed" -> %>
+        <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+      <% "discarded" -> %>
+        <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+      <% "executing" -> %>
+        <Icons.play_circle class="w-5 h-5 text-orange-400" />
+      <% "retryable" -> %>
+        <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
+      <% "scheduled" -> %>
+        <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+      <% _ -> %>
+        <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+    <% end %>
+    """
+  end
+
+  defp state_title(cron) do
+    case cron.last_state do
+      nil -> "Unknown, no previous runs"
+      state -> "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
+    end
   end
 
   @impl Page
   def handle_mount(socket) do
-
     assign_new(socket, :crontab, fn -> crontab(socket.assigns.conf) end)
   end
 
@@ -136,6 +155,8 @@ defmodule Oban.Web.CronsPage do
 
   @impl Page
   def handle_params(_params, _uri, socket) do
+    socket = assign(socket, page_title: page_title("Crons"))
+
     {:noreply, socket}
   end
 
@@ -156,13 +177,15 @@ defmodule Oban.Web.CronsPage do
     {:noreply, socket}
   end
 
-  defp crontab(conf), do: Oban.Met.crontab(conf.name)
+  defp crontab(conf) do
+    CronQuery.all_crons(%{}, conf)
+  end
 
-  defp format_opts(opts) when map_size(opts) == 0, do: "%{}"
+  defp format_opts(opts) when map_size(opts) == 0, do: "[]"
 
   defp format_opts(opts) do
     opts
-    |> inspect(charlists: :as_lists, limit: :infinity)
+    |> Enum.map_join(", ", fn {key, val} -> "#{key}: #{inspect(val)}" end)
     |> truncate(0..98)
   end
 end
