@@ -597,14 +597,14 @@ oban_opts = [
     {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}},
     {Oban.Plugins.Cron,
      crontab: [
-       {"* * * * *", Oban.Workers.HealthChecker},
-       {"*/5 * * * *", Oban.Workers.CustomerSegmenter},
-       {"*/5 * * * *", Oban.Workers.TrialCleaner},
+       {"* * * * *", Oban.Workers.HealthChecker, tags: ~w(health monitoring)},
+       {"*/5 * * * *", Oban.Workers.CustomerSegmenter, args: %{batch_size: 1000}},
+       {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
        {"*/15 * * * *", Oban.Workers.DormantLocker},
-       {"0 * * * *", Oban.Workers.TrafficReport},
-       {"30 */3 * * *", Oban.Workers.IndexRebuilder},
-       {"0 */2 * * *", Oban.Workers.SecurityScanner},
-       {"0 6 * * MON", Oban.Workers.WeeklyUpdate}
+       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
+       {"30 */3 * * *", Oban.Workers.IndexRebuilder, priority: 1},
+       {"0 */2 * * *", Oban.Workers.SecurityScanner, tags: ["security"]},
+       {"0 6 * * MON", Oban.Workers.WeeklyUpdate, priority: 3}
      ]}
   ]
 ]
