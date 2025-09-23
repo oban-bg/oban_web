@@ -194,6 +194,9 @@ defmodule Oban.Web.Router do
         {session_name, session_opts, route_opts} = Oban.Web.Router.__options__(prefix, opts)
 
         live_session session_name, session_opts do
+          get "/css-:md5", Oban.Web.Assets, :css, as: :oban_web_asset
+          get "/js-:md5", Oban.Web.Assets, :js, as: :oban_web_asset
+
           live "/", Oban.Web.DashboardLive, :home, route_opts
           live "/:page", Oban.Web.DashboardLive, :index, route_opts
           live "/:page/:id", Oban.Web.DashboardLive, :show, route_opts

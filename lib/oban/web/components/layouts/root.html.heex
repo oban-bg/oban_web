@@ -15,9 +15,7 @@
       type="image/png"
     />
 
-    <style phx-track-static nonce={@csp_nonces.style}>
-      <%= raw(render("app.css")) %>
-    </style>
+    <link rel="stylesheet" nonce={@csp_nonces.style} href={asset_path(@conn, :css)} />
 
     <script nonce={@csp_nonces.script}>
       const wantsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -29,13 +27,12 @@
         document.documentElement.classList.remove("dark")
       }
     </script>
+
+    <script nonce={@csp_nonces.script} src={asset_path(@conn, :js)} defer>
+    </script>
   </head>
 
   <body class="min-h-screen antialiased bg-gray-200 dark:bg-gray-950 text-gray-900 dark:text-gray-100  transition duration-200 ease-out">
     {@inner_content}
   </body>
-
-  <script phx-track-static type="text/javascript" nonce={@csp_nonces.script}>
-    <%= raw(render("app.js")) %>
-  </script>
 </html>
