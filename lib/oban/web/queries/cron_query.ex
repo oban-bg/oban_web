@@ -27,6 +27,7 @@ defmodule Oban.Web.CronQuery do
     end
   end
 
+  # TODO: Correctly handle jobs with different args
   # TODO: Support mysql/sqlite
   defp crontab_history(workers, conf) do
     query =

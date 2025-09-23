@@ -256,8 +256,6 @@ defmodule Oban.Web.Timing do
   """
   def datetime_to_words(datetime, opts \\ [])
 
-  def datetime_to_words(nil, _), do: "-"
-
   def datetime_to_words(iso8601, opts) when is_binary(iso8601) do
     {:ok, datetime} = NaiveDateTime.from_iso8601(iso8601)
 

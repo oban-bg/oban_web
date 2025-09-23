@@ -117,8 +117,6 @@ defmodule Oban.Web.Helpers do
     end)
   end
 
-  @doc """
-  """
   def active_filter?(params, :state, value) do
     params[:state] == value or (is_nil(params[:state]) and value == "executing")
   end

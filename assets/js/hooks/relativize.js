@@ -19,6 +19,8 @@ function toDuration(timestamp) {
 }
 
 function toWords(timestamp) {
+  if (timestamp === "") return "-"
+
   const ellapsed = Date.now() - timestamp
   const relative = Math.floor(Math.abs(ellapsed) / 1000)
 
@@ -44,7 +46,9 @@ const Relavitize = {
     clearInterval(this.interval)
   },
 
-  mounted() {
+  startTimer() {
+    clearInterval(this.interval)
+
     const timestamp = this.el.getAttribute("data-timestamp")
     const mode = this.el.getAttribute("data-relative-mode") || "words"
 
@@ -58,6 +62,14 @@ const Relavitize = {
       if (load("refresh") > 0) setter()
     }, 1000)
   },
-}
+
+  mounted() {
+    this.startTimer()
+  },
+
+  updated() {
+    this.startTimer()
+  },
+};
 
 export default Relavitize
