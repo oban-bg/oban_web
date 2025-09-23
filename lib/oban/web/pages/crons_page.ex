@@ -3,7 +3,9 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Cron, CronQuery, Page}
+  alias Oban.Web.{Cron, CronQuery, Page, SortComponent}
+
+  @known_params ~w(sort_by sort_dir)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -18,6 +20,15 @@ defmodule Oban.Web.CronsPage do
             <Core.all_checkbox click="toggle-select-all" checked={:none} myself={@myself} />
 
             <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
+          </div>
+
+          <div class="pl-3 ml-auto">
+            <SortComponent.select
+              id="crons-sort"
+              by={~w(worker schedule last_run next_run)}
+              page={:crons}
+              params={@params}
+            />
           </div>
         </div>
 
@@ -107,7 +118,7 @@ defmodule Oban.Web.CronsPage do
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
             <span
-              id={"cron-state-icon-#{@cron.worker}"}
+              id={"cron-state-icon-#{Cron.name(@cron)}"}
               class="py-1.5 px-2 text-xs"
               phx-hook="Tippy"
               data-title={state_title(@cron)}
@@ -158,17 +169,32 @@ defmodule Oban.Web.CronsPage do
 
   @impl Page
   def handle_mount(socket) do
-    assign_new(socket, :crontab, fn -> crontab(socket.assigns.conf) end)
+    default = fn -> %{sort_by: "worker", sort_dir: "asc"} end
+
+    socket
+    |> assign_new(:default_params, default)
+    |> assign_new(:params, default)
+    |> assign_new(:crontab, fn -> crontab(socket.assigns.conf) end)
   end
 
   @impl Page
   def handle_refresh(socket) do
-    assign(socket, crontab: crontab(socket.assigns.conf))
+    crons = CronQuery.all_crons(socket.assigns.params, socket.assigns.conf)
+    assign(socket, crontab: crons)
   end
 
   @impl Page
-  def handle_params(_params, _uri, socket) do
-    socket = assign(socket, page_title: page_title("Crons"))
+  def handle_params(params, _uri, socket) do
+    params =
+      params
+      |> Map.take(@known_params)
+      |> decode_params()
+
+    socket =
+      socket
+      |> assign(page_title: page_title("Crons"))
+      |> assign(params: Map.merge(socket.assigns.default_params, params))
+      |> handle_refresh()
 
     {:noreply, socket}
   end
