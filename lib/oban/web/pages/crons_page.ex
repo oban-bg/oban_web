@@ -3,7 +3,7 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Cron, CronQuery, Page, Timing}
+  alias Oban.Web.{Cron, CronQuery, Page}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -39,7 +39,7 @@ defmodule Oban.Web.CronsPage do
           </div>
 
           <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-            <.cron_row :for={cron <- @crontab} cron={cron} myself={@myself} />
+            <.cron_row :for={cron <- @crontab} id={Cron.name(cron)} cron={cron} myself={@myself} />
           </ul>
         </div>
       </div>
@@ -61,14 +61,12 @@ defmodule Oban.Web.CronsPage do
   end
 
   attr :cron, Cron
+  attr :id, :string
   attr :myself, :any
 
   defp cron_row(assigns) do
     ~H"""
-    <li
-      id={"cron-#{Cron.name(@cron)}"}
-      class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
-    >
+    <li id={"cron-#{@id}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
       <Core.row_checkbox click="toggle-select" value={@cron.worker} checked={false} myself={@myself} />
 
       <div class="py-2.5 flex flex-grow items-center">
@@ -87,12 +85,24 @@ defmodule Oban.Web.CronsPage do
             {@cron.expression}
           </span>
 
-          <span class="w-32 text-right text-sm">
-            {Timing.datetime_to_words(@cron.last_at)}
+          <span
+            class="w-32 text-right text-sm"
+            id={"cron-lts-#{Cron.name(@cron)}"}
+            data-timestamp={maybe_to_unix(@cron.last_at)}
+            phx-hook="Relativize"
+            phx-update="ignore"
+          >
+            -
           </span>
 
-          <span class="w-32 text-right text-sm">
-            {Timing.datetime_to_words(@cron.next_at)}
+          <span
+            class="w-32 text-right text-sm"
+            id={"cron-nts-#{Cron.name(@cron)}"}
+            data-timestamp={maybe_to_unix(@cron.next_at)}
+            phx-hook="Relativize"
+            phx-update="ignore"
+          >
+            -
           </span>
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
@@ -139,9 +149,12 @@ defmodule Oban.Web.CronsPage do
   defp state_title(cron) do
     case cron.last_state do
       nil -> "Unknown, no previous runs"
-      state -> "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
+      state -> "#{String.capitalize(state)} as of #{DateTime.truncate(cron.last_at, :second)}"
     end
   end
+
+  defp maybe_to_unix(nil), do: ""
+  defp maybe_to_unix(timestamp), do: DateTime.to_unix(timestamp, :millisecond)
 
   @impl Page
   def handle_mount(socket) do
