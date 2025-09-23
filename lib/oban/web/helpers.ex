@@ -109,7 +109,7 @@ defmodule Oban.Web.Helpers do
 
         {String.to_existing_atom(key), val}
 
-      {key, val} when key in ~w(ids modes nodes priorities queues stats tags workers) ->
+      {key, val} when key in ~w(ids modes nodes priorities queues stats states tags workers) ->
         {String.to_existing_atom(key), String.split(val, ",")}
 
       {key, val} ->

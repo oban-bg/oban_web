@@ -3,9 +3,9 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Cron, CronQuery, Page, SortComponent}
+  alias Oban.Web.{Cron, CronQuery, Page, SearchComponent, SortComponent}
 
-  @known_params ~w(sort_by sort_dir)
+  @known_params ~w(sort_by sort_dir workers states)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -21,6 +21,16 @@ defmodule Oban.Web.CronsPage do
 
             <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
           </div>
+
+          <.live_component
+            conf={@conf}
+            id="search"
+            module={SearchComponent}
+            page={:crons}
+            params={without_defaults(@params, @default_params)}
+            queryable={CronQuery}
+            resolver={@resolver}
+          />
 
           <div class="pl-3 ml-auto">
             <SortComponent.select

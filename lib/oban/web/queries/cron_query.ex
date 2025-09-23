@@ -5,14 +5,108 @@ defmodule Oban.Web.CronQuery do
 
   alias Oban.Cron.Expression
   alias Oban.{Job, Met, Repo}
-  alias Oban.Web.Cron
+  alias Oban.Web.{Cron, Search}
+
+  @suggest_qualifier [
+    {"workers:", "cron worker name", "workers:MyApp.Worker"},
+    {"states:", "last execution state", "states:completed"}
+  ]
+
+  @suggest_state [
+    {"available", "last job is available", "available"},
+    {"cancelled", "last job was cancelled", "cancelled"},
+    {"completed", "last job was completed", "completed"},
+    {"discarded", "last job was discarded", "discarded"},
+    {"executing", "last job is executing", "executing"},
+    {"retryable", "last job is retryable", "retryable"},
+    {"scheduled", "last job is scheduled", "scheduled"},
+    {"unknown", "no previous jobs available", "unknown"}
+  ]
+
+  @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
+
+  # Searching
+
+  def filterable, do: ~w(workers states)a
+
+  def parse(terms) when is_binary(terms) do
+    Search.parse(terms, &parse_term/1)
+  end
+
+  def suggest(terms, conf, _opts \\ []) do
+    terms
+    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
+    |> List.last()
+    |> to_string()
+    |> case do
+      "" ->
+        @suggest_qualifier
+
+      last ->
+        case String.split(last, ":", parts: 2) do
+          ["workers", frag] -> suggest_workers(frag, conf)
+          ["states", frag] -> suggest_static(frag, @suggest_state)
+          [frag] -> suggest_static(frag, @suggest_qualifier)
+          _ -> []
+        end
+    end
+  end
+
+  defp suggest_static(fragment, possibilities) do
+    for {field, _, _} = suggest <- possibilities,
+        String.starts_with?(field, fragment),
+        do: suggest
+  end
+
+  defp suggest_workers(fragment, conf) do
+    conf.name
+    |> Met.crontab()
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.map(&to_string/1)
+    |> Search.restrict_suggestions(fragment)
+  end
+
+  def append(terms, choice) do
+    Search.append(terms, choice, @known_qualifiers)
+  end
+
+  def complete(terms, conf) do
+    case suggest(terms, conf) do
+      [] ->
+        terms
+
+      [{match, _, _} | _] ->
+        append(terms, match)
+    end
+  end
+
+  defp parse_term("workers:" <> workers) do
+    {:workers, String.split(workers, ",")}
+  end
+
+  defp parse_term("states:" <> states) do
+    parsed =
+      states
+      |> String.split(",")
+      |> Enum.map(fn
+        "unknown"  -> nil
+        state -> state
+      end)
+
+    {:states, parsed}
+  end
+
+  defp parse_term(_term), do: {:none, ""}
+
+  # Querying
 
   def all_crons(params, conf) do
     {sort_by, sort_dir} = parse_sort(params)
 
-    # TODO: Cache these values and avoid running the query too frequently
+    conditions = Map.take(params, filterable())
     crontab = Met.crontab(conf.name)
 
+    # TODO: Cache these values and avoid running the query too frequently
     history =
       crontab
       |> Enum.map(&elem(&1, 1))
@@ -20,6 +114,7 @@ defmodule Oban.Web.CronQuery do
 
     crontab
     |> Enum.map(&new(&1, history))
+    |> Enum.filter(&filter(&1, conditions))
     |> Enum.sort_by(&order(&1, sort_by), sort_dir)
   end
 
@@ -109,4 +204,15 @@ defmodule Oban.Web.CronQuery do
   defp order(%{next_at: next_at}, :next_run), do: next_at
   defp order(%{expression: expression}, :schedule), do: expression
   defp order(%{worker: worker}, :worker), do: worker
+
+  # Filtering
+
+  defp filter(_row, conditions) when conditions == %{}, do: true
+
+  defp filter(row, conditions) when is_map(conditions) do
+    Enum.all?(conditions, &filter(row, &1))
+  end
+
+  defp filter(cron, {:workers, workers}), do: cron.worker in workers
+  defp filter(cron, {:states, states}), do: cron.last_state in states
 end
