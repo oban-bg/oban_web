@@ -7,24 +7,35 @@ defmodule Oban.Web.CronQuery do
   alias Oban.{Job, Met, Repo}
   alias Oban.Web.Cron
 
-  def all_crons(_params, conf) do
+  def all_crons(params, conf) do
+    {sort_by, sort_dir} = parse_sort(params)
+
     # TODO: Cache these values and avoid running the query too frequently
     crontab = Met.crontab(conf.name)
-    workers = Enum.map(crontab, &elem(&1, 1))
-    history = crontab_history(workers, conf)
 
-    for {expr, worker, opts} <- crontab do
-      fields = [
-        expression: expr,
-        worker: worker,
-        opts: opts,
-        next_at: next_at(expr),
-        last_at: last_at(history, worker),
-        last_state: get_in(history, [worker, :state])
-      ]
+    history =
+      crontab
+      |> Enum.map(&elem(&1, 1))
+      |> crontab_history(conf)
 
-      struct!(Cron, fields)
-    end
+    crontab
+    |> Enum.map(&new(&1, history))
+    |> Enum.sort_by(&order(&1, sort_by), sort_dir)
+  end
+
+  # Construction
+
+  defp new({expr, worker, opts}, history) do
+    fields = [
+      expression: expr,
+      worker: worker,
+      opts: opts,
+      next_at: next_at(expr),
+      last_at: last_at(history, worker),
+      last_state: get_in(history, [worker, :state])
+    ]
+
+    struct!(Cron, fields)
   end
 
   # TODO: Correctly handle jobs with different args
@@ -76,4 +87,26 @@ defmodule Oban.Web.CronQuery do
     |> Expression.parse!()
     |> Expression.next_at()
   end
+
+  # Sorting
+
+  defp parse_sort(%{sort_by: "last_run", sort_dir: dir}) do
+    {:last_run, {String.to_existing_atom(dir), DateTime}}
+  end
+
+  defp parse_sort(%{sort_by: "next_run", sort_dir: dir}) do
+    {:next_run, {String.to_existing_atom(dir), DateTime}}
+  end
+
+  defp parse_sort(%{sort_by: sby, sort_dir: dir}) do
+    {String.to_existing_atom(sby), String.to_existing_atom(dir)}
+  end
+
+  defp parse_sort(_params), do: {:worker, :asc}
+
+  defp order(%{last_at: nil}, :last_run), do: ~U[2000-01-01 00:00:00Z]
+  defp order(%{last_at: last_at}, :last_run), do: last_at
+  defp order(%{next_at: next_at}, :next_run), do: next_at
+  defp order(%{expression: expression}, :schedule), do: expression
+  defp order(%{worker: worker}, :worker), do: worker
 end

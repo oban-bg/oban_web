@@ -44,6 +44,28 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     assert table =~ ~r/cron-Oban-Workers-CronB/
   end
 
+  test "sorting crons by different properties", %{live: live} do
+    refresh(live)
+
+    assert has_element?(live, "#crons-sort")
+
+    for mode <- ~w(worker last_run next_run schedule) do
+      change_sort(live, mode)
+
+      assert_patch(live, crons_path(sort_by: mode, sort_dir: "asc"))
+    end
+  end
+
+  defp change_sort(live, mode) do
+    live
+    |> element("a#sort-#{mode}")
+    |> render_click()
+  end
+
+  defp crons_path(params) do
+    "/oban/crons?#{URI.encode_query(params)}"
+  end
+
   defp refresh(live) do
     send(live.pid, :refresh)
   end

@@ -93,7 +93,7 @@ defmodule Oban.Web.QueueQuery do
   # Querying
 
   def all_queues(params, %{name: name}) do
-    {sort_by, sort_dir} = atomize_sort(params)
+    {sort_by, sort_dir} = parse_sort(params)
 
     conditions = Map.take(params, filterable())
 
@@ -116,11 +116,11 @@ defmodule Oban.Web.QueueQuery do
     struct!(Queue, %{name: name, checks: checks, counts: counts})
   end
 
-  defp atomize_sort(%{sort_by: sby, sort_dir: dir}) do
+  defp parse_sort(%{sort_by: sby, sort_dir: dir}) do
     {String.to_existing_atom(sby), String.to_existing_atom(dir)}
   end
 
-  defp atomize_sort(_params), do: {:name, :asc}
+  defp parse_sort(_params), do: {:name, :asc}
 
   # Filtering
 
