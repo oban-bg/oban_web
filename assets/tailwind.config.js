@@ -31,6 +31,7 @@ module.exports = {
       violet: colors.violet,
       yellow: colors.amber,
       slate: colors.slate,
+      sky: colors.sky,
       zinc: colors.zinc
     }
   },

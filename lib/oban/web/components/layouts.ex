@@ -174,11 +174,10 @@ defmodule Oban.Web.Layouts do
       <.version name="Oban.Met" version={@met_version} />
       <.version name="Oban.Pro" version={@pro_version} />
 
-      <span class="text-gray-800 dark:text-gray-200 mr-0.5 pt-1">
-        <Icons.soren_logo />
-      </span>
-
-      <span class="text-gray-800 dark:text-gray-200 font-semibold">Made by Soren</span>
+      <a href="https://oban.pro" class="flex items-center space-x-2 group">
+        <Icons.soren_logo class="w-6 h-6" />
+        <span class="text-sky-900 dark:text-sky-300 group-hover:underline font-semibold">Made by Oban Pro</span>
+      </a>
     </footer>
     """
   end
