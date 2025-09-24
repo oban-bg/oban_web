@@ -114,7 +114,7 @@ defmodule Oban.Web.Layouts do
       class="fixed z-40 inset-0 flex items-end justify-center pointer-events-none md:py-3 md:px-4 sm:p-6 sm:items-start sm:justify-end"
     >
       <div class="max-w-sm w-full bg-white dark:bg-black dark:bg-opacity-90 shadow-lg rounded-lg pointer-events-auto">
-        <div class="rounded-lg ring-1 ring-black ring-opacity-5 overflow-hidden">
+        <div class="rounded-lg ring-1 ring-black/5 overflow-hidden">
           <div class="p-4">
             <div class="flex items-start">
               <div class="flex-shrink-0 text-green-400">
@@ -176,7 +176,9 @@ defmodule Oban.Web.Layouts do
 
       <a href="https://oban.pro" class="flex items-center space-x-2 group">
         <Icons.soren_logo class="w-6 h-6" />
-        <span class="text-sky-900 dark:text-sky-300 group-hover:underline font-semibold">Made by Oban Pro</span>
+        <span class="text-sky-900 dark:text-sky-300 group-hover:underline font-semibold">
+          Made by Oban Pro
+        </span>
       </a>
     </footer>
     """

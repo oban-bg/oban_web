@@ -13,10 +13,9 @@ if config_env() == :dev do
     ]
 
   config :tailwind,
-    version: "3.3.0",
+    version: "4.1.0",
     default: [
       args: ~w(
-        --config=tailwind.config.js
         --minify
         --input=css/app.css
         --output=../priv/static/app.css

@@ -53,7 +53,7 @@ defmodule Oban.Web.InstancesComponent do
       </button>
 
       <ul
-        class="hidden absolute z-10 top-full right-0 mt-2 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5"
+        class="hidden absolute z-10 top-full right-0 mt-2 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5"
         id="instance-select-menu"
       >
         <li

@@ -26,6 +26,8 @@ select:-moz-focusring {
   text-shadow: 0 0 0 #000;
 }
 
+/* Tippy */
+
 .tippy-box {
   @apply relative bg-gray-950 text-gray-100 dark:bg-gray-50 dark:text-gray-900 shadow text-sm rounded font-normal outline-none;
 
@@ -86,6 +88,18 @@ select:-moz-focusring {
   @apply relative px-3 py-2 z-10;
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind */
+
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@source "../../lib/**/*.*ex";
+
+@theme {
+  --font-family-sans: "Inter var", sans-serif;
+  --font-family-mono: "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
+
+  --spacing-72: 18rem;
+  --spacing-84: 21rem;
+  --spacing-96: 24rem;
+}

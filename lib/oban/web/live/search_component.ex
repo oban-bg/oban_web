@@ -88,11 +88,7 @@ defmodule Oban.Web.SearchComponent do
       </button>
 
       <nav
-        class={[
-          "hidden absolute z-10 mt-1 w-full text-sm shadow-lg",
-          "bg-white dark:bg-gray-800 focus:outline-none",
-          "overflow-hidden rounded-md ring-1 ring-black ring-opacity-5"
-        ]}
+        class="hidden absolute z-10 mt-1 w-full text-sm shadow-lg bg-white dark:bg-gray-800 focus:outline-none overflow-hidden rounded-md ring-1 ring-black/5"
         id="search-suggest"
         phx-click-away={JS.hide()}
       >

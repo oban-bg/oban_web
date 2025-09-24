@@ -33,7 +33,7 @@ defmodule Oban.Web.SortComponent do
 
       <nav
         class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white
-        dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+        dark:bg-gray-800 shadow-lg ring-1 ring-black/5 focus:outline-none"
         id="sort-menu"
         role="listbox"
         tabindex="-1"
