@@ -60,7 +60,7 @@ defmodule Oban.Web.CronsPage do
           </div>
 
           <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-            <.cron_row :for={cron <- @crontab} id={Cron.name(cron)} cron={cron} myself={@myself} />
+            <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
           </ul>
         </div>
       </div>
@@ -108,7 +108,7 @@ defmodule Oban.Web.CronsPage do
 
           <span
             class="w-32 text-right text-sm"
-            id={"cron-lts-#{Cron.name(@cron)}"}
+            id={"cron-lts-#{@cron.name}"}
             data-timestamp={maybe_to_unix(@cron.last_at)}
             phx-hook="Relativize"
             phx-update="ignore"
@@ -118,7 +118,7 @@ defmodule Oban.Web.CronsPage do
 
           <span
             class="w-32 text-right text-sm"
-            id={"cron-nts-#{Cron.name(@cron)}"}
+            id={"cron-nts-#{@cron.name}"}
             data-timestamp={maybe_to_unix(@cron.next_at)}
             phx-hook="Relativize"
             phx-update="ignore"
@@ -128,7 +128,7 @@ defmodule Oban.Web.CronsPage do
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
             <span
-              id={"cron-state-icon-#{Cron.name(@cron)}"}
+              id={"cron-state-icon-#{@cron.name}"}
               class="py-1.5 px-2 text-xs"
               phx-hook="Tippy"
               data-title={state_title(@cron)}

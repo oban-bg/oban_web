@@ -12,18 +12,27 @@ defmodule Oban.Workers.CronB do
   def perform(_job), do: :ok
 end
 
+defmodule Oban.Workers.CronC do
+  use Oban.Worker
+
+  @impl true
+  def perform(_job), do: :ok
+end
+
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case, async: true
 
   setup do
+    static_crontab = [
+      {"* * * * *", Oban.Workers.CronA},
+      {"0 * * * *", Oban.Workers.CronA, args: %{special: true}},
+      {"0 0 * * *", Oban.Workers.CronB, priority: 3}
+    ]
+
     start_supervised_oban!(
       plugins: [
-        {Oban.Plugins.Cron,
-         crontab: [
-           {"* * * * *", Oban.Workers.CronA},
-           {"0 * * * *", Oban.Workers.CronA, args: %{special: true}},
-           {"0 0 * * *", Oban.Workers.CronB, priority: 3}
-         ]}
+        {Oban.Plugins.Cron, crontab: static_crontab},
+        {Oban.Pro.Plugins.DynamicCron, crontab: []}
       ]
     )
 
@@ -32,7 +41,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     {:ok, live: live}
   end
 
-  test "viewing actively running crons", %{live: live} do
+  test "viewing statically and dynamically configured crons", %{live: live} do
     refresh(live)
 
     table =
@@ -40,8 +49,25 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
       |> element("#crons-table")
       |> render()
 
-    assert table =~ ~r/cron-Oban-Workers-CronA/
-    assert table =~ ~r/cron-Oban-Workers-CronB/
+    assert table =~ ~r/Oban.Workers.CronA/
+    assert table =~ ~r/Oban.Workers.CronB/
+  end
+
+  test "viewing dynamically configured crons", %{live: live} do
+    Oban.Pro.Plugins.DynamicCron.insert([
+      {"* 1 * * *", Oban.Workers.CronB},
+      {"0 0 * * *", Oban.Workers.CronC}
+    ])
+
+    refresh(live)
+
+    table =
+      live
+      |> element("#crons-table")
+      |> render()
+
+    assert table =~ ~r/Oban.Workers.CronB/
+    assert table =~ ~r/Oban.Workers.CronC/
   end
 
   test "sorting crons by different properties", %{live: live} do

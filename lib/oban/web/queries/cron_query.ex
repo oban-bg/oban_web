@@ -5,7 +5,9 @@ defmodule Oban.Web.CronQuery do
 
   alias Oban.Cron.Expression
   alias Oban.{Job, Met, Repo}
-  alias Oban.Web.{Cron, Search}
+  alias Oban.Web.{Cron, Search, Utils}
+
+  @compile {:no_warn_undefined, Oban.Pro.Plugins.DynamicCron}
 
   @suggest_qualifier [
     {"workers:", "cron worker name", "workers:MyApp.Worker"},
@@ -89,7 +91,7 @@ defmodule Oban.Web.CronQuery do
       states
       |> String.split(",")
       |> Enum.map(fn
-        "unknown"  -> nil
+        "unknown" -> nil
         state -> state
       end)
 
@@ -103,14 +105,12 @@ defmodule Oban.Web.CronQuery do
   def all_crons(params, conf) do
     {sort_by, sort_dir} = parse_sort(params)
 
-    conditions = Map.take(params, filterable())
-    crontab = Met.crontab(conf.name)
+    crontab = static_crontab(conf) ++ dynamic_crontab(conf)
 
-    # TODO: Cache these values and avoid running the query too frequently
-    history =
-      crontab
-      |> Enum.map(&elem(&1, 1))
-      |> crontab_history(conf)
+    # TODO: Cache these values and avoid running the query too frequently. Cron jobs are
+    # inserted at most once a minute.
+    history = crontab_history(crontab, conf)
+    conditions = Map.take(params, filterable())
 
     crontab
     |> Enum.map(&new(&1, history))
@@ -118,13 +118,33 @@ defmodule Oban.Web.CronQuery do
     |> Enum.sort_by(&order(&1, sort_by), sort_dir)
   end
 
+  defp static_crontab(conf) do
+    conf.name
+    |> Met.crontab()
+    |> Enum.map(fn {expr, worker, opts} = entry ->
+      {expr, worker, opts, Oban.Plugins.Cron.entry_name(entry), false}
+    end)
+  end
+
+  defp dynamic_crontab(conf) do
+    alias Oban.Pro.Plugins.DynamicCron
+
+    if Utils.has_dynamic_cron?(conf) do
+      conf.name
+      |> DynamicCron.all()
+      |> Enum.map(fn cron -> {cron.expression, cron.worker, cron.opts, cron.name, true} end)
+    end
+  end
+
   # Construction
 
-  defp new({expr, worker, opts}, history) do
+  defp new({expr, worker, opts, name, dynamic?}, history) do
     fields = [
+      name: name,
       expression: expr,
       worker: worker,
       opts: opts,
+      dynamic?: dynamic?,
       next_at: next_at(expr),
       last_at: last_at(history, worker),
       last_state: get_in(history, [worker, :state])
@@ -133,18 +153,18 @@ defmodule Oban.Web.CronQuery do
     struct!(Cron, fields)
   end
 
-  # TODO: Correctly handle jobs with different args
-  # TODO: Support mysql/sqlite
-  defp crontab_history(workers, conf) do
+  defp crontab_history(crontab, conf) do
+    names = Enum.map(crontab, &elem(&1, 3))
+
     query =
       from(
-        f in fragment("json_array_elements_text(?)", ^workers),
+        f in fragment("jsonb_array_elements(?)", ^names),
         as: :list,
         inner_lateral_join:
           j in subquery(
             Job
             |> select(~w(state attempted_at cancelled_at completed_at discarded_at scheduled_at)a)
-            |> where([j], j.worker == parent_as(:list).value)
+            |> where([j], j.meta["cron_name"] == parent_as(:list).value)
             |> order_by(desc: :id)
             |> limit(1)
           ),
