@@ -256,9 +256,10 @@ defmodule Oban.Workers.PushNotifier do
   alias WebDev.Generator
 
   def gen(opts \\ []) do
-    fcm_ids = for _ <- 2..:rand.uniform(20), do: UUID.v4()
+    max = Enum.random(3..20)
+    ids = for _ <- 2..max, do: UUID.v4()
 
-    new(%{fcm_ids: fcm_ids, message: "Welcome to #{Team.name()}"}, opts)
+    new(%{fcm_ids: ids, message: "Welcome to #{Team.name()}"}, opts)
   end
 
   @impl Worker
@@ -579,6 +580,7 @@ Application.put_env(:phoenix, :persistent, true)
 oban_opts = [
   engine: Oban.Pro.Engines.Smart,
   notifier: Oban.Notifiers.PG,
+  peer: Oban.Peers.Global,
   repo: WebDev.Repo,
   queues: [
     analysis: 30,
@@ -595,13 +597,16 @@ oban_opts = [
   plugins: [
     {Oban.Pro.Plugins.DynamicLifeline, []},
     {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}},
+    {Oban.Pro.Plugins.DynamicCron, crontab: [
+       {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
+       {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
+       {"*/15 * * * *", Oban.Workers.DormantLocker},
+       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
+    ], sync_mode: :automatic},
     {Oban.Plugins.Cron,
      crontab: [
        {"* * * * *", Oban.Workers.HealthChecker, tags: ~w(health monitoring)},
        {"*/5 * * * *", Oban.Workers.CustomerSegmenter, args: %{batch_size: 1000}},
-       {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
-       {"*/15 * * * *", Oban.Workers.DormantLocker},
-       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
        {"30 */3 * * *", Oban.Workers.IndexRebuilder, priority: 1},
        {"0 */2 * * *", Oban.Workers.SecurityScanner, tags: ["security"]},
        {"0 6 * * MON", Oban.Workers.WeeklyUpdate, priority: 3}
