@@ -91,9 +91,9 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "~> 1.0"},
 
       # Oban
-      {:oban, "~> 2.19"},
+      {:oban, "2.20.1", path: "../oban", override: true},
       {:oban_met, "~> 1.0"},
-      {:oban_pro, "~> 1.5", repo: :oban, only: [:test, :dev]},
+      {:oban_pro, "~> 1.6", repo: :oban, only: [:test, :dev]},
 
       # Databases
       {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},
