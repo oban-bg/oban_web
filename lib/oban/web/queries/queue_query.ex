@@ -7,7 +7,7 @@ defmodule Oban.Web.QueueQuery do
   @suggest_qualifier [
     {"nodes:", "host name", "nodes:machine@somehost"},
     {"modes:", "a concurrency mode such as global", "global"},
-    {"stats:", "a status such as paused, global, etc.", "paused"}
+    {"stats:", "a status such as paused or terminating", "paused"}
   ]
 
   @suggest_mode [

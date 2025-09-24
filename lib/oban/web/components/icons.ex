@@ -6,23 +6,6 @@ defmodule Oban.Web.Components.Icons do
   attr :rest, :global,
     default: %{
       "aria-hidden": "true",
-      class: "w-4 h-4",
-      fill: "currentColor",
-      viewBox: "0 0 16 16"
-    }
-
-  slot :inner_block, required: true
-
-  defp svg_mini(assigns) do
-    ~H"""
-    <svg {@rest}>
-      {render_slot(@inner_block)}
-    </svg>
-    """
-  end
-
-  attr :rest, :global,
-    default: %{
       "stroke-width": "1.5",
       class: "w-6 h-6",
       fill: "none",

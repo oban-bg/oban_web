@@ -108,10 +108,26 @@ defmodule Oban.Web.Queues.TableComponent do
             {started_at(@queue)}
           </span>
 
-          <div class="w-20 pr-3 flex justify-end items-center space-x-1">
+          <div class="w-20 pr-3 flex justify-center items-center space-x-1">
+            <Icons.globe
+              :if={Queue.global_limit?(@queue)}
+              class="w-5 h-5"
+              data-title="Global limit"
+              id={"#{@queue.name}-has-global-limit"}
+              phx-hook="Tippy"
+              rel="has-global-limit"
+            />
+            <Icons.arrow_trending_down
+              :if={Queue.rate_limit?(@queue)}
+              class="w-5 h-5"
+              data-title="Rate limit"
+              id={"#{@queue.name}-has-rate-limit"}
+              phx-hook="Tippy"
+              rel="has-rate-limit"
+            />
             <Icons.pause_circle
               :if={Queue.all_paused?(@queue)}
-              class="w-4 h-4"
+              class="w-5 h-5"
               data-title="All paused"
               id={"#{@queue.name}-is-paused"}
               phx-hook="Tippy"
@@ -119,7 +135,7 @@ defmodule Oban.Web.Queues.TableComponent do
             />
             <Icons.play_pause_circle
               :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
-              class="w-4 h-4"
+              class="w-5 h-5"
               data-title="Some paused"
               id={"#{@queue.name}-is-some-paused"}
               phx-hook="Tippy"
@@ -127,7 +143,7 @@ defmodule Oban.Web.Queues.TableComponent do
             />
             <Icons.power
               :if={Queue.terminating?(@queue)}
-              class="w-4 h-4"
+              class="w-5 h-5"
               data-title="Terminating"
               id={"#{@queue.name}-is-terminating"}
               phx-hook="Tippy"

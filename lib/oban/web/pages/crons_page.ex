@@ -5,7 +5,7 @@ defmodule Oban.Web.CronsPage do
 
   alias Oban.Web.{Cron, CronQuery, Page, SearchComponent, SortComponent}
 
-  @known_params ~w(sort_by sort_dir workers states)
+  @known_params ~w(modes sort_by sort_dir states workers)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -127,9 +127,16 @@ defmodule Oban.Web.CronsPage do
           </span>
 
           <div class="w-20 pr-3 flex justify-end items-center space-x-1">
+            <Icons.sparkles
+              :if={@cron.dynamic?}
+              id={"cron-dynamic-icon-#{@cron.name}"}
+              class="w-5 h-5"
+              phx-hook="Tippy"
+              data-title="Dynamic cron"
+            />
+
             <span
               id={"cron-state-icon-#{@cron.name}"}
-              class="py-1.5 px-2 text-xs"
               phx-hook="Tippy"
               data-title={state_title(@cron)}
             >
@@ -143,6 +150,7 @@ defmodule Oban.Web.CronsPage do
   end
 
   attr :state, :string, required: true
+  attr :rest, :global
 
   defp state_icon(assigns) do
     ~H"""
