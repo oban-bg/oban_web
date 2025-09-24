@@ -11,6 +11,7 @@ defmodule Oban.Web.CronQuery do
 
   @suggest_qualifier [
     {"workers:", "cron worker name", "workers:MyApp.Worker"},
+    {"modes:", "cron mode (static/dynamic)", "modes:static"},
     {"states:", "last execution state", "states:completed"}
   ]
 
@@ -25,11 +26,16 @@ defmodule Oban.Web.CronQuery do
     {"unknown", "no previous jobs available", "unknown"}
   ]
 
+  @suggest_mode [
+    {"static", "regular cron job", "static"},
+    {"dynamic", "dynamic cron job", "dynamic"}
+  ]
+
   @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
 
   # Searching
 
-  def filterable, do: ~w(workers states)a
+  def filterable, do: ~w(workers states modes)a
 
   def parse(terms) when is_binary(terms) do
     Search.parse(terms, &parse_term/1)
@@ -47,6 +53,7 @@ defmodule Oban.Web.CronQuery do
       last ->
         case String.split(last, ":", parts: 2) do
           ["workers", frag] -> suggest_workers(frag, conf)
+          ["modes", frag] -> suggest_static(frag, @suggest_mode)
           ["states", frag] -> suggest_static(frag, @suggest_state)
           [frag] -> suggest_static(frag, @suggest_qualifier)
           _ -> []
@@ -98,6 +105,10 @@ defmodule Oban.Web.CronQuery do
     {:states, parsed}
   end
 
+  defp parse_term("modes:" <> modes) do
+    {:modes, String.split(modes, ",")}
+  end
+
   defp parse_term(_term), do: {:none, ""}
 
   # Querying
@@ -146,8 +157,8 @@ defmodule Oban.Web.CronQuery do
       opts: opts,
       dynamic?: dynamic?,
       next_at: next_at(expr),
-      last_at: last_at(history, worker),
-      last_state: get_in(history, [worker, :state])
+      last_at: last_at(history, name),
+      last_state: get_in(history, [name, :state])
     ]
 
     struct!(Cron, fields)
@@ -158,13 +169,13 @@ defmodule Oban.Web.CronQuery do
 
     query =
       from(
-        f in fragment("jsonb_array_elements(?)", ^names),
+        f in fragment("jsonb_array_elements_text(?)", ^names),
         as: :list,
         inner_lateral_join:
           j in subquery(
             Job
             |> select(~w(state attempted_at cancelled_at completed_at discarded_at scheduled_at)a)
-            |> where([j], j.meta["cron_name"] == parent_as(:list).value)
+            |> where([j], fragment("? @> jsonb_build_object('cron_name', ?)", j.meta, parent_as(:list).value))
             |> order_by(desc: :id)
             |> limit(1)
           ),
@@ -235,4 +246,8 @@ defmodule Oban.Web.CronQuery do
 
   defp filter(cron, {:workers, workers}), do: cron.worker in workers
   defp filter(cron, {:states, states}), do: cron.last_state in states
+
+  defp filter(cron, {:modes, modes}) do
+    if(cron.dynamic?, do: "dynamic", else: "static") in modes
+  end
 end
