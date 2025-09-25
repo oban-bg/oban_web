@@ -7,7 +7,7 @@ defmodule Oban.Web.CronQuery do
   alias Oban.{Job, Met, Repo}
   alias Oban.Web.{Cron, Search, Utils}
 
-  @compile {:no_warn_undefined, Oban.Pro.Plugins.DynamicCron}
+  @compile {:no_warn_undefined, Oban.Pro.Cron}
 
   @suggest_qualifier [
     {"workers:", "cron worker name", "workers:MyApp.Worker"},
@@ -138,12 +138,10 @@ defmodule Oban.Web.CronQuery do
   end
 
   defp dynamic_crontab(conf) do
-    alias Oban.Pro.Plugins.DynamicCron
-
     if Utils.has_dynamic_cron?(conf) do
-      conf.name
-      |> DynamicCron.all()
-      |> Enum.map(fn cron -> {cron.expression, cron.worker, cron.opts, cron.name, true} end)
+      query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true})
+
+      Repo.all(conf, query)
     end
   end
 
@@ -164,32 +162,34 @@ defmodule Oban.Web.CronQuery do
     struct!(Cron, fields)
   end
 
+  defmacrop contains_name(meta, value) do
+    quote do
+      fragment("? @> jsonb_build_object('cron_name', ?)", unquote(meta), unquote(value))
+    end
+  end
+
   defp crontab_history(crontab, conf) do
     names = Enum.map(crontab, &elem(&1, 3))
+    fields = ~w(state attempted_at cancelled_at completed_at discarded_at scheduled_at)a
+
+    ranked =
+      from t in subquery(
+             from o in Job,
+               where: contains_name(o.meta, parent_as(:list).value),
+               select: map(o, ^fields),
+               select_merge: %{
+                 rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
+               }
+           ),
+           where: t.rn == 1
 
     query =
       from(
-        f in fragment("jsonb_array_elements_text(?)", ^names),
+        f in fragment("json_array_elements_text(?)", ^names),
         as: :list,
-        inner_lateral_join:
-          j in subquery(
-            Job
-            |> select(~w(state attempted_at cancelled_at completed_at discarded_at scheduled_at)a)
-            |> where([j], fragment("? @> jsonb_build_object('cron_name', ?)", j.meta, parent_as(:list).value))
-            |> order_by(desc: :id)
-            |> limit(1)
-          ),
+        left_lateral_join: j in subquery(ranked),
         on: true,
-        select:
-          {f.value,
-           %{
-             state: j.state,
-             attempted_at: j.attempted_at,
-             cancelled_at: j.cancelled_at,
-             completed_at: j.completed_at,
-             discarded_at: j.discarded_at,
-             scheduled_at: j.scheduled_at
-           }}
+        select: {f.value, map(j, ^fields)}
       )
 
     conf
@@ -217,11 +217,11 @@ defmodule Oban.Web.CronQuery do
   # Sorting
 
   defp parse_sort(%{sort_by: "last_run", sort_dir: dir}) do
-    {:last_run, {String.to_existing_atom(dir), DateTime}}
+    {:last_run, {String.to_existing_atom(dir), NaiveDateTime}}
   end
 
   defp parse_sort(%{sort_by: "next_run", sort_dir: dir}) do
-    {:next_run, {String.to_existing_atom(dir), DateTime}}
+    {:next_run, {String.to_existing_atom(dir), NaiveDateTime}}
   end
 
   defp parse_sort(%{sort_by: sby, sort_dir: dir}) do

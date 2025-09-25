@@ -177,13 +177,21 @@ defmodule Oban.Web.CronsPage do
 
   defp state_title(cron) do
     case cron.last_state do
-      nil -> "Unknown, no previous runs"
-      state -> "#{String.capitalize(state)} as of #{DateTime.truncate(cron.last_at, :second)}"
+      nil ->
+        "Unknown, no previous runs"
+
+      state ->
+        "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
     end
   end
 
   defp maybe_to_unix(nil), do: ""
-  defp maybe_to_unix(timestamp), do: DateTime.to_unix(timestamp, :millisecond)
+
+  defp maybe_to_unix(timestamp) do
+    timestamp
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.to_unix(:millisecond)
+  end
 
   @impl Page
   def handle_mount(socket) do
@@ -192,12 +200,13 @@ defmodule Oban.Web.CronsPage do
     socket
     |> assign_new(:default_params, default)
     |> assign_new(:params, default)
-    |> assign_new(:crontab, fn -> crontab(socket.assigns.conf) end)
+    |> assign_new(:crontab, fn -> [] end)
   end
 
   @impl Page
   def handle_refresh(socket) do
     crons = CronQuery.all_crons(socket.assigns.params, socket.assigns.conf)
+
     assign(socket, crontab: crons)
   end
 
@@ -232,10 +241,6 @@ defmodule Oban.Web.CronsPage do
 
   def handle_info(_event, socket) do
     {:noreply, socket}
-  end
-
-  defp crontab(conf) do
-    CronQuery.all_crons(%{}, conf)
   end
 
   defp format_opts(opts) when map_size(opts) == 0, do: "[]"
