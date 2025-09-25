@@ -431,7 +431,7 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def call_with_fallback(resolver, fun, args) when is_atom(fun) and is_list(args) do
-    resolver = if function_exported?(resolver, fun, length(args)), do: resolver, else: __MODULE__
+    resolver = if Code.ensure_loaded(resolver) && function_exported?(resolver, fun, length(args)), do: resolver, else: __MODULE__
 
     apply(resolver, fun, args)
   end
