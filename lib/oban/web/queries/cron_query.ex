@@ -129,6 +129,24 @@ defmodule Oban.Web.CronQuery do
     |> Enum.sort_by(&order(&1, sort_by), sort_dir)
   end
 
+  # TODO: This should be `get_cron`, and we need better queries. No need to load all the dynamic crons
+  # to get the value.
+  def find_cron(name, conf) when is_binary(name) do
+    crontab = static_crontab(conf) ++ dynamic_crontab(conf)
+    history = crontab_history(crontab, conf)
+
+    crontab
+    |> Enum.find(fn {_expr, _worker, _opts, cron_name, _dynamic?} -> cron_name == name end)
+    |> case do
+      nil -> nil
+      entry -> new(entry, history)
+    end
+  end
+
+  def refresh_cron(conf, %Cron{name: name}), do: find_cron(name, conf)
+  def refresh_cron(conf, name) when is_binary(name), do: find_cron(name, conf)
+  def refresh_cron(_conf, nil), do: nil
+
   defp static_crontab(conf) do
     conf.name
     |> Met.crontab()
@@ -184,13 +202,11 @@ defmodule Oban.Web.CronQuery do
            where: t.rn == 1
 
     query =
-      from(
-        f in fragment("json_array_elements_text(?)", ^names),
+      from f in fragment("json_array_elements_text(?)", ^names),
         as: :list,
         left_lateral_join: j in subquery(ranked),
         on: true,
         select: {f.value, map(j, ^fields)}
-      )
 
     conf
     |> Repo.all(query)

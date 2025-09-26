@@ -3,6 +3,7 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
+  alias Oban.Web.Crons.DetailComponent
   alias Oban.Web.{Cron, CronQuery, Page, SearchComponent, SortComponent}
 
   @known_params ~w(modes sort_by sort_dir states workers)
@@ -12,6 +13,16 @@ defmodule Oban.Web.CronsPage do
     ~H"""
     <div id="crons-page" class="w-full flex flex-col my-6 md:flex-row">
       <div class="bg-white dark:bg-gray-900 flex-grow rounded-md shadow-lg overflow-hidden">
+        <%= if @detailed do %>
+          <.live_component
+            id="detail"
+            access={@access}
+            cron={@detailed}
+            module={DetailComponent}
+            params={without_defaults(Map.delete(@params, "id"), @default_params)}
+            resolver={@resolver}
+          />
+        <% else %>
         <div
           id="crons-header"
           class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
@@ -63,6 +74,7 @@ defmodule Oban.Web.CronsPage do
             <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
           </ul>
         </div>
+        <% end %>
       </div>
     </div>
     """
@@ -90,7 +102,10 @@ defmodule Oban.Web.CronsPage do
     <li id={"cron-#{@id}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
       <Core.row_checkbox click="toggle-select" value={@cron.worker} checked={false} myself={@myself} />
 
-      <div class="py-2.5 flex flex-grow items-center">
+      <.link
+        patch={oban_path([:crons, @cron.name])}
+        class="py-2.5 flex flex-grow items-center cursor-pointer"
+      >
         <div class="w-1/3">
           <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300">
             {@cron.worker}
@@ -144,7 +159,7 @@ defmodule Oban.Web.CronsPage do
             </span>
           </div>
         </div>
-      </div>
+      </.link>
     </li>
     """
   end
@@ -199,6 +214,7 @@ defmodule Oban.Web.CronsPage do
 
     socket
     |> assign_new(:default_params, default)
+    |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:params, default)
     |> assign_new(:crontab, fn -> [] end)
   end
@@ -207,10 +223,32 @@ defmodule Oban.Web.CronsPage do
   def handle_refresh(socket) do
     crons = CronQuery.all_crons(socket.assigns.params, socket.assigns.conf)
 
-    assign(socket, crontab: crons)
+    assign(socket,
+      crontab: crons,
+      detailed: CronQuery.refresh_cron(socket.assigns.conf, socket.assigns.detailed)
+    )
   end
 
   @impl Page
+  def handle_params(%{"id" => cron_name} = params, _uri, socket) do
+    params =
+      params
+      |> Map.take(@known_params)
+      |> decode_params()
+      |> then(&Map.merge(socket.assigns.default_params, &1))
+
+    case CronQuery.find_cron(cron_name, socket.assigns.conf) do
+      nil ->
+        {:noreply, push_patch(socket, to: oban_path(:crons), replace: true)}
+
+      cron ->
+        {:noreply,
+         socket
+         |> assign(detailed: cron, page_title: page_title(cron.worker))
+         |> assign(params: params)}
+    end
+  end
+
   def handle_params(params, _uri, socket) do
     params =
       params
@@ -219,7 +257,7 @@ defmodule Oban.Web.CronsPage do
 
     socket =
       socket
-      |> assign(page_title: page_title("Crons"))
+      |> assign(detailed: nil, page_title: page_title("Crons"))
       |> assign(params: Map.merge(socket.assigns.default_params, params))
       |> handle_refresh()
 
