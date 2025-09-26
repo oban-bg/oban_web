@@ -484,4 +484,11 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def bulk_action_limit(_state), do: 1_000
+
+  @doc false
+  def format_cron_opts(opts) when map_size(opts) == 0, do: "[]"
+
+  def format_cron_opts(opts) do
+    Enum.map_join(opts, ", ", fn {key, val} -> "#{key}: #{inspect(val)}" end)
+  end
 end
