@@ -91,6 +91,10 @@ select:-moz-focusring {
 /* Tailwind */
 
 @import "tailwindcss";
+
+/* Custom dark mode variant using .dark class selector for class-based dark mode toggling - see https://tailwindcss.com/docs/dark-mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @plugin "@tailwindcss/forms";
 
 @source "../../lib/**/*.*ex";
