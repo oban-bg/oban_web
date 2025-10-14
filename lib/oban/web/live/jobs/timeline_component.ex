@@ -102,9 +102,9 @@ defmodule Oban.Web.Jobs.TimelineComponent do
         |> DateTime.diff(now)
         |> Timing.to_duration()
 
-      {"executing", "completed", at} ->
+      {"executing", "completed", _at} ->
         words =
-          at
+          job.completed_at
           |> DateTime.diff(now)
           |> Timing.to_words()
 
