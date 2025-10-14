@@ -5,6 +5,7 @@ import { loadAll } from "./lib/settings";
 
 import Charter from "./hooks/charter";
 import Completer from "./hooks/completer";
+import HistoryBack from "./hooks/history_back";
 import Instantiator from "./hooks/instantiator";
 import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
@@ -15,6 +16,7 @@ import Tippy from "./hooks/tippy";
 const hooks = {
   Charter,
   Completer,
+  HistoryBack,
   Instantiator,
   Refresher,
   Relativize,
