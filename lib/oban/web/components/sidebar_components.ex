@@ -47,7 +47,7 @@ defmodule Oban.Web.SidebarComponents do
         <h3 class="dark:text-gray-200 font-bold">{String.capitalize(@name)}</h3>
 
         <div class="ml-auto flex space-x-2 text-right text-xs tracking-tight text-gray-600 dark:text-gray-400 uppercase">
-          <span :for={header <- @headers} class="w-10">{header}</span>
+          <span :for={header <- @headers} class="w-12">{header}</span>
         </div>
       </header>
 

@@ -23,57 +23,57 @@ defmodule Oban.Web.CronsPage do
             resolver={@resolver}
           />
         <% else %>
-        <div
-          id="crons-header"
-          class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex-none flex items-center pr-12">
-            <Core.all_checkbox click="toggle-select-all" checked={:none} myself={@myself} />
+          <div
+            id="crons-header"
+            class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
+          >
+            <div class="flex-none flex items-center pr-12">
+              <Core.all_checkbox click="toggle-select-all" checked={:none} myself={@myself} />
 
-            <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
-          </div>
+              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
+            </div>
 
-          <.live_component
-            conf={@conf}
-            id="search"
-            module={SearchComponent}
-            page={:crons}
-            params={without_defaults(@params, @default_params)}
-            queryable={CronQuery}
-            resolver={@resolver}
-          />
-
-          <div class="pl-3 ml-auto">
-            <SortComponent.select
-              id="crons-sort"
-              by={~w(worker schedule last_run next_run)}
+            <.live_component
+              conf={@conf}
+              id="search"
+              module={SearchComponent}
               page={:crons}
-              params={@params}
+              params={without_defaults(@params, @default_params)}
+              queryable={CronQuery}
+              resolver={@resolver}
             />
-          </div>
-        </div>
 
-        <div id="crons-table" class="min-w-full">
-          <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
-            <.header label="name" class="ml-12 w-1/3 text-left" />
-            <div class="ml-auto flex items-center space-x-6">
-              <.header label="schedule" class="w-32 text-right" />
-              <.header label="last run" class="w-32 text-right" />
-              <.header label="next run" class="w-32 text-right" />
-              <.header label="status" class="w-20 pr-3 text-right" />
-            </div>
-          </ul>
-
-          <div :if={Enum.empty?(@crontab)} class="text-lg text-center py-12">
-            <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
-              <Icons.no_symbol /> <span>No crons are configured.</span>
+            <div class="pl-3 ml-auto">
+              <SortComponent.select
+                id="crons-sort"
+                by={~w(worker schedule last_run next_run)}
+                page={:crons}
+                params={@params}
+              />
             </div>
           </div>
 
-          <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-            <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
-          </ul>
-        </div>
+          <div id="crons-table" class="min-w-full">
+            <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
+              <.header label="name" class="ml-12 w-1/3 text-left" />
+              <div class="ml-auto flex items-center space-x-6">
+                <.header label="schedule" class="w-32 text-right" />
+                <.header label="last run" class="w-32 text-right" />
+                <.header label="next run" class="w-32 text-right" />
+                <.header label="status" class="w-20 pr-3 text-right" />
+              </div>
+            </ul>
+
+            <div :if={Enum.empty?(@crontab)} class="text-lg text-center py-12">
+              <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
+                <Icons.no_symbol /> <span>No crons are configured.</span>
+              </div>
+            </div>
+
+            <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+              <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
+            </ul>
+          </div>
         <% end %>
       </div>
     </div>
