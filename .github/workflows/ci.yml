@@ -74,11 +74,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-mix-${{matrix.pair.elixir}}-${{matrix.pair.otp}}-
 
-      - name: Authorize with Oban
-        env:
-          OBAN_API_KEY: ${{secrets.oban_api_key}}
-        run: mix hex.repo add oban https://repo.oban.pro --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc --auth-key $OBAN_API_KEY
-
       - name: Seed fake assets
         run: mkdir -p priv/static && touch priv/static/app.css && touch priv/static/app.js
 

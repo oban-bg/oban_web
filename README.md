@@ -78,18 +78,46 @@ installing and configuring Oban Web for your application.
 
 ## Contributing
 
-To run the Oban Web test suite you must have PostgreSQL 12+ and MySQL 8+ running as well as access
-to a valid [Oban Pro](https://oban.pro) license. Once dependencies are installed, setup the
-databases and run necessary migrations:
+To run the Oban Web test suite you must have PostgreSQL 12+ and MySQL 8+ running. Once dependencies
+are installed, setup the databases and run necessary migrations:
 
 ```bash
 mix test.setup
 ```
 
+### Development Server
+
 For development, a single file server that generates a wide variety of fake jobs is built in:
 
 ```bash
 iex -S mix dev
+```
+
+### Testing with Oban Pro
+
+Oban Pro is an optional dependency for development and testing. The test suite will automatically
+skip Pro-dependent tests (tagged with `@tag :pro`) when Oban Pro is not available.
+
+To run tests with Pro features, you'll need access to a valid [Oban Pro](https://oban.pro)
+license. First, authorize with the Oban repository:
+
+```bash
+mix hex.repo add oban https://repo.oban.pro \
+  --fetch-public-key SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc \
+  --auth-key YOUR_AUTH_KEY
+```
+
+Then fetch dependencies and run the full test suite:
+
+```bash
+mix deps.get
+mix test
+```
+
+To explicitly run tests without Oban Pro:
+
+```bash
+mix test --exclude pro
 ```
 
 ## Community

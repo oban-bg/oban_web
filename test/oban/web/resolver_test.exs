@@ -4,15 +4,16 @@ defmodule Oban.Web.ResolverTest do
   alias Ecto.Changeset
   alias Oban.Web.Resolver
 
-  defmodule Decorated do
-    use Oban.Pro.Decorator
-
-    @job true
-    def foo(id), do: {:ok, id}
-  end
-
   describe "format_job_args/1" do
+    @tag :pro
     test "decoding args from decorated jobs" do
+      defmodule Decorated do
+        use Oban.Pro.Decorator
+
+        @job true
+        def foo(id), do: {:ok, id}
+      end
+
       formatted =
         123
         |> Decorated.new_foo()

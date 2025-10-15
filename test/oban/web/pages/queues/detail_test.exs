@@ -3,22 +3,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
   import Phoenix.LiveViewTest
 
-  setup do
-    start_supervised_oban!()
-
-    :ok = Oban.Notifier.listen([:signal])
-
-    :telemetry.attach(
-      __MODULE__,
-      [:oban_web, :action, :stop],
-      &__MODULE__.handle_event/4,
-      self()
-    )
-
-    on_exit(fn -> :telemetry.detach(__MODULE__) end)
-
-    :ok
-  end
+  setup [:start_supervised_oban!, :attach_signals]
 
   test "viewing details for an inoperative queue" do
     {:error, {:live_redirect, %{to: "/oban/queues"}}} = live(build_conn(), "/oban/queues/omicron")
@@ -40,6 +25,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
   end
 
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
   test "setting the global limit across all nodes" do
     gossip(local_limit: 5, global_limit: nil, queue: "alpha")
 
@@ -69,6 +55,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
   test "configuring global partitioning" do
     gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
@@ -100,6 +87,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
   test "setting the rate limit across all nodes" do
     gossip(local_limit: 5, queue: "alpha")
 
@@ -129,6 +117,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
   test "configuring rate limit partitioning" do
     gossip(local_limit: 5, rate_limit: %{allowed: 10, period: 1}, queue: "alpha")
 
@@ -196,6 +185,21 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
   end
 
   # Helpers
+
+  defp attach_signals(_context) do
+    :ok = Oban.Notifier.listen([:signal])
+
+    :telemetry.attach(
+      __MODULE__,
+      [:oban_web, :action, :stop],
+      &__MODULE__.handle_event/4,
+      self()
+    )
+
+    on_exit(fn -> :telemetry.detach(__MODULE__) end)
+
+    :ok
+  end
 
   def handle_event([:oban_web, :action, _event], _measure, meta, pid) do
     send(pid, {:action, meta})

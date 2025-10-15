@@ -83,4 +83,12 @@ Oban.Web.Endpoint.start_link()
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.MyXQLRepo, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 
-ExUnit.start(assert_receive_timeout: 500, refute_receive_timeout: 50, exclude: [:skip])
+# Automatically exclude :pro tagged tests if Oban Pro is not available
+exclude_tags =
+  if Code.ensure_loaded?(Oban.Pro) do
+    [:skip]
+  else
+    [:skip, :pro]
+  end
+
+ExUnit.start(assert_receive_timeout: 500, refute_receive_timeout: 50, exclude: exclude_tags)

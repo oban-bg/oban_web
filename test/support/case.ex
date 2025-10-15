@@ -5,7 +5,6 @@ defmodule Oban.Web.Case do
 
   alias Ecto.Adapters.SQL.Sandbox
   alias Oban.{Job, Notifier}
-  alias Oban.Pro.Testing
   alias Oban.Web.{MyXQLRepo, Repo, SQLiteRepo}
 
   using do
@@ -48,16 +47,31 @@ defmodule Oban.Web.Case do
     :ok
   end
 
-  def start_supervised_oban!(opts \\ []) do
-    opts =
-      opts
-      |> Keyword.put_new(:name, Oban)
-      |> Keyword.put_new(:repo, Repo)
+  def start_supervised_oban!(opts_or_context \\ [])
 
-    name = Testing.start_supervised_oban!(opts)
-    conf = Oban.config(name)
+  def start_supervised_oban!(context) when is_map(context) do
+    opts = Map.get(context, :oban_opts, [])
 
-    start_supervised!({Oban.Met, conf: conf})
+    start_supervised_oban!(opts)
+
+    :ok
+  end
+
+  def start_supervised_oban!(opts) do
+    base_opts = [
+      name: Oban,
+      notifier: Oban.Notifiers.Isolated,
+      peer: Oban.Peers.Isolated,
+      plugins: [Oban.Met],
+      repo: Repo,
+      stage_interval: :infinity,
+      shutdown_grace_period: 250
+    ]
+
+    opts = Keyword.merge(base_opts, opts)
+    name = Keyword.fetch!(opts, :name)
+
+    start_supervised!({Oban, opts})
 
     name
   end

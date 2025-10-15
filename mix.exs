@@ -92,7 +92,6 @@ defmodule Oban.Web.MixProject do
       # Oban
       {:oban, "~> 2.19"},
       {:oban_met, "~> 1.0"},
-      {:oban_pro, "~> 1.5", repo: :oban, only: [:test, :dev]},
 
       # Databases
       {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},
@@ -114,7 +113,27 @@ defmodule Oban.Web.MixProject do
       # Docs and Publishing
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:makeup_diff, "~> 0.1", only: :dev, runtime: false}
-    ]
+    ] ++ oban_pro_dep()
+  end
+
+  defp oban_pro_dep do
+    if oban_repo_configured?() do
+      [{:oban_pro, "~> 1.5", repo: :oban, only: [:test, :dev]}]
+    else
+      []
+    end
+  end
+
+  defp oban_repo_configured? do
+    hex_config = Path.expand("~/.hex/hex.config")
+
+    case File.read(hex_config) do
+      {:ok, content} ->
+        String.contains?(content, "repo.oban.pro")
+
+      {:error, _} ->
+        false
+    end
   end
 
   defp aliases do
