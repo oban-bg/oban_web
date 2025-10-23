@@ -14,14 +14,10 @@ defmodule Oban.Web.MixProject do
       deps: deps(),
       docs: docs(),
       aliases: aliases(),
+      listeners: [Phoenix.CodeReloader],
       package: package(),
       name: "Oban Web",
-      description: "Dashboard for the Oban job processing framework",
-      preferred_cli_env: [
-        "test.ci": :test,
-        "test.reset": :test,
-        "test.setup": :test
-      ]
+      description: "Dashboard for the Oban job processing framework"
     ]
   end
 
@@ -31,6 +27,10 @@ defmodule Oban.Web.MixProject do
       mod: {Oban.Web.Application, []},
       env: [cache: true]
     ]
+  end
+
+  def cli do
+    [preferred_envs: ["test.ci": :test, "test.reset": :test, "test.setup": :test]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
