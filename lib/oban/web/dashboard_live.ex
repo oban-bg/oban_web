@@ -12,6 +12,7 @@ defmodule Oban.Web.DashboardLive do
 
     refresh = restore_state(socket, "refresh", refresh)
     theme = restore_state(socket, "theme", "system")
+    sidebar_width = restore_state(socket, "sidebar_width", 320)
     oban = current_oban_instance(session, socket)
 
     conf = await_init([oban], :supervisor)
@@ -26,6 +27,7 @@ defmodule Oban.Web.DashboardLive do
       |> assign(live_path: live_path, live_transport: live_transport)
       |> assign(access: access, csp_nonces: csp_nonces, resolver: resolver, user: user)
       |> assign(original_refresh: nil, refresh: refresh, timer: nil, theme: theme)
+      |> assign(sidebar_width: sidebar_width)
       |> init_schedule_refresh()
       |> page.comp.handle_mount()
 
@@ -78,7 +80,18 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_params(params, uri, socket) do
-    socket.assigns.page.comp.handle_params(params, uri, socket)
+    page = resolve_page(params)
+
+    if page == socket.assigns.page do
+      page.comp.handle_params(params, uri, socket)
+    else
+      socket =
+        socket
+        |> assign(params: params, page: page)
+        |> page.comp.handle_mount()
+
+      page.comp.handle_params(params, uri, socket)
+    end
   end
 
   @impl Phoenix.LiveView
@@ -89,7 +102,9 @@ defmodule Oban.Web.DashboardLive do
   def handle_info(:pause_refresh, socket) do
     socket =
       if socket.assigns.refresh > 0 do
-        assign(socket, refresh: -1, original_refresh: socket.assigns.refresh)
+        cancel_timer(socket)
+
+        assign(socket, refresh: -1, original_refresh: socket.assigns.refresh, timer: nil)
       else
         socket
       end
@@ -170,6 +185,15 @@ defmodule Oban.Web.DashboardLive do
     socket.assigns.page.comp.handle_info(message, socket)
   end
 
+  @impl Phoenix.LiveView
+  def handle_event("sidebar_resize", %{"width" => width}, socket) do
+    {:noreply, assign(socket, sidebar_width: width)}
+  end
+
+  def handle_event(event, params, socket) do
+    socket.assigns.page.comp.handle_event(event, params, socket)
+  end
+
   ## Mount Helpers
 
   defp await_init([oban_name | _] = args, proc, timeout \\ 15_000) do
@@ -225,7 +249,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   defp schedule_refresh(socket) do
-    if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
+    cancel_timer(socket)
 
     if socket.assigns.refresh > 0 do
       interval = :timer.seconds(socket.assigns.refresh) - 50
@@ -234,5 +258,9 @@ defmodule Oban.Web.DashboardLive do
     else
       assign(socket, timer: nil)
     end
+  end
+
+  defp cancel_timer(socket) do
+    if is_reference(socket.assigns.timer), do: Process.cancel_timer(socket.assigns.timer)
   end
 end

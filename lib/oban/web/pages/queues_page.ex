@@ -15,7 +15,11 @@ defmodule Oban.Web.QueuesPage do
   def render(assigns) do
     ~H"""
     <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
-      <SidebarComponent.sidebar queues={@queues} params={without_defaults(@params, @default_params)} />
+      <SidebarComponent.sidebar
+        queues={@queues}
+        params={without_defaults(@params, @default_params)}
+        width={@sidebar_width}
+      />
 
       <div class="flex-grow">
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
@@ -125,11 +129,16 @@ defmodule Oban.Web.QueuesPage do
     """
   end
 
+  @keep_on_mount ~w(checks counts default_params detail params queues selected)a
+
   @impl Page
   def handle_mount(socket) do
     default = fn -> %{sort_by: "name", sort_dir: "asc"} end
 
-    socket
+    assigns =
+      Map.drop(socket.assigns, @keep_on_mount)
+
+    %{socket | assigns: assigns}
     |> assign_new(:checks, fn -> checks(socket.assigns.conf) end)
     |> assign_new(:counts, fn -> counts(socket.assigns.conf) end)
     |> assign_new(:default_params, default)

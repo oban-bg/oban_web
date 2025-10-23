@@ -147,9 +147,9 @@ defmodule Oban.Web.Layouts do
       <.link
         :for={page <- [:jobs, :queues]}
         class={link_class(@page, page)}
-        data-shortcut={JS.navigate(oban_path(page))}
+        data-shortcut={JS.patch(oban_path(page))}
         id={"nav-#{page}"}
-        navigate={oban_path(page)}
+        patch={oban_path(page)}
         title={"Navigate to #{String.capitalize(to_string(page))}"}
       >
         {String.capitalize(to_string(page))}

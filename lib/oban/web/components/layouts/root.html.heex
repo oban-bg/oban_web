@@ -26,6 +26,10 @@
       } else {
         document.documentElement.classList.remove("dark")
       }
+
+      // Apply sidebar width before page renders to prevent flash
+      const sidebarWidth = JSON.parse(localStorage.getItem("oban:sidebar_width")) || 320;
+      document.documentElement.style.setProperty("--sidebar-width", sidebarWidth + "px");
     </script>
 
     <script nonce={@csp_nonces.script} src={asset_path(@conn, :js)} defer>

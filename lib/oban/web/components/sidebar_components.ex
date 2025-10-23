@@ -1,14 +1,16 @@
 defmodule Oban.Web.SidebarComponents do
   use Oban.Web, :html
 
+  attr :width, :integer, default: 320
+  slot :inner_block
+
   def sidebar(assigns) do
     ~H"""
     <div
       id="sidebar"
       class="relative flex-none mr-2 pr-3"
       phx-hook="SidebarResizer"
-      phx-update="ignore"
-      style="width: 320px;"
+      style={"width: var(--sidebar-width, #{@width}px);"}
     >
       {render_slot(@inner_block)}
 
@@ -16,7 +18,8 @@ defmodule Oban.Web.SidebarComponents do
         data-resize-handle
         class="absolute top-0 right-0 bottom-0 w-1 cursor-col-resize group hover:bg-violet-400 transition-colors"
       >
-        <div class="absolute top-8 right-0 w-1 h-12 bg-gray-300 dark:bg-gray-600 group-hover:bg-violet-500 rounded-full transition-colors"></div>
+        <div class="absolute top-8 right-0 w-1 h-12 bg-gray-300 dark:bg-gray-600 group-hover:bg-violet-500 rounded-full transition-colors">
+        </div>
       </div>
     </div>
     """

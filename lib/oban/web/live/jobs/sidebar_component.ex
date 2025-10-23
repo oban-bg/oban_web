@@ -8,10 +8,11 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :params, :map
   attr :queues, :list
   attr :states, :list
+  attr :width, :integer, default: 320
 
   def sidebar(assigns) do
     ~H"""
-    <SidebarComponents.sidebar>
+    <SidebarComponents.sidebar width={@width}>
       <SidebarComponents.section name="states" headers={~w(count)}>
         <SidebarComponents.filter_row
           :for={state <- @states}

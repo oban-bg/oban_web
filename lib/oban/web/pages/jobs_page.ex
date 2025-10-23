@@ -12,6 +12,11 @@ defmodule Oban.Web.JobsPage do
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent
+  def update(assigns, socket) do
+    {:ok, assign(socket, assigns)}
+  end
+
+  @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
@@ -20,6 +25,7 @@ defmodule Oban.Web.JobsPage do
         params={without_defaults(@params, @default_params)}
         queues={@queues}
         states={@states}
+        width={@sidebar_width}
       />
 
       <div class="flex-grow">
@@ -143,13 +149,17 @@ defmodule Oban.Web.JobsPage do
     """
   end
 
+  @keep_on_mount ~w(default_params detailed jobs nodes params queues selected states)a
+
   @impl Page
   def handle_mount(socket) do
     default = fn ->
       %{limit: 20, sort_by: "time", sort_dir: "asc", state: "executing"}
     end
 
-    socket
+    assigns = Map.drop(socket.assigns, @keep_on_mount)
+
+    %{socket | assigns: assigns}
     |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:jobs, fn -> [] end)
