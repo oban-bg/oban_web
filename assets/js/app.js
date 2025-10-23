@@ -10,6 +10,7 @@ import Instantiator from "./hooks/instantiator";
 import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
 import Shortcuts from "./hooks/shortcuts";
+import SidebarResizer from "./hooks/sidebar_resizer";
 import Themer from "./hooks/themer";
 import Tippy from "./hooks/tippy";
 
@@ -21,6 +22,7 @@ const hooks = {
   Refresher,
   Relativize,
   Shortcuts,
+  SidebarResizer,
   Themer,
   Tippy,
 };
