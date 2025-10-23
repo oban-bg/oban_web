@@ -254,8 +254,10 @@ defmodule Oban.Web.QueuesPage do
   def handle_info(:pause_queues, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    Telemetry.action(:pause_queues, socket, [], fn ->
-      Enum.each(socket.assigns.selected, &Oban.pause_queue(socket.assigns.conf.name, queue: &1))
+    queues = socket.assigns.selected
+
+    Telemetry.action(:pause_queues, socket, [queues: queues], fn ->
+      Enum.each(queues, &Oban.pause_queue(socket.assigns.conf.name, queue: &1))
     end)
 
     socket =
@@ -269,8 +271,10 @@ defmodule Oban.Web.QueuesPage do
   def handle_info(:resume_queues, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 
-    Telemetry.action(:resume_queues, socket, [], fn ->
-      Enum.each(socket.assigns.selected, &Oban.resume_queue(socket.assigns.conf.name, queue: &1))
+    queues = socket.assigns.selected
+
+    Telemetry.action(:resume_queues, socket, [queues: queues], fn ->
+      Enum.each(queues, &Oban.resume_queue(socket.assigns.conf.name, queue: &1))
     end)
 
     socket =
@@ -284,8 +288,10 @@ defmodule Oban.Web.QueuesPage do
   def handle_info(:stop_queues, socket) do
     enforce_access!(:stop_queues, socket.assigns.access)
 
-    Telemetry.action(:stop_queues, socket, [], fn ->
-      Enum.each(socket.assigns.selected, &Oban.stop_queue(socket.assigns.conf.name, queue: &1))
+    queues = socket.assigns.selected
+
+    Telemetry.action(:stop_queues, socket, [queues: queues], fn ->
+      Enum.each(queues, &Oban.stop_queue(socket.assigns.conf.name, queue: &1))
     end)
 
     socket =

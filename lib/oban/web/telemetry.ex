@@ -35,6 +35,9 @@ defmodule Oban.Web.Telemetry do
   | `:mount`             |                    |
   | `:pause_queue`       | `:queue`           |
   | `:resume_queue`      | `:queue`           |
+  | `:pause_queues`      | `:queues`          |
+  | `:resume_queues`     | `:queues`          |
+  | `:stop_queues`       | `:queues`          |
   | `:pause_all_queues`  |                    |
   | `:resume_all_queues` |                    |
   | `:scale_queue`       | `:queue`, `:limit` |
