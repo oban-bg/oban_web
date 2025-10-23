@@ -76,6 +76,52 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.5 - 2025-10-23
+
+### Enhancements
+
+- [Dashboard] Extract CSS and JS assets into dedicated plug module
+
+  The changes move CSS/JS assets from layouts into a dedicated plug module, enabling cached and
+  immutable asset serving.
+
+- [Dashboard] Upgrade to Tailwind v4 with updated styles
+
+- [Dashboard] Add sidebar resizing with local persistence
+
+  The sidebar can now be resized within a small range of sizes to compensate for long queue names
+  or larger screens. The adjusted size is persisted as a setting within local storage, preserving
+  it across reloads.
+
+- [Dashboard] Overhaul navigation for state retention between pages
+
+  Page navigation uses patch rather than navigate to prevent re-mounting the dashboard. This was
+  essential to retain sidebar changes during page transitions.
+
+- [Telemetry] Add `queues` to metadata of `*_queues` telemetry events
+
+  Telemetry events for `pause_queues`, `resume_queues`, and `stop_queues` now include the
+  selected queues.
+
+### Bug Fixes
+
+- [Router] Ensure the resolver module is loaded
+
+  Optional resolver modules are now loaded before checking whether they export a function. This
+  ensures functions are correctly identified, as they aren't automatically loaded locally by
+  Elixir (unless eager module loading is turned on).
+
+- [Jobs] Display correct completed_at timestamp in details
+
+  Completed jobs would show a relative time value that matched how long the job took rather than
+  when it completed.
+
+- [Dashboard] Use history navigation for detail back buttons
+
+  Clicking the back arrow in job and queue detail pages removed any applied params, as it dropped
+  any non-id params on navigation. The new approach uses a history hook that leverages native
+  window history instead.
+
 ## v2.11.4 - 2025-07-31
 
 ### Enhancements
