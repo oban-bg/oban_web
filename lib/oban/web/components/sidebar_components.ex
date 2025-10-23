@@ -3,7 +3,22 @@ defmodule Oban.Web.SidebarComponents do
 
   def sidebar(assigns) do
     ~H"""
-    <div id="sidebar" class="mr-3">{render_slot(@inner_block)}</div>
+    <div
+      id="sidebar"
+      class="relative flex-none mr-2 pr-3"
+      phx-hook="SidebarResizer"
+      phx-update="ignore"
+      style="width: 320px;"
+    >
+      {render_slot(@inner_block)}
+
+      <div
+        data-resize-handle
+        class="absolute top-0 right-0 bottom-0 w-1 cursor-col-resize group hover:bg-violet-400 transition-colors"
+      >
+        <div class="absolute top-8 right-0 w-1 h-12 bg-gray-300 dark:bg-gray-600 group-hover:bg-violet-500 rounded-full transition-colors"></div>
+      </div>
+    </div>
     """
   end
 
@@ -13,8 +28,8 @@ defmodule Oban.Web.SidebarComponents do
 
   def section(assigns) do
     ~H"""
-    <div id={@name} class="bg-transparent dark:bg-transparent w-fill mb-3 overflow-hidden md:w-84">
-      <header class="flex justify-between items-center border-b border-gray-300 dark:border-gray-700 py-3">
+    <div id={@name} class="bg-transparent dark:bg-transparent w-full mb-3 overflow-hidden">
+      <header class="flex justify-between items-center py-3">
         <button
           id={"#{@name}-toggle"}
           class="text-gray-400 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-500"
@@ -22,7 +37,7 @@ defmodule Oban.Web.SidebarComponents do
           phx-click={toggle(@name)}
           phx-hook="Tippy"
         >
-          <Icons.chevron_right class="w-5 h-5 mr-2 transition-transform rotate-90" />
+          <Icons.chevron_right class="w-4 h-4 mt-1 mr-1 transition-transform rotate-90" />
         </button>
 
         <h3 class="dark:text-gray-200 font-bold">{String.capitalize(@name)}</h3>
@@ -64,7 +79,7 @@ defmodule Oban.Web.SidebarComponents do
 
     ~H"""
     <.link
-      class={["flex justify-between pr-2 py-2 my-0.5 border-l-4 border-transparent", @class]}
+      class={["flex justify-between pr-2 py-2 ml-2 my-0.5 border-l-4 border-transparent", @class]}
       id={"filter-#{@name}"}
       patch={@patch}
       replace={true}
