@@ -76,6 +76,15 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.6 - 2025-10-24
+
+### Bug Fixes
+
+- [Dashboard] Extract current prefix for correct asset routing
+
+  The prefix was mistakenly hard coded to `/oban`, which broke the dashboard for any non-standard
+  paths. Now the value is extracted from the live view session.
+
 ## v2.11.5 - 2025-10-23
 
 ### Enhancements
