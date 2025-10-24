@@ -6,8 +6,9 @@ defmodule Oban.Web.Layouts do
   defp asset_path(conn, asset) when asset in [:css, :js] do
     hash = Oban.Web.Assets.current_hash(asset)
 
-    # prefix = conn.private.phoenix_router.__live_dashboard_prefix__()
-    prefix = "/oban"
+    {_dash, _routing, meta} = conn.private.phoenix_live_view
+
+    prefix = get_in(meta, [:extra, :session, Access.elem(2), Access.at(0)])
 
     Phoenix.VerifiedRoutes.unverified_path(
       conn,
