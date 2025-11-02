@@ -72,7 +72,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         </button>
       </div>
 
-      <table class="table-fixed w-full bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25">
+      <table class="table-fixed w-full bg-blue-50 dark:bg-blue-950 dark:bg-opacity-25">
         <thead>
           <tr class="text-sm text-gray-600 dark:text-gray-100 dark:text-opacity-60">
             <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Started</th>
@@ -582,7 +582,7 @@ defmodule Oban.Web.Queues.DetailComponent do
       <% end %>
 
       <button
-        class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-300 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @disabled, do: "opacity-30 pointer-events-none"}"}
+        class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-950 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @disabled, do: "opacity-30 pointer-events-none"}"}
         disabled={@disabled}
         type="submit"
       >

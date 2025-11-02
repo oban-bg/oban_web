@@ -79,7 +79,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="bg-blue-50 dark:bg-blue-300 dark:bg-opacity-25 border-b border-gray-200 dark:border-gray-700 px-3 py-6">
+      <div class="bg-blue-50 dark:bg-blue-950 dark:bg-opacity-25 border-b border-gray-200 dark:border-gray-700 px-3 py-6">
         <div class="flex justify-between">
           <div>
             <span class="text-md text-gray-500 dark:text-gray-400 tabular">{@job.id}</span>
