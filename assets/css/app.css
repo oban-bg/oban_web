@@ -93,6 +93,8 @@ select:-moz-focusring {
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source "../../lib/**/*.*ex";
 
 @theme {
