@@ -21,7 +21,7 @@ fully realtime.
 - **🐦‍🔥 Embedded LiveView** - Mount the dashboard directly in your application without any
   external dependencies.
 
-- **📊 Realtime Charts** - Powered by a custom, distrubted time-series data store that's compacted
+- **📊 Realtime Charts** - Powered by a custom, distributed time-series data store that's compacted
   for hours of efficient storage and filterable by node, queue, state, and worker.
 
 - **🛸 Live Updates** - Monitor background job activity across all queues and nodes in real
