@@ -207,7 +207,9 @@ defmodule Oban.Web.Jobs.TableComponent do
         "scheduled" -> job.scheduled_at
       end
 
-    DateTime.to_unix(datetime, :millisecond)
+    if not is_nil(datetime) do
+      DateTime.to_unix(datetime, :millisecond)
+    end
   end
 
   defp relative_mode(job) do
