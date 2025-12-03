@@ -8,7 +8,7 @@ defmodule Oban.Web.DashboardLive do
     %{"prefix" => prefix, "resolver" => resolver} = session
     %{"live_path" => live_path, "live_transport" => live_transport} = session
     %{"user" => user, "access" => access, "csp_nonces" => csp_nonces} = session
-    %{"refresh" => refresh} = session
+    %{"refresh" => refresh, "logo_path" => logo_path} = session
 
     refresh = restore_state(socket, "refresh", refresh)
     theme = restore_state(socket, "theme", "system")
@@ -24,7 +24,7 @@ defmodule Oban.Web.DashboardLive do
     socket =
       socket
       |> assign(conf: conf, params: params, page: page, init_state: init_state(socket))
-      |> assign(live_path: live_path, live_transport: live_transport)
+      |> assign(live_path: live_path, live_transport: live_transport, logo_path: logo_path)
       |> assign(access: access, csp_nonces: csp_nonces, resolver: resolver, user: user)
       |> assign(original_refresh: nil, refresh: refresh, timer: nil, theme: theme)
       |> assign(sidebar_width: sidebar_width)

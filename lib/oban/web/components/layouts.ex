@@ -17,9 +17,11 @@ defmodule Oban.Web.Layouts do
     )
   end
 
+  attr :path, :string, default: nil
+
   def logo(assigns) do
     ~H"""
-    <a href={oban_path(:jobs)} title="Oban Web">
+    <a href={@path || oban_path(:jobs)} title="Oban Web">
       <svg class="h-10 overflow-visible" viewBox="0 0 227 64">
         <path
           class="text-violet-950 dark:text-violet-50"
