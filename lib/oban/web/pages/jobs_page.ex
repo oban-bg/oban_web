@@ -26,6 +26,7 @@ defmodule Oban.Web.JobsPage do
         queues={@queues}
         states={@states}
         width={@sidebar_width}
+        csp_nonces={@csp_nonces}
       />
 
       <div class="flex-grow">

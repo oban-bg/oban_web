@@ -62,7 +62,7 @@ defmodule Oban.Web.DashboardLive do
     assigns =
       assigns
       |> Map.put(:id, "page")
-      |> Map.drop(~w(csp_nonces flash live_path live_transport refresh socket timer)a)
+      |> Map.drop(~w(flash live_path live_transport refresh socket timer)a)
 
     ~H"""
     <.live_component id="page" module={@page.comp} {assigns} />
