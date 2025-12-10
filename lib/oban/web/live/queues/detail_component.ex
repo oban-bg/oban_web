@@ -612,7 +612,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp local_limit(checks) do
     checks
-    |> Enum.map(& &1["local_limit"])
+    |> Enum.map(&((&1["limit"] || &1["local_limit"])))
     |> Enum.max()
   end
 

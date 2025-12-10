@@ -16,7 +16,7 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
       |> assign(access: assigns.access, checks: assigns.checks)
       |> assign_new(:queue, fn -> assigns.checks["queue"] end)
       |> assign_new(:paused, fn -> assigns.checks["paused"] end)
-      |> assign_new(:local_limit, fn -> assigns.checks["local_limit"] end)
+      |> assign_new(:local_limit, fn -> assigns.checks["limit"] || assigns.checks["local_limit"] end)
 
     {:ok, socket}
   end

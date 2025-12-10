@@ -153,7 +153,7 @@ defmodule Oban.Web.Queues.TableComponent do
 
   defp local_limit(queue) do
     queue.checks
-    |> Enum.map(& &1["local_limit"])
+    |> Enum.map(&((&1["limit"] || &1["local_limit"])))
     |> Enum.min_max()
     |> case do
       {min, min} -> min
