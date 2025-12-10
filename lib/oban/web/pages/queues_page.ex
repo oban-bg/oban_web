@@ -19,6 +19,7 @@ defmodule Oban.Web.QueuesPage do
         queues={@queues}
         params={without_defaults(@params, @default_params)}
         width={@sidebar_width}
+        csp_nonces={@csp_nonces}
       />
 
       <div class="flex-grow">

@@ -1,16 +1,21 @@
 defmodule Oban.Web.SidebarComponents do
   use Oban.Web, :html
 
+  attr :csp_nonces, :map
   attr :width, :integer, default: 320
   slot :inner_block
 
   def sidebar(assigns) do
     ~H"""
+    <style nonce={@csp_nonces.style}>
+      #sidebar {
+        width: var(--sidebar-width, <%= @width %>px);
+      }
+    </style>
     <div
       id="sidebar"
       class="relative flex-none mr-2 pr-3"
       phx-hook="SidebarResizer"
-      style={"width: var(--sidebar-width, #{@width}px);"}
     >
       {render_slot(@inner_block)}
 
