@@ -91,8 +91,8 @@ defmodule Oban.Web.Resolver do
 
   ## Authentication
 
-  By combining `resolver_user/1` and `resolve_access/1` callbacks it's possible to build an
-  authenticaiton solution around the dashboard. For example, this resolver extracts the
+  By combining `resolve_user/1` and `resolve_access/1` callbacks it's possible to build an
+  authentication solution around the dashboard. For example, this resolver extracts the
   `current_user` from the conn's assigns map and then scopes their access based on role. If it is
   a standard user or `nil` then they're redirected to `/login` when the dashboard mounts.
 
@@ -115,6 +115,9 @@ defmodule Oban.Web.Resolver do
     end
   end
   ```
+
+  See the [Limiting Access](limiting_access.md) guide for more patterns, including fine-grained
+  action controls and integration with authentication systems.
   """
 
   alias Oban.Job

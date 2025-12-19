@@ -43,8 +43,8 @@ fully realtime.
 - **♊ Multiple Dashboards** - Switch between all running Oban instance from a single mount point,
   or restrict access to some dashboards with exclusion controls.
 
-- **🔒 Access Control** - Allow admins to control queues and interract with jobs while restricting
-  other users to read-only use of the dashboard.
+- **🔒 [Access Control](limiting_access.md)** - Allow admins to control queues and interact with
+  jobs while restricting other users to read-only use of the dashboard.
 
 - **🎬 Action Logging** - Use telemetry events to instrument and report all of a user's dashboard
   activity. A telemetry-powered logger is provided for easy reporting.

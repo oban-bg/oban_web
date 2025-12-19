@@ -69,6 +69,7 @@ defmodule Oban.Web.MixProject do
       "guides/introduction/overview.md",
       "guides/introduction/installation.md",
       "guides/advanced/filtering.md",
+      "guides/advanced/limiting_access.md",
       "guides/advanced/metrics.md",
       "CHANGELOG.md": [filename: "changelog", title: "Changelog"]
     ]

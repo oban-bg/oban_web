@@ -88,8 +88,10 @@ After installation (by any method), you should consider the following configurat
 
 ### Secure Dashboard Access
 
-After verifying that the dashboard is loading, it's recommended to restrict access to it, either
-with a [custom resolver's][ac] access controls or [Basic Auth][ba].
+After verifying that the dashboard is loading, it's recommended to restrict access to it. See the
+[Limiting Access](limiting_access.md) guide for complete details on implementing access controls,
+including role-based permissions, fine-grained action controls, and integration with your
+authentication system. For simpler protection, you can also use [Basic Auth][ba].
 
 ### Switch to the PG Notifier
 
@@ -133,7 +135,7 @@ and functionality.
 Installation is complete and you're all set! Start your Phoenix server, point your browser to
 `/oban` and start monitoring your jobs.
 
-* Configure dashboard behavior with access controls, query limits, and formatting using
+* Configure [access controls](limiting_access.md), query limits, and formatting using
   `Oban.Web.Resolver`
 
 * Attach logging and hook into telemetry events with `Oban.Web.Telemetry`
@@ -141,6 +143,5 @@ Installation is complete and you're all set! Start your Phoenix server, point yo
 [igniter]: https://hex.pm/packages/igniter
 [plv]: https://github.com/phoenixframework/phoenix_live_view
 [lvi]: https://github.com/phoenixframework/phoenix_live_view#installation
-[ac]: Oban.Web.Resolver.html#c:resolve_access/1
 [ba]: https://hexdocs.pm/basic_auth/readme.html
 [oi]: installation.html
