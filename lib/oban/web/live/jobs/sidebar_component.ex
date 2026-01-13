@@ -4,6 +4,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   alias Oban.Web.Queue
   alias Oban.Web.SidebarComponents
 
+  attr :access, :any, default: :all
   attr :nodes, :list
   attr :params, :map
   attr :queues, :list
@@ -14,6 +15,14 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   def sidebar(assigns) do
     ~H"""
     <SidebarComponents.sidebar width={@width} csp_nonces={@csp_nonces}>
+      <.link
+        :if={can?(:insert_jobs, @access)}
+        patch={oban_path([:jobs, :new])}
+        class="flex items-center justify-center w-full mb-4 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+      >
+        + Enqueue Job
+      </.link>
+
       <SidebarComponents.section name="states" headers={~w(count)}>
         <SidebarComponents.filter_row
           :for={state <- @states}
