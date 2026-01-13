@@ -92,11 +92,7 @@ defmodule Oban.Web.NewJob.FormComponent do
           name="queue"
           class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option
-            :for={queue <- @queues}
-            value={queue}
-            selected={queue == @inputs.queue}
-          >
+          <option :for={queue <- @queues} value={queue} selected={queue == @inputs.queue}>
             {queue}
           </option>
         </select>
@@ -110,12 +106,14 @@ defmodule Oban.Web.NewJob.FormComponent do
           phx-target={@myself}
         >
           <Icons.chevron_right :if={not @inputs.advanced} class="w-4 h-4 mr-1" />
-          <Icons.chevron_down :if={@inputs.advanced} class="w-4 h-4 mr-1" />
-          Advanced Options
+          <Icons.chevron_down :if={@inputs.advanced} class="w-4 h-4 mr-1" /> Advanced Options
         </button>
       </div>
 
-      <div :if={@inputs.advanced} class="space-y-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+      <div
+        :if={@inputs.advanced}
+        class="space-y-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700"
+      >
         <div>
           <label for="priority" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
             Priority (0-9, lower runs first)
@@ -239,16 +237,20 @@ defmodule Oban.Web.NewJob.FormComponent do
     if has_errors?(errors) do
       {:noreply, assign(socket, inputs: inputs, errors: errors)}
     else
-      case insert_job(inputs, socket.assigns.conf) do
-        {:ok, job} ->
-          Telemetry.action(:insert_job, socket, [job_id: job.id], fn -> :ok end)
+      do_insert_job(inputs, socket)
+    end
+  end
 
-          {:noreply, push_navigate(socket, to: oban_path([:jobs, job.id]))}
+  defp do_insert_job(inputs, socket) do
+    case insert_job(inputs, socket.assigns.conf) do
+      {:ok, job} ->
+        Telemetry.action(:insert_job, socket, [job_id: job.id], fn -> :ok end)
 
-        {:error, changeset} ->
-          errors = changeset_to_errors(changeset)
-          {:noreply, assign(socket, errors: errors)}
-      end
+        {:noreply, push_navigate(socket, to: oban_path([:jobs, job.id]))}
+
+      {:error, changeset} ->
+        errors = changeset_to_errors(changeset)
+        {:noreply, assign(socket, errors: errors)}
     end
   end
 

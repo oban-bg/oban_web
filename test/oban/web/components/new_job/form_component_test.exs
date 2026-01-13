@@ -7,7 +7,6 @@ defmodule Oban.Web.NewJob.FormComponentTest do
 
   setup do
     Process.put(:routing, :nowhere)
-
     :ok
   end
 

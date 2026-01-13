@@ -149,7 +149,6 @@ defmodule Oban.Web.Pages.Jobs.NewTest do
       assert job.state == "scheduled"
       assert DateTime.compare(job.scheduled_at, DateTime.utc_now()) == :gt
     end
-
   end
 
   describe "worker suggestions" do
