@@ -243,12 +243,7 @@ defmodule Oban.Web.NewJob.FormComponent do
         {:ok, job} ->
           Telemetry.action(:insert_job, socket, [job_id: job.id], fn -> :ok end)
 
-          socket =
-            socket
-            |> put_flash_with_clear(:info, "Job #{job.id} enqueued successfully")
-            |> push_navigate(to: oban_path([:jobs, job.id]))
-
-          {:noreply, socket}
+          {:noreply, push_navigate(socket, to: oban_path([:jobs, job.id]))}
 
         {:error, changeset} ->
           errors = changeset_to_errors(changeset)
