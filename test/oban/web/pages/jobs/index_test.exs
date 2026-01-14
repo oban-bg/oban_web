@@ -314,16 +314,18 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   end
 
   describe "enqueue job button" do
-    test "shows enqueue button in sidebar", %{live: live} do
-      assert has_element?(live, "#sidebar a", "Enqueue Job")
+    test "shows enqueue toggle button in header", %{live: live} do
+      assert has_element?(live, "#enqueue-job-toggle")
     end
 
-    test "navigates to new job page when clicked", %{live: live} do
+    test "toggles enqueue form when clicked", %{live: live} do
+      refute has_element?(live, "#new-job-form")
+
       live
-      |> element("#sidebar a", "Enqueue Job")
+      |> element("#enqueue-job-toggle")
       |> render_click()
 
-      assert_patch(live, "/oban/jobs/new")
+      assert has_element?(live, "#new-job-form")
     end
   end
 end

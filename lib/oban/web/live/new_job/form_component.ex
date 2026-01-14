@@ -38,64 +38,66 @@ defmodule Oban.Web.NewJob.FormComponent do
     ~H"""
     <form
       id="new-job-form"
-      class="p-6 space-y-5"
+      class="p-4 space-y-3"
       phx-target={@myself}
       phx-change="form-change"
       phx-submit="insert"
     >
-      <div>
-        <label for="worker" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-          Worker
-        </label>
-        <input
-          type="text"
-          id="worker"
-          name="worker"
-          list="worker-suggestions"
-          value={@inputs.worker}
-          autocomplete="off"
-          placeholder="MyApp.Workers.SomeWorker"
-          class={"w-full text-sm border rounded-md shadow-sm px-3 py-2 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 #{if @errors[:worker], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
-          phx-debounce="150"
-        />
-        <datalist id="worker-suggestions">
-          <option :for={worker <- @workers} value={worker} />
-        </datalist>
-        <p :if={@errors[:worker]} class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {@errors[:worker]}
-        </p>
-      </div>
+      <div class="flex items-start gap-3">
+        <div class="w-56">
+          <label for="worker" class="block text-xs font-medium mb-1 dark:text-gray-200">
+            Worker
+          </label>
+          <input
+            type="text"
+            id="worker"
+            name="worker"
+            list="worker-suggestions"
+            value={@inputs.worker}
+            autocomplete="off"
+            placeholder="MyApp.Workers.SomeWorker"
+            class={"w-full text-sm border rounded-md shadow-sm px-2 py-1.5 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 #{if @errors[:worker], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
+            phx-debounce="150"
+          />
+          <datalist id="worker-suggestions">
+            <option :for={worker <- @workers} value={worker} />
+          </datalist>
+          <p :if={@errors[:worker]} class="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {@errors[:worker]}
+          </p>
+        </div>
 
-      <div>
-        <label for="args" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-          Arguments (JSON)
-        </label>
-        <textarea
-          id="args"
-          name="args"
-          rows="4"
-          placeholder="{}"
-          class={"w-full font-mono text-sm border rounded-md shadow-sm px-3 py-2 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 #{if @errors[:args], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
-          phx-debounce="300"
-        >{@inputs.args}</textarea>
-        <p :if={@errors[:args]} class="mt-1 text-sm text-red-600 dark:text-red-400">
-          {@errors[:args]}
-        </p>
-      </div>
+        <div class="w-32">
+          <label for="queue" class="block text-xs font-medium mb-1 dark:text-gray-200">
+            Queue
+          </label>
+          <select
+            id="queue"
+            name="queue"
+            class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option :for={queue <- @queues} value={queue} selected={queue == @inputs.queue}>
+              {queue}
+            </option>
+          </select>
+        </div>
 
-      <div>
-        <label for="queue" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-          Queue
-        </label>
-        <select
-          id="queue"
-          name="queue"
-          class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option :for={queue <- @queues} value={queue} selected={queue == @inputs.queue}>
-            {queue}
-          </option>
-        </select>
+        <div class="flex-1 min-w-0">
+          <label for="args" class="block text-xs font-medium mb-1 dark:text-gray-200">
+            Args (JSON)
+          </label>
+          <textarea
+            id="args"
+            name="args"
+            rows="1"
+            placeholder="{}"
+            class={"w-full font-mono text-sm border rounded-md shadow-sm px-2 py-1.5 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y #{if @errors[:args], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
+            phx-debounce="300"
+          >{@inputs.args}</textarea>
+          <p :if={@errors[:args]} class="mt-0.5 text-xs text-red-600 dark:text-red-400">
+            {@errors[:args]}
+          </p>
+        </div>
       </div>
 
       <div>
@@ -112,92 +114,96 @@ defmodule Oban.Web.NewJob.FormComponent do
 
       <div
         :if={@inputs.advanced}
-        class="space-y-4 pl-4 border-l-2 border-gray-200 dark:border-gray-700"
+        class="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700"
       >
-        <div>
-          <label for="priority" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-            Priority (0-9, lower runs first)
-          </label>
-          <input
-            type="number"
-            id="priority"
-            name="priority"
-            min="0"
-            max="9"
-            value={@inputs.priority}
-            class="w-24 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-20">
+            <label for="priority" class="block text-xs font-medium mb-1 dark:text-gray-200">
+              Priority
+            </label>
+            <input
+              type="number"
+              id="priority"
+              name="priority"
+              min="0"
+              max="9"
+              value={@inputs.priority}
+              class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
-        <div>
-          <label for="tags" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-            Tags (comma-separated)
-          </label>
-          <input
-            type="text"
-            id="tags"
-            name="tags"
-            value={@inputs.tags}
-            placeholder="tag1, tag2"
-            class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+          <div class="w-24">
+            <label for="max_attempts" class="block text-xs font-medium mb-1 dark:text-gray-200">
+              Max Attempts
+            </label>
+            <input
+              type="number"
+              id="max_attempts"
+              name="max_attempts"
+              min="1"
+              max="100"
+              value={@inputs.max_attempts}
+              class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
-        <div>
-          <label for="schedule_in" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-            Schedule In (seconds, leave empty for immediate)
-          </label>
-          <input
-            type="number"
-            id="schedule_in"
-            name="schedule_in"
-            min="1"
-            value={@inputs.schedule_in}
-            placeholder=""
-            class="w-32 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
+          <div class="w-28">
+            <label for="schedule_in" class="block text-xs font-medium mb-1 dark:text-gray-200">
+              Schedule In (s)
+            </label>
+            <input
+              type="number"
+              id="schedule_in"
+              name="schedule_in"
+              min="1"
+              value={@inputs.schedule_in}
+              placeholder=""
+              class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
-        <div>
-          <label for="meta" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-            Meta (JSON)
-          </label>
-          <textarea
-            id="meta"
-            name="meta"
-            rows="2"
-            placeholder="{}"
-            class={"w-full font-mono text-sm border rounded-md shadow-sm px-3 py-2 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 #{if @errors[:meta], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
-            phx-debounce="300"
-          >{@inputs.meta}</textarea>
-          <p :if={@errors[:meta]} class="mt-1 text-sm text-red-600 dark:text-red-400">
-            {@errors[:meta]}
-          </p>
-        </div>
+          <div class="flex-1 min-w-0">
+            <label for="tags" class="block text-xs font-medium mb-1 dark:text-gray-200">
+              Tags (comma-separated)
+            </label>
+            <input
+              type="text"
+              id="tags"
+              name="tags"
+              value={@inputs.tags}
+              placeholder="tag1, tag2"
+              class="w-full text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
 
-        <div>
-          <label for="max_attempts" class="block text-sm font-medium mb-1.5 dark:text-gray-200">
-            Max Attempts
-          </label>
-          <input
-            type="number"
-            id="max_attempts"
-            name="max_attempts"
-            min="1"
-            max="100"
-            value={@inputs.max_attempts}
-            class="w-24 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded-md shadow-sm px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+          <div class="flex-1 min-w-0">
+            <label for="meta" class="block text-xs font-medium mb-1 dark:text-gray-200">
+              Meta (JSON)
+            </label>
+            <textarea
+              id="meta"
+              name="meta"
+              rows="1"
+              placeholder="{}"
+              class={"w-full font-mono text-sm border rounded-md shadow-sm px-2 py-1.5 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y #{if @errors[:meta], do: "border-red-400 dark:border-red-500", else: "border-gray-300 dark:border-gray-600"}"}
+              phx-debounce="300"
+            >{@inputs.meta}</textarea>
+            <p :if={@errors[:meta]} class="mt-0.5 text-xs text-red-600 dark:text-red-400">
+              {@errors[:meta]}
+            </p>
+          </div>
         </div>
       </div>
 
       <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <.link
-          patch={oban_path(:jobs)}
+        <button
+          type="button"
+          phx-click="cancel-form"
+          phx-target={@myself}
           class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
         >
           Cancel
-        </.link>
+        </button>
 
         <button
           type="submit"
@@ -226,6 +232,11 @@ defmodule Oban.Web.NewJob.FormComponent do
   def handle_event("toggle-advanced", _params, socket) do
     inputs = Map.update!(socket.assigns.inputs, :advanced, &not/1)
     {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("cancel-form", _params, socket) do
+    send(self(), :close_enqueue_form)
+    {:noreply, socket}
   end
 
   def handle_event("insert", params, socket) do

@@ -6,6 +6,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
+  alias Oban.Web.NewJob.FormComponent
   alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
@@ -64,55 +65,7 @@ defmodule Oban.Web.JobsPage do
                 <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
               </div>
 
-              <div
-                :if={Enum.any?(@selected)}
-                id="bulk-actions"
-                class="pt-1 flex items-center space-x-3"
-              >
-                <Core.action_button
-                  :if={cancelable?(@jobs, @access)}
-                  label="Cancel"
-                  click="cancel-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
-                  <:title>Cancel Jobs</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={retryable?(@jobs, @access)}
-                  label="Retry"
-                  click="retry-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
-                  <:title>Retry Jobs</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={runnable?(@jobs, @access)}
-                  label="Run Now"
-                  click="retry-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
-                  <:title>Run Jobs Now</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={deletable?(@jobs, @access)}
-                  label="Delete"
-                  click="delete-jobs"
-                  target={@myself}
-                  danger={true}
-                >
-                  <:icon><Icons.trash class="w-5 h-5" /></:icon>
-                  <:title>Delete Jobs</:title>
-                </Core.action_button>
-              </div>
-
               <.live_component
-                :if={Enum.empty?(@selected)}
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
@@ -122,17 +75,86 @@ defmodule Oban.Web.JobsPage do
                 resolver={@resolver}
               />
 
-              <div class="pl-3 ml-auto">
-                <span :if={Enum.any?(@selected)} class="block py-2 text-sm font-semibold">
-                  {MapSet.size(@selected)} Selected
-                </span>
+              <div class="pl-3 ml-auto flex items-center space-x-2">
+                <SortComponent.select params={@params} by={~w(time attempt queue worker)} />
 
-                <SortComponent.select
-                  :if={Enum.empty?(@selected)}
-                  params={@params}
-                  by={~w(time attempt queue worker)}
-                />
+                <button
+                  :if={can?(:insert_jobs, @access)}
+                  type="button"
+                  phx-click="toggle-enqueue-form"
+                  class={"flex items-center justify-center w-8 h-8 rounded-md transition-colors #{if @show_enqueue_form, do: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400", else: "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}"}
+                  id="enqueue-job-toggle"
+                  phx-hook="Tippy"
+                  data-title={if @show_enqueue_form, do: "Close form", else: "Enqueue Job"}
+                >
+                  <Icons.plus_circle class="w-5 h-5" />
+                </button>
               </div>
+            </div>
+
+            <div
+              :if={Enum.any?(@selected)}
+              id="bulk-actions"
+              class="flex items-center px-3 py-2 space-x-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+            >
+              <span class="text-sm font-semibold dark:text-gray-200">
+                {MapSet.size(@selected)} Selected
+              </span>
+
+              <Core.action_button
+                :if={cancelable?(@jobs, @access)}
+                label="Cancel"
+                click="cancel-jobs"
+                target={@myself}
+              >
+                <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                <:title>Cancel Jobs</:title>
+              </Core.action_button>
+
+              <Core.action_button
+                :if={retryable?(@jobs, @access)}
+                label="Retry"
+                click="retry-jobs"
+                target={@myself}
+              >
+                <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                <:title>Retry Jobs</:title>
+              </Core.action_button>
+
+              <Core.action_button
+                :if={runnable?(@jobs, @access)}
+                label="Run Now"
+                click="retry-jobs"
+                target={@myself}
+              >
+                <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                <:title>Run Jobs Now</:title>
+              </Core.action_button>
+
+              <Core.action_button
+                :if={deletable?(@jobs, @access)}
+                label="Delete"
+                click="delete-jobs"
+                target={@myself}
+                danger={true}
+              >
+                <:icon><Icons.trash class="w-5 h-5" /></:icon>
+                <:title>Delete Jobs</:title>
+              </Core.action_button>
+            </div>
+
+            <div
+              :if={@show_enqueue_form}
+              class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
+            >
+              <.live_component
+                id="inline-enqueue-form"
+                module={FormComponent}
+                access={@access}
+                conf={@conf}
+                resolver={@resolver}
+                user={@user}
+              />
             </div>
 
             <.live_component
@@ -151,7 +173,7 @@ defmodule Oban.Web.JobsPage do
     """
   end
 
-  @keep_on_mount ~w(default_params detailed jobs nodes params queues selected states)a
+  @keep_on_mount ~w(default_params detailed jobs nodes params queues selected show_enqueue_form states)a
 
   @impl Page
   def handle_mount(socket) do
@@ -170,6 +192,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
+    |> assign_new(:show_enqueue_form, fn -> false end)
     |> assign_new(:states, fn -> [] end)
   end
 
@@ -239,6 +262,10 @@ defmodule Oban.Web.JobsPage do
     {:noreply, socket}
   end
 
+  def handle_event("toggle-enqueue-form", _params, socket) do
+    {:noreply, assign(socket, show_enqueue_form: not socket.assigns.show_enqueue_form)}
+  end
+
   def handle_event("cancel-jobs", _params, socket) do
     if can?(:cancel_jobs, socket.assigns.access) do
       send(self(), :cancel_selected)
@@ -280,6 +307,12 @@ defmodule Oban.Web.JobsPage do
     end)
 
     {:noreply, socket}
+  end
+
+  # Enqueue Form
+
+  def handle_info(:close_enqueue_form, socket) do
+    {:noreply, assign(socket, show_enqueue_form: false)}
   end
 
   # Filtering

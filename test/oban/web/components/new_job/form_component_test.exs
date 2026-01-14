@@ -38,7 +38,7 @@ defmodule Oban.Web.NewJob.FormComponentTest do
     test "renders args textarea" do
       html = render_component(Component, base_assigns(), router: Router)
 
-      assert html =~ "Arguments"
+      assert html =~ "Args (JSON)"
       assert html =~ ~s(id="args")
     end
 

@@ -1,4 +1,4 @@
-defmodule Oban.Web.Pages.Jobs.NewTest do
+defmodule Oban.Web.Pages.Jobs.EnqueueTest do
   use Oban.Web.Case
 
   import Phoenix.LiveViewTest
@@ -6,13 +6,18 @@ defmodule Oban.Web.Pages.Jobs.NewTest do
   setup do
     start_supervised_oban!()
 
-    {:ok, live, _html} = live(build_conn(), "/oban/jobs/new")
+    {:ok, live, _html} = live(build_conn(), "/oban/jobs")
+
+    # Open the enqueue form
+    live
+    |> element("#enqueue-job-toggle")
+    |> render_click()
 
     {:ok, live: live}
   end
 
   describe "mounting" do
-    test "renders the new job form", %{live: live} do
+    test "renders the new job form when toggle is clicked", %{live: live} do
       assert has_element?(live, "#new-job-form")
       assert has_element?(live, "#worker")
       assert has_element?(live, "#args")
@@ -100,12 +105,16 @@ defmodule Oban.Web.Pages.Jobs.NewTest do
       assert_redirect(live, "/oban/jobs/#{job.id}")
     end
 
-    test "creates job with advanced options" do
+    test "creates job with advanced options", %{live: _live} do
       # Insert a job with queue "custom" so it appears in the dropdown
       insert_job!([ref: 1], queue: "custom")
 
-      # Re-mount to pick up the new queue
-      {:ok, live, _html} = live(build_conn(), "/oban/jobs/new")
+      # Re-mount to pick up the new queue and open the form
+      {:ok, live, _html} = live(build_conn(), "/oban/jobs")
+
+      live
+      |> element("#enqueue-job-toggle")
+      |> render_click()
 
       live
       |> element("button", "Advanced Options")
@@ -155,9 +164,53 @@ defmodule Oban.Web.Pages.Jobs.NewTest do
     test "shows existing workers in datalist" do
       insert_job!([ref: 1], worker: ExistingWorker)
 
-      {:ok, live, _html} = live(build_conn(), "/oban/jobs/new")
+      {:ok, live, _html} = live(build_conn(), "/oban/jobs")
+
+      live
+      |> element("#enqueue-job-toggle")
+      |> render_click()
 
       assert has_element?(live, ~s(datalist#worker-suggestions option[value="ExistingWorker"]))
+    end
+  end
+
+  describe "cancel button" do
+    test "closes the form when cancel is clicked", %{live: live} do
+      assert has_element?(live, "#new-job-form")
+
+      live
+      |> element("button", "Cancel")
+      |> render_click()
+
+      refute has_element?(live, "#new-job-form")
+    end
+  end
+
+  describe "interaction with bulk selection" do
+    test "form and bulk actions can both be visible", %{live: _live} do
+      # Insert a job to select
+      job = insert_job!([ref: 1], state: "available")
+
+      # Re-mount to see the job
+      {:ok, live, _html} = live(build_conn(), "/oban/jobs")
+
+      # Click to available state to see the job
+      live
+      |> element("#sidebar #filter-available")
+      |> render_click()
+
+      # Open enqueue form
+      live |> element("#enqueue-job-toggle") |> render_click()
+      assert has_element?(live, "#new-job-form")
+
+      # Select the job using the checkbox
+      live
+      |> element("#jobs-table #job-#{job.id} button[rel=check]")
+      |> render_click()
+
+      # Both should be visible
+      assert has_element?(live, "#new-job-form")
+      assert has_element?(live, "#bulk-actions")
     end
   end
 end
