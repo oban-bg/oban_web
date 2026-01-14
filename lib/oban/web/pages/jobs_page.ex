@@ -22,7 +22,6 @@ defmodule Oban.Web.JobsPage do
     ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <SidebarComponent.sidebar
-        access={@access}
         nodes={@nodes}
         params={without_defaults(@params, @default_params)}
         queues={@queues}
@@ -65,7 +64,55 @@ defmodule Oban.Web.JobsPage do
                 <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
               </div>
 
+              <div
+                :if={Enum.any?(@selected)}
+                id="bulk-actions"
+                class="pt-1 flex items-center space-x-3"
+              >
+                <Core.action_button
+                  :if={cancelable?(@jobs, @access)}
+                  label="Cancel"
+                  click="cancel-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                  <:title>Cancel Jobs</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={retryable?(@jobs, @access)}
+                  label="Retry"
+                  click="retry-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:title>Retry Jobs</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={runnable?(@jobs, @access)}
+                  label="Run Now"
+                  click="retry-jobs"
+                  target={@myself}
+                >
+                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:title>Run Jobs Now</:title>
+                </Core.action_button>
+
+                <Core.action_button
+                  :if={deletable?(@jobs, @access)}
+                  label="Delete"
+                  click="delete-jobs"
+                  target={@myself}
+                  danger={true}
+                >
+                  <:icon><Icons.trash class="w-5 h-5" /></:icon>
+                  <:title>Delete Jobs</:title>
+                </Core.action_button>
+              </div>
+
               <.live_component
+                :if={Enum.empty?(@selected)}
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
@@ -76,7 +123,15 @@ defmodule Oban.Web.JobsPage do
               />
 
               <div class="pl-3 ml-auto flex items-center space-x-2">
-                <SortComponent.select params={@params} by={~w(time attempt queue worker)} />
+                <span :if={Enum.any?(@selected)} class="text-sm font-semibold dark:text-gray-200">
+                  {MapSet.size(@selected)} Selected
+                </span>
+
+                <SortComponent.select
+                  :if={Enum.empty?(@selected)}
+                  params={@params}
+                  by={~w(time attempt queue worker)}
+                />
 
                 <button
                   :if={can?(:insert_jobs, @access)}
@@ -90,57 +145,6 @@ defmodule Oban.Web.JobsPage do
                   <Icons.plus_circle class="w-5 h-5" />
                 </button>
               </div>
-            </div>
-
-            <div
-              :if={Enum.any?(@selected)}
-              id="bulk-actions"
-              class="flex items-center px-3 py-2 space-x-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50"
-            >
-              <span class="text-sm font-semibold dark:text-gray-200">
-                {MapSet.size(@selected)} Selected
-              </span>
-
-              <Core.action_button
-                :if={cancelable?(@jobs, @access)}
-                label="Cancel"
-                click="cancel-jobs"
-                target={@myself}
-              >
-                <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
-                <:title>Cancel Jobs</:title>
-              </Core.action_button>
-
-              <Core.action_button
-                :if={retryable?(@jobs, @access)}
-                label="Retry"
-                click="retry-jobs"
-                target={@myself}
-              >
-                <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
-                <:title>Retry Jobs</:title>
-              </Core.action_button>
-
-              <Core.action_button
-                :if={runnable?(@jobs, @access)}
-                label="Run Now"
-                click="retry-jobs"
-                target={@myself}
-              >
-                <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
-                <:title>Run Jobs Now</:title>
-              </Core.action_button>
-
-              <Core.action_button
-                :if={deletable?(@jobs, @access)}
-                label="Delete"
-                click="delete-jobs"
-                target={@myself}
-                danger={true}
-              >
-                <:icon><Icons.trash class="w-5 h-5" /></:icon>
-                <:title>Delete Jobs</:title>
-              </Core.action_button>
             </div>
 
             <div

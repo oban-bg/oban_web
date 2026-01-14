@@ -4,7 +4,6 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   alias Oban.Web.Queue
   alias Oban.Web.SidebarComponents
 
-  attr :access, :any, default: :all
   attr :nodes, :list
   attr :params, :map
   attr :queues, :list
