@@ -226,7 +226,7 @@ defmodule Oban.Web.JobQuery do
 
     json_path = json_path(path)
 
-    query = hint_limit_query(field, opts)
+    query = hint_limit_query(field, opts, conf)
 
     subquery =
       cond do
@@ -287,7 +287,7 @@ defmodule Oban.Web.JobQuery do
 
     query =
       field
-      |> hint_limit_query(opts)
+      |> hint_limit_query(opts, conf)
       |> distinct(true)
 
     query =
@@ -319,7 +319,7 @@ defmodule Oban.Web.JobQuery do
   defp suggest_nodes(frag, conf, opts) do
     query =
       :nodes
-      |> hint_limit_query(opts)
+      |> hint_limit_query(opts, conf)
       |> distinct(true)
       |> where([j], j.state not in ~w(available scheduled))
 
@@ -338,7 +338,7 @@ defmodule Oban.Web.JobQuery do
   defp suggest_queues(frag, conf, opts) do
     query =
       :queues
-      |> hint_limit_query(opts)
+      |> hint_limit_query(opts, conf)
       |> select([j], j.queue)
       |> distinct(true)
 
@@ -348,7 +348,7 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp suggest_tags(frag, conf, opts) do
-    query = hint_limit_query(:tags, opts)
+    query = hint_limit_query(:tags, opts, conf)
 
     query =
       cond do
@@ -375,7 +375,7 @@ defmodule Oban.Web.JobQuery do
   defp suggest_workers(frag, conf, opts) do
     query =
       :workers
-      |> hint_limit_query(opts)
+      |> hint_limit_query(opts, conf)
       |> select([j], j.worker)
       |> distinct(true)
 
@@ -410,7 +410,7 @@ defmodule Oban.Web.JobQuery do
 
     query =
       params.state
-      |> jobs_limit_query(opts)
+      |> jobs_limit_query(opts, conf)
       |> select(^@list_fields)
       |> where(^conditions)
       |> order(params.sort_by, params.state, params.sort_dir)
@@ -426,7 +426,7 @@ defmodule Oban.Web.JobQuery do
 
     query =
       params.state
-      |> jobs_limit_query(opts)
+      |> jobs_limit_query(opts, conf)
       |> select([j], j.id)
       |> where(^conditions)
       |> order(params.sort_by, params.state, params.sort_dir)
@@ -442,33 +442,34 @@ defmodule Oban.Web.JobQuery do
     |> Map.update!(:sort_dir, &maybe_atomize/1)
   end
 
-  defp jobs_limit_query(state, opts) do
+  defp jobs_limit_query(state, opts, conf) do
     @states
     |> Map.fetch!(state)
-    |> limit_query(:jobs_query_limit, opts)
+    |> limit_query(:jobs_query_limit, opts, conf)
   end
 
-  defp hint_limit_query(qual, opts) do
-    limit_query(qual, :hint_query_limit, opts)
+  defp hint_limit_query(qual, opts, conf) do
+    limit_query(qual, :hint_query_limit, opts, conf)
   end
 
   defp bulk_action_limit(state, opts) do
     Resolver.call_with_fallback(opts[:resolver], :bulk_action_limit, [state])
   end
 
-  defp limit_query(value, fun, opts) do
+  defp limit_query(value, fun, opts, conf) do
     case Resolver.call_with_fallback(opts[:resolver], fun, [value]) do
       :infinity ->
         Job
 
       limit ->
-        sublimit =
+        last_id =
           Job
-          |> select([j], subtract_unsigned(j.id, ^limit))
+          |> select([j], type(subtract_unsigned(j.id, ^limit), :integer))
           |> order_by(desc: :id)
           |> limit(1)
+          |> then(&Repo.one(conf, &1))
 
-        where(Job, [j], j.id >= subquery(sublimit))
+        where(Job, [j], j.id >= ^(last_id || 0))
     end
   end
 
