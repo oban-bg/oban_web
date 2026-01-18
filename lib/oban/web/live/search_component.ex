@@ -196,7 +196,7 @@ defmodule Oban.Web.SearchComponent do
       |> List.last()
 
     if is_binary(value) and is_binary(match) do
-      pattern = Regex.compile!("(#{match})", "i")
+      pattern = Regex.compile!("(#{Regex.escape(match)})", "i")
 
       value
       |> String.replace(pattern, "<b>\\1</b>")
