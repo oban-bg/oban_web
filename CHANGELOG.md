@@ -76,6 +76,42 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.7 - 2026-01-22
+
+### Enhancements
+
+- [Router] Add configurable `:logo_path` option for dashboard
+
+  Allow users to customize where the Oban logo links to by passing a `:logo_path` option to the
+  `oban_dashboard/1` router helper. When provided, the logo will link to the specified path
+  instead of the default jobs page.
+
+- [Query] Help query planner with value rather than subquery
+
+  Since the condition uses a result of an inner query, database can't reliably estimate that it's
+  worth to use an index. It "thinks" that many rows will be returned in result and decides to use
+  a sequential scan.
+
+  However, when a specific value is provided, database can use the collected statistics to come up
+  with a better plan and use the index.
+
+
+### Bug Fixes
+
+- [Jobs] Escape regex match in search highlighting to prevent exceptions
+
+  Unescaped values would crash the LiveView process rather than gracefully returning no matches.
+
+- [Dashboard] Refactor inline styles to include CSP nonces
+
+  Avoid CSP warnings for inline styles used to control the sidebar.
+
+- [Dashboard] Respect custom variant for applying dark mode
+
+  Additional configuration is required to manually apply dark mode after upgrading to Tailwind 4.
+
+- [Jobs] Correct detail background color for dark modes
+
 ## v2.11.6 - 2025-10-24
 
 ### Bug Fixes
