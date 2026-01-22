@@ -12,11 +12,7 @@ defmodule Oban.Web.SidebarComponents do
         width: var(--sidebar-width, <%= @width %>px);
       }
     </style>
-    <div
-      id="sidebar"
-      class="relative flex-none mr-2 pr-3"
-      phx-hook="SidebarResizer"
-    >
+    <div id="sidebar" class="relative flex-none mr-2 pr-3" phx-hook="SidebarResizer">
       {render_slot(@inner_block)}
 
       <div
