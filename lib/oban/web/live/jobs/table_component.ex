@@ -207,7 +207,11 @@ defmodule Oban.Web.Jobs.TableComponent do
         "scheduled" -> job.scheduled_at
       end
 
-    DateTime.to_unix(datetime, :millisecond)
+    if is_struct(datetime) do
+      DateTime.to_unix(datetime, :millisecond)
+    else
+      "-"
+    end
   end
 
   defp relative_mode(job) do
