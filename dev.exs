@@ -524,19 +524,17 @@ end
 defmodule WebDev.Endpoint do
   use Phoenix.Endpoint, otp_app: :oban_web
 
-  socket("/live", Phoenix.LiveView.Socket)
-  socket("/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket)
+  socket "/live", Phoenix.LiveView.Socket
+  socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
 
-  plug(Phoenix.LiveReloader)
-  plug(Phoenix.CodeReloader)
+  plug Tidewave
 
-  plug(Plug.Session,
-    store: :cookie,
-    key: "_oban_web_key",
-    signing_salt: "/VEDsdfsffMnp5"
-  )
+  plug Phoenix.LiveReloader
+  plug Phoenix.CodeReloader
 
-  plug(WebDev.Router)
+  plug Plug.Session, store: :cookie, key: "_oban_web_key", signing_salt: "/VEDsdfsffMnp5"
+
+  plug WebDev.Router
 end
 
 defmodule WebDev.ErrorHTML do
