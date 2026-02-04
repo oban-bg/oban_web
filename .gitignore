@@ -30,3 +30,7 @@ priv/static/*
 
 # Ignore local .db files
 /priv/*.db*
+
+# Standalone Docker build artifacts
+/standalone/_build/
+/standalone/deps/
