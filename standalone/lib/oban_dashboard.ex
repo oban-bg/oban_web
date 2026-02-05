@@ -2,6 +2,39 @@ defmodule ObanDashboard.Repo do
   use Ecto.Repo, otp_app: :oban_dashboard, adapter: Ecto.Adapters.Postgres
 end
 
+defmodule ObanDashboard.BasicAuth do
+  @moduledoc false
+
+  import Plug.Conn
+
+  def init(opts), do: opts
+
+  def call(conn, _opts) do
+    user = Application.get_env(:oban_dashboard, :basic_auth_user)
+    pass = Application.get_env(:oban_dashboard, :basic_auth_pass)
+
+    if user && pass do
+      authenticate(conn, user, pass)
+    else
+      conn
+    end
+  end
+
+  defp authenticate(conn, user, pass) do
+    with ["Basic " <> encoded] <- get_req_header(conn, "authorization"),
+         {:ok, decoded} <- Base.decode64(encoded),
+         ^decoded <- "#{user}:#{pass}" do
+      conn
+    else
+      _ ->
+        conn
+        |> put_resp_header("www-authenticate", ~s(Basic realm="Oban Dashboard"))
+        |> send_resp(401, "Unauthorized")
+        |> halt()
+    end
+  end
+end
+
 defmodule ObanDashboard.Resolver do
   @behaviour Oban.Web.Resolver
 
@@ -22,6 +55,7 @@ defmodule ObanDashboard.Router do
 
   pipeline :browser do
     plug :fetch_session
+    plug ObanDashboard.BasicAuth
   end
 
   scope "/" do

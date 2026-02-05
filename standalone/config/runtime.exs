@@ -15,6 +15,8 @@ config :oban_dashboard, ObanDashboard.Endpoint,
 
 config :oban_dashboard,
   oban_prefix: System.get_env("OBAN_PREFIX", "public"),
-  read_only: System.get_env("OBAN_READ_ONLY", "false") == "true"
+  read_only: System.get_env("OBAN_READ_ONLY", "false") == "true",
+  basic_auth_user: System.get_env("BASIC_AUTH_USER"),
+  basic_auth_pass: System.get_env("BASIC_AUTH_PASS")
 
 config :logger, level: String.to_existing_atom(System.get_env("LOG_LEVEL", "info"))
