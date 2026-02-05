@@ -2,6 +2,19 @@ defmodule ObanDashboard.Repo do
   use Ecto.Repo, otp_app: :oban_dashboard, adapter: Ecto.Adapters.Postgres
 end
 
+defmodule ObanDashboard.Resolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl true
+  def resolve_access(_user) do
+    if Application.get_env(:oban_dashboard, :read_only, false) do
+      :read_only
+    else
+      :all
+    end
+  end
+end
+
 defmodule ObanDashboard.Router do
   use Phoenix.Router, helpers: false
 
@@ -12,9 +25,12 @@ defmodule ObanDashboard.Router do
   end
 
   scope "/" do
+    get "/health", ObanDashboard.HealthController, :index
+
     pipe_through :browser
 
-    oban_dashboard "/oban"
+    get "/", ObanDashboard.RedirectController, :index
+    oban_dashboard "/oban", resolver: ObanDashboard.Resolver
   end
 end
 
@@ -29,6 +45,24 @@ defmodule ObanDashboard.Endpoint do
     signing_salt: "oban_dashboard"
 
   plug ObanDashboard.Router
+end
+
+defmodule ObanDashboard.HealthController do
+  use Phoenix.Controller, formats: [:json]
+
+  def index(conn, _params) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, ~s({"status":"ok"}))
+  end
+end
+
+defmodule ObanDashboard.RedirectController do
+  use Phoenix.Controller, formats: [:html]
+
+  def index(conn, _params) do
+    redirect(conn, to: "/oban")
+  end
 end
 
 defmodule ObanDashboard.ErrorHTML do
