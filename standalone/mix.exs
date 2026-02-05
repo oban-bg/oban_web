@@ -1,9 +1,9 @@
-defmodule ObanDashboard.MixProject do
+defmodule ObanDash.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :oban_dashboard,
+      app: :oban_dash,
       version: "0.1.0",
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
@@ -15,7 +15,7 @@ defmodule ObanDashboard.MixProject do
   def application do
     [
       extra_applications: [:logger, :runtime_tools],
-      mod: {ObanDashboard.Application, []}
+      mod: {ObanDash.Application, []}
     ]
   end
 
@@ -43,7 +43,7 @@ defmodule ObanDashboard.MixProject do
 
   defp releases do
     [
-      oban_dashboard: [
+      oban_dash: [
         include_executables_for: [:unix]
       ]
     ]

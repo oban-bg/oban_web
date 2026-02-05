@@ -1,8 +1,8 @@
-defmodule ObanDashboard.Repo do
-  use Ecto.Repo, otp_app: :oban_dashboard, adapter: Ecto.Adapters.Postgres
+defmodule ObanDash.Repo do
+  use Ecto.Repo, otp_app: :oban_dash, adapter: Ecto.Adapters.Postgres
 end
 
-defmodule ObanDashboard.BasicAuth do
+defmodule ObanDash.BasicAuth do
   @moduledoc false
 
   import Plug.Conn
@@ -10,8 +10,8 @@ defmodule ObanDashboard.BasicAuth do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    user = Application.get_env(:oban_dashboard, :basic_auth_user)
-    pass = Application.get_env(:oban_dashboard, :basic_auth_pass)
+    user = Application.get_env(:oban_dash, :basic_auth_user)
+    pass = Application.get_env(:oban_dash, :basic_auth_pass)
 
     if user && pass do
       authenticate(conn, user, pass)
@@ -35,12 +35,12 @@ defmodule ObanDashboard.BasicAuth do
   end
 end
 
-defmodule ObanDashboard.Resolver do
+defmodule ObanDash.Resolver do
   @behaviour Oban.Web.Resolver
 
   @impl true
   def resolve_access(_user) do
-    if Application.get_env(:oban_dashboard, :read_only, false) do
+    if Application.get_env(:oban_dash, :read_only, false) do
       :read_only
     else
       :all
@@ -48,40 +48,40 @@ defmodule ObanDashboard.Resolver do
   end
 end
 
-defmodule ObanDashboard.Router do
+defmodule ObanDash.Router do
   use Phoenix.Router, helpers: false
 
   import Oban.Web.Router
 
   pipeline :browser do
     plug :fetch_session
-    plug ObanDashboard.BasicAuth
+    plug ObanDash.BasicAuth
   end
 
   scope "/" do
-    get "/health", ObanDashboard.HealthController, :index
+    get "/health", ObanDash.HealthController, :index
 
     pipe_through :browser
 
-    get "/", ObanDashboard.RedirectController, :index
-    oban_dashboard "/oban", resolver: ObanDashboard.Resolver
+    get "/", ObanDash.RedirectController, :index
+    oban_dashboard "/oban", resolver: ObanDash.Resolver
   end
 end
 
-defmodule ObanDashboard.Endpoint do
-  use Phoenix.Endpoint, otp_app: :oban_dashboard
+defmodule ObanDash.Endpoint do
+  use Phoenix.Endpoint, otp_app: :oban_dash
 
   socket "/live", Phoenix.LiveView.Socket
 
   plug Plug.Session,
     store: :cookie,
-    key: "_oban_dashboard_key",
+    key: "_oban_dash_key",
     signing_salt: "oban_dashboard"
 
-  plug ObanDashboard.Router
+  plug ObanDash.Router
 end
 
-defmodule ObanDashboard.HealthController do
+defmodule ObanDash.HealthController do
   use Phoenix.Controller, formats: [:json]
 
   def index(conn, _params) do
@@ -91,7 +91,7 @@ defmodule ObanDashboard.HealthController do
   end
 end
 
-defmodule ObanDashboard.RedirectController do
+defmodule ObanDash.RedirectController do
   use Phoenix.Controller, formats: [:html]
 
   def index(conn, _params) do
@@ -99,7 +99,7 @@ defmodule ObanDashboard.RedirectController do
   end
 end
 
-defmodule ObanDashboard.ErrorHTML do
+defmodule ObanDash.ErrorHTML do
   use Phoenix.Component
 
   def render(template, _assigns) do
@@ -107,18 +107,18 @@ defmodule ObanDashboard.ErrorHTML do
   end
 end
 
-defmodule ObanDashboard.Application do
+defmodule ObanDash.Application do
   use Application
 
   @impl true
   def start(_type, _args) do
     children = [
-      ObanDashboard.Repo,
+      ObanDash.Repo,
       {Oban, oban_opts()},
-      ObanDashboard.Endpoint
+      ObanDash.Endpoint
     ]
 
-    opts = [strategy: :one_for_one, name: ObanDashboard.Supervisor]
+    opts = [strategy: :one_for_one, name: ObanDash.Supervisor]
 
     Supervisor.start_link(children, opts)
   end
@@ -127,8 +127,8 @@ defmodule ObanDashboard.Application do
     [
       engine: engine(),
       notifier: Oban.Notifiers.PG,
-      repo: ObanDashboard.Repo,
-      prefix: Application.fetch_env!(:oban_dashboard, :oban_prefix),
+      repo: ObanDash.Repo,
+      prefix: Application.fetch_env!(:oban_dash, :oban_prefix),
       plugins: false,
       queues: false
     ]
