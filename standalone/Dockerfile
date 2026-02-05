@@ -35,7 +35,7 @@ RUN mix compile
 
 COPY config/runtime.exs config/
 
-RUN mix release oban_dashboard
+RUN mix release oban_dash
 
 # Runtime
 
@@ -46,7 +46,7 @@ RUN apk add --no-cache libstdc++ openssl ncurses-libs
 
 WORKDIR /app
 
-COPY --from=builder /app/_build/prod/rel/oban_dashboard ./
+COPY --from=builder /app/_build/prod/rel/oban_dash ./
 
 RUN adduser -D -h /app oban && chown -R oban:oban /app
 USER oban
@@ -57,5 +57,5 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q --spider http://localhost:${PORT}/health || exit 1
 
-ENTRYPOINT ["/app/bin/oban_dashboard"]
+ENTRYPOINT ["/app/bin/oban_dash"]
 CMD ["start"]
