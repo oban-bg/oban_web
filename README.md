@@ -74,6 +74,21 @@ fully realtime.
 See the [installation guide](https://hexdocs.pm/oban_web/installation.html) for details on
 installing and configuring Oban Web for your application.
 
+### Standalone Docker Image
+
+A standalone Docker image is available for monitoring Oban without embedding the dashboard in your
+application:
+
+```bash
+docker run -d \
+  -e DATABASE_URL="postgres://user:pass@host:5432/myapp" \
+  -p 4000:4000 \
+  ghcr.io/oban-bg/oban-dash
+```
+
+See the [standalone guide](https://hexdocs.pm/oban_web/standalone.html) for configuration options
+and details.
+
 <!-- MDOC -->
 
 ## Contributing

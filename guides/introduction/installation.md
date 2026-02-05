@@ -9,6 +9,11 @@ There are three installation mechanisms available:
 - [Igniter Installation](#igniter-installation) fully automatic installation using igniter
 - [Manual Installation](#manual-installation) add Oban Web and handle all steps manually
 
+> #### Standalone Docker Image {: .tip}
+>
+> If you want to monitor Oban without modifying your application, a [standalone Docker
+> image](standalone.md) is available that connects directly to your database.
+
 ## Semi-Automatic Installation
 
 You can use the `oban_web.install` task without the `igniter.install` escript available.
