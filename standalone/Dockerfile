@@ -1,4 +1,5 @@
-# Build stage
+# Build
+
 ARG ELIXIR_VERSION=1.19.5
 ARG OTP_VERSION=28.2
 ARG ALPINE_VERSION=3.22.3
@@ -23,25 +24,21 @@ RUN if [ -n "$OBAN_LICENSE" ]; then \
 
 ENV MIX_ENV=prod
 
-# Install mix dependencies
 COPY mix.exs ./
 RUN mix deps.get --only prod
 
-# Copy compile-time config and compile dependencies
 COPY config/config.exs config/
 RUN mix deps.compile
 
-# Copy application code and compile
 COPY lib lib
 RUN mix compile
 
-# Copy runtime config (changes here won't trigger recompilation)
 COPY config/runtime.exs config/
 
-# Build release
 RUN mix release oban_dashboard
 
-# Runtime stage
+# Runtime
+
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} AS runtime
 
@@ -56,6 +53,9 @@ USER oban
 
 ENV PORT=4000
 EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget -q --spider http://localhost:${PORT}/health || exit 1
 
 ENTRYPOINT ["/app/bin/oban_dashboard"]
 CMD ["start"]
