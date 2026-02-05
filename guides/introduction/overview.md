@@ -53,3 +53,6 @@ fully realtime.
 
 See the [installation guide](installation.md) for details on installing and configuring Oban Web
 for your application.
+
+Alternatively, a [standalone Docker image](standalone.md) is available for monitoring Oban without
+embedding the dashboard in your application.

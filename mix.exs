@@ -68,6 +68,7 @@ defmodule Oban.Web.MixProject do
     [
       "guides/introduction/overview.md",
       "guides/introduction/installation.md",
+      "guides/introduction/standalone.md",
       "guides/advanced/filtering.md",
       "guides/advanced/limiting_access.md",
       "guides/advanced/metrics.md",
@@ -155,7 +156,8 @@ defmodule Oban.Web.MixProject do
         "deps.unlock --check-unused",
         "credo --strict",
         "test --raise"
-      ]
+      ],
+      "dash.build": "cmd docker build -t oban-dash standalone"
     ]
   end
 end
