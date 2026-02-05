@@ -34,7 +34,7 @@ defmodule ObanDash.MixProject do
   end
 
   defp oban_pro_dep do
-    if System.get_env("OBAN_LICENSE") do
+    if System.get_env("OBAN_LICENSE_KEY") do
       [{:oban_pro, "~> 1.6", repo: :oban}]
     else
       []

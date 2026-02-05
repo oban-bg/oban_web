@@ -6,8 +6,7 @@ ARG ALPINE_VERSION=3.22.3
 
 FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-alpine-${ALPINE_VERSION} AS builder
 
-ARG OBAN_LICENSE
-ARG OBAN_KEY_FINGERPRINT
+ARG OBAN_LICENSE_KEY
 
 RUN apk add --no-cache build-base git
 
@@ -16,10 +15,10 @@ WORKDIR /app
 RUN mix local.hex --force && \
     mix local.rebar --force
 
-RUN if [ -n "$OBAN_LICENSE" ]; then \
-      mix hex.repo add oban https://getoban.pro/repo \
-        --fetch-public-key "$OBAN_KEY_FINGERPRINT" \
-        --auth-key "$OBAN_LICENSE"; \
+RUN if [ -n "$OBAN_LICENSE_KEY" ]; then \
+      mix hex.repo add oban https://repo.oban.pro \
+        --fetch-public-key "SHA256:4/OSKi0NRF91QVVXlGAhb/BIMLnK8NHcx/EWs+aIWPc" \
+        --auth-key "$OBAN_LICENSE_KEY"; \
     fi
 
 ENV MIX_ENV=prod
