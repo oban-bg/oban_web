@@ -76,6 +76,20 @@ callback][rsc].
 
 [rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
 
+## v2.11.8 - 2026-02-06
+
+### Enhancements
+
+- [Dashboard] Add standalone docker image for simplified Web hosting
+
+  A standalone Docker image is now available for situations where you want an Oban dashboard
+  without mounting Oban.Web within your application.
+
+- [Job] Safely handle missing timestamps in jobs table
+
+  Manual table updates may forget to include a timestamp for a particular state, which crashes the
+  table. This provides an empty fallback for missing timestamps.
+
 ## v2.11.7 - 2026-01-22
 
 ### Enhancements
