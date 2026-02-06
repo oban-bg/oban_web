@@ -312,4 +312,20 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       |> render_click()
     end
   end
+
+  describe "enqueue job button" do
+    test "shows enqueue toggle button in header", %{live: live} do
+      assert has_element?(live, "#enqueue-job-toggle")
+    end
+
+    test "toggles enqueue form when clicked", %{live: live} do
+      refute has_element?(live, "#new-job-form")
+
+      live
+      |> element("#enqueue-job-toggle")
+      |> render_click()
+
+      assert has_element?(live, "#new-job-form")
+    end
+  end
 end
