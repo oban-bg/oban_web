@@ -38,7 +38,18 @@ When connecting to a database on your host machine, use `host.docker.internal` i
 
 ```diff
  docker run -d \
-+  -e DATABASE_URL="postgres://host.docker.internal:5432/myapp_dev" \
+-  -e DATABASE_URL="postgres://user:pass@host:5432/myapp_prod" \
++  -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp_dev" \
+   -p 4000:4000 \
+   ghcr.io/oban-bg/oban-dash
+```
+
+The image is built for both `amd64` and `arm64` architectures. If you need to specify a platform
+explicitly, use the `--platform` flag:
+
+```diff
++docker run --platform linux/arm64 -d \
+   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp_dev" \
    -p 4000:4000 \
    ghcr.io/oban-bg/oban-dash
 ```
@@ -65,7 +76,7 @@ Basic Authentication by setting both `BASIC_AUTH_USER` and `BASIC_AUTH_PASS`:
 
 ```diff
  docker run -d \
-   -e DATABASE_URL="postgres://host.docker.internal:5432/myapp" \
+   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp" \
 +  -e BASIC_AUTH_USER="admin" \
 +  -e BASIC_AUTH_PASS="secret" \
    -p 4000:4000 \
@@ -77,7 +88,7 @@ read-only mode:
 
 ```diff
  docker run -d \
-   -e DATABASE_URL="postgres://host.docker.internal:5432/myapp" \
+   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp" \
 +  -e OBAN_READ_ONLY="true" \
    -p 4000:4000 \
    ghcr.io/oban-bg/oban-dash
@@ -103,7 +114,7 @@ Then run your custom image:
 
 ```bash
 docker run -d \
-  -e DATABASE_URL="postgres://host.docker.internal:5432/myapp" \
+  -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp" \
   -p 4000:4000 \
   oban-dash-pro
 ```
