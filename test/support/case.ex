@@ -62,13 +62,16 @@ defmodule Oban.Web.Case do
       name: Oban,
       notifier: Oban.Notifiers.Isolated,
       peer: Oban.Peers.Isolated,
-      plugins: [Oban.Met],
       repo: Repo,
       stage_interval: :infinity,
       shutdown_grace_period: 250
     ]
 
-    opts = Keyword.merge(base_opts, opts)
+    opts =
+      base_opts
+      |> Keyword.merge(opts)
+      |> Keyword.update(:plugins, [Oban.Met], &[Oban.Met | &1])
+
     name = Keyword.fetch!(opts, :name)
 
     start_supervised!({Oban, opts})

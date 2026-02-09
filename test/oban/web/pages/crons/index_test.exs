@@ -22,6 +22,8 @@ end
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case, async: true
 
+  alias Oban.Pro.Plugins.DynamicCron
+
   setup do
     static_crontab = [
       {"* * * * *", Oban.Workers.CronA},
@@ -32,7 +34,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     start_supervised_oban!(
       plugins: [
         {Oban.Plugins.Cron, crontab: static_crontab},
-        {Oban.Pro.Plugins.DynamicCron, crontab: []}
+        {DynamicCron, crontab: []}
       ]
     )
 
@@ -54,7 +56,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
   end
 
   test "viewing dynamically configured crons", %{live: live} do
-    Oban.Pro.Plugins.DynamicCron.insert([
+    DynamicCron.insert([
       {"* 1 * * *", Oban.Workers.CronB},
       {"0 0 * * *", Oban.Workers.CronC}
     ])
@@ -78,7 +80,30 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     for mode <- ~w(worker last_run next_run schedule) do
       change_sort(live, mode)
 
-      assert_patch(live, crons_path(sort_by: mode, sort_dir: "asc"))
+      assert_patch(live, crons_path(limit: 20, sort_by: mode, sort_dir: "asc"))
+    end
+  end
+
+  describe "pagination" do
+    test "clicking Show More increases the limit", %{live: live} do
+      crons = Enum.map(1..25, &{"#{&1} * * * *", Oban.Workers.CronA, name: "cron-#{&1}"})
+
+      DynamicCron.insert(crons)
+
+      refresh(live)
+
+      live
+      |> element("button", "Show More")
+      |> render_click()
+
+      assert_patch(live, crons_path(limit: 40))
+    end
+
+    test "hides pagination buttons when all crons fit within limit", %{live: live} do
+      refresh(live)
+
+      refute has_element?(live, "button", "Show More")
+      refute has_element?(live, "button", "Show Less")
     end
   end
 

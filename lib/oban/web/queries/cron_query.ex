@@ -115,6 +115,7 @@ defmodule Oban.Web.CronQuery do
 
   def all_crons(params, conf) do
     {sort_by, sort_dir} = parse_sort(params)
+    limit = Map.get(params, :limit, 20)
 
     crontab = static_crontab(conf) ++ dynamic_crontab(conf)
 
@@ -127,6 +128,7 @@ defmodule Oban.Web.CronQuery do
     |> Enum.map(&new(&1, history))
     |> Enum.filter(&filter(&1, conditions))
     |> Enum.sort_by(&order(&1, sort_by), sort_dir)
+    |> Enum.take(limit)
   end
 
   # TODO: This should be `get_cron`, and we need better queries. No need to load all the dynamic crons

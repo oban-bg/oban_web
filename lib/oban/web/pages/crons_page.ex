@@ -6,7 +6,11 @@ defmodule Oban.Web.CronsPage do
   alias Oban.Web.Crons.DetailComponent
   alias Oban.Web.{Cron, CronQuery, Page, SearchComponent, SortComponent}
 
-  @known_params ~w(modes sort_by sort_dir states workers)
+  @known_params ~w(limit modes sort_by sort_dir states workers)
+
+  @inc_limit 20
+  @max_limit 100
+  @min_limit 20
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -73,6 +77,14 @@ defmodule Oban.Web.CronsPage do
             <ul class="divide-y divide-gray-100 dark:divide-gray-800">
               <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
             </ul>
+
+            <div
+              :if={@show_less? or @show_more?}
+              class="py-6 flex items-center justify-center space-x-6"
+            >
+              <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
+              <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
+            </div>
           </div>
         <% end %>
       </div>
@@ -92,6 +104,33 @@ defmodule Oban.Web.CronsPage do
     </span>
     """
   end
+
+  attr :active, :boolean, required: true
+  attr :click, :string, required: true
+  attr :label, :string, required: true
+  attr :myself, :any, required: true
+
+  defp load_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={"font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 #{loader_class(@active)}"}
+      phx-target={@myself}
+      phx-click={@click}
+    >
+      {@label}
+    </button>
+    """
+  end
+
+  defp loader_class(true) do
+    """
+    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
+    border-gray-200 dark:border-gray-800 hover:border-gray-400
+    """
+  end
+
+  defp loader_class(_), do: "text-gray-400 dark:text-gray-600 cursor-not-allowed"
 
   attr :cron, Cron
   attr :id, :string
@@ -224,22 +263,28 @@ defmodule Oban.Web.CronsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = %{sort_by: "worker", sort_dir: "asc"}
+    default = %{limit: @min_limit, sort_by: "worker", sort_dir: "asc"}
 
     socket
     |> assign(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:params, fn -> default end)
     |> assign_new(:crontab, fn -> [] end)
+    |> assign_new(:show_less?, fn -> false end)
+    |> assign_new(:show_more?, fn -> false end)
   end
 
   @impl Page
   def handle_refresh(socket) do
-    crons = CronQuery.all_crons(socket.assigns.params, socket.assigns.conf)
+    %{params: params, conf: conf} = socket.assigns
+    crons = CronQuery.all_crons(params, conf)
+    limit = params.limit
 
     assign(socket,
       crontab: crons,
-      detailed: CronQuery.refresh_cron(socket.assigns.conf, socket.assigns.detailed)
+      detailed: CronQuery.refresh_cron(conf, socket.assigns.detailed),
+      show_less?: limit > @min_limit,
+      show_more?: limit < @max_limit and length(crons) == limit
     )
   end
 
@@ -285,10 +330,35 @@ defmodule Oban.Web.CronsPage do
     {:noreply, socket}
   end
 
+  def handle_event("load-less", _params, socket) do
+    if socket.assigns.show_less? do
+      send(self(), {:params, :limit, -@inc_limit})
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("load-more", _params, socket) do
+    if socket.assigns.show_more? do
+      send(self(), {:params, :limit, @inc_limit})
+    end
+
+    {:noreply, socket}
+  end
+
   @impl Page
   def handle_info({:toggle_select, _worker}, socket) do
     # TODO: Implement cron selection logic
     {:noreply, socket}
+  end
+
+  def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
+    params =
+      socket.assigns.params
+      |> Map.update!(:limit, &(&1 + inc))
+      |> without_defaults(socket.assigns.default_params)
+
+    {:noreply, push_patch(socket, to: oban_path(:crons, params), replace: true)}
   end
 
   def handle_info(_event, socket) do
