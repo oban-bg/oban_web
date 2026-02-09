@@ -53,6 +53,8 @@ if config_env() == :test do
     url: System.get_env("MYSQL_URL") || "mysql://root@localhost:3306/oban_web_test"
 end
 
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
+
 config :logger, level: :warning
 config :logger, :console, format: "[$level] $message\n"
 

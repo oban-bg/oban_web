@@ -69,12 +69,14 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/dynamic-cron")
 
-      assert refresh(live) =~ "Dynamic"
+      refresh(live)
+      assert has_element?(live, "span.bg-violet-100", "Dynamic")
 
       static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
-      refute refresh(live) =~ "Dynamic"
+      refresh(live)
+      refute has_element?(live, "span.bg-violet-100", "Dynamic")
     end
 
     test "pause button toggles cron pause state" do
@@ -103,6 +105,50 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       refute has_element?(live, "button", "Pause")
       refute has_element?(live, "button", "Resume")
+    end
+
+    test "edit form is disabled for static crons" do
+      stop_supervised!(Oban)
+
+      start_supervised_oban!(
+        engine: Oban.Pro.Engines.Smart,
+        plugins: [
+          {Oban.Plugins.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+          {DynamicCron, crontab: []}
+        ]
+      )
+
+      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
+
+      html = refresh(live)
+
+      assert html =~ "Dynamic Only"
+      assert has_element?(live, "[rel=static-blocker]")
+      assert has_element?(live, "fieldset[disabled]")
+      assert has_element?(live, "button[disabled]", "Save Changes")
+    end
+
+    test "edit form is enabled for dynamic crons" do
+      stop_supervised!(Oban)
+
+      start_supervised_oban!(
+        engine: Oban.Pro.Engines.Smart,
+        plugins: [
+          {Oban.Plugins.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+          {DynamicCron, crontab: []}
+        ]
+      )
+
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "editable-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/editable-cron")
+
+      refresh(live)
+
+      refute has_element?(live, "[rel=static-blocker]")
+      refute has_element?(live, "fieldset[disabled]")
+      assert has_element?(live, "button:not([disabled])", "Save Changes")
     end
   end
 

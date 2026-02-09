@@ -6,6 +6,14 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   @compile {:no_warn_undefined, DynamicCron}
 
+  database = :oban_web |> :code.priv_dir() |> Path.join("timezones.txt")
+
+  @external_resource database
+
+  @timezones database
+             |> File.read!()
+             |> String.split("\n", trim: true)
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -45,8 +53,8 @@ defmodule Oban.Web.Crons.DetailComponent do
         </div>
       </div>
 
-      <div class="grid grid-cols-4 gap-6 px-3 py-6">
-        <div class="col-span-3">
+      <div class="grid grid-cols-3 gap-6 px-3 py-6">
+        <div class="col-span-2">
           <div class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md flex items-center justify-center">
             <span class="text-gray-400 text-sm">
               Spark chart placeholder - execution history will be displayed here
@@ -55,7 +63,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         </div>
 
         <div class="col-span-1">
-          <div class="flex space-x-12 mb-6">
+          <div class="flex justify-between mb-6 pr-6">
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Last Run
@@ -87,40 +95,30 @@ defmodule Oban.Web.Crons.DetailComponent do
                 </span>
               </span>
             </div>
-          </div>
 
-          <div class="flex flex-col mb-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Schedule
-            </span>
-            <span class="text-base text-gray-800 dark:text-gray-200">
-              {CronExpr.describe(@cron.expression) || @cron.expression}
-            </span>
-            <code class="font-mono text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {@cron.expression}
-            </code>
-          </div>
-
-          <div class="flex flex-col mb-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Timezone
-            </span>
-            <span class="text-base text-gray-800 dark:text-gray-200">
-              {timezone(@cron)}
-            </span>
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Last Status
+              </span>
+              <div class="flex items-center space-x-1">
+                <.state_icon state={@cron.last_state} />
+                <span class="text-base text-gray-800 dark:text-gray-200">
+                  {state_label(@cron.last_state)}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div class="flex flex-col">
             <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Last Status
+              Schedule
             </span>
-
-            <div class="flex items-center space-x-1">
-              <.state_icon state={@cron.last_state} />
-              <span class="text-base text-gray-800 dark:text-gray-200">
-                {state_label(@cron.last_state)}
+            <span class="text-base text-gray-800 dark:text-gray-200">
+              <code class="font-mono">{@cron.expression}</code>
+              <span :if={CronExpr.describe(@cron.expression)} class="ml-2 text-gray-500 dark:text-gray-400">
+                ({CronExpr.describe(@cron.expression)})
               </span>
-            </div>
+            </span>
           </div>
         </div>
       </div>
@@ -130,40 +128,132 @@ defmodule Oban.Web.Crons.DetailComponent do
           <Icons.pencil_square />
           <span>Edit Configuration</span>
         </h3>
-        <form
-          id="cron-form"
-          class="grid grid-cols-3 gap-6 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-          phx-change="form-change"
-          phx-submit="local-submit"
-        >
-          <.field label="Schedule" />
 
-          <.field label="Tags" />
+        <fieldset disabled={not @cron.dynamic?}>
+          <form
+            id="cron-form"
+            class="grid grid-cols-3 gap-6 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+            phx-change="form-change"
+            phx-submit="save-cron"
+            phx-target={@myself}
+          >
+            <.form_field label="Schedule" name="expression" value={@cron.expression} />
 
-          <.field label="Queue" />
+            <.select_field
+              label="Queue"
+              name="queue"
+              value={get_opt(@cron, "queue") || "default"}
+              options={queue_options(@queues)}
+            />
 
-          <.field label="Priority" />
+            <.select_field
+              label="Timezone"
+              name="timezone"
+              value={get_opt(@cron, "timezone") || "Etc/UTC"}
+              options={timezone_options(get_opt(@cron, "timezone"))}
+              disabled={not @cron.dynamic?}
+            />
 
-          <.field label="Max Attempts" />
+            <.form_field label="Priority" name="priority" value={get_opt(@cron, "priority")} type="number" placeholder="0" />
 
-          <.field label="Guaranteed" />
+            <.form_field label="Max Attempts" name="max_attempts" value={get_opt(@cron, "max_attempts")} type="number" placeholder="20" />
 
-          <.field label="Name" />
+            <.form_field label="Tags" name="tags" value={format_tags(@cron)} placeholder="tag1, tag2" />
 
-          <.field label="Args" colspan="col-span-2" />
-        </form>
+            <.form_field label="Args" name="args" value={format_args(@cron)} colspan="col-span-2" type="textarea" placeholder="{}" />
+
+            <div class="col-span-1 pt-7 flex items-center">
+              <.save_button cron={@cron} />
+            </div>
+          </form>
+        </fieldset>
       </div>
     </div>
     """
   end
 
+  attr :label, :string, required: true
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :type, :string, default: "text"
   attr :colspan, :string, default: "col-span-1"
-  attr :label, :string
+  attr :placeholder, :string, default: nil
 
-  def field(assigns) do
+  defp form_field(assigns) do
     ~H"""
-    <div class={[@colspan, "bg-green-100"]}>
-      <label>{@label}</label>
+    <div class={@colspan}>
+      <label for={@name} class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+        {@label}
+      </label>
+      <%= if @type == "textarea" do %>
+        <textarea
+          id={@name}
+          name={@name}
+          rows="3"
+          placeholder={@placeholder}
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+        >{@value}</textarea>
+      <% else %>
+        <input
+          type={@type}
+          id={@name}
+          name={@name}
+          value={@value}
+          placeholder={@placeholder}
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+        />
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :name, :string, required: true
+  attr :value, :any, default: nil
+  attr :options, :list, required: true
+  attr :disabled, :boolean, default: false
+
+  defp select_field(assigns) do
+    ~H"""
+    <div>
+      <label for={@name} class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+        {@label}
+      </label>
+      <select
+        id={@name}
+        name={@name}
+        disabled={@disabled}
+        class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+      >
+        <option :for={{label, val} <- @options} value={val} selected={val == @value}>
+          {label}
+        </option>
+      </select>
+    </div>
+    """
+  end
+
+  attr :cron, :any, required: true
+
+  defp save_button(assigns) do
+    ~H"""
+    <div class="flex items-center space-x-3">
+      <button
+        type="submit"
+        disabled={not @cron.dynamic?}
+        class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Save Changes
+      </button>
+      <span :if={not @cron.dynamic?} rel="static-blocker" class="text-xs text-gray-500 dark:text-gray-400">
+        <a
+          href="https://hexdocs.pm/oban_pro/dynamic-cron.html"
+          target="_blank"
+          class="hover:underline"
+        >
+          Dynamic Only <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block align-text-top" />
+        </a>
+      </span>
     </div>
     """
   end
@@ -183,12 +273,98 @@ defmodule Oban.Web.Crons.DetailComponent do
     {:noreply, assign(socket, cron: %{cron | paused?: paused?})}
   end
 
-  def handle_event("edit", _params, socket) do
-    # TODO: Implement dynamic cron editing
+  def handle_event("form-change", _params, socket) do
     {:noreply, socket}
   end
 
+  def handle_event("save-cron", params, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    %{cron: cron, conf: conf} = socket.assigns
+
+    opts =
+      params
+      |> parse_form_params(cron)
+      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+
+    case DynamicCron.update(conf.name, cron.name, opts) do
+      {:ok, _entry} ->
+        send(self(), :refresh)
+        send(self(), {:flash, :info, "Cron configuration updated"})
+        {:noreply, socket}
+
+      {:error, _reason} ->
+        send(self(), {:flash, :error, "Failed to update cron configuration"})
+        {:noreply, socket}
+    end
+  end
+
   # Helpers
+
+  defp queue_options(queues) do
+    queues
+    |> Enum.map(fn %{name: name} -> {name, name} end)
+    |> Enum.sort_by(&elem(&1, 0))
+  end
+
+  defp timezone_options(_current_timezone) do
+    Enum.map(@timezones, &{&1, &1})
+  end
+
+  defp parse_form_params(params, cron) do
+    [
+      expression: changed_val(params["expression"], cron.expression),
+      queue: changed_val(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
+      timezone: changed_val(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
+      priority: changed_val(parse_int(params["priority"]), get_opt(cron, "priority")),
+      max_attempts: changed_val(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
+      tags: changed_val(parse_tags(params["tags"]), get_opt(cron, "tags")),
+      args: changed_val(parse_json(params["args"]), get_opt(cron, "args"))
+    ]
+  end
+
+  defp changed_val(new_val, current_val, default \\ nil)
+  defp changed_val(nil, _current, _default), do: nil
+  defp changed_val("", _current, _default), do: nil
+  defp changed_val(val, val, _default), do: nil
+  defp changed_val(val, nil, val), do: nil
+  defp changed_val(val, _current, _default), do: val
+
+  defp parse_string(nil), do: nil
+  defp parse_string(""), do: nil
+  defp parse_string(str), do: String.trim(str)
+
+  defp parse_int(nil), do: nil
+  defp parse_int(""), do: nil
+
+  defp parse_int(str) do
+    case Integer.parse(str) do
+      {num, ""} -> num
+      _ -> nil
+    end
+  end
+
+  defp parse_tags(nil), do: nil
+  defp parse_tags(""), do: nil
+
+  defp parse_tags(str) do
+    str
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp parse_json(nil), do: nil
+  defp parse_json(""), do: nil
+
+  defp parse_json(str) do
+    case Oban.JSON.decode!(str) do
+      map when is_map(map) -> map
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
 
   defp maybe_to_unix(nil), do: ""
 
@@ -198,9 +374,15 @@ defmodule Oban.Web.Crons.DetailComponent do
     |> DateTime.to_unix(:millisecond)
   end
 
-  defp timezone(%{opts: opts}) do
-    Map.get(opts, "timezone", "Etc/UTC")
+  defp get_opt(%{opts: opts}, key) do
+    Map.get(opts, key)
   end
+
+  defp format_tags(%{opts: %{"tags" => tags}}) when is_list(tags), do: Enum.join(tags, ", ")
+  defp format_tags(_), do: nil
+
+  defp format_args(%{opts: %{"args" => args}}) when is_map(args), do: Oban.JSON.encode!(args)
+  defp format_args(_), do: nil
 
   defp state_label(nil), do: "Unknown"
   defp state_label(state), do: String.capitalize(state)

@@ -4,7 +4,7 @@ defmodule Oban.Web.CronsPage do
   use Oban.Web, :live_component
 
   alias Oban.Web.Crons.DetailComponent
-  alias Oban.Web.{Cron, CronQuery, Page, SearchComponent, SortComponent}
+  alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent}
 
   @known_params ~w(limit modes sort_by sort_dir states workers)
 
@@ -25,6 +25,7 @@ defmodule Oban.Web.CronsPage do
             cron={@detailed}
             module={DetailComponent}
             params={without_defaults(Map.delete(@params, "id"), @default_params)}
+            queues={QueueQuery.all_queues(%{}, @conf)}
             resolver={@resolver}
           />
         <% else %>
@@ -360,6 +361,10 @@ defmodule Oban.Web.CronsPage do
       |> without_defaults(socket.assigns.default_params)
 
     {:noreply, push_patch(socket, to: oban_path(:crons, params), replace: true)}
+  end
+
+  def handle_info({:flash, mode, message}, socket) do
+    {:noreply, put_flash_with_clear(socket, mode, message)}
   end
 
   def handle_info(_event, socket) do
