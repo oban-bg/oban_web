@@ -60,7 +60,7 @@ defmodule Oban.Web.CronsPage do
                 <.header label="schedule" class="w-32 text-right" />
                 <.header label="last run" class="w-32 text-right" />
                 <.header label="next run" class="w-32 text-right" />
-                <.header label="status" class="w-20 pr-3 text-right" />
+                <.header label="status" class="w-20 pr-4 text-right" />
               </div>
             </ul>
 
@@ -104,16 +104,38 @@ defmodule Oban.Web.CronsPage do
 
       <.link
         patch={oban_path([:crons, @cron.name])}
-        class="py-2.5 flex flex-grow items-center cursor-pointer"
+        class="py-3.5 flex flex-grow items-center cursor-pointer"
       >
         <div class="w-1/3">
-          <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300">
+          <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
             {@cron.worker}
           </span>
 
-          <samp class="font-mono truncate text-xs text-gray-500 dark:text-gray-400">
-            {format_opts(@cron.opts)}
-          </samp>
+          <div
+            :if={@cron.dynamic? or has_tags?(@cron.opts) or format_opts(@cron.opts)}
+            class="flex flex-wrap items-center gap-1.5 mt-1"
+          >
+            <span
+              :if={@cron.dynamic?}
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+            >
+              dynamic
+            </span>
+
+            <span
+              :for={tag <- get_tags(@cron.opts)}
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+            >
+              {tag}
+            </span>
+
+            <samp
+              :if={format_opts(@cron.opts)}
+              class="font-mono text-xs text-gray-500 dark:text-gray-400"
+            >
+              {format_opts(@cron.opts)}
+            </samp>
+          </div>
         </div>
 
         <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
@@ -141,15 +163,7 @@ defmodule Oban.Web.CronsPage do
             -
           </span>
 
-          <div class="w-20 pr-3 flex justify-end items-center space-x-1">
-            <Icons.sparkles
-              :if={@cron.dynamic?}
-              id={"cron-dynamic-icon-#{@cron.name}"}
-              class="w-5 h-5"
-              phx-hook="Tippy"
-              data-title="Dynamic cron"
-            />
-
+          <div class="w-20 pr-4 flex justify-end">
             <span
               id={"cron-state-icon-#{@cron.name}"}
               phx-hook="Tippy"
@@ -210,12 +224,12 @@ defmodule Oban.Web.CronsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = fn -> %{sort_by: "worker", sort_dir: "asc"} end
+    default = %{sort_by: "worker", sort_dir: "asc"}
 
     socket
-    |> assign_new(:default_params, default)
+    |> assign(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
-    |> assign_new(:params, default)
+    |> assign_new(:params, fn -> default end)
     |> assign_new(:crontab, fn -> [] end)
   end
 
@@ -281,11 +295,23 @@ defmodule Oban.Web.CronsPage do
     {:noreply, socket}
   end
 
-  defp format_opts(opts) when map_size(opts) == 0, do: "[]"
+  defp format_opts(opts) when map_size(opts) == 0, do: nil
 
   defp format_opts(opts) do
     opts
-    |> Enum.map_join(", ", fn {key, val} -> "#{key}: #{inspect(val)}" end)
-    |> truncate(0..98)
+    |> Map.drop(["tags"])
+    |> case do
+      filtered when map_size(filtered) == 0 ->
+        nil
+
+      filtered ->
+        filtered
+        |> Enum.map_join(", ", fn {key, val} -> "#{key}: #{inspect(val)}" end)
+        |> truncate(0..98)
+    end
   end
+
+  defp has_tags?(opts), do: Map.has_key?(opts, "tags") and opts["tags"] != []
+
+  defp get_tags(opts), do: Map.get(opts, "tags", [])
 end
