@@ -2,6 +2,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   use Oban.Web, :live_component
 
   alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Web.CronExpr
 
   @compile {:no_warn_undefined, DynamicCron}
 
@@ -93,8 +94,11 @@ defmodule Oban.Web.Crons.DetailComponent do
               Schedule
             </span>
             <span class="text-base text-gray-800 dark:text-gray-200">
-              <code class="font-mono">{@cron.expression}</code>
+              {CronExpr.describe(@cron.expression) || @cron.expression}
             </span>
+            <code class="font-mono text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {@cron.expression}
+            </code>
           </div>
 
           <div class="flex flex-col mb-6">

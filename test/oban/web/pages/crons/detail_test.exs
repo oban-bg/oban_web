@@ -53,12 +53,15 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert refresh(live) =~ "Completed"
     end
 
-    test "displays schedule expression" do
+    test "displays schedule with human-readable description" do
       DynamicCron.insert([{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/schedule-test")
 
-      assert refresh(live) =~ "*/15 * * * *"
+      html = refresh(live)
+
+      assert html =~ "Every 15 minutes"
+      assert html =~ "*/15 * * * *"
     end
 
     test "shows dynamic badge only for dynamic crons" do
