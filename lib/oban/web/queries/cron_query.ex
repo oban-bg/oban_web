@@ -138,7 +138,7 @@ defmodule Oban.Web.CronQuery do
     history = crontab_history(crontab, conf)
 
     crontab
-    |> Enum.find(fn {_expr, _worker, _opts, cron_name, _dynamic?} -> cron_name == name end)
+    |> Enum.find(fn {_expr, _worker, _opts, cron_name, _dynamic?, _paused?} -> cron_name == name end)
     |> case do
       nil -> nil
       entry -> new(entry, history)
@@ -153,13 +153,13 @@ defmodule Oban.Web.CronQuery do
     conf.name
     |> Met.crontab()
     |> Enum.map(fn {expr, worker, opts} = entry ->
-      {expr, worker, opts, Oban.Plugins.Cron.entry_name(entry), false}
+      {expr, worker, opts, Oban.Plugins.Cron.entry_name(entry), false, false}
     end)
   end
 
   defp dynamic_crontab(conf) do
     if Utils.has_dynamic_cron?(conf) do
-      query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true})
+      query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true, c.paused})
 
       Repo.all(conf, query)
     end
@@ -167,13 +167,14 @@ defmodule Oban.Web.CronQuery do
 
   # Construction
 
-  defp new({expr, worker, opts, name, dynamic?}, history) do
+  defp new({expr, worker, opts, name, dynamic?, paused?}, history) do
     fields = [
       name: name,
       expression: expr,
       worker: worker,
       opts: opts,
       dynamic?: dynamic?,
+      paused?: paused?,
       next_at: next_at(expr),
       last_at: last_at(history, name),
       last_state: get_in(history, [name, :state])

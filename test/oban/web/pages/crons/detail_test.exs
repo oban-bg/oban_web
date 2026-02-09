@@ -31,15 +31,11 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/with-tz")
 
-      assert live
-             |> refresh()
-             |> render() =~ "America/Chicago"
+      assert refresh(live) =~ "America/Chicago"
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/without-tz")
 
-      assert live
-             |> refresh()
-             |> render() =~ "Etc/UTC"
+      assert refresh(live) =~ "Etc/UTC"
     end
 
     test "displays last status with correct state" do
@@ -54,25 +50,62 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/status-test")
 
-      assert live
-             |> refresh()
-             |> render() =~ "Completed"
+      assert refresh(live) =~ "Completed"
     end
 
     test "displays schedule expression" do
       DynamicCron.insert([{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/schedule-test")
+
+      assert refresh(live) =~ "*/15 * * * *"
+    end
+
+    test "shows dynamic badge only for dynamic crons" do
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "dynamic-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/dynamic-cron")
+
+      assert refresh(live) =~ "Dynamic"
+
+      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
+
+      refute refresh(live) =~ "Dynamic"
+    end
+
+    test "pause button toggles cron pause state" do
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "pause-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/pause-test")
+
       refresh(live)
 
-      html = render(live)
-      assert html =~ "*/15 * * * *"
+      assert has_element?(live, "button", "Pause")
+      refute has_element?(live, "button", "Resume")
+
+      live
+      |> element("button", "Pause")
+      |> render_click()
+
+      assert has_element?(live, "button", "Resume")
+      refute has_element?(live, "button", "Pause")
+    end
+
+    test "pause button not shown for static crons" do
+      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
+
+      refresh(live)
+
+      refute has_element?(live, "button", "Pause")
+      refute has_element?(live, "button", "Resume")
     end
   end
 
   defp refresh(live) do
     send(live.pid, :refresh)
 
-    live
+    render(live)
   end
 end

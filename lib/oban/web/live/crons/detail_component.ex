@@ -1,6 +1,10 @@
 defmodule Oban.Web.Crons.DetailComponent do
   use Oban.Web, :live_component
 
+  alias Oban.Pro.Plugins.DynamicCron
+
+  @compile {:no_warn_undefined, DynamicCron}
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -18,14 +22,22 @@ defmodule Oban.Web.Crons.DetailComponent do
         </.link>
 
         <div class="flex space-x-3">
-          <div class="flex">
-            <span class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600">
+          <button
+            :if={@cron.dynamic? and can?(:pause_queues, @access)}
+            type="button"
+            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
+            phx-click="toggle-pause"
+            phx-target={@myself}
+          >
+            <%= if @cron.paused? do %>
+              <Icons.play_circle class="mr-2 h-5 w-5" /> Resume
+            <% else %>
               <Icons.pause_circle class="mr-2 h-5 w-5" /> Pause
-            </span>
-          </div>
+            <% end %>
+          </button>
 
-          <div class="flex">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+          <div :if={@cron.dynamic?} class="flex items-center">
+            <span class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
               <Icons.sparkles class="mr-1 h-4 w-4" /> Dynamic
             </span>
           </div>
@@ -155,6 +167,18 @@ defmodule Oban.Web.Crons.DetailComponent do
   # Handlers
 
   @impl Phoenix.LiveComponent
+  def handle_event("toggle-pause", _params, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    %{cron: cron, conf: conf} = socket.assigns
+
+    paused? = not cron.paused?
+
+    DynamicCron.update(conf.name, cron.name, paused: paused?)
+
+    {:noreply, assign(socket, cron: %{cron | paused?: paused?})}
+  end
+
   def handle_event("edit", _params, socket) do
     # TODO: Implement dynamic cron editing
     {:noreply, socket}
@@ -171,7 +195,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   defp timezone(%{opts: opts}) do
-    Map.get(opts, "timezone") || "Etc/UTC"
+    Map.get(opts, "timezone", "Etc/UTC")
   end
 
   defp state_label(nil), do: "Unknown"

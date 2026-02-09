@@ -21,6 +21,7 @@ defmodule Oban.Web.CronsPage do
           <.live_component
             id="detail"
             access={@access}
+            conf={@conf}
             cron={@detailed}
             module={DetailComponent}
             params={without_defaults(Map.delete(@params, "id"), @default_params)}
