@@ -3,8 +3,9 @@ import topbar from "topbar";
 
 import { loadAll } from "./lib/settings";
 
-import Charter from "./hooks/charter";
 import Completer from "./hooks/completer";
+import CronChart from "./hooks/cron_chart";
+import JobsChart from "./hooks/jobs_chart";
 import HistoryBack from "./hooks/history_back";
 import Instantiator from "./hooks/instantiator";
 import Refresher from "./hooks/refresher";
@@ -15,8 +16,9 @@ import Themer from "./hooks/themer";
 import Tippy from "./hooks/tippy";
 
 const hooks = {
-  Charter,
   Completer,
+  CronChart,
+  JobsChart,
   HistoryBack,
   Instantiator,
   Refresher,

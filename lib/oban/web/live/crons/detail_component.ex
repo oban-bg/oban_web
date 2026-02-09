@@ -55,11 +55,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="grid grid-cols-3 gap-6 px-3 py-6">
         <div class="col-span-2">
-          <div class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md flex items-center justify-center">
-            <span class="text-gray-400 text-sm">
-              Spark chart placeholder - execution history will be displayed here
-            </span>
-          </div>
+          <.sparkline history={@history} />
         </div>
 
         <div class="col-span-1">
@@ -115,7 +111,10 @@ defmodule Oban.Web.Crons.DetailComponent do
             </span>
             <span class="text-base text-gray-800 dark:text-gray-200">
               <code class="font-mono">{@cron.expression}</code>
-              <span :if={CronExpr.describe(@cron.expression)} class="ml-2 text-gray-500 dark:text-gray-400">
+              <span
+                :if={CronExpr.describe(@cron.expression)}
+                class="ml-2 text-gray-500 dark:text-gray-400"
+              >
                 ({CronExpr.describe(@cron.expression)})
               </span>
             </span>
@@ -154,13 +153,32 @@ defmodule Oban.Web.Crons.DetailComponent do
               disabled={not @cron.dynamic?}
             />
 
-            <.form_field label="Priority" name="priority" value={get_opt(@cron, "priority")} type="number" placeholder="0" />
+            <.form_field
+              label="Priority"
+              name="priority"
+              value={get_opt(@cron, "priority")}
+              type="number"
+              placeholder="0"
+            />
 
-            <.form_field label="Max Attempts" name="max_attempts" value={get_opt(@cron, "max_attempts")} type="number" placeholder="20" />
+            <.form_field
+              label="Max Attempts"
+              name="max_attempts"
+              value={get_opt(@cron, "max_attempts")}
+              type="number"
+              placeholder="20"
+            />
 
             <.form_field label="Tags" name="tags" value={format_tags(@cron)} placeholder="tag1, tag2" />
 
-            <.form_field label="Args" name="args" value={format_args(@cron)} colspan="col-span-2" type="textarea" placeholder="{}" />
+            <.form_field
+              label="Args"
+              name="args"
+              value={format_args(@cron)}
+              colspan="col-span-2"
+              type="textarea"
+              placeholder="{}"
+            />
 
             <div class="col-span-1 pt-7 flex items-center">
               <.save_button cron={@cron} />
@@ -168,6 +186,21 @@ defmodule Oban.Web.Crons.DetailComponent do
           </form>
         </fieldset>
       </div>
+    </div>
+    """
+  end
+
+  attr :history, :list, required: true
+
+  defp sparkline(assigns) do
+    ~H"""
+    <div
+      id="cron-chart"
+      class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+      phx-hook="CronChart"
+      phx-update="ignore"
+      data-history={Oban.JSON.encode!(@history)}
+    >
     </div>
     """
   end
@@ -245,7 +278,11 @@ defmodule Oban.Web.Crons.DetailComponent do
       >
         Save Changes
       </button>
-      <span :if={not @cron.dynamic?} rel="static-blocker" class="text-xs text-gray-500 dark:text-gray-400">
+      <span
+        :if={not @cron.dynamic?}
+        rel="static-blocker"
+        class="text-xs text-gray-500 dark:text-gray-400"
+      >
         <a
           href="https://hexdocs.pm/oban_pro/dynamic-cron.html"
           target="_blank"
@@ -315,7 +352,8 @@ defmodule Oban.Web.Crons.DetailComponent do
     [
       expression: changed_val(params["expression"], cron.expression),
       queue: changed_val(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
-      timezone: changed_val(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
+      timezone:
+        changed_val(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
       priority: changed_val(parse_int(params["priority"]), get_opt(cron, "priority")),
       max_attempts: changed_val(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
       tags: changed_val(parse_tags(params["tags"]), get_opt(cron, "tags")),

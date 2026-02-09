@@ -23,6 +23,7 @@ defmodule Oban.Web.CronsPage do
             access={@access}
             conf={@conf}
             cron={@detailed}
+            history={@detailed.history}
             module={DetailComponent}
             params={without_defaults(Map.delete(@params, "id"), @default_params)}
             queues={QueueQuery.all_queues(%{}, @conf)}
@@ -277,17 +278,26 @@ defmodule Oban.Web.CronsPage do
   end
 
   @impl Page
-  def handle_refresh(socket) do
+  def handle_refresh(%{assigns: %{detailed: nil}} = socket) do
     %{params: params, conf: conf} = socket.assigns
+
     crons = CronQuery.all_crons(params, conf)
     limit = params.limit
 
     assign(socket,
       crontab: crons,
-      detailed: CronQuery.refresh_cron(conf, socket.assigns.detailed),
       show_less?: limit > @min_limit,
       show_more?: limit < @max_limit and length(crons) == limit
     )
+  end
+
+  def handle_refresh(socket) do
+    %{conf: conf, detailed: detailed} = socket.assigns
+
+    case detailed do
+      %Cron{name: name} -> assign(socket, detailed: CronQuery.get_cron(name, conf))
+      _ -> socket
+    end
   end
 
   @impl Page
@@ -298,7 +308,7 @@ defmodule Oban.Web.CronsPage do
       |> decode_params()
       |> then(&Map.merge(socket.assigns.default_params, &1))
 
-    case CronQuery.find_cron(cron_name, socket.assigns.conf) do
+    case CronQuery.get_cron(cron_name, socket.assigns.conf) do
       nil ->
         {:noreply, push_patch(socket, to: oban_path(:crons), replace: true)}
 

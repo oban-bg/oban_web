@@ -10,6 +10,7 @@ defmodule Oban.Web.Cron do
     :last_at,
     :last_state,
     dynamic?: false,
-    paused?: false
+    paused?: false,
+    history: []
   ]
 end

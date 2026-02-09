@@ -33,6 +33,14 @@ defmodule Oban.Web.CronQuery do
 
   @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
 
+  # Macros
+
+  defmacrop contains_name(meta, value) do
+    quote do
+      fragment("? @> jsonb_build_object('cron_name', ?)", unquote(meta), unquote(value))
+    end
+  end
+
   # Searching
 
   def filterable, do: ~w(workers states modes)a
@@ -111,6 +119,8 @@ defmodule Oban.Web.CronQuery do
 
   defp parse_term(_term), do: {:none, ""}
 
+  @history_limit 50
+
   # Querying
 
   def all_crons(params, conf) do
@@ -118,36 +128,64 @@ defmodule Oban.Web.CronQuery do
     limit = Map.get(params, :limit, 20)
 
     crontab = static_crontab(conf) ++ dynamic_crontab(conf)
-
-    # TODO: Cache these values and avoid running the query too frequently. Cron jobs are
-    # inserted at most once a minute.
     history = crontab_history(crontab, conf)
     conditions = Map.take(params, filterable())
 
     crontab
-    |> Enum.map(&new(&1, history))
+    |> Enum.map(&build_cron(&1, history))
     |> Enum.filter(&filter(&1, conditions))
     |> Enum.sort_by(&order(&1, sort_by), sort_dir)
     |> Enum.take(limit)
   end
 
-  # TODO: This should be `get_cron`, and we need better queries. No need to load all the dynamic crons
-  # to get the value.
-  def find_cron(name, conf) when is_binary(name) do
-    crontab = static_crontab(conf) ++ dynamic_crontab(conf)
-    history = crontab_history(crontab, conf)
-
-    crontab
-    |> Enum.find(fn {_expr, _worker, _opts, cron_name, _dynamic?, _paused?} -> cron_name == name end)
-    |> case do
-      nil -> nil
-      entry -> new(entry, history)
+  def get_cron(name, conf) when is_binary(name) do
+    with entry when not is_nil(entry) <- find_cron_entry(name, conf) do
+      history = cron_history(name, conf)
+      build_cron(entry, %{name => history})
     end
   end
 
-  def refresh_cron(conf, %Cron{name: name}), do: find_cron(name, conf)
-  def refresh_cron(conf, name) when is_binary(name), do: find_cron(name, conf)
-  def refresh_cron(_conf, nil), do: nil
+  defp find_cron_entry(name, conf) do
+    static_entry =
+      conf
+      |> static_crontab()
+      |> Enum.find(fn {_, _, _, cron_name, _, _} -> cron_name == name end)
+
+    cond do
+      static_entry ->
+        static_entry
+
+      Utils.has_dynamic_cron?(conf) ->
+        query =
+          from c in Oban.Pro.Cron,
+            where: c.name == ^name,
+            select: {c.expression, c.worker, c.opts, c.name, true, c.paused},
+            limit: 1
+
+        Repo.one(conf, query)
+
+      true ->
+        nil
+    end
+  end
+
+  defp cron_history(name, conf) do
+    query =
+      from j in Job,
+        where: fragment("? @> ?", j.meta, ^%{cron_name: name}),
+        order_by: [desc: j.id],
+        limit: @history_limit,
+        select: %{
+          state: j.state,
+          attempted_at: j.attempted_at,
+          finished_at:
+            fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at)
+        }
+
+    conf
+    |> Repo.all(query)
+    |> Enum.reverse()
+  end
 
   defp static_crontab(conf) do
     conf.name
@@ -167,7 +205,10 @@ defmodule Oban.Web.CronQuery do
 
   # Construction
 
-  defp new({expr, worker, opts, name, dynamic?, paused?}, history) do
+  defp build_cron({expr, worker, opts, name, dynamic?, paused?}, history) do
+    jobs = Map.get(history, name, [])
+    last_job = List.last(jobs)
+
     fields = [
       name: name,
       expression: expr,
@@ -176,55 +217,53 @@ defmodule Oban.Web.CronQuery do
       dynamic?: dynamic?,
       paused?: paused?,
       next_at: next_at(expr),
-      last_at: last_at(history, name),
-      last_state: get_in(history, [name, :state])
+      last_at: last_at_from_job(last_job),
+      last_state: if(last_job, do: last_job.state),
+      history: jobs
     ]
 
     struct!(Cron, fields)
   end
 
-  defmacrop contains_name(meta, value) do
-    quote do
-      fragment("? @> jsonb_build_object('cron_name', ?)", unquote(meta), unquote(value))
-    end
-  end
+  defp last_at_from_job(nil), do: nil
+  defp last_at_from_job(%{finished_at: at}) when not is_nil(at), do: at
+  defp last_at_from_job(%{attempted_at: at}) when not is_nil(at), do: at
+  defp last_at_from_job(_job), do: nil
 
   defp crontab_history(crontab, conf) do
     names = Enum.map(crontab, &elem(&1, 3))
-    fields = ~w(state attempted_at cancelled_at completed_at discarded_at scheduled_at)a
 
     ranked =
       from t in subquery(
              from o in Job,
                where: contains_name(o.meta, parent_as(:list).value),
-               select: map(o, ^fields),
+               select: %{
+                 cron_name: o.meta["cron_name"],
+                 state: o.state,
+                 attempted_at: o.attempted_at,
+                 finished_at:
+                   fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at)
+               },
                select_merge: %{
                  rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
                }
            ),
-           where: t.rn == 1
+           where: t.rn <= @history_limit
 
     query =
       from f in fragment("json_array_elements_text(?)", ^names),
         as: :list,
         left_lateral_join: j in subquery(ranked),
         on: true,
-        select: {f.value, map(j, ^fields)}
+        order_by: [asc: j.rn],
+        select: {f.value, j}
 
     conf
     |> Repo.all(query)
-    |> Map.new()
-  end
-
-  defp last_at(history, worker) do
-    case Map.get(history, worker) do
-      %{state: state, scheduled_at: at} when state in ~w(available scheduled retryable) -> at
-      %{state: "executing", attempted_at: at} -> at
-      %{state: "cancelled", cancelled_at: at} -> at
-      %{state: "completed", completed_at: at} -> at
-      %{state: "discarded", discarded_at: at} -> at
-      _ -> nil
-    end
+    |> Enum.group_by(&elem(&1, 0), fn {_name, job} -> job end)
+    |> Map.new(fn {name, jobs} ->
+      {name, jobs |> Enum.reject(&is_nil/1) |> Enum.reverse()}
+    end)
   end
 
   defp next_at(expression) do

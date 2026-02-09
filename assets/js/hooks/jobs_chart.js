@@ -1,4 +1,5 @@
 import { load, store } from "../lib/settings"
+import { OTHER_PALETTE, STATE_COLORS } from "../lib/colors"
 
 import {
   BarController,
@@ -27,26 +28,6 @@ Chart.register(
 
 Chart.defaults.font.size = 12
 Chart.defaults.font.family = "Inter var"
-
-const CYAN = "#22d3ee" // cyan-400
-const EMERALD = "#34d399" // emerald-400
-const ORANGE = "#fb923c" // orange-400
-const ROSE = "#fb7185" // rose-400
-const TEAL = "#2dd4bf" // teal-500
-const VIOLET = "#a78bfa" // violet-400
-const YELLOW = "#facc15" // yellow-400
-
-const OTHER_PALETTE = [CYAN, VIOLET, YELLOW, EMERALD, ORANGE, TEAL, ROSE]
-
-const STATE_PALETTE = {
-  available: TEAL,
-  completed: CYAN,
-  cancelled: VIOLET,
-  discarded: ROSE,
-  executing: ORANGE,
-  retryable: YELLOW,
-  scheduled: EMERALD,
-}
 
 const STORABLE = ["group", "ntile", "period", "series", "visible"]
 
@@ -258,7 +239,7 @@ const LINES_OPTS = {
   },
 }
 
-const Charter = {
+const JobsChart = {
   mounted() {
     let chart = null
 
@@ -278,7 +259,7 @@ const Charter = {
       }
 
       const datasets = Object.entries(points).map(([label, data], index) => {
-        const color = group === "state" ? STATE_PALETTE[label] : OTHER_PALETTE[index]
+        const color = group === "state" ? STATE_COLORS[label] : OTHER_PALETTE[index]
 
         return {
           backgroundColor: color,
@@ -296,4 +277,4 @@ const Charter = {
   },
 }
 
-export default Charter
+export default JobsChart

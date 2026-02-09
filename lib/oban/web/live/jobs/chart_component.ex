@@ -129,7 +129,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
         id="chart"
         class={["w-full relative cursor-crosshair pl-5 pr-3 h-200px", unless(@visible, do: "hidden")]}
       >
-        <canvas id="chart-canvas" phx-update="ignore" phx-hook="Charter"></canvas>
+        <canvas id="chart-canvas" phx-update="ignore" phx-hook="JobsChart"></canvas>
       </div>
     </div>
     """
