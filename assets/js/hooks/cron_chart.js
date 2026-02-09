@@ -29,22 +29,30 @@ const formatTime = (timestamp) => {
   })
 }
 
-const CronChart = {
-  mounted() {
-    const data = JSON.parse(this.el.dataset.history)
-    const canvas = document.createElement("canvas")
+const parseHistory = (el, history = null) => {
+  const data = history || JSON.parse(el.dataset.history)
+  const now = Date.now()
 
-    this.el.appendChild(canvas)
-
-    const now = Date.now()
-    const labels = data.map((job) => job.finished_at || job.attempted_at)
-    const durations = data.map((job) => {
+  return {
+    data: data,
+    labels: data.map((job) => job.finished_at || job.attempted_at),
+    durations: data.map((job) => {
       if (!job.attempted_at) return 0
       const start = new Date(job.attempted_at)
       const end = job.finished_at ? new Date(job.finished_at) : now
       return end - start
-    })
-    const colors = data.map((job) => STATE_COLORS[job.state] || GRAY)
+    }),
+    colors: data.map((job) => STATE_COLORS[job.state] || GRAY),
+  }
+}
+
+const CronChart = {
+  mounted() {
+    const canvas = document.createElement("canvas")
+    this.el.appendChild(canvas)
+
+    const { data, labels, durations, colors } = parseHistory(this.el)
+    this.data = data
 
     this.chart = new Chart(canvas, {
       type: "bar",
@@ -71,7 +79,7 @@ const CronChart = {
               title: (context) => formatTime(context[0].label),
               label: (context) => {
                 const idx = context.dataIndex
-                const state = data[idx].state
+                const state = this.data[idx].state
                 const duration = formatDuration(context.raw)
                 return `${state}: ${duration}`
               },
@@ -106,6 +114,16 @@ const CronChart = {
           },
         },
       },
+    })
+
+    this.handleEvent("cron-history", ({ history }) => {
+      const { data, labels, durations, colors } = parseHistory(this.el, history)
+      this.data = data
+
+      this.chart.data.labels = labels
+      this.chart.data.datasets[0].data = durations
+      this.chart.data.datasets[0].backgroundColor = colors
+      this.chart.update()
     })
   },
 

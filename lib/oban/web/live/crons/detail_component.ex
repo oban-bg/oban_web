@@ -295,6 +295,18 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
+  # Callbacks
+
+  @impl Phoenix.LiveComponent
+  def update(assigns, socket) do
+    socket =
+      socket
+      |> assign(assigns)
+      |> push_event("cron-history", %{history: assigns.history})
+
+    {:ok, socket}
+  end
+
   # Handlers
 
   @impl Phoenix.LiveComponent
