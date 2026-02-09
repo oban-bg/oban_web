@@ -81,8 +81,7 @@ defmodule Oban.Web.Crons.DetailComponent do
               Schedule
             </span>
             <span class="text-base text-gray-800 dark:text-gray-200">
-              Every two minutes
-              <code class="font-mono text-gray-500 dark:text-gray-400">({@cron.expression})</code>
+              <code class="font-mono">{@cron.expression}</code>
             </span>
           </div>
 
@@ -91,7 +90,7 @@ defmodule Oban.Web.Crons.DetailComponent do
               Timezone
             </span>
             <span class="text-base text-gray-800 dark:text-gray-200">
-              America/Chicago
+              {timezone(@cron)}
             </span>
           </div>
 
@@ -101,9 +100,9 @@ defmodule Oban.Web.Crons.DetailComponent do
             </span>
 
             <div class="flex items-center space-x-1">
-              <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+              <.state_icon state={@cron.last_state} />
               <span class="text-base text-gray-800 dark:text-gray-200">
-                Completed
+                {state_label(@cron.last_state)}
               </span>
             </div>
           </div>
@@ -169,5 +168,68 @@ defmodule Oban.Web.Crons.DetailComponent do
     timestamp
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.to_unix(:millisecond)
+  end
+
+  defp timezone(%{opts: opts}) do
+    Map.get(opts, "timezone") || "Etc/UTC"
+  end
+
+  defp state_label(nil), do: "Unknown"
+  defp state_label(state), do: String.capitalize(state)
+
+  attr :state, :string, required: true
+
+  defp state_icon(%{state: nil} = assigns) do
+    ~H"""
+    <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+    """
+  end
+
+  defp state_icon(%{state: "available"} = assigns) do
+    ~H"""
+    <Icons.pause_circle class="w-5 h-5 text-teal-400" />
+    """
+  end
+
+  defp state_icon(%{state: "cancelled"} = assigns) do
+    ~H"""
+    <Icons.x_circle class="w-5 h-5 text-violet-400" />
+    """
+  end
+
+  defp state_icon(%{state: "completed"} = assigns) do
+    ~H"""
+    <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+    """
+  end
+
+  defp state_icon(%{state: "discarded"} = assigns) do
+    ~H"""
+    <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+    """
+  end
+
+  defp state_icon(%{state: "executing"} = assigns) do
+    ~H"""
+    <Icons.play_circle class="w-5 h-5 text-orange-400" />
+    """
+  end
+
+  defp state_icon(%{state: "retryable"} = assigns) do
+    ~H"""
+    <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
+    """
+  end
+
+  defp state_icon(%{state: "scheduled"} = assigns) do
+    ~H"""
+    <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+    """
+  end
+
+  defp state_icon(assigns) do
+    ~H"""
+    <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+    """
   end
 end
