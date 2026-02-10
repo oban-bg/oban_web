@@ -31,6 +31,12 @@ defmodule Oban.Web.Crons.DetailComponent do
         </.link>
 
         <div class="flex space-x-3">
+          <div :if={@cron.dynamic?} class="flex items-center">
+            <span class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
+              <Icons.sparkles class="mr-1 h-4 w-4" /> Dynamic
+            </span>
+          </div>
+
           <button
             :if={can?(:insert_jobs, @access)}
             type="button"
@@ -55,11 +61,16 @@ defmodule Oban.Web.Crons.DetailComponent do
             <% end %>
           </button>
 
-          <div :if={@cron.dynamic?} class="flex items-center">
-            <span class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
-              <Icons.sparkles class="mr-1 h-4 w-4" /> Dynamic
-            </span>
-          </div>
+          <button
+            :if={@cron.dynamic? and can?(:delete_jobs, @access)}
+            type="button"
+            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500 focus-visible:border-rose-500 hover:text-rose-600 hover:border-rose-500 cursor-pointer"
+            phx-click="delete-cron"
+            phx-target={@myself}
+            data-confirm="Are you sure you want to delete this cron?"
+          >
+            <Icons.trash class="mr-2 h-5 w-5" /> Delete
+          </button>
         </div>
       </div>
 
@@ -378,6 +389,22 @@ defmodule Oban.Web.Crons.DetailComponent do
     DynamicCron.update(conf.name, cron.name, paused: paused?)
 
     {:noreply, assign(socket, cron: %{cron | paused?: paused?})}
+  end
+
+  def handle_event("delete-cron", _params, socket) do
+    enforce_access!(:delete_jobs, socket.assigns.access)
+
+    %{cron: cron, conf: conf, params: params} = socket.assigns
+
+    case DynamicCron.delete(conf.name, cron.name) do
+      {:ok, _deleted} ->
+        send(self(), {:flash, :info, "Deleted cron #{cron.name}"})
+        {:noreply, push_patch(socket, to: oban_path(:crons, params))}
+
+      {:error, _reason} ->
+        send(self(), {:flash, :error, "Failed to delete cron"})
+        {:noreply, socket}
+    end
   end
 
   def handle_event("form-change", _params, socket) do

@@ -169,6 +169,35 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert "Oban.Workers.DetailCronWorker" == job.worker
       assert %{"cron_expr" => "0 * * * *", "cron_name" => "run-now-test"} = job.meta
     end
+
+    test "delete button removes dynamic cron and redirects to list" do
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "delete-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/delete-test")
+
+      refresh(live)
+
+      assert has_element?(live, "button", "Delete")
+
+      live
+      |> element("button", "Delete")
+      |> render_click()
+
+      # Should redirect to crons list
+      assert_patch(live, "/oban/crons")
+
+      # Cron should be deleted
+      assert [] = DynamicCron.all(Oban)
+    end
+
+    test "delete button not shown for static crons" do
+      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
+
+      refresh(live)
+
+      refute has_element?(live, "button", "Delete")
+    end
   end
 
   defp refresh(live) do
