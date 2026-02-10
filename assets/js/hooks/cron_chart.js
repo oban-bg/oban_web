@@ -29,39 +29,19 @@ const formatTime = (timestamp) => {
   })
 }
 
-const parseHistory = (el, history = null) => {
-  const data = history || JSON.parse(el.dataset.history)
-  const now = Date.now()
-
-  return {
-    data: data,
-    labels: data.map((job) => job.finished_at || job.attempted_at),
-    durations: data.map((job) => {
-      if (!job.attempted_at) return 0
-      const start = new Date(job.attempted_at)
-      const end = job.finished_at ? new Date(job.finished_at) : now
-      return end - start
-    }),
-    colors: data.map((job) => STATE_COLORS[job.state] || GRAY),
-  }
-}
-
 const CronChart = {
   mounted() {
     const canvas = document.createElement("canvas")
     this.el.appendChild(canvas)
 
-    const { data, labels, durations, colors } = parseHistory(this.el)
-    this.data = data
-
     this.chart = new Chart(canvas, {
       type: "bar",
       data: {
-        labels: labels,
+        labels: [],
         datasets: [
           {
-            data: durations,
-            backgroundColor: colors,
+            data: [],
+            backgroundColor: [],
             borderRadius: 2,
             barPercentage: 0.9,
             categoryPercentage: 0.9,
@@ -76,7 +56,7 @@ const CronChart = {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              title: (context) => formatTime(context[0].label),
+              title: (context) => formatTime(parseInt(context[0].label, 10)),
               label: (context) => {
                 const idx = context.dataIndex
                 const state = this.data[idx].state
@@ -94,9 +74,9 @@ const CronChart = {
               maxRotation: 0,
               autoSkip: true,
               maxTicksLimit: 6,
-              callback: function (value, index) {
-                const label = this.getLabelForValue(value)
-                const date = new Date(label)
+              callback: function (value) {
+                const timestamp = parseInt(this.getLabelForValue(value), 10)
+                const date = new Date(timestamp)
                 return date.toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
@@ -117,12 +97,13 @@ const CronChart = {
     })
 
     this.handleEvent("cron-history", ({ history }) => {
-      const { data, labels, durations, colors } = parseHistory(this.el, history)
-      this.data = data
+      this.data = history
 
-      this.chart.data.labels = labels
-      this.chart.data.datasets[0].data = durations
-      this.chart.data.datasets[0].backgroundColor = colors
+      this.chart.data.labels = history.map((point) => point.timestamp)
+      this.chart.data.datasets[0].data = history.map((point) => point.duration)
+      this.chart.data.datasets[0].backgroundColor = history.map(
+        (point) => STATE_COLORS[point.state] || GRAY
+      )
       this.chart.update()
     })
   },

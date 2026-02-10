@@ -55,7 +55,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="grid grid-cols-3 gap-6 px-3 py-6">
         <div class="col-span-2">
-          <.sparkline history={@history} />
+          <.sparkline />
         </div>
 
         <div class="col-span-1">
@@ -190,8 +190,6 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
-  attr :history, :list, required: true
-
   defp sparkline(assigns) do
     ~H"""
     <div
@@ -199,7 +197,6 @@ defmodule Oban.Web.Crons.DetailComponent do
       class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
       phx-hook="CronChart"
       phx-update="ignore"
-      data-history={Oban.JSON.encode!(@history)}
     >
     </div>
     """
@@ -299,12 +296,35 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
+    chart_data = Enum.map(assigns.history, &chart_point/1)
+
     socket =
       socket
       |> assign(assigns)
-      |> push_event("cron-history", %{history: assigns.history})
+      |> push_event("cron-history", %{history: chart_data})
 
     {:ok, socket}
+  end
+
+  defp chart_point(job) do
+    timestamp =
+      (job.finished_at || job.attempted_at || job.scheduled_at)
+      |> DateTime.from_naive!("Etc/UTC")
+      |> DateTime.to_unix(:millisecond)
+
+    duration =
+      case {job.attempted_at, job.finished_at} do
+        {nil, _} ->
+          0
+
+        {attempted_at, nil} ->
+          NaiveDateTime.diff(NaiveDateTime.utc_now(), attempted_at, :millisecond)
+
+        {attempted_at, finished_at} ->
+          NaiveDateTime.diff(finished_at, attempted_at, :millisecond)
+      end
+
+    %{timestamp: timestamp, duration: duration, state: job.state}
   end
 
   # Handlers
