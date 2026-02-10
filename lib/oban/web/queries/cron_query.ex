@@ -2,6 +2,7 @@ defmodule Oban.Web.CronQuery do
   @moduledoc false
 
   import Ecto.Query
+  import Oban.Web.QueryHelpers
 
   alias Oban.Cron.Expression
   alias Oban.{Job, Met, Repo}
@@ -32,14 +33,6 @@ defmodule Oban.Web.CronQuery do
   ]
 
   @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
-
-  # Macros
-
-  defmacrop contains_name(meta, value) do
-    quote do
-      fragment("? @> jsonb_build_object('cron_name', ?)", unquote(meta), unquote(value))
-    end
-  end
 
   # Searching
 
@@ -169,23 +162,30 @@ defmodule Oban.Web.CronQuery do
     end
   end
 
-  defp cron_history(name, conf) do
+  def cron_history(name, conf) do
     query =
-      from j in Job,
-        where: fragment("? @> ?", j.meta, ^%{cron_name: name}),
-        order_by: [desc: j.id],
-        limit: @history_limit,
-        select: %{
-          state: j.state,
-          scheduled_at: j.scheduled_at,
-          attempted_at: j.attempted_at,
-          finished_at:
-            fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at)
-        }
+      Job
+      |> where(^filter_cron_name(name, conf))
+      |> order_by([j], desc: j.id)
+      |> limit(@history_limit)
+      |> select([j], %{
+        state: j.state,
+        scheduled_at: j.scheduled_at,
+        attempted_at: j.attempted_at,
+        finished_at: fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at)
+      })
 
     conf
     |> Repo.all(query)
     |> Enum.reverse()
+  end
+
+  defp filter_cron_name(name, conf) when is_mysql(conf) or is_sqlite(conf) do
+    dynamic([j], fragment("json_extract(?, '$.cron_name') = ?", j.meta, ^name))
+  end
+
+  defp filter_cron_name(name, _conf) do
+    dynamic([j], fragment("? @> ?", j.meta, ^%{cron_name: name}))
   end
 
   defp static_crontab(conf) do
@@ -232,12 +232,19 @@ defmodule Oban.Web.CronQuery do
   defp last_at_from_job(%{scheduled_at: at}) when not is_nil(at), do: at
   defp last_at_from_job(_job), do: nil
 
-  defp crontab_history(crontab, conf) do
+  def crontab_history(crontab, conf) when is_mysql(conf) or is_sqlite(conf) do
+    crontab
+    |> Enum.map(&elem(&1, 3))
+    |> Map.new(fn name -> {name, cron_history(name, conf)} end)
+  end
+
+  def crontab_history(crontab, conf) do
     names = Enum.map(crontab, &elem(&1, 3))
 
     inside =
       from o in Job,
-        where: contains_name(o.meta, parent_as(:list).value),
+        where:
+          fragment("? @> jsonb_build_object('cron_name', ?)", o.meta, parent_as(:list).value),
         select: %{
           cron_name: o.meta["cron_name"],
           state: o.state,

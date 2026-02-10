@@ -2,6 +2,7 @@ defmodule Oban.Web.JobQuery do
   @moduledoc false
 
   import Ecto.Query
+  import Oban.Web.QueryHelpers
 
   alias Oban.{Config, Job, Repo}
   alias Oban.Web.{Cache, Resolver, Search}
@@ -44,10 +45,6 @@ defmodule Oban.Web.JobQuery do
   ]
 
   @states Map.new(Oban.Job.states(), &{to_string(&1), &1})
-
-  defguardp is_mysql(conf) when conf.engine == Oban.Engines.Dolphin
-
-  defguardp is_sqlite(conf) when conf.engine == Oban.Engines.Lite
 
   defmacrop json_table(field) do
     quote do
@@ -101,40 +98,6 @@ defmodule Oban.Web.JobQuery do
         "? || (CASE json_type(json_quote(?)) WHEN 'object' THEN '.' ELSE ':' END)",
         unquote(key),
         unquote(value)
-      )
-    end
-  end
-
-  defmacrop mysql_extract_type(field, path) do
-    quote do
-      fragment("lower(json_type(json_extract(?, ?)))", unquote(field), unquote(path))
-    end
-  end
-
-  defmacrop sqlite_extract_type(field, path) do
-    quote do
-      fragment("json_type(?->?)", unquote(field), unquote(path))
-    end
-  end
-
-  defmacrop postgres_extract_type(field, path) do
-    quote do
-      fragment("jsonb_typeof(?#>?)", unquote(field), unquote(path))
-    end
-  end
-
-  defmacrop sqlite_contains_any(column, list) do
-    quote do
-      fragment(
-        """
-        exists (
-          select 1
-          from json_each(?) as t1, json_each(?) as t2
-          where t1.value = t2.value
-        )
-        """,
-        unquote(column),
-        ^Oban.JSON.encode!(unquote(list))
       )
     end
   end
