@@ -6,6 +6,7 @@ defmodule Oban.Web.RefreshComponent do
     {02, "2s"},
     {05, "5s"},
     {15, "15s"},
+    {30, "30s"},
     {60, "1m"},
     {-1, "Off"}
   ]
