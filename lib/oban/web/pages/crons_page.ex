@@ -37,11 +37,9 @@ defmodule Oban.Web.CronsPage do
         <% else %>
           <div
             id="crons-header"
-            class="pr-3 flex items-center border-b border-gray-200 dark:border-gray-700"
+            class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
           >
-            <div class="flex-none flex items-center pr-12">
-              <Core.all_checkbox click="toggle-select-all" checked={:none} myself={@myself} />
-
+            <div class="flex-none flex items-center px-3">
               <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
             </div>
 
@@ -67,7 +65,7 @@ defmodule Oban.Web.CronsPage do
 
           <div id="crons-table" class="min-w-full">
             <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
-              <.header label="name" class="ml-12 w-1/3 text-left" />
+              <.header label="name" class="pl-3 w-1/3 text-left" />
               <div class="ml-auto flex items-center space-x-6">
                 <.header label="history" class="w-80 text-center" />
                 <.header label="schedule" class="w-32 text-right" />
@@ -84,7 +82,7 @@ defmodule Oban.Web.CronsPage do
             </div>
 
             <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-              <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} myself={@myself} />
+              <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} />
             </ul>
 
             <div
@@ -108,7 +106,7 @@ defmodule Oban.Web.CronsPage do
 
   defp header(assigns) do
     ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
+    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5"]}>
       {@label}
     </span>
     """
@@ -223,16 +221,13 @@ defmodule Oban.Web.CronsPage do
 
   attr :cron, Cron
   attr :id, :string
-  attr :myself, :any
 
   defp cron_row(assigns) do
     ~H"""
     <li id={"cron-#{@id}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
-      <Core.row_checkbox click="toggle-select" value={@cron.worker} checked={false} myself={@myself} />
-
       <.link
         patch={oban_path([:crons, @cron.name])}
-        class="py-3.5 flex flex-grow items-center cursor-pointer"
+        class="pl-3 py-3.5 flex flex-grow items-center cursor-pointer"
       >
         <div class="w-1/3">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
@@ -426,12 +421,6 @@ defmodule Oban.Web.CronsPage do
   end
 
   @impl Phoenix.LiveComponent
-  def handle_event("toggle-select", %{"id" => worker}, socket) do
-    send(self(), {:toggle_select, worker})
-
-    {:noreply, socket}
-  end
-
   def handle_event("load-less", _params, socket) do
     if socket.assigns.show_less? do
       send(self(), {:params, :limit, -@inc_limit})
@@ -449,11 +438,6 @@ defmodule Oban.Web.CronsPage do
   end
 
   @impl Page
-  def handle_info({:toggle_select, _worker}, socket) do
-    # TODO: Implement cron selection logic
-    {:noreply, socket}
-  end
-
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
     params =
       socket.assigns.params
