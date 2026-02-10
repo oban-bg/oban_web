@@ -32,6 +32,16 @@ defmodule Oban.Web.Crons.DetailComponent do
 
         <div class="flex space-x-3">
           <button
+            :if={can?(:insert_jobs, @access)}
+            type="button"
+            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
+            phx-click="run-now"
+            phx-target={@myself}
+          >
+            <Icons.play_circle class="mr-2 h-5 w-5" /> Run Now
+          </button>
+
+          <button
             :if={@cron.dynamic? and can?(:pause_queues, @access)}
             type="button"
             class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
@@ -330,6 +340,34 @@ defmodule Oban.Web.Crons.DetailComponent do
   # Handlers
 
   @impl Phoenix.LiveComponent
+  def handle_event("run-now", _params, socket) do
+    enforce_access!(:insert_jobs, socket.assigns.access)
+
+    %{cron: cron, conf: conf} = socket.assigns
+
+    worker = Module.safe_concat([cron.worker])
+    args = Map.get(cron.opts, "args", %{})
+
+    opts =
+      cron.opts
+      |> Map.take(~w(max_attempts priority queue tags))
+      |> Keyword.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
+      |> Keyword.put(:meta, %{cron: true, cron_expr: cron.expression, cron_name: cron.name})
+
+    changeset = worker.new(args, opts)
+
+    case Oban.insert(conf.name, changeset) do
+      {:ok, _job} ->
+        send(self(), :refresh)
+        send(self(), {:flash, :info, "Job inserted for #{cron.worker}"})
+
+      {:error, _reason} ->
+        send(self(), {:flash, :error, "Failed to insert job"})
+    end
+
+    {:noreply, socket}
+  end
+
   def handle_event("toggle-pause", _params, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
 

@@ -150,6 +150,25 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       refute has_element?(live, "fieldset[disabled]")
       assert has_element?(live, "button:not([disabled])", "Save Changes")
     end
+
+    test "run now button inserts a job for the cron" do
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "run-now-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-test")
+
+      refresh(live)
+
+      assert has_element?(live, "button", "Run Now")
+
+      live
+      |> element("button", "Run Now")
+      |> render_click()
+
+      assert [job] = Repo.all(Job)
+
+      assert "Oban.Workers.DetailCronWorker" == job.worker
+      assert %{"cron_expr" => "0 * * * *", "cron_name" => "run-now-test"} = job.meta
+    end
   end
 
   defp refresh(live) do
