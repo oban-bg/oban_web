@@ -55,7 +55,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="grid grid-cols-3 gap-6 px-3 py-6">
         <div class="col-span-2">
-          <.sparkline />
+          <.history_chart />
         </div>
 
         <div class="col-span-1">
@@ -190,7 +190,7 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
-  defp sparkline(assigns) do
+  defp history_chart(assigns) do
     ~H"""
     <div
       id="cron-chart"

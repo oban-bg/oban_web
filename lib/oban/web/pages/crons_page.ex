@@ -12,6 +12,11 @@ defmodule Oban.Web.CronsPage do
   @max_limit 100
   @min_limit 20
 
+  @sparkline_count 60
+  @sparkline_height 16
+  @sparkline_bar_width 4
+  @sparkline_gap 1
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -64,6 +69,7 @@ defmodule Oban.Web.CronsPage do
             <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
               <.header label="name" class="ml-12 w-1/3 text-left" />
               <div class="ml-auto flex items-center space-x-6">
+                <.header label="history" class="w-80 text-center" />
                 <.header label="schedule" class="w-32 text-right" />
                 <.header label="last run" class="w-32 text-right" />
                 <.header label="next run" class="w-32 text-right" />
@@ -135,6 +141,86 @@ defmodule Oban.Web.CronsPage do
 
   defp loader_class(_), do: "text-gray-400 dark:text-gray-600 cursor-not-allowed"
 
+  attr :history, :list, required: true
+  attr :id, :string, required: true
+
+  defp sparkline(assigns) do
+    history = Enum.take(assigns.history, -@sparkline_count)
+    offset = @sparkline_count - length(history)
+
+    bars =
+      for {job, index} <- Enum.with_index(history) do
+        x = (offset + index) * (@sparkline_bar_width + @sparkline_gap)
+        %{x: x, color: state_color(job.state)}
+      end
+
+    tooltip_data =
+      for job <- history do
+        unix =
+          (job.finished_at || job.attempted_at || job.scheduled_at)
+          |> DateTime.from_naive!("Etc/UTC")
+          |> DateTime.to_unix(:millisecond)
+
+        %{timestamp: unix, state: job.state}
+      end
+
+    placeholders =
+      for slot <- 0..(@sparkline_count - 1) do
+        %{x: slot * (@sparkline_bar_width + @sparkline_gap)}
+      end
+
+    width = @sparkline_count * (@sparkline_bar_width + @sparkline_gap)
+
+    assigns =
+      assigns
+      |> assign(bars: bars, placeholders: placeholders, width: width, offset: offset)
+      |> assign(height: @sparkline_height, bar_width: @sparkline_bar_width)
+      |> assign(tooltip_data: tooltip_data)
+
+    ~H"""
+    <svg
+      id={@id}
+      width={@width}
+      height={@height}
+      viewBox={"0 0 #{@width} #{@height}"}
+      class="flex-shrink-0 cursor-pointer"
+      phx-hook="Sparkline"
+      data-tooltip={Oban.JSON.encode!(@tooltip_data)}
+      data-bar-width={@bar_width}
+      data-offset={@offset}
+    >
+      <rect
+        :for={placeholder <- @placeholders}
+        x={placeholder.x}
+        y={@height - 2}
+        width={@bar_width}
+        height="2"
+        fill="#e5e7eb"
+        class="dark:fill-gray-700"
+        rx="0.5"
+      />
+      <rect
+        :for={bar <- @bars}
+        x={bar.x}
+        y="0"
+        width={@bar_width}
+        height={@height}
+        fill={bar.color}
+        rx="1"
+      />
+    </svg>
+    """
+  end
+
+  defp state_color("available"), do: "#2dd4bf"
+  defp state_color("cancelled"), do: "#a78bfa"
+  defp state_color("completed"), do: "#22d3ee"
+  defp state_color("discarded"), do: "#fb7185"
+  defp state_color("executing"), do: "#fb923c"
+  defp state_color("retryable"), do: "#facc15"
+  defp state_color("scheduled"), do: "#34d399"
+  defp state_color(_), do: "#9ca3af"
+
   attr :cron, Cron
   attr :id, :string
   attr :myself, :any
@@ -181,6 +267,10 @@ defmodule Oban.Web.CronsPage do
         </div>
 
         <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
+          <div class="w-80 flex justify-center">
+            <.sparkline id={"sparkline-#{@cron.name}"} history={@cron.history} />
+          </div>
+
           <span class="w-32 text-right font-mono text-sm">
             {@cron.expression}
           </span>

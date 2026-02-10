@@ -119,7 +119,7 @@ defmodule Oban.Web.CronQuery do
 
   defp parse_term(_term), do: {:none, ""}
 
-  @history_limit 50
+  @history_limit 60
 
   # Querying
 
@@ -177,6 +177,7 @@ defmodule Oban.Web.CronQuery do
         limit: @history_limit,
         select: %{
           state: j.state,
+          scheduled_at: j.scheduled_at,
           attempted_at: j.attempted_at,
           finished_at:
             fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at)
@@ -228,27 +229,28 @@ defmodule Oban.Web.CronQuery do
   defp last_at_from_job(nil), do: nil
   defp last_at_from_job(%{finished_at: at}) when not is_nil(at), do: at
   defp last_at_from_job(%{attempted_at: at}) when not is_nil(at), do: at
+  defp last_at_from_job(%{scheduled_at: at}) when not is_nil(at), do: at
   defp last_at_from_job(_job), do: nil
 
   defp crontab_history(crontab, conf) do
     names = Enum.map(crontab, &elem(&1, 3))
 
-    ranked =
-      from t in subquery(
-             from o in Job,
-               where: contains_name(o.meta, parent_as(:list).value),
-               select: %{
-                 cron_name: o.meta["cron_name"],
-                 state: o.state,
-                 attempted_at: o.attempted_at,
-                 finished_at:
-                   fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at)
-               },
-               select_merge: %{
-                 rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
-               }
-           ),
-           where: t.rn <= @history_limit
+    inside =
+      from o in Job,
+        where: contains_name(o.meta, parent_as(:list).value),
+        select: %{
+          cron_name: o.meta["cron_name"],
+          state: o.state,
+          attempted_at: o.attempted_at,
+          scheduled_at: o.scheduled_at,
+          finished_at:
+            fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at)
+        },
+        select_merge: %{
+          rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
+        }
+
+    ranked = from t in subquery(inside), where: t.rn <= @history_limit
 
     query =
       from f in fragment("json_array_elements_text(?)", ^names),
@@ -262,9 +264,13 @@ defmodule Oban.Web.CronQuery do
     |> Repo.all(query)
     |> Enum.group_by(&elem(&1, 0), fn {_name, job} -> job end)
     |> Map.new(fn {name, jobs} ->
-      {name, jobs |> Enum.reject(&is_nil/1) |> Enum.reverse()}
+      {name, jobs |> Enum.reject(&empty_job?/1) |> Enum.reverse()}
     end)
   end
+
+  defp empty_job?(nil), do: true
+  defp empty_job?(%{scheduled_at: nil}), do: true
+  defp empty_job?(_job), do: false
 
   defp next_at(expression) do
     expression

@@ -12,6 +12,7 @@ import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
 import Shortcuts from "./hooks/shortcuts";
 import SidebarResizer from "./hooks/sidebar_resizer";
+import Sparkline from "./hooks/sparkline";
 import Themer from "./hooks/themer";
 import Tippy from "./hooks/tippy";
 
@@ -25,6 +26,7 @@ const hooks = {
   Relativize,
   Shortcuts,
   SidebarResizer,
+  Sparkline,
   Themer,
   Tippy,
 };
