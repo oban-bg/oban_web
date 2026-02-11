@@ -16,15 +16,15 @@ defmodule Oban.Web.Crons.NewComponent do
     ~H"""
     <div
       id="new-cron"
-      class="relative z-50"
-      phx-hook="NewCronDrawer"
+      class="relative z-50 hidden"
+      phx-mounted={show_drawer()}
       phx-remove={hide_drawer()}
       phx-window-keydown="keydown"
       phx-target={@myself}
     >
       <div
         id="new-cron-bg"
-        class="bg-zinc-50/80 dark:bg-zinc-950/80 fixed inset-0"
+        class="bg-zinc-50/80 dark:bg-zinc-950/80 fixed inset-0 hidden transition-opacity"
         aria-hidden="true"
         phx-click="close"
         phx-target={@myself}
@@ -33,7 +33,10 @@ defmodule Oban.Web.Crons.NewComponent do
       <div class="fixed inset-0 overflow-hidden">
         <div class="absolute inset-0 overflow-hidden">
           <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-            <div id="new-cron-panel" class="pointer-events-auto w-screen max-w-md">
+            <div
+              id="new-cron-panel"
+              class="pointer-events-auto w-screen max-w-md hidden transition-transform translate-x-full"
+            >
               <div class="flex h-full flex-col overflow-y-scroll bg-white dark:bg-gray-900 shadow-xl">
                 <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -224,16 +227,32 @@ defmodule Oban.Web.Crons.NewComponent do
 
   # JS Commands
 
+  defp show_drawer do
+    %JS{}
+    |> JS.show(to: "#new-cron")
+    |> JS.show(
+      to: "#new-cron-bg",
+      transition: {"ease-out duration-300", "opacity-0", "opacity-100"}
+    )
+    |> JS.show(
+      to: "#new-cron-panel",
+      transition: {"ease-out duration-300", "translate-x-full", "translate-x-0"}
+    )
+    |> JS.add_class("overflow-hidden", to: "body")
+  end
+
   defp hide_drawer do
     %JS{}
-    |> JS.transition(
-      {"transition-opacity ease-in duration-200", "opacity-100", "opacity-0"},
-      to: "#new-cron-bg"
+    |> JS.hide(
+      to: "#new-cron-bg",
+      transition: {"ease-in duration-200", "opacity-100", "opacity-0"}
     )
-    |> JS.transition(
-      {"transition-transform ease-in duration-200", "translate-x-0", "translate-x-full"},
-      to: "#new-cron-panel"
+    |> JS.hide(
+      to: "#new-cron-panel",
+      time: 200,
+      transition: {"ease-in duration-200", "translate-x-0", "translate-x-full"}
     )
+    |> JS.hide(to: "#new-cron", transition: {"block", "block", "hidden"})
     |> JS.remove_class("overflow-hidden", to: "body")
   end
 
