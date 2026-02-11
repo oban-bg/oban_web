@@ -11,6 +11,7 @@ defmodule Oban.Web.CronQuery do
   @compile {:no_warn_undefined, Oban.Pro.Cron}
 
   @suggest_qualifier [
+    {"names:", "cron entry name", "names:my-cron"},
     {"workers:", "cron worker name", "workers:MyApp.Worker"},
     {"modes:", "cron mode (static/dynamic)", "modes:static"},
     {"states:", "last execution state", "states:completed"}
@@ -36,7 +37,7 @@ defmodule Oban.Web.CronQuery do
 
   # Searching
 
-  def filterable, do: ~w(workers states modes)a
+  def filterable, do: ~w(names workers states modes)a
 
   def parse(terms) when is_binary(terms) do
     Search.parse(terms, &parse_term/1)
@@ -53,6 +54,7 @@ defmodule Oban.Web.CronQuery do
 
       last ->
         case String.split(last, ":", parts: 2) do
+          ["names", frag] -> suggest_names(frag, conf)
           ["workers", frag] -> suggest_workers(frag, conf)
           ["modes", frag] -> suggest_static(frag, @suggest_mode)
           ["states", frag] -> suggest_static(frag, @suggest_state)
@@ -66,6 +68,24 @@ defmodule Oban.Web.CronQuery do
     for {field, _, _} = suggest <- possibilities,
         String.starts_with?(field, fragment),
         do: suggest
+  end
+
+  defp suggest_names(fragment, conf) do
+    static_names =
+      conf.name
+      |> Met.crontab()
+      |> Enum.map(fn entry -> Oban.Plugins.Cron.entry_name(entry) end)
+
+    dynamic_names =
+      if Utils.has_dynamic_cron?(conf) do
+        query = from c in Oban.Pro.Cron, select: c.name
+        Repo.all(conf, query)
+      else
+        []
+      end
+
+    (static_names ++ dynamic_names)
+    |> Search.restrict_suggestions(fragment)
   end
 
   defp suggest_workers(fragment, conf) do
@@ -88,6 +108,10 @@ defmodule Oban.Web.CronQuery do
       [{match, _, _} | _] ->
         append(terms, match)
     end
+  end
+
+  defp parse_term("names:" <> names) do
+    {:names, String.split(names, ",")}
   end
 
   defp parse_term("workers:" <> workers) do
@@ -303,6 +327,7 @@ defmodule Oban.Web.CronQuery do
 
   defp order(%{last_at: nil}, :last_run), do: ~U[2000-01-01 00:00:00Z]
   defp order(%{last_at: last_at}, :last_run), do: last_at
+  defp order(%{name: name}, :name), do: name
   defp order(%{next_at: next_at}, :next_run), do: next_at
   defp order(%{expression: expression}, :schedule), do: expression
   defp order(%{worker: worker}, :worker), do: worker
@@ -315,6 +340,7 @@ defmodule Oban.Web.CronQuery do
     Enum.all?(conditions, &filter(row, &1))
   end
 
+  defp filter(cron, {:names, names}), do: cron.name in names
   defp filter(cron, {:workers, workers}), do: cron.worker in workers
   defp filter(cron, {:states, states}), do: cron.last_state in states
 

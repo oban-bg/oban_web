@@ -6,7 +6,7 @@ defmodule Oban.Web.CronsPage do
   alias Oban.Web.Crons.{DetailComponent, NewComponent}
   alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
 
-  @known_params ~w(limit modes sort_by sort_dir states workers)
+  @known_params ~w(limit modes names sort_by sort_dir states workers)
 
   @inc_limit 20
   @max_limit 100
@@ -67,7 +67,7 @@ defmodule Oban.Web.CronsPage do
             <div class="pl-3 ml-auto">
               <SortComponent.select
                 id="crons-sort"
-                by={~w(worker schedule last_run next_run)}
+                by={~w(name worker schedule last_run next_run)}
                 page={:crons}
                 params={@params}
               />
@@ -252,6 +252,9 @@ defmodule Oban.Web.CronsPage do
         <div class="w-1/3">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
             {@cron.worker}
+            <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
+              ({@cron.name})
+            </span>
           </span>
 
           <div
@@ -521,4 +524,8 @@ defmodule Oban.Web.CronsPage do
   defp has_tags?(opts), do: Map.has_key?(opts, "tags") and opts["tags"] != []
 
   defp get_tags(opts), do: Map.get(opts, "tags", [])
+
+  defp show_name?(%{dynamic?: true, name: name, worker: worker}), do: name != worker
+
+  defp show_name?(_cron), do: false
 end

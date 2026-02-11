@@ -163,6 +163,8 @@ defmodule Oban.Web.Crons.DetailComponent do
           >
             <.form_field label="Schedule" name="expression" value={@cron.expression} />
 
+            <.form_field label="Worker" name="worker" value={@cron.worker} />
+
             <.select_field
               label="Queue"
               name="queue"
@@ -174,27 +176,28 @@ defmodule Oban.Web.Crons.DetailComponent do
               label="Timezone"
               name="timezone"
               value={get_opt(@cron, "timezone") || "Etc/UTC"}
-              options={timezone_options(get_opt(@cron, "timezone"))}
-              disabled={not @cron.dynamic?}
+              options={Timezones.options_with_blank()}
             />
+
+            <div class="grid grid-cols-2 gap-2">
+              <.form_field
+                label="Priority"
+                name="priority"
+                value={get_opt(@cron, "priority")}
+                type="number"
+                placeholder="0"
+              />
+
+              <.form_field
+                label="Max Attempts"
+                name="max_attempts"
+                value={get_opt(@cron, "max_attempts")}
+                type="number"
+                placeholder="20"
+              />
+            </div>
 
             <.form_field label="Tags" name="tags" value={format_tags(@cron)} placeholder="tag1, tag2" />
-
-            <.form_field
-              label="Priority"
-              name="priority"
-              value={get_opt(@cron, "priority")}
-              type="number"
-              placeholder="0"
-            />
-
-            <.form_field
-              label="Max Attempts"
-              name="max_attempts"
-              value={get_opt(@cron, "max_attempts")}
-              type="number"
-              placeholder="20"
-            />
 
             <.form_field
               label="Args"
@@ -206,11 +209,19 @@ defmodule Oban.Web.Crons.DetailComponent do
               rows={1}
             />
 
-            <div :if={not @cron.dynamic?} class="col-span-1" />
+            <.form_field label="Name" name="name" value={@cron.name} />
 
-            <div :if={not @cron.dynamic?} class="col-span-2 flex justify-center items-center">
+            <div class="flex items-end pb-2">
+              <.checkbox_field
+                label="Guaranteed"
+                name="guaranteed"
+                checked={get_opt(@cron, "guaranteed") == true}
+              />
+            </div>
+
+            <div :if={not @cron.dynamic?} class="col-span-1 flex justify-center items-center">
               <a
-                href="https://hexdocs.pm/oban_pro/dynamic-cron.html"
+                href="https://oban.pro/docs/pro/Oban.Pro.Plugins.DynamicCron.html"
                 target="_blank"
                 class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
               >
@@ -218,16 +229,8 @@ defmodule Oban.Web.Crons.DetailComponent do
               </a>
             </div>
 
-            <div class={[
-              "flex justify-end items-center gap-8",
-              if(@cron.dynamic?, do: "col-span-2 col-start-3")
-            ]}>
-              <.checkbox_field
-                label="Guaranteed"
-                name="guaranteed"
-                checked={get_opt(@cron, "guaranteed") == true}
-              />
-              <.save_button />
+            <div class={["flex justify-end items-center pt-6", if(@cron.dynamic?, do: "col-span-2")]}>
+              <.save_button disabled={not @changed?} />
             </div>
           </form>
         </fieldset>
@@ -248,13 +251,16 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
+  attr :disabled, :boolean, default: false
+
   defp save_button(assigns) do
     ~H"""
     <button
       type="submit"
+      disabled={@disabled}
       class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      Save Changes
+      Update Entry
     </button>
     """
   end
@@ -268,6 +274,7 @@ defmodule Oban.Web.Crons.DetailComponent do
     socket =
       socket
       |> assign(assigns)
+      |> assign_new(:changed?, fn -> false end)
       |> push_event("cron-history", %{history: chart_data})
 
     {:ok, socket}
@@ -353,8 +360,13 @@ defmodule Oban.Web.Crons.DetailComponent do
     end
   end
 
-  def handle_event("form-change", _params, socket) do
-    {:noreply, socket}
+  def handle_event("form-change", params, socket) do
+    changed? =
+      params
+      |> parse_form_params(socket.assigns.cron)
+      |> Enum.any?(fn {_key, val} -> not is_nil(val) end)
+
+    {:noreply, assign(socket, changed?: changed?)}
   end
 
   def handle_event("keydown", %{"key" => "Escape"}, socket) do
@@ -379,7 +391,7 @@ defmodule Oban.Web.Crons.DetailComponent do
       {:ok, _entry} ->
         send(self(), :refresh)
         send(self(), {:flash, :info, "Cron configuration updated"})
-        {:noreply, socket}
+        {:noreply, assign(socket, changed?: false)}
 
       {:error, _reason} ->
         send(self(), {:flash, :error, "Failed to update cron configuration"})
@@ -389,31 +401,31 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   # Helpers
 
-  defp timezone_options(_current_timezone) do
-    Timezones.options()
-  end
-
   defp parse_form_params(params, cron) do
     [
-      expression: changed_val(params["expression"], cron.expression),
-      queue: changed_val(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
-      timezone:
-        changed_val(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
-      priority: changed_val(parse_int(params["priority"]), get_opt(cron, "priority")),
-      max_attempts: changed_val(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
-      guaranteed:
-        changed_val(params["guaranteed"] == "true", get_opt(cron, "guaranteed") == true),
-      tags: changed_val(parse_tags(params["tags"]), get_opt(cron, "tags")),
-      args: changed_val(parse_json(params["args"]), get_opt(cron, "args"))
+      name: new_val?(parse_string(params["name"]), cron.name),
+      worker: new_val?(parse_worker(params["worker"]), cron.worker),
+      expression: new_val?(params["expression"], cron.expression),
+      queue: new_val?(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
+      timezone: new_val?(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
+      priority: new_val?(parse_int(params["priority"]), get_opt(cron, "priority")),
+      max_attempts: new_val?(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
+      guaranteed: new_val?(params["guaranteed"] == "true", get_opt(cron, "guaranteed") == true),
+      tags: new_val?(parse_tags(params["tags"]), get_opt(cron, "tags")),
+      args: new_val?(parse_json(params["args"]), get_opt(cron, "args"))
     ]
   end
 
-  defp changed_val(new_val, current_val, default \\ nil)
-  defp changed_val(nil, _current, _default), do: nil
-  defp changed_val("", _current, _default), do: nil
-  defp changed_val(val, val, _default), do: nil
-  defp changed_val(val, nil, val), do: nil
-  defp changed_val(val, _current, _default), do: val
+  defp parse_worker(nil), do: nil
+  defp parse_worker(""), do: nil
+  defp parse_worker(worker), do: worker
+
+  defp new_val?(new_val, current_val, default \\ nil)
+  defp new_val?(nil, _current, _default), do: nil
+  defp new_val?("", _current, _default), do: nil
+  defp new_val?(val, val, _default), do: nil
+  defp new_val?(val, nil, val), do: nil
+  defp new_val?(val, _current, _default), do: val
 
   defp maybe_to_unix(nil), do: ""
 
