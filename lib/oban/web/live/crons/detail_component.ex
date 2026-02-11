@@ -12,7 +12,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="cron-details">
+    <div id="cron-details" phx-window-keydown="keydown" phx-target={@myself}>
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
         <.link
           patch={oban_path(:crons, @params)}
@@ -206,13 +206,28 @@ defmodule Oban.Web.Crons.DetailComponent do
               rows={1}
             />
 
-            <div class="col-span-2 col-start-3 flex justify-end items-center gap-8">
+            <div :if={not @cron.dynamic?} class="col-span-1" />
+
+            <div :if={not @cron.dynamic?} class="col-span-2 flex justify-center items-center">
+              <a
+                href="https://hexdocs.pm/oban_pro/dynamic-cron.html"
+                target="_blank"
+                class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+              >
+                Dynamic Crons Only <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+              </a>
+            </div>
+
+            <div class={[
+              "flex justify-end items-center gap-8",
+              if(@cron.dynamic?, do: "col-span-2 col-start-3")
+            ]}>
               <.checkbox_field
                 label="Guaranteed"
                 name="guaranteed"
                 checked={get_opt(@cron, "guaranteed") == true}
               />
-              <.save_button cron={@cron} />
+              <.save_button />
             </div>
           </form>
         </fieldset>
@@ -233,32 +248,14 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
-  attr :cron, :any, required: true
-
   defp save_button(assigns) do
     ~H"""
-    <div class="flex items-center gap-3">
-      <button
-        type="submit"
-        disabled={not @cron.dynamic?}
-        class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        Save Changes
-      </button>
-      <span
-        :if={not @cron.dynamic?}
-        rel="static-blocker"
-        class="text-xs text-gray-500 dark:text-gray-400"
-      >
-        <a
-          href="https://hexdocs.pm/oban_pro/dynamic-cron.html"
-          target="_blank"
-          class="hover:underline"
-        >
-          Dynamic Only <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
-        </a>
-      </span>
-    </div>
+    <button
+      type="submit"
+      class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Save Changes
+    </button>
     """
   end
 
@@ -357,6 +354,14 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   def handle_event("form-change", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("keydown", %{"key" => "Escape"}, socket) do
+    {:noreply, push_patch(socket, to: oban_path(:crons, socket.assigns.params))}
+  end
+
+  def handle_event("keydown", _params, socket) do
     {:noreply, socket}
   end
 

@@ -25,7 +25,7 @@ defmodule Oban.Web.FormComponents do
           name={@name}
           rows={@rows}
           placeholder={@placeholder}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         >{@value}</textarea>
       <% else %>
         <input
@@ -75,11 +75,11 @@ defmodule Oban.Web.FormComponents do
 
   def checkbox_field(assigns) do
     ~H"""
-    <div class={@colspan}>
+    <div class={[@colspan, "group"]}>
       <input type="hidden" name={@name} value="false" />
       <label
         for={@name}
-        class="flex items-center font-medium text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+        class="flex items-center font-medium text-sm text-gray-700 dark:text-gray-300 cursor-pointer group-has-[:disabled]:opacity-50 group-has-[:disabled]:cursor-not-allowed"
       >
         <div class="relative mr-2">
           <input
