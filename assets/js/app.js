@@ -8,6 +8,7 @@ import CronChart from "./hooks/cron_chart";
 import JobsChart from "./hooks/jobs_chart";
 import HistoryBack from "./hooks/history_back";
 import Instantiator from "./hooks/instantiator";
+import NewCronDrawer from "./hooks/new_cron_drawer";
 import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
 import Shortcuts from "./hooks/shortcuts";
@@ -22,6 +23,7 @@ const hooks = {
   JobsChart,
   HistoryBack,
   Instantiator,
+  NewCronDrawer,
   Refresher,
   Relativize,
   Shortcuts,

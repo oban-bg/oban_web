@@ -3,8 +3,8 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Crons.DetailComponent
-  alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent}
+  alias Oban.Web.Crons.{DetailComponent, NewComponent}
+  alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
 
   @known_params ~w(limit modes sort_by sort_dir states workers)
 
@@ -53,6 +53,17 @@ defmodule Oban.Web.CronsPage do
               resolver={@resolver}
             />
 
+            <.link
+              :if={Utils.has_dynamic_cron?(@conf) and can?(:insert_jobs, @access)}
+              patch={oban_path([:crons, :new])}
+              id="new-cron-button"
+              data-title="Create a new dynamic cron"
+              phx-hook="Tippy"
+              class="ml-3 flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1.5 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
+            >
+              <Icons.plus_circle class="mr-1 h-4 w-4" /> New
+            </.link>
+
             <div class="pl-3 ml-auto">
               <SortComponent.select
                 id="crons-sort"
@@ -95,6 +106,15 @@ defmodule Oban.Web.CronsPage do
           </div>
         <% end %>
       </div>
+
+      <.live_component
+        :if={@show_new_form}
+        id="new-cron-form"
+        access={@access}
+        conf={@conf}
+        module={NewComponent}
+        queues={QueueQuery.all_queues(%{}, @conf)}
+      />
     </div>
     """
   end
@@ -362,6 +382,16 @@ defmodule Oban.Web.CronsPage do
     |> assign_new(:show_more?, fn -> false end)
   end
 
+  @impl Phoenix.LiveComponent
+  def update(assigns, socket) do
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign_new(:show_new_form, fn -> false end)
+
+    {:ok, socket}
+  end
+
   @impl Page
   def handle_refresh(%{assigns: %{detailed: nil}} = socket) do
     %{params: params, conf: conf} = socket.assigns
@@ -386,6 +416,19 @@ defmodule Oban.Web.CronsPage do
   end
 
   @impl Page
+  def handle_params(%{"id" => "new"} = params, _uri, socket) do
+    params =
+      params
+      |> Map.take(@known_params)
+      |> decode_params()
+      |> then(&Map.merge(socket.assigns.default_params, &1))
+
+    {:noreply,
+     socket
+     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Cron"))
+     |> assign(params: params)}
+  end
+
   def handle_params(%{"id" => cron_name} = params, _uri, socket) do
     params =
       params
@@ -400,7 +443,7 @@ defmodule Oban.Web.CronsPage do
       cron ->
         {:noreply,
          socket
-         |> assign(detailed: cron, page_title: page_title(cron.worker))
+         |> assign(detailed: cron, show_new_form: false, page_title: page_title(cron.worker))
          |> assign(params: params)}
     end
   end
@@ -413,7 +456,7 @@ defmodule Oban.Web.CronsPage do
 
     socket =
       socket
-      |> assign(detailed: nil, page_title: page_title("Crons"))
+      |> assign(detailed: nil, show_new_form: false, page_title: page_title("Crons"))
       |> assign(params: Map.merge(socket.assigns.default_params, params))
       |> handle_refresh()
 
@@ -449,6 +492,10 @@ defmodule Oban.Web.CronsPage do
 
   def handle_info({:flash, mode, message}, socket) do
     {:noreply, put_flash_with_clear(socket, mode, message)}
+  end
+
+  def handle_info(:refresh, socket) do
+    {:noreply, handle_refresh(socket)}
   end
 
   def handle_info(_event, socket) do

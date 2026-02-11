@@ -8,6 +8,8 @@ end
 defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
+  @moduletag :pro
+
   alias Oban.Pro.Plugins.DynamicCron
   alias Oban.Workers.DetailCronWorker
 
@@ -197,6 +199,33 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       refresh(live)
 
       refute has_element?(live, "button", "Delete")
+    end
+
+    test "editing and saving a dynamic cron" do
+      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "edit-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/edit-cron")
+
+      live
+      |> form("#cron-form", %{
+        "expression" => "*/30 * * * *",
+        "timezone" => "America/New_York",
+        "priority" => "3",
+        "max_attempts" => "10",
+        "tags" => "important, nightly",
+        "args" => ~s({"mode": "full", "limit": 100}),
+        "guaranteed" => "true"
+      })
+      |> render_submit()
+
+      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "edit-cron"))
+      assert entry.expression == "*/30 * * * *"
+      assert entry.opts["timezone"] == "America/New_York"
+      assert entry.opts["priority"] == 3
+      assert entry.opts["max_attempts"] == 10
+      assert entry.opts["tags"] == ["important", "nightly"]
+      assert entry.opts["args"] == %{"mode" => "full", "limit" => 100}
+      assert entry.opts["guaranteed"] == true
     end
   end
 

@@ -22,6 +22,8 @@ end
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case, async: true
 
+  @moduletag :pro
+
   alias Oban.Pro.Plugins.DynamicCron
 
   setup do
@@ -81,6 +83,104 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
       change_sort(live, mode)
 
       assert_patch(live, crons_path(limit: 20, sort_by: mode, sort_dir: "asc"))
+    end
+  end
+
+  describe "new cron" do
+    test "opens drawer and creates a cron with required fields", %{live: live} do
+      refresh(live)
+
+      # Click the New link to open the drawer
+      live
+      |> element("#new-cron-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/crons/new")
+
+      # Fill in required fields
+      live
+      |> form("#new-cron-form", %{
+        "worker" => "Oban.Workers.CronA",
+        "name" => "my-new-cron",
+        "expression" => "*/5 * * * *"
+      })
+      |> render_submit()
+
+      # Should redirect to crons list
+      assert_patch(live, "/oban/crons")
+
+      # Verify cron was created
+      assert [entry] = DynamicCron.all(Oban) |> Enum.filter(&(&1.name == "my-new-cron"))
+      assert entry.expression == "*/5 * * * *"
+      assert entry.worker == "Oban.Workers.CronA"
+    end
+
+    test "creates a cron with all options including guaranteed", %{live: live} do
+      refresh(live)
+
+      live
+      |> element("#new-cron-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/crons/new")
+
+      live
+      |> form("#new-cron-form", %{
+        "worker" => "Oban.Workers.CronB",
+        "name" => "full-options-cron",
+        "expression" => "0 0 * * *",
+        "timezone" => "America/Chicago",
+        "priority" => "2",
+        "max_attempts" => "5",
+        "tags" => "tag1, tag2",
+        "guaranteed" => "true",
+        "args" => ~s({"key": "value"})
+      })
+      |> render_submit()
+
+      assert_patch(live, "/oban/crons")
+
+      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "full-options-cron"))
+      assert entry.expression == "0 0 * * *"
+      assert entry.worker == "Oban.Workers.CronB"
+      assert entry.opts["timezone"] == "America/Chicago"
+      assert entry.opts["priority"] == 2
+      assert entry.opts["max_attempts"] == 5
+      assert entry.opts["tags"] == ["tag1", "tag2"]
+      assert entry.opts["guaranteed"] == true
+      assert entry.opts["args"] == %{"key" => "value"}
+    end
+
+    test "auto-generates name from worker", %{live: live} do
+      refresh(live)
+
+      live
+      |> element("#new-cron-button")
+      |> render_click()
+
+      # Type in worker and check that name field updates
+      html =
+        live
+        |> element("#new-cron-form")
+        |> render_change(%{"worker" => "MyApp.Workers.SendEmail", "name" => ""})
+
+      assert html =~ ~r/name="name"[^>]*value="send-email"/
+    end
+
+    test "closes drawer on escape key", %{live: live} do
+      refresh(live)
+
+      live
+      |> element("#new-cron-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/crons/new")
+
+      live
+      |> element("#new-cron")
+      |> render_keydown(%{"key" => "Escape"})
+
+      assert_patch(live, "/oban/crons")
     end
   end
 
