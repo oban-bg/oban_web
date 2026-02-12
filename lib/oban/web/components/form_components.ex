@@ -10,20 +10,35 @@ defmodule Oban.Web.FormComponents do
   attr :colspan, :string, default: nil
   attr :placeholder, :string, default: nil
   attr :required, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :hint, :string, default: nil
   attr :rows, :integer, default: 2
 
   def form_field(assigns) do
     ~H"""
     <div class={@colspan}>
-      <label for={@name} class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+      <label
+        for={@name}
+        class="flex items-center gap-1 font-medium text-sm text-gray-700 dark:text-gray-300 mb-2"
+      >
         {@label}
         <span :if={@required} class="text-rose-500">*</span>
+        <span
+          :if={@hint}
+          id={"#{@name}-hint"}
+          data-title={@hint}
+          phx-hook="Tippy"
+          class="translate-y-px"
+        >
+          <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        </span>
       </label>
       <%= if @type == "textarea" do %>
         <textarea
           id={@name}
           name={@name}
           rows={@rows}
+          disabled={@disabled}
           placeholder={@placeholder}
           class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         >{@value}</textarea>
@@ -33,9 +48,10 @@ defmodule Oban.Web.FormComponents do
           id={@name}
           name={@name}
           value={@value}
+          disabled={@disabled}
           placeholder={@placeholder}
           required={@required}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         />
       <% end %>
     </div>
@@ -71,6 +87,8 @@ defmodule Oban.Web.FormComponents do
   attr :label, :string, required: true
   attr :name, :string, required: true
   attr :checked, :boolean, default: false
+  attr :disabled, :boolean, default: false
+  attr :hint, :string, default: nil
   attr :colspan, :string, default: nil
 
   def checkbox_field(assigns) do
@@ -88,12 +106,22 @@ defmodule Oban.Web.FormComponents do
             name={@name}
             value="true"
             checked={@checked}
+            disabled={@disabled}
             class="sr-only peer"
           />
           <span class="block w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:border-blue-500 peer-checked:bg-blue-500" />
           <Icons.check class="w-3 h-3 text-white absolute top-0.5 left-0.5 hidden peer-checked:block" />
         </div>
         {@label}
+        <span
+          :if={@hint}
+          id={"#{@name}-hint"}
+          data-title={@hint}
+          phx-hook="Tippy"
+          class="ml-1 translate-y-px"
+        >
+          <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        </span>
       </label>
     </div>
     """

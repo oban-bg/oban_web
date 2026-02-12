@@ -111,6 +111,16 @@ defmodule Oban.Web.Components.Icons do
 
   attr :rest, :global
 
+  def arrow_right(assigns) do
+    ~H"""
+    <.svg_outline {@rest}>
+      <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+    </.svg_outline>
+    """
+  end
+
+  attr :rest, :global
+
   def arrow_right_circle(assigns) do
     ~H"""
     <.svg_outline {@rest}>

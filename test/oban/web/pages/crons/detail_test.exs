@@ -125,10 +125,10 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       html = refresh(live)
 
-      assert html =~ "Dynamic Only"
+      assert html =~ "Editing requires DynamicCron"
       assert has_element?(live, "[rel=static-blocker]")
       assert has_element?(live, "fieldset[disabled]")
-      assert has_element?(live, "button[disabled]", "Save Changes")
+      assert has_element?(live, "button[disabled]", "Update Entry")
     end
 
     test "edit form is enabled for dynamic crons" do
@@ -150,7 +150,16 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       refute has_element?(live, "[rel=static-blocker]")
       refute has_element?(live, "fieldset[disabled]")
-      assert has_element?(live, "button:not([disabled])", "Save Changes")
+
+      # Button is disabled until changes are made
+      assert has_element?(live, "button[disabled]", "Update Entry")
+
+      # Make a change to enable the button
+      live
+      |> element("#cron-form")
+      |> render_change(%{"priority" => "2"})
+
+      assert has_element?(live, "button:not([disabled])", "Update Entry")
     end
 
     test "run now button inserts a job for the cron" do

@@ -319,7 +319,7 @@ defmodule Oban.Web.CronsPage do
               phx-hook="Tippy"
               data-title={state_title(@cron)}
             >
-              <.state_icon state={@cron.last_state} />
+              <.state_icon state={@cron.last_state} paused={@cron.paused?} />
             </span>
           </div>
         </div>
@@ -329,7 +329,13 @@ defmodule Oban.Web.CronsPage do
   end
 
   attr :state, :string, required: true
-  attr :rest, :global
+  attr :paused, :boolean, default: false
+
+  defp state_icon(%{paused: true} = assigns) do
+    ~H"""
+    <Icons.pause_circle class="w-5 h-5 text-gray-400" />
+    """
+  end
 
   defp state_icon(assigns) do
     ~H"""
@@ -352,6 +358,10 @@ defmodule Oban.Web.CronsPage do
         <Icons.minus_circle class="w-5 h-5 text-gray-400" />
     <% end %>
     """
+  end
+
+  defp state_title(%{paused?: true}) do
+    "Paused"
   end
 
   defp state_title(cron) do

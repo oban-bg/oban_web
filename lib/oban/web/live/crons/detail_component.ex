@@ -80,7 +80,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="grid grid-cols-3 gap-6 px-3 py-6">
         <div class="col-span-2">
-          <.history_chart />
+          <.history_chart cron={@cron} />
         </div>
 
         <div class="col-span-1">
@@ -122,9 +122,9 @@ defmodule Oban.Web.Crons.DetailComponent do
                 Last Status
               </span>
               <div class="flex items-center space-x-1">
-                <.state_icon state={@cron.last_state} />
+                <.state_icon state={@cron.last_state} paused={@cron.paused?} />
                 <span class="text-base text-gray-800 dark:text-gray-200">
-                  {state_label(@cron.last_state)}
+                  {if @cron.paused?, do: "Paused", else: state_label(@cron.last_state)}
                 </span>
               </div>
             </div>
@@ -209,27 +209,38 @@ defmodule Oban.Web.Crons.DetailComponent do
               rows={1}
             />
 
-            <.form_field label="Name" name="name" value={@cron.name} />
-
-            <div class="flex items-end pb-2">
-              <.checkbox_field
-                label="Guaranteed"
-                name="guaranteed"
-                checked={get_opt(@cron, "guaranteed") == true}
+            <div class="col-span-2 flex items-end gap-4 p-3 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800">
+              <.form_field
+                label="Name"
+                name="name"
+                value={@cron.name}
+                disabled={not @cron.dynamic?}
+                hint="Changing the name will reset cron history"
+                colspan="flex-1"
               />
+
+              <div class="pb-2 pr-6">
+                <.checkbox_field
+                  label="Guaranteed"
+                  name="guaranteed"
+                  checked={get_opt(@cron, "guaranteed") == true}
+                  disabled={not @cron.dynamic?}
+                  hint="Ensures a job is inserted even if the scheduled time passed"
+                />
+              </div>
             </div>
 
-            <div :if={not @cron.dynamic?} class="col-span-1 flex justify-center items-center">
+            <div class="col-span-2 flex justify-end items-center gap-3 pt-6">
               <a
+                :if={not @cron.dynamic?}
+                rel="static-blocker"
                 href="https://oban.pro/docs/pro/Oban.Pro.Plugins.DynamicCron.html"
                 target="_blank"
                 class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
               >
-                Dynamic Crons Only <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                Editing requires DynamicCron
+                <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
               </a>
-            </div>
-
-            <div class={["flex justify-end items-center pt-6", if(@cron.dynamic?, do: "col-span-2")]}>
               <.save_button disabled={not @changed?} />
             </div>
           </form>
@@ -239,14 +250,24 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
+  attr :cron, :any, required: true
+
   defp history_chart(assigns) do
     ~H"""
-    <div
-      id="cron-chart"
-      class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-      phx-hook="CronChart"
-      phx-update="ignore"
-    >
+    <div class="group relative">
+      <div
+        id="cron-chart"
+        class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+        phx-hook="CronChart"
+        phx-update="ignore"
+      >
+      </div>
+      <.link
+        navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: "completed"})}
+        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        View all jobs <Icons.arrow_right class="w-3 h-3" />
+      </.link>
     </div>
     """
   end
@@ -449,6 +470,13 @@ defmodule Oban.Web.Crons.DetailComponent do
   defp state_label(state), do: String.capitalize(state)
 
   attr :state, :string, required: true
+  attr :paused, :boolean, default: false
+
+  defp state_icon(%{paused: true} = assigns) do
+    ~H"""
+    <Icons.pause_circle class="w-5 h-5 text-gray-400" />
+    """
+  end
 
   defp state_icon(%{state: nil} = assigns) do
     ~H"""

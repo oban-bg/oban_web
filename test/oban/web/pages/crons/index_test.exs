@@ -20,7 +20,7 @@ defmodule Oban.Workers.CronC do
 end
 
 defmodule Oban.Web.Pages.Crons.IndexTest do
-  use Oban.Web.Case, async: true
+  use Oban.Web.Case
 
   @moduletag :pro
 
