@@ -112,7 +112,7 @@ defmodule Oban.Web.Jobs.TableComponent do
             class="h-5 w-5 text-gray-500 dark:text-gray-300"
             id={"job-rescued-#{assigns.job.id}"}
             phx-hook="Tippy"
-            data-title="Rescued by the DynamicLifeline plugin"
+            data-title="Rescued by lifeline"
           />
 
           <Icons.crossbones_circle
