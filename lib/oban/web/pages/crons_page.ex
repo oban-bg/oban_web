@@ -3,6 +3,8 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
+  import Oban.Web.Crons.Helpers, only: [maybe_to_unix: 1, state_icon: 1]
+
   alias Oban.Web.Crons.{DetailComponent, NewComponent}
   alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
 
@@ -328,38 +330,6 @@ defmodule Oban.Web.CronsPage do
     """
   end
 
-  attr :state, :string, required: true
-  attr :paused, :boolean, default: false
-
-  defp state_icon(%{paused: true} = assigns) do
-    ~H"""
-    <Icons.pause_circle class="w-5 h-5 text-gray-400" />
-    """
-  end
-
-  defp state_icon(assigns) do
-    ~H"""
-    <%= case @state do %>
-      <% "available" -> %>
-        <Icons.pause_circle class="w-5 h-5 text-teal-400" />
-      <% "cancelled" -> %>
-        <Icons.x_circle class="w-5 h-5 text-violet-400" />
-      <% "completed" -> %>
-        <Icons.check_circle class="w-5 h-5 text-cyan-400" />
-      <% "discarded" -> %>
-        <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
-      <% "executing" -> %>
-        <Icons.play_circle class="w-5 h-5 text-orange-400" />
-      <% "retryable" -> %>
-        <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
-      <% "scheduled" -> %>
-        <Icons.play_circle class="w-5 h-5 text-emerald-400" />
-      <% _ -> %>
-        <Icons.minus_circle class="w-5 h-5 text-gray-400" />
-    <% end %>
-    """
-  end
-
   defp state_title(%{paused?: true}) do
     "Paused"
   end
@@ -372,14 +342,6 @@ defmodule Oban.Web.CronsPage do
       state ->
         "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
     end
-  end
-
-  defp maybe_to_unix(nil), do: ""
-
-  defp maybe_to_unix(timestamp) do
-    timestamp
-    |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.to_unix(:millisecond)
   end
 
   @impl Page

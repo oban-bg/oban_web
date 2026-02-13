@@ -4,6 +4,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   import Oban.Web.Crons.Helpers
   import Oban.Web.FormComponents
 
+  alias Oban.Job
   alias Oban.Pro.Plugins.DynamicCron
   alias Oban.Web.{CronExpr, Timezones}
 
@@ -330,16 +331,16 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     %{cron: cron, conf: conf} = socket.assigns
 
-    worker = Module.safe_concat([cron.worker])
     args = Map.get(cron.opts, "args", %{})
 
     opts =
       cron.opts
       |> Map.take(~w(max_attempts priority queue tags))
       |> Keyword.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
+      |> Keyword.put(:worker, cron.worker)
       |> Keyword.put(:meta, %{cron: true, cron_expr: cron.expression, cron_name: cron.name})
 
-    changeset = worker.new(args, opts)
+    changeset = Job.new(args, opts)
 
     case Oban.insert(conf.name, changeset) do
       {:ok, _job} ->
@@ -425,7 +426,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   defp parse_form_params(params, cron) do
     [
       name: new_val?(parse_string(params["name"]), cron.name),
-      worker: new_val?(parse_worker(params["worker"]), cron.worker),
+      worker: new_val?(parse_string(params["worker"]), cron.worker),
       expression: new_val?(params["expression"], cron.expression),
       queue: new_val?(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
       timezone: new_val?(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
@@ -437,24 +438,12 @@ defmodule Oban.Web.Crons.DetailComponent do
     ]
   end
 
-  defp parse_worker(nil), do: nil
-  defp parse_worker(""), do: nil
-  defp parse_worker(worker), do: worker
-
   defp new_val?(new_val, current_val, default \\ nil)
   defp new_val?(nil, _current, _default), do: nil
   defp new_val?("", _current, _default), do: nil
   defp new_val?(val, val, _default), do: nil
   defp new_val?(val, nil, val), do: nil
   defp new_val?(val, _current, _default), do: val
-
-  defp maybe_to_unix(nil), do: ""
-
-  defp maybe_to_unix(timestamp) do
-    timestamp
-    |> DateTime.from_naive!("Etc/UTC")
-    |> DateTime.to_unix(:millisecond)
-  end
 
   defp get_opt(%{opts: opts}, key) do
     Map.get(opts, key)
@@ -468,67 +457,4 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   defp state_label(nil), do: "Unknown"
   defp state_label(state), do: String.capitalize(state)
-
-  attr :state, :string, required: true
-  attr :paused, :boolean, default: false
-
-  defp state_icon(%{paused: true} = assigns) do
-    ~H"""
-    <Icons.pause_circle class="w-5 h-5 text-gray-400" />
-    """
-  end
-
-  defp state_icon(%{state: nil} = assigns) do
-    ~H"""
-    <Icons.minus_circle class="w-5 h-5 text-gray-400" />
-    """
-  end
-
-  defp state_icon(%{state: "available"} = assigns) do
-    ~H"""
-    <Icons.pause_circle class="w-5 h-5 text-teal-400" />
-    """
-  end
-
-  defp state_icon(%{state: "cancelled"} = assigns) do
-    ~H"""
-    <Icons.x_circle class="w-5 h-5 text-violet-400" />
-    """
-  end
-
-  defp state_icon(%{state: "completed"} = assigns) do
-    ~H"""
-    <Icons.check_circle class="w-5 h-5 text-cyan-400" />
-    """
-  end
-
-  defp state_icon(%{state: "discarded"} = assigns) do
-    ~H"""
-    <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
-    """
-  end
-
-  defp state_icon(%{state: "executing"} = assigns) do
-    ~H"""
-    <Icons.play_circle class="w-5 h-5 text-orange-400" />
-    """
-  end
-
-  defp state_icon(%{state: "retryable"} = assigns) do
-    ~H"""
-    <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
-    """
-  end
-
-  defp state_icon(%{state: "scheduled"} = assigns) do
-    ~H"""
-    <Icons.play_circle class="w-5 h-5 text-emerald-400" />
-    """
-  end
-
-  defp state_icon(assigns) do
-    ~H"""
-    <Icons.minus_circle class="w-5 h-5 text-gray-400" />
-    """
-  end
 end

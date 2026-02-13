@@ -275,7 +275,7 @@ defmodule Oban.Web.Crons.NewComponent do
   end
 
   defp parse_worker(worker) when is_binary(worker) and worker != "" do
-    {:ok, String.to_atom("Elixir.#{worker}")}
+    {:ok, String.trim(worker)}
   end
 
   defp parse_worker(_), do: {:error, "Worker is required"}
