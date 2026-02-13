@@ -108,6 +108,30 @@ For development, a single file server that generates a wide variety of fake jobs
 iex -S mix dev
 ```
 
+### Python Development Workers
+
+A Python development app is available that runs alongside the Elixir dev server, sharing the same
+database. Python workers use separate queues (inference, scraping, etl, webhooks, notifications,
+transcoding, maintenance) and are tagged with "python" for easy filtering in the dashboard.
+
+First, install the Python dependencies (requires [uv](https://docs.astral.sh/uv/)):
+
+```bash
+mix py.install
+```
+
+Then, with the Elixir dev server running in one terminal, start the Python workers in another:
+
+```bash
+mix py.dev
+```
+
+Alternatively, run directly from the py directory:
+
+```bash
+cd py && uv run py-dev
+```
+
 ### Testing with Oban Pro
 
 Oban Pro is an optional dependency for development and testing. The test suite will automatically

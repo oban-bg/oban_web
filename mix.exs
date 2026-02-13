@@ -159,7 +159,9 @@ defmodule Oban.Web.MixProject do
         "credo --strict",
         "test --raise"
       ],
-      "dash.build": "cmd docker build -t oban-dash standalone"
+      "dash.build": "cmd docker build -t oban-dash standalone",
+      "py.dev": "cmd --cd py uv run py-dev",
+      "py.install": "cmd --cd py uv sync"
     ]
   end
 end

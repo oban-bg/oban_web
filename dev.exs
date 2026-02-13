@@ -5,12 +5,12 @@
 defmodule WebDev.Generator do
   use GenServer
 
-  @min_delay 100
-  @max_delay 45_000
+  @min_delay 500
+  @max_delay 60_000
   @min_sleep 300
   @max_sleep 30_000
   @min_jobs 1
-  @max_jobs 15
+  @max_jobs 10
   @max_schedule 120
   @delay_chance 30
 
@@ -579,7 +579,8 @@ Application.put_env(:phoenix, :persistent, true)
 
 oban_opts = [
   engine: Oban.Pro.Engines.Smart,
-  notifier: Oban.Notifiers.PG,
+  node: "web-dev-ex",
+  notifier: Oban.Notifiers.Postgres,
   peer: Oban.Peers.Global,
   repo: WebDev.Repo,
   queues: [
@@ -617,7 +618,7 @@ oban_opts = [
 slow_oban_opts = [
   engine: Oban.Pro.Engines.Smart,
   name: Oban.Slow,
-  notifier: {Oban.Notifiers.PG, namespace: :slow},
+  notifier: {Oban.Notifiers.Postgres, namespace: :slow},
   repo: WebDev.Repo
 ]
 

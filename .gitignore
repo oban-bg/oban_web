@@ -34,3 +34,8 @@ priv/static/*
 # Standalone Docker build artifacts
 /standalone/_build/
 /standalone/deps/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+.venv
