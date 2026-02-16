@@ -47,7 +47,7 @@ wheels = [
 [[package]]
 name = "oban"
 version = "0.5.2"
-source = { editable = "../../oban-py" }
+source = { git = "https://github.com/oban-bg/oban-py.git#f51d07eae162dc7488f7e313dc074417a4de7f38" }
 dependencies = [
     { name = "click" },
     { name = "erlpack" },
@@ -55,33 +55,6 @@ dependencies = [
     { name = "psycopg", extra = ["binary"] },
     { name = "psycopg-pool" },
     { name = "uvloop" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "erlpack", specifier = ">=1.0.0" },
-    { name = "orjson", specifier = ">=3.11.4" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.13" },
-    { name = "psycopg-pool", specifier = ">=3.2.6" },
-    { name = "uvloop", specifier = ">=0.22.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.3.5" },
-    { name = "pytest-asyncio", specifier = ">=1.2.0" },
-    { name = "pytest-benchmark", specifier = ">=5.2.3" },
-    { name = "ruff", specifier = ">=0.9.9" },
-    { name = "ty", specifier = ">=0.0.1a27" },
-]
-docs = [
-    { name = "myst-parser", specifier = ">=4.0.0" },
-    { name = "sphinx", specifier = ">=8.0.0" },
-    { name = "sphinx-autodoc-typehints", specifier = ">=2.0.0" },
-    { name = "sphinx-book-theme", specifier = ">=1.1.0" },
-    { name = "sphinx-click", specifier = ">=6.0.0" },
-    { name = "sphinx-design", specifier = ">=0.6.1" },
 ]
 
 [[package]]
@@ -219,7 +192,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "faker" },
-    { name = "oban", editable = "../../oban-py" },
+    { name = "oban", git = "https://github.com/oban-bg/oban-py.git" },
 ]
 
 [[package]]

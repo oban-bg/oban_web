@@ -3,7 +3,7 @@ defmodule Oban.Web.Crons.Helpers do
 
   use Phoenix.Component
 
-  alias Oban.Web.Icons
+  alias Oban.Web.Components.Icons
 
   attr :state, :string, required: true
   attr :paused, :boolean, default: false

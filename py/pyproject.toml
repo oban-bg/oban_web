@@ -18,4 +18,4 @@ build-backend = "hatchling.build"
 only-include = ["dev.py"]
 
 [tool.uv.sources]
-oban = { path = "../../oban-py", editable = true }
+oban = { git = "https://github.com/oban-bg/oban-py.git" }

@@ -93,7 +93,7 @@ defmodule Oban.Web.MixProject do
 
       # Oban
       {:oban, "~> 2.19"},
-      {:oban_met, "~> 1.0"},
+      {:oban_met, "~> 1.0", github: "oban-bg/oban_met"},
 
       # Databases
       {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},

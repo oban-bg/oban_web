@@ -74,7 +74,7 @@ defmodule Oban.Web.CronQuery do
     static_names =
       conf.name
       |> Met.crontab()
-      |> Enum.map(fn entry -> Oban.Plugins.Cron.entry_name(entry) end)
+      |> Enum.map(&entry_name/1)
 
     dynamic_names =
       if Utils.has_dynamic_cron?(conf) do
@@ -84,8 +84,7 @@ defmodule Oban.Web.CronQuery do
         []
       end
 
-    (static_names ++ dynamic_names)
-    |> Search.restrict_suggestions(fragment)
+    Search.restrict_suggestions(static_names ++ dynamic_names, fragment)
   end
 
   defp suggest_workers(fragment, conf) do
@@ -216,8 +215,12 @@ defmodule Oban.Web.CronQuery do
     conf.name
     |> Met.crontab()
     |> Enum.map(fn {expr, worker, opts} = entry ->
-      {expr, worker, opts, Oban.Plugins.Cron.entry_name(entry), false, false}
+      {expr, worker, opts, entry_name(entry), false, false}
     end)
+  end
+
+  defp entry_name({_expr, _worker, opts} = entry) do
+    Map.get_lazy(opts, "name", fn -> Oban.Plugins.Cron.entry_name(entry) end)
   end
 
   defp dynamic_crontab(conf) do
