@@ -199,6 +199,7 @@ defmodule Oban.Web.Router do
         live_session session_name, session_opts do
           get "/css-:md5", Oban.Web.Assets, :css, as: :oban_web_asset
           get "/js-:md5", Oban.Web.Assets, :js, as: :oban_web_asset
+          get "/icons/*path", Oban.Web.Assets, :icon, as: :oban_web_icon
 
           live "/", Oban.Web.DashboardLive, :home, route_opts
           live "/:page", Oban.Web.DashboardLive, :index, route_opts

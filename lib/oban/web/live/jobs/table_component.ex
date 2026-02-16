@@ -115,7 +115,7 @@ defmodule Oban.Web.Jobs.TableComponent do
             data-title="Rescued by lifeline"
           />
 
-          <Icons.crossbones_circle
+          <Icons.crossbones_circle_solid
             :if={orphaned?(@job, @producers)}
             class="h-5 w-5 text-gray-500 dark:text-gray-300"
             id={"job-orphaned-#{assigns.job.id}"}
