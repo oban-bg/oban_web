@@ -52,49 +52,60 @@ defmodule Oban.Web.CronExprTest do
     end
 
     test "daily at specific time" do
-      assert CronExpr.describe("30 9 * * *") == "Daily at 9:30 AM"
-      assert CronExpr.describe("0 14 * * *") == "Daily at 2:00 PM"
-      assert CronExpr.describe("45 23 * * *") == "Daily at 11:45 PM"
-      assert CronExpr.describe("0 6 * * *") == "Daily at 6:00 AM"
+      assert CronExpr.describe("30 9 * * *") == "Daily at 9:30"
+      assert CronExpr.describe("0 14 * * *") == "Daily at 14:00"
+      assert CronExpr.describe("45 23 * * *") == "Daily at 23:45"
+      assert CronExpr.describe("0 6 * * *") == "Daily at 6:00"
     end
 
     test "weekly on specific day" do
-      assert CronExpr.describe("0 0 * * 0") == "Weekly on Sunday"
-      assert CronExpr.describe("0 0 * * 1") == "Weekly on Monday"
-      assert CronExpr.describe("0 0 * * SUN") == "Weekly on Sunday"
-      assert CronExpr.describe("0 0 * * MON") == "Weekly on Monday"
-      assert CronExpr.describe("0 0 * * 7") == "Weekly on Sunday"
+      assert CronExpr.describe("0 0 * * 0") == "Weekly on Sunday at 0:00"
+      assert CronExpr.describe("0 0 * * 1") == "Weekly on Monday at 0:00"
+      assert CronExpr.describe("0 0 * * SUN") == "Weekly on Sunday at 0:00"
+      assert CronExpr.describe("0 0 * * MON") == "Weekly on Monday at 0:00"
+      assert CronExpr.describe("0 0 * * 7") == "Weekly on Sunday at 0:00"
     end
 
     test "weekly on specific day at specific time" do
-      assert CronExpr.describe("30 9 * * 1") == "Weekly on Monday at 9:30 AM"
-      assert CronExpr.describe("0 14 * * FRI") == "Weekly on Friday at 2:00 PM"
+      assert CronExpr.describe("30 9 * * 1") == "Weekly on Monday at 9:30"
+      assert CronExpr.describe("0 14 * * FRI") == "Weekly on Friday at 14:00"
     end
 
     test "monthly on specific day" do
-      assert CronExpr.describe("0 0 1 * *") == "Monthly on the 1st"
-      assert CronExpr.describe("0 0 2 * *") == "Monthly on the 2nd"
-      assert CronExpr.describe("0 0 3 * *") == "Monthly on the 3rd"
-      assert CronExpr.describe("0 0 15 * *") == "Monthly on the 15th"
-      assert CronExpr.describe("0 0 21 * *") == "Monthly on the 21st"
-      assert CronExpr.describe("0 0 22 * *") == "Monthly on the 22nd"
-      assert CronExpr.describe("0 0 23 * *") == "Monthly on the 23rd"
-      assert CronExpr.describe("0 0 31 * *") == "Monthly on the 31st"
+      assert CronExpr.describe("0 0 1 * *") == "Monthly on the 1st at 0:00"
+      assert CronExpr.describe("0 0 2 * *") == "Monthly on the 2nd at 0:00"
+      assert CronExpr.describe("0 0 3 * *") == "Monthly on the 3rd at 0:00"
+      assert CronExpr.describe("0 0 15 * *") == "Monthly on the 15th at 0:00"
+      assert CronExpr.describe("0 0 22 * *") == "Monthly on the 22nd at 0:00"
+      assert CronExpr.describe("0 0 31 * *") == "Monthly on the 31st at 0:00"
     end
 
     test "monthly on specific day at specific time" do
-      assert CronExpr.describe("30 9 1 * *") == "Monthly on the 1st at 9:30 AM"
-      assert CronExpr.describe("0 14 15 * *") == "Monthly on the 15th at 2:00 PM"
+      assert CronExpr.describe("30 9 1 * *") == "Monthly on the 1st at 9:30"
+      assert CronExpr.describe("0 14 15 * *") == "Monthly on the 15th at 14:00"
     end
 
-    test "returns nil for complex expressions" do
-      # Multiple values
-      assert CronExpr.describe("0,30 * * * *") == nil
-      # Ranges
-      assert CronExpr.describe("0-30 * * * *") == nil
-      # Complex patterns
+    test "complex expressions with both DOM and DOW" do
+      assert CronExpr.describe("0 0 1 * MON") == "The 1st, only on Mondays at 0:00"
+      assert CronExpr.describe("0 0 1 * SUN,TUE-SAT") == "The 1st, except Mondays at 0:00"
+      assert CronExpr.describe("0 0 2-31 * MON") == "Mondays, except the 1st at 0:00"
+
+      assert CronExpr.describe("0 0 2-31 * SUN,TUE-SAT") ==
+               "Daily except the 1st and Mondays at 0:00"
+    end
+
+    test "multiple hour values" do
+      assert CronExpr.describe("0 8,9,10 * * *") == "Daily at 8:00, 9:00, and 10:00"
+      assert CronExpr.describe("0 9,17 * * *") == "Daily at 9:00 and 17:00"
+      assert CronExpr.describe("30 8,12,18 * * *") == "Daily at 8:30, 12:30, and 18:30"
+    end
+
+    test "returns nil for expressions with specific month" do
       assert CronExpr.describe("0 0 1 1 *") == nil
-      # Invalid expressions
+      assert CronExpr.describe("0 0 * 6 *") == nil
+    end
+
+    test "returns nil for invalid expressions" do
       assert CronExpr.describe("invalid") == nil
       assert CronExpr.describe("") == nil
     end
@@ -102,6 +113,11 @@ defmodule Oban.Web.CronExprTest do
     test "returns nil for non-string input" do
       assert CronExpr.describe(nil) == nil
       assert CronExpr.describe(123) == nil
+    end
+
+    test "weekdays and weekends" do
+      assert CronExpr.describe("0 9 * * 1-5") == "Weekdays at 9:00"
+      assert CronExpr.describe("0 10 * * 0,6") == "Weekends at 10:00"
     end
   end
 end
