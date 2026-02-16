@@ -8,10 +8,10 @@ end
 defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
-  @moduletag :pro
-
   alias Oban.Pro.Plugins.DynamicCron
   alias Oban.Workers.DetailCronWorker
+
+  @moduletag :pro
 
   setup do
     start_supervised_oban!(

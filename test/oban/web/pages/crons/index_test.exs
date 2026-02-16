@@ -22,9 +22,9 @@ end
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case
 
-  @moduletag :pro
-
   alias Oban.Pro.Plugins.DynamicCron
+
+  @moduletag :pro
 
   setup do
     static_crontab = [
