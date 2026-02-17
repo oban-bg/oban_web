@@ -7,7 +7,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="job-details">
+    <div id="job-details" phx-hook="HistoryBack" data-escape-back>
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
         <button
           id="back-link"
@@ -255,6 +255,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
     {:noreply, socket}
   end
+
 
   # Helpers
 

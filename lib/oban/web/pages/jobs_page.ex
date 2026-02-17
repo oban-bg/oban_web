@@ -21,6 +21,7 @@ defmodule Oban.Web.JobsPage do
     ~H"""
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <SidebarComponent.sidebar
+        :if={is_nil(@detailed)}
         nodes={@nodes}
         params={without_defaults(@params, @default_params)}
         queues={@queues}
@@ -40,7 +41,10 @@ defmodule Oban.Web.JobsPage do
           params={@params}
         />
 
-        <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg">
+        <div class={[
+          "bg-white dark:bg-gray-900 rounded-md shadow-lg",
+          @detailed && "mx-4"
+        ]}>
           <%= if @detailed do %>
             <.live_component
               id="detail"

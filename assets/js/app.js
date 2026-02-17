@@ -54,6 +54,10 @@ window.addEventListener("phx:page-loading-stop", (info) => {
   topbar.hide();
 });
 
+window.addEventListener("phx:scroll-top", () => {
+  window.scrollTo({ top: 0, behavior: "instant" });
+});
+
 // Mounting ---
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");

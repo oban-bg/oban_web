@@ -27,12 +27,12 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       id="job-timeline"
       class="w-full py-4 px-6"
       phx-hook="TimelineConnectors"
-      data-entry-scheduled={@path.entry == "scheduled"}
-      data-entry-retryable={@path.entry == "retryable"}
-      data-engaged={@path.engaged}
-      data-terminal-completed={@path.terminal == "completed"}
-      data-terminal-cancelled={@path.terminal == "cancelled"}
-      data-terminal-discarded={@path.terminal == "discarded"}
+      data-entry-scheduled={to_string(@path.entry == "scheduled")}
+      data-entry-retryable={to_string(@path.entry == "retryable")}
+      data-engaged={to_string(@path.engaged)}
+      data-terminal-completed={to_string(@path.terminal == "completed")}
+      data-terminal-cancelled={to_string(@path.terminal == "cancelled")}
+      data-terminal-discarded={to_string(@path.terminal == "discarded")}
     >
       <div id="timeline-boxes" class="relative">
         <svg

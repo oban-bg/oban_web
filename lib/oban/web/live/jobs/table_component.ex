@@ -91,7 +91,11 @@ defmodule Oban.Web.Jobs.TableComponent do
         myself={@myself}
       />
 
-      <.link patch={oban_path([:jobs, @job.id])} class="flex flex-grow items-center">
+      <.link
+        patch={oban_path([:jobs, @job.id])}
+        phx-click={JS.dispatch("phx:scroll-top", to: "body")}
+        class="flex flex-grow items-center"
+      >
         <div class="py-2.5">
           <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300" rel="worker">
             {@job.worker}
