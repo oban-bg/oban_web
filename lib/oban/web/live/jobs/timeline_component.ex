@@ -229,10 +229,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   defp format_timestamp("executing", job, now) do
     cond do
       job.state == "executing" ->
-        relative = job.attempted_at |> DateTime.diff(now) |> Timing.to_words()
-        duration = job.attempted_at |> DateTime.diff(now) |> Timing.to_duration()
-
-        "#{relative} (#{duration})"
+        job.attempted_at |> DateTime.diff(now) |> Timing.to_duration()
 
       job.state in ["completed", "cancelled", "discarded"] ->
         job.attempted_at |> DateTime.diff(now) |> Timing.to_words()

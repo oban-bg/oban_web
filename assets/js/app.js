@@ -5,6 +5,7 @@ import { loadAll } from "./lib/settings";
 
 import Completer from "./hooks/completer";
 import CronChart from "./hooks/cron_chart";
+import JobHistoryChart from "./hooks/job_history_chart";
 import JobsChart from "./hooks/jobs_chart";
 import HistoryBack from "./hooks/history_back";
 import Instantiator from "./hooks/instantiator";
@@ -20,6 +21,7 @@ import Tippy from "./hooks/tippy";
 const hooks = {
   Completer,
   CronChart,
+  JobHistoryChart,
   JobsChart,
   HistoryBack,
   Instantiator,

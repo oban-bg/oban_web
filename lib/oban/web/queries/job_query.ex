@@ -46,6 +46,8 @@ defmodule Oban.Web.JobQuery do
 
   @states Map.new(Oban.Job.states(), &{to_string(&1), &1})
 
+  @history_limit 60
+
   defmacrop json_table(field) do
     quote do
       fragment("json_table(?, '$[*]' COLUMNS (value TEXT PATH '$'))", unquote(field))
@@ -456,6 +458,33 @@ defmodule Oban.Web.JobQuery do
   end
 
   def refresh_job(_conf, nil), do: nil
+
+  @history_states ~w(executing completed cancelled discarded)
+
+  def job_history(job, conf, _opts \\ []) do
+    worker = Map.get(job.meta, "worker", job.worker)
+
+    query =
+      Job
+      |> where([j], j.worker == ^worker)
+      |> where([j], j.id <= ^job.id)
+      |> where([j], j.state in @history_states)
+      |> order_by([j], desc: j.id)
+      |> limit(@history_limit)
+      |> select([j], %{
+        id: j.id,
+        state: j.state,
+        scheduled_at: j.scheduled_at,
+        attempted_at: j.attempted_at,
+        completed_at: j.completed_at,
+        cancelled_at: j.cancelled_at,
+        discarded_at: j.discarded_at
+      })
+
+    conf
+    |> Repo.all(query)
+    |> Enum.reverse()
+  end
 
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))

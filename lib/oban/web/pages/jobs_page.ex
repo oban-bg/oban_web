@@ -50,6 +50,7 @@ defmodule Oban.Web.JobsPage do
               id="detail"
               access={@access}
               conf={@conf}
+              history={@history}
               init_state={@init_state}
               job={@detailed}
               module={DetailComponent}
@@ -169,6 +170,7 @@ defmodule Oban.Web.JobsPage do
     %{socket | assigns: assigns}
     |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
+    |> assign_new(:history, fn -> [] end)
     |> assign_new(:jobs, fn -> [] end)
     |> assign_new(:nodes, fn -> [] end)
     |> assign_new(:os_time, fn -> System.os_time(:second) end)
@@ -195,8 +197,18 @@ defmodule Oban.Web.JobsPage do
         MapSet.new()
       end
 
+    detailed = JobQuery.refresh_job(conf, socket.assigns.detailed)
+
+    history =
+      if detailed do
+        JobQuery.job_history(detailed, conf)
+      else
+        []
+      end
+
     assign(socket,
-      detailed: JobQuery.refresh_job(conf, socket.assigns.detailed),
+      detailed: detailed,
+      history: history,
       jobs: jobs,
       nodes: nodes(conf),
       os_time: System.os_time(:second),
@@ -209,15 +221,19 @@ defmodule Oban.Web.JobsPage do
   @impl Page
   def handle_params(%{"id" => job_id} = params, _uri, socket) do
     params = params_with_defaults(params, socket)
+    conf = socket.assigns.conf
 
-    case JobQuery.refresh_job(socket.assigns.conf, job_id) do
+    case JobQuery.refresh_job(conf, job_id) do
       nil ->
         {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
 
       job ->
+        history = JobQuery.job_history(job, conf)
+
         {:noreply,
          socket
          |> assign(detailed: job, page_title: page_title(job))
+         |> assign(history: history)
          |> assign(params: params)}
     end
   end
@@ -230,6 +246,7 @@ defmodule Oban.Web.JobsPage do
     socket =
       socket
       |> assign(detailed: nil, page_title: page_title("Jobs"))
+      |> assign(history: [])
       |> assign(params: params)
       |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
       |> assign(nodes: nodes(conf), queues: queues(conf), states: states(conf))

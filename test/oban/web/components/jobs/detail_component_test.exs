@@ -29,7 +29,18 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
   end
 
   test "restricting actions based on job state" do
-    job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "executing"}
+    now = DateTime.utc_now()
+    scheduled_at = DateTime.add(now, -60, :second)
+
+    job = %Oban.Job{
+      id: 1,
+      worker: "MyApp.Worker",
+      args: %{},
+      state: "executing",
+      attempted_at: now,
+      inserted_at: scheduled_at,
+      scheduled_at: scheduled_at
+    }
 
     html = render_component(Component, assigns(job), router: Router)
 
@@ -48,7 +59,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
   defp assigns(job, opts \\ []) do
     os_time = System.system_time(:second)
 
-    [access: :all, id: :details, os_time: os_time, params: %{}, resolver: nil]
+    [access: :all, history: [], id: :details, os_time: os_time, params: %{}, resolver: nil]
     |> Keyword.put(:job, job)
     |> Keyword.merge(opts)
   end

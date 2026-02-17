@@ -1,17 +1,18 @@
 defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Jobs.{ChartComponent, TimelineComponent}
+  alias Oban.Web.Jobs.{HistoryChartComponent, TimelineComponent}
   alias Oban.Web.{Resolver, Timing}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="job-details" phx-hook="HistoryBack" data-escape-back>
+    <div id="job-details">
       <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
         <button
           id="back-link"
           class="flex items-center hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0"
+          data-escape-back={true}
           data-title="Back to jobs"
           phx-hook="HistoryBack"
           type="button"
@@ -51,7 +52,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
             <button
               id="detail-cancel"
-              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
+              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
               data-disable-with="Cancelling…"
               phx-target={@myself}
               phx-click="cancel"
@@ -65,7 +66,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
             <button
               id="detail-retry"
-              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
+              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
               data-disable-with="Running…"
               phx-target={@myself}
               phx-click="retry"
@@ -79,7 +80,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
             <button
               id="detail-retry"
-              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
+              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
               data-disable-with="Retrying…"
               phx-target={@myself}
               phx-click="retry"
@@ -93,7 +94,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
             <button
               id="detail-delete"
-              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
+              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
               data-confirm="Are you sure you want to delete this job?"
               data-disable-with="Deleting…"
               phx-target={@myself}
@@ -124,7 +125,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Queue Time
+                Wait Time
               </span>
               <span class="text-base text-gray-800 dark:text-gray-200">
                 {Timing.queue_time(@job)}
@@ -133,7 +134,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Run Time
+                Exec Time
               </span>
               <span class="text-base text-gray-800 dark:text-gray-200">
                 {Timing.run_time(@job)}
@@ -194,17 +195,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <.live_component
-          id="detail-chart"
-          collapsible={false}
-          compact={true}
-          conf={@conf}
-          default_series="exec_time"
-          embedded={true}
-          init_state={@init_state}
-          module={ChartComponent}
-          os_time={@os_time}
-          params={@params}
-          worker_filter={@job.worker}
+          id="detail-history-chart"
+          module={HistoryChartComponent}
+          job={@job}
+          history={@history}
         />
       </div>
 
@@ -288,7 +282,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
     {:noreply, socket}
   end
-
 
   # Helpers
 
