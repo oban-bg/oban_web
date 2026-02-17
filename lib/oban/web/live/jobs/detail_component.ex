@@ -155,12 +155,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="flex justify-center items-center px-3 pt-6 pb-5">
-        <TimelineComponent.render job={@job} os_time={@os_time} state="inserted" />
-        <TimelineComponent.render job={@job} os_time={@os_time} state="scheduled" />
-        <TimelineComponent.render job={@job} os_time={@os_time} state="executing" />
-        <TimelineComponent.render job={@job} os_time={@os_time} state="cancelled" />
-        <TimelineComponent.render job={@job} os_time={@os_time} state="discarded" />
+      <div class="px-3 pt-6 pb-5">
+        <TimelineComponent.render job={@job} os_time={@os_time} />
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">

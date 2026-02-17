@@ -14,6 +14,7 @@ import Shortcuts from "./hooks/shortcuts";
 import SidebarResizer from "./hooks/sidebar_resizer";
 import Sparkline from "./hooks/sparkline";
 import Themer from "./hooks/themer";
+import TimelineConnectors from "./hooks/timeline_connectors";
 import Tippy from "./hooks/tippy";
 
 const hooks = {
@@ -28,6 +29,7 @@ const hooks = {
   SidebarResizer,
   Sparkline,
   Themer,
+  TimelineConnectors,
   Tippy,
 };
 
