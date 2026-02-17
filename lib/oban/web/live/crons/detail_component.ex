@@ -27,9 +27,12 @@ defmodule Oban.Web.Crons.DetailComponent do
         </.link>
 
         <div class="flex space-x-3">
-          <div :if={@cron.dynamic?} class="flex items-center">
-            <span class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200">
-              <Icons.sparkles class="mr-1 h-4 w-4" /> Dynamic
+          <div :if={@cron.dynamic?} class="group flex items-center pl-16 -ml-16">
+            <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+              <Icons.sparkles class="h-4 w-4 shrink-0" />
+              <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
+                Dynamic
+              </span>
             </span>
           </div>
 

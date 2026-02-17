@@ -25,7 +25,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     ~H"""
     <div
       id="job-timeline"
-      class="w-full py-4 px-6"
+      class="w-full p-4"
       phx-hook="TimelineConnectors"
       data-entry-scheduled={to_string(@path.entry == "scheduled")}
       data-entry-retryable={to_string(@path.entry == "retryable")}
@@ -40,7 +40,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
           class="absolute inset-0 overflow-visible pointer-events-none"
         />
 
-        <div class="relative grid grid-cols-4 gap-x-12 gap-y-3">
+        <div class="relative grid grid-cols-4 gap-x-8 gap-y-3">
           <.state_box state="scheduled" job={@job} path={@path} now={@now} />
           <div></div>
           <div></div>
@@ -235,12 +235,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
         "#{relative} (#{duration})"
 
       job.state in ["completed", "cancelled", "discarded"] ->
-        terminal_at = job.completed_at || job.cancelled_at || job.discarded_at
-
-        relative = job.attempted_at |> DateTime.diff(now) |> Timing.to_words()
-        duration = job.attempted_at |> DateTime.diff(terminal_at) |> Timing.to_duration()
-
-        "#{relative} (#{duration})"
+        job.attempted_at |> DateTime.diff(now) |> Timing.to_words()
 
       true ->
         nil

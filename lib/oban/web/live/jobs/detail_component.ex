@@ -17,14 +17,41 @@ defmodule Oban.Web.Jobs.DetailComponent do
           type="button"
         >
           <Icons.arrow_left class="w-5 h-5" />
-          <span class="text-lg font-bold ml-2">Job Details</span>
+          <span class="text-lg font-bold ml-2">{@job.worker}</span>
         </button>
 
-        <div class="flex">
+        <div class="flex space-x-3">
+          <div :if={@job.meta["recorded"]} class="group flex items-center pl-16 -ml-16">
+            <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+              <Icons.camera class="h-4 w-4 shrink-0" />
+              <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
+                Recorded
+              </span>
+            </span>
+          </div>
+
+          <div :if={@job.meta["encrypted"]} class="group flex items-center pl-16 -ml-16">
+            <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+              <Icons.lock_closed class="h-4 w-4 shrink-0" />
+              <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
+                Encrypted
+              </span>
+            </span>
+          </div>
+
+          <div :if={@job.meta["structured"]} class="group flex items-center pl-16 -ml-16">
+            <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+              <Icons.table_cells class="h-4 w-4 shrink-0" />
+              <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
+                Structured
+              </span>
+            </span>
+          </div>
+
           <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
             <button
               id="detail-cancel"
-              class="group flex items-center ml-4 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
+              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
               data-disable-with="Cancelling…"
               phx-target={@myself}
               phx-click="cancel"
@@ -38,7 +65,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
             <button
               id="detail-retry"
-              class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
+              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
               data-disable-with="Running…"
               phx-target={@myself}
               phx-click="retry"
@@ -52,7 +79,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
             <button
               id="detail-retry"
-              class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
+              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
               data-disable-with="Retrying…"
               phx-target={@myself}
               phx-click="retry"
@@ -66,7 +93,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
             <button
               id="detail-delete"
-              class="group flex items-center ml-3 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
+              class="group flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
               data-confirm="Are you sure you want to delete this job?"
               data-disable-with="Deleting…"
               phx-target={@myself}
@@ -79,84 +106,90 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="bg-blue-50 dark:bg-blue-950 dark:bg-opacity-25 border-b border-gray-200 dark:border-gray-700 px-3 py-6">
-        <div class="flex justify-between">
-          <div>
-            <span class="text-md text-gray-500 dark:text-gray-400 tabular">{@job.id}</span>
-            <span class="text-lg font-bold text-gray-900 dark:text-gray-200 ml-1">
-              {@job.worker}
-            </span>
-          </div>
-
-          <div>
-            <%= if @job.meta["recorded"] do %>
-              <span id="is-recorded" data-title="Recording Enabled" phx-hook="Tippy">
-                <Icons.camera />
-              </span>
-            <% end %>
-
-            <%= if @job.meta["encrypted"] do %>
-              <span id="is-encrypted" data-title="Encryption Enabled" phx-hook="Tippy">
-                <Icons.lock_closed />
-              </span>
-            <% end %>
-
-            <%= if @job.meta["structured"] do %>
-              <span id="is-structured" data-title="Structure Enabled" phx-hook="Tippy">
-                <Icons.table_cells />
-              </span>
-            <% end %>
-          </div>
+      <div class="grid grid-cols-3 gap-6 px-3 py-6">
+        <div class="col-span-2">
+          <TimelineComponent.render job={@job} os_time={@os_time} />
         </div>
 
-        <div class="text-sm flex justify-left pt-2 text-gray-900 dark:text-gray-200">
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Queue
-            </span>
-            {@job.queue}
+        <div class="col-span-1">
+          <div class="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Attempted By
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {attempted_by(@job)}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Queue Time
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {Timing.queue_time(@job)}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Run Time
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {Timing.run_time(@job)}
+              </span>
+            </div>
           </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Attempt
-            </span>
-            {@job.attempt} of {@job.max_attempts}
+
+          <div class="grid grid-cols-3 gap-4 mb-4 px-3">
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                ID
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+                {@job.id}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Queue
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.queue}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Attempt
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.attempt} of {@job.max_attempts}
+              </span>
+            </div>
           </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Priority
-            </span>
-            {@job.priority}
-          </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Tags
-            </span>
-            {formatted_tags(@job)}
-          </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Node
-            </span>
-            {attempted_by(@job)}
-          </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Queue Time
-            </span>
-            {Timing.queue_time(@job)}
-          </div>
-          <div class="mr-6">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mr-1">
-              Run Time
-            </span>
-            {Timing.run_time(@job)}
+
+          <div class="grid grid-cols-3 gap-4 px-3">
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Priority
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.priority}
+              </span>
+            </div>
+
+            <div class="flex flex-col col-span-2">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Tags
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {formatted_tags(@job)}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="px-3 pt-6 pb-5">
-        <TimelineComponent.render job={@job} os_time={@os_time} />
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
