@@ -1,7 +1,7 @@
 defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Jobs.TimelineComponent
+  alias Oban.Web.Jobs.{ChartComponent, TimelineComponent}
   alias Oban.Web.{Resolver, Timing}
 
   @impl Phoenix.LiveComponent
@@ -161,6 +161,22 @@ defmodule Oban.Web.Jobs.DetailComponent do
         <TimelineComponent.render job={@job} os_time={@os_time} state="executing" />
         <TimelineComponent.render job={@job} os_time={@os_time} state="cancelled" />
         <TimelineComponent.render job={@job} os_time={@os_time} state="discarded" />
+      </div>
+
+      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+        <.live_component
+          id="detail-chart"
+          collapsible={false}
+          compact={true}
+          conf={@conf}
+          default_series="exec_time"
+          embedded={true}
+          init_state={@init_state}
+          module={ChartComponent}
+          os_time={@os_time}
+          params={@params}
+          worker_filter={@job.worker}
+        />
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
