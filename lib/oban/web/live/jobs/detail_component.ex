@@ -97,19 +97,19 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-6 px-3 pt-6">
-        <div class="col-span-2">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 px-3 pt-6">
+        <div class="lg:col-span-3">
           <TimelineComponent.render job={@job} os_time={@os_time} />
         </div>
 
-        <div class="col-span-1">
+        <div class="lg:col-span-2">
           <div class="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Attempted By
+                ID
               </span>
-              <span class="text-base text-gray-800 dark:text-gray-200">
-                {attempted_by(@job)}
+              <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+                {@job.id}
               </span>
             </div>
 
@@ -130,17 +130,36 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 {Timing.run_time(@job)}
               </span>
             </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Attempted By
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {attempted_by(@job)}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Snoozed
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.meta["snoozed"] || "—"}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Rescued
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.meta["rescued"] || "—"}
+              </span>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-4 mb-4 px-3">
-            <div class="flex flex-col">
-              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                ID
-              </span>
-              <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-                {@job.id}
-              </span>
-            </div>
 
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -157,6 +176,15 @@ defmodule Oban.Web.Jobs.DetailComponent do
               </span>
               <span class="text-base text-gray-800 dark:text-gray-200">
                 {@job.attempt} of {@job.max_attempts}
+              </span>
+            </div>
+
+            <div class="flex flex-col">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Priority
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200">
+                {@job.priority}
               </span>
             </div>
           </div>
@@ -181,6 +209,32 @@ defmodule Oban.Web.Jobs.DetailComponent do
           job={@job}
           history={@history}
         />
+      </div>
+
+      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+        <button
+          id="recorded-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_recorded()}
+        >
+          <Icons.chevron_right
+            id="recorded-chevron"
+            class={["w-5 h-5 transition-transform", if(@job.meta["recorded"], do: "rotate-90")]}
+          />
+          <span class="font-semibold">Recorded Output</span>
+        </button>
+
+        <div id="recorded-content" class={["mt-3", unless(@job.meta["recorded"], do: "hidden")]}>
+          <%= if @job.meta["recorded"] do %>
+            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
+          <% else %>
+            <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
+              <Icons.camera class="w-5 h-5" />
+              <span class="text-sm">No recorded output</span>
+            </div>
+          <% end %>
+        </div>
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
@@ -283,7 +337,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <% current_error = Enum.at(sorted_errors, @error_index) %>
             <.error_entry error={current_error} />
           <% else %>
-            <div class="flex items-center space-x-2 text-gray-400 dark:text-gray-500">
+            <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
               <Icons.check_circle class="w-5 h-5" />
               <span class="text-sm">No errors recorded</span>
             </div>
@@ -298,16 +352,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </h3>
         <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
       </div>
-
-      <%= if @job.meta["recorded"] do %>
-        <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-          <h3 class="flex font-semibold mb-3 space-x-2">
-            <Icons.camera />
-            <span>Recorded Output</span>
-          </h3>
-          <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
-        </div>
-      <% end %>
     </div>
     """
   end
@@ -430,6 +474,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.remove_class("rotate-90", to: "#errors-chevron.rotate-90")
   end
 
+  defp toggle_recorded do
+    %JS{}
+    |> JS.toggle(to: "#recorded-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#recorded-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#recorded-chevron.rotate-90")
+  end
+
   attr :icon, :string, required: true
   attr :label, :string, required: true
 
@@ -448,9 +499,18 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp job_title(job), do: Map.get(job.meta, "decorated_name", job.worker)
 
-  defp status_icon(%{name: "camera"} = assigns), do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
-  defp status_icon(%{name: "lock_closed"} = assigns), do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
-  defp status_icon(%{name: "table_cells"} = assigns), do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
-  defp status_icon(%{name: "sparkles"} = assigns), do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
-  defp status_icon(%{name: "life_buoy"} = assigns), do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
+  defp status_icon(%{name: "camera"} = assigns),
+    do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
+
+  defp status_icon(%{name: "lock_closed"} = assigns),
+    do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
+
+  defp status_icon(%{name: "table_cells"} = assigns),
+    do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
+
+  defp status_icon(%{name: "sparkles"} = assigns),
+    do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
+
+  defp status_icon(%{name: "life_buoy"} = assigns),
+    do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
 end

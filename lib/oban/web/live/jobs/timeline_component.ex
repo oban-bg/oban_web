@@ -40,7 +40,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
           class="absolute inset-0 overflow-visible pointer-events-none"
         />
 
-        <div class="relative grid grid-cols-4 gap-x-8 gap-y-5">
+        <div class="relative grid grid-cols-4 gap-x-2 sm:gap-x-4 lg:gap-x-8 gap-y-3 sm:gap-y-5">
           <.state_box state="scheduled" job={@job} path={@path} now={@now} />
           <div></div>
           <div></div>
@@ -82,20 +82,20 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
     ~H"""
     <div
-      class={"flex items-center justify-between h-12 rounded-lg border-2 px-3 #{@border_class} #{@bg_class}"}
+      class={"flex flex-col sm:flex-row items-center sm:justify-between h-12 sm:h-12 rounded-lg border-2 px-2 sm:px-3 #{@border_class} #{@bg_class}"}
       data-title={@tooltip}
       phx-hook="Tippy"
       id={"timeline-#{@state}"}
     >
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1 sm:gap-2">
         <span class={"flex items-center justify-center w-5 h-5 #{@text_color}"}>
           <.state_icon status={@status} state={@state} />
         </span>
-        <span class={"text-sm font-semibold capitalize #{@text_color}"}>
+        <span class={"hidden sm:inline text-sm font-semibold capitalize #{@text_color}"}>
           {@state}
         </span>
       </div>
-      <span class={"text-xs tabular-nums #{@text_color}"}>
+      <span class={"hidden sm:inline text-xs tabular-nums #{@text_color}"}>
         {@timestamp || "—"}
       </span>
     </div>

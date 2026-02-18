@@ -155,6 +155,11 @@ const JobHistoryChart = {
 
       this.chart.update()
     })
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.chart.resize()
+    })
+    this.resizeObserver.observe(this.el)
   },
 
   fadeColor(hex, opacity) {
@@ -165,6 +170,9 @@ const JobHistoryChart = {
   },
 
   destroyed() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+    }
     if (this.chart) {
       this.chart.destroy()
     }
