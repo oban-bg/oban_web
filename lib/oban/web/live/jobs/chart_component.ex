@@ -12,19 +12,12 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    collapsible = Map.get(assigns, :collapsible, true)
-    compact = Map.get(assigns, :compact, false)
-    default_series = Map.get(assigns, :default_series, hd(series()))
-    embedded = Map.get(assigns, :embedded, false)
-    worker_filter = Map.get(assigns, :worker_filter)
-
-    default_group = if worker_filter, do: "state", else: hd(groups())
+    default_series = hd(series())
 
     socket =
       socket
       |> assign(conf: assigns.conf, params: assigns.params)
-      |> assign(collapsible: collapsible, compact: compact, embedded: embedded, worker_filter: worker_filter)
-      |> assign_new(:group, fn -> init_lazy(:group, assigns, default_group) end)
+      |> assign_new(:group, fn -> init_lazy(:group, assigns, hd(groups())) end)
       |> assign_new(:ntile, fn -> init_lazy(:ntile, assigns, ntile_for_series(default_series)) end)
       |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods())) end)
       |> assign_new(:series, fn -> init_lazy(:series, assigns, default_series) end)
@@ -54,14 +47,10 @@ defmodule Oban.Web.Jobs.ChartComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class={[
-      "w-full",
-      unless(@embedded, do: "bg-white dark:bg-gray-900 rounded-md shadow-md mb-3")
-    ]}>
+    <div class="w-full bg-white dark:bg-gray-900 rounded-md shadow-md mb-3">
       <div class="flex items-center justify-between p-3">
         <div id="chart-h" class="flex items-center text-gray-900 dark:text-gray-200">
           <button
-            :if={@collapsible}
             id="chart-toggle"
             data-title="Toggle charts"
             phx-click={toggle_chart(@myself)}
@@ -95,7 +84,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
           <Core.dropdown_button
             disabled={not @visible}
             name="series"
-            options={series_options(@worker_filter)}
+            options={series()}
             selected={@series}
             target={@myself}
             title="Change metric series"
@@ -115,7 +104,6 @@ defmodule Oban.Web.Jobs.ChartComponent do
           </Core.dropdown_button>
 
           <Core.dropdown_button
-            :if={is_nil(@worker_filter)}
             disabled={not @visible}
             name="group"
             options={groups_for_series(@series)}
@@ -142,8 +130,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       <div
         id="chart"
         class={[
-          "w-full relative cursor-crosshair pl-5 pr-3",
-          if(@compact, do: "h-48", else: "h-200px"),
+          "w-full relative cursor-crosshair pl-5 pr-3 h-200px",
           unless(@visible, do: "hidden")
         ]}
       >
@@ -160,10 +147,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     cols = assigns.max_cols
     sy_time = Timing.snap(System.system_time(:second), step)
 
-    filters =
-      assigns.params
-      |> params_to_filters()
-      |> maybe_add_worker_filter(assigns.worker_filter)
+    filters = params_to_filters(assigns.params)
 
     opts = [
       by: step,
@@ -180,9 +164,6 @@ defmodule Oban.Web.Jobs.ChartComponent do
     |> top_n(assigns.max_data)
     |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, step, os_time)} end)
   end
-
-  defp maybe_add_worker_filter(filters, nil), do: filters
-  defp maybe_add_worker_filter(filters, worker), do: [{:worker, [worker]} | filters]
 
   defp top_n(points, limit) do
     points
@@ -269,9 +250,6 @@ defmodule Oban.Web.Jobs.ChartComponent do
   def ntiles, do: ~w(max p99 p95 p75 p50)
   def periods, do: ~w(1s 5s 10s 30s 1m 2m)
   def series, do: ~w(exec_count full_count exec_time wait_time)
-
-  defp series_options(nil), do: series()
-  defp series_options(_worker_filter), do: ~w(exec_time wait_time exec_count)
 
   defp groups_for_series("full_count"), do: ~w(state queue)
   defp groups_for_series(_series), do: groups()
