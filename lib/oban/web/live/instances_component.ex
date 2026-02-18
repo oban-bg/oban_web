@@ -85,7 +85,7 @@ defmodule Oban.Web.InstancesComponent do
 
     allowed = Resolver.call_with_fallback(resolver, :resolve_instances, [user])
 
-    if allowed == :all or Enum.member?(allowed, name) do
+    if allowed == :all or name in Enum.map(allowed, &inspect/1) do
       send(self(), {:select_instance, name})
     end
 
