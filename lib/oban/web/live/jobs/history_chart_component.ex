@@ -4,23 +4,42 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="group relative">
-      <div
-        id="job-history-chart"
-        class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-        phx-hook="JobHistoryChart"
-        phx-update="ignore"
-        data-current-job-id={@job.id}
+    <div>
+      <button
+        id="history-toggle"
+        type="button"
+        class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+        phx-click={toggle_section()}
       >
+        <Icons.chevron_right id="history-chevron" class="w-5 h-5 transition-transform rotate-90" />
+        <span class="font-semibold">Recent Executions</span>
+      </button>
+
+      <div id="history-content" class="group relative mt-3">
+        <div
+          id="job-history-chart"
+          class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+          phx-hook="JobHistoryChart"
+          phx-update="ignore"
+          data-current-job-id={@job.id}
+        >
+        </div>
+        <.link
+          navigate={all_jobs_path(@job)}
+          class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          View all jobs <Icons.arrow_right class="w-3 h-3" />
+        </.link>
       </div>
-      <.link
-        navigate={all_jobs_path(@job)}
-        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        View all jobs <Icons.arrow_right class="w-3 h-3" />
-      </.link>
     </div>
     """
+  end
+
+  defp toggle_section do
+    %JS{}
+    |> JS.toggle(to: "#history-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#history-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#history-chevron.rotate-90")
   end
 
   defp all_jobs_path(job) do

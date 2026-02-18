@@ -25,7 +25,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     ~H"""
     <div
       id="job-timeline"
-      class="w-full p-4"
+      class="w-full"
       phx-hook="TimelineConnectors"
       data-entry-scheduled={to_string(@path.entry == "scheduled")}
       data-entry-retryable={to_string(@path.entry == "retryable")}
@@ -40,7 +40,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
           class="absolute inset-0 overflow-visible pointer-events-none"
         />
 
-        <div class="relative grid grid-cols-4 gap-x-8 gap-y-3">
+        <div class="relative grid grid-cols-4 gap-x-8 gap-y-5">
           <.state_box state="scheduled" job={@job} path={@path} now={@now} />
           <div></div>
           <div></div>
