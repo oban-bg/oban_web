@@ -84,8 +84,9 @@ defmodule Oban.Web.InstancesComponent do
     %{resolver: resolver, user: user} = socket.assigns
 
     allowed = Resolver.call_with_fallback(resolver, :resolve_instances, [user])
+    instance = name |> String.split(".") |> Module.safe_concat()
 
-    if allowed == :all or Enum.member?(allowed, name) do
+    if allowed == :all or instance in allowed do
       send(self(), {:select_instance, name})
     end
 
