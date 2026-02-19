@@ -15,8 +15,8 @@ defmodule Oban.Web.DashboardLive do
     sidebar_width = restore_state(socket, "sidebar_width", 320)
     oban = current_oban_instance(session, socket)
 
-    conf = await_init([oban], :supervisor)
-    _met = await_init([oban, Oban.Met], :met)
+    conf = await_init([oban])
+    _met = await_init([oban, Oban.Met])
     page = resolve_page(params)
 
     Process.put(:routing, {socket, prefix})
@@ -196,40 +196,24 @@ defmodule Oban.Web.DashboardLive do
 
   ## Mount Helpers
 
-  defp await_init([oban_name | _] = args, proc, timeout \\ 15_000) do
+  defp await_init(args, opts \\ [])
+
+  defp await_init([oban_name | _] = args, opts) do
+    retries = Keyword.get(opts, :retries, 150)
+    timeout = Keyword.get(opts, :timeout, 100)
+
     case apply(Oban.Registry, :whereis, args) do
+      nil when retries > 0 ->
+        Process.sleep(timeout)
+
+        await_init(args, Keyword.put(opts, :retries, retries - 1))
+
       nil ->
-        ref = make_ref()
-
-        :telemetry.attach(
-          ref,
-          [:oban, proc, :init],
-          &__MODULE__.relay_init/4,
-          {args, self()}
-        )
-
-        receive do
-          {^args, %{name: ^oban_name} = conf} ->
-            :telemetry.detach(ref)
-
-            # Sleep briefly to prevent race conditions between init and child process
-            # initialization.
-            Process.sleep(5)
-
-            conf
-        after
-          timeout ->
-            raise RuntimeError, "no config registered for #{inspect(args)} instance"
-        end
+        raise RuntimeError, "no config registered for #{inspect(args)} instance"
 
       pid when is_pid(pid) ->
         Oban.config(oban_name)
     end
-  end
-
-  @doc false
-  def relay_init(_event, _timing, %{conf: conf}, {args, pid}) do
-    send(pid, {args, conf})
   end
 
   ## Render Helpers
