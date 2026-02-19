@@ -68,6 +68,22 @@ All configuration is done through environment variables:
 | `BASIC_AUTH_USER` | No         | —         | Basic auth username             |
 | `BASIC_AUTH_PASS` | No         | —         | Basic auth password             |
 | `LOG_LEVEL`       | No         | `info`    | Log level                       |
+| `SSL`              | No         | `false`       | Use SSL for DB connection; `true` or `1` to enable |
+| `SSL_VERIFY_MODE`  | No         | `verify_peer` | DB SSL verify mode: `verify_peer` or `verify_none`   |
+
+### SSL (database connection)
+
+To connect to the database over SSL, set `SSL` to `true` or `1`. Use `SSL_VERIFY_MODE=verify_none` when
+the server uses a self-signed certificate (e.g. in development):
+
+```bash
+docker run -d \
+  -e DATABASE_URL="postgres://user:pass@host:5432/myapp" \
+  -e SSL="true" \
+  -e SSL_VERIFY_MODE="verify_none" \
+  -p 4000:4000 \
+  ghcr.io/oban-bg/oban-dash
+```
 
 ## Authentication & Authorization
 
