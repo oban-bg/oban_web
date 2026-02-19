@@ -132,7 +132,7 @@ defmodule Oban.Web.SearchComponent do
       </span>
 
       <button
-        class="pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 dark:bg-violet-300 hover:bg-violet-500 dark:hover:bg-violet-500 hover:text-gray-100"
+        class="flex items-center pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 dark:bg-violet-300 hover:bg-violet-500 dark:hover:bg-violet-500 hover:text-gray-100"
         type="button"
         phx-click="remove-filter"
         phx-value-param={@param}

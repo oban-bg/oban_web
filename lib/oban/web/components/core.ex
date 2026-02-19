@@ -200,8 +200,8 @@ defmodule Oban.Web.Components.Core do
       phx-value-id={@value}
       rel="check"
     >
-      <div class={["w-4 h-4 rounded border", @style]}>
-        <Icons.check class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+      <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
+        <Icons.check class="w-3 h-3 text-white dark:text-gray-900" />
       </div>
     </button>
     """
@@ -231,11 +231,11 @@ defmodule Oban.Web.Components.Core do
       phx-target={@myself}
       type="button"
     >
-      <div class={["w-4 h-4 rounded border", @style]}>
+      <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
         <%= if @checked == :some do %>
-          <Icons.indeterminate class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+          <Icons.indeterminate class="w-3 h-3 text-white dark:text-gray-900" />
         <% else %>
-          <Icons.check class="w-3.5 h-3.5 text-white dark:text-gray-900" />
+          <Icons.check class="w-3 h-3 text-white dark:text-gray-900" />
         <% end %>
       </div>
     </button>
