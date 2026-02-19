@@ -56,6 +56,7 @@ defmodule Oban.Web.JobsPage do
               module={DetailComponent}
               os_time={@os_time}
               params={without_defaults(Map.delete(@params, "id"), @default_params)}
+              queues={@queues}
               resolver={@resolver}
             />
           <% else %>
@@ -343,6 +344,23 @@ defmodule Oban.Web.JobsPage do
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
 
     {:noreply, assign(socket, detailed: job)}
+  end
+
+  def handle_info({:update_job, job, changes}, socket) do
+    conf = socket.assigns.conf
+
+    case Oban.update_job(conf.name, job.id, changes) do
+      {:ok, updated_job} ->
+        socket =
+          socket
+          |> put_flash_with_clear(:info, "Job updated successfully")
+          |> assign(detailed: updated_job)
+
+        {:noreply, socket}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to update job")}
+    end
   end
 
   # Selection

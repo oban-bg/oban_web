@@ -1,6 +1,11 @@
 defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.Crons.Helpers,
+    only: [parse_int: 1, parse_json: 1, parse_tags: 1, queue_options: 1]
+
+  import Oban.Web.FormComponents
+
   alias Oban.Web.Jobs.{HistoryChartComponent, TimelineComponent}
   alias Oban.Web.{Resolver, Timing}
 
@@ -10,7 +15,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
       socket
       |> assign(assigns)
       |> assign_new(:error_index, fn -> 0 end)
-      |> assign_new(:error_sort, fn -> :newest end)
+      |> assign_new(:error_sort, fn -> :desc end)
+      |> assign_new(:edit_changed?, fn -> false end)
+      |> assign_new(:queues, fn -> [] end)
 
     {:ok, socket}
   end
@@ -94,6 +101,17 @@ defmodule Oban.Web.Jobs.DetailComponent do
               <Icons.trash class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-red-500" /> Delete
             </button>
           <% end %>
+
+          <button
+            :if={editable?(@job)}
+            id="detail-edit"
+            class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-violet-500 hover:border-violet-600"
+            phx-click={scroll_to_edit()}
+            type="button"
+          >
+            <Icons.pencil_square class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-violet-500" />
+            Edit
+          </button>
         </div>
       </div>
 
@@ -213,129 +231,99 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <button
-          id="recorded-toggle"
+          id="errors-toggle"
           type="button"
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-          phx-click={toggle_recorded()}
+          phx-click={toggle_errors()}
         >
           <Icons.chevron_right
-            id="recorded-chevron"
-            class={["w-5 h-5 transition-transform", if(@job.meta["recorded"], do: "rotate-90")]}
+            id="errors-chevron"
+            class={["w-5 h-5 transition-transform", if(Enum.any?(@job.errors), do: "rotate-90")]}
           />
-          <span class="font-semibold">Recorded Output</span>
-        </button>
-
-        <div id="recorded-content" class={["mt-3", unless(@job.meta["recorded"], do: "hidden")]}>
-          <%= if @job.meta["recorded"] do %>
-            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
-          <% else %>
-            <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
-              <Icons.camera class="w-5 h-5" />
-              <span class="text-sm">No recorded output</span>
-            </div>
-          <% end %>
-        </div>
-      </div>
-
-      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between">
-          <button
-            id="errors-toggle"
-            type="button"
-            class="flex items-center space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-            phx-click={toggle_errors()}
-          >
-            <Icons.chevron_right
-              id="errors-chevron"
-              class={["w-5 h-5 transition-transform", if(Enum.any?(@job.errors), do: "rotate-90")]}
-            />
-            <span class="font-semibold">
-              Errors
-              <span :if={Enum.any?(@job.errors)} class="text-gray-400 font-normal">
-                ({length(@job.errors)})
-              </span>
+          <span class="font-semibold">
+            Errors
+            <span :if={Enum.any?(@job.errors)} class="text-gray-400 font-normal">
+              ({length(@job.errors)})
             </span>
-          </button>
-
-          <div :if={Enum.any?(@job.errors)} class="flex items-center space-x-4">
-            <div class="flex items-center text-sm">
-              <button
-                type="button"
-                phx-click="error-sort"
-                phx-value-sort="newest"
-                phx-target={@myself}
-                class={[
-                  "px-2 py-1 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600",
-                  if(@error_sort == :newest,
-                    do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
-                    else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
-                  )
-                ]}
-              >
-                Newest
-              </button>
-              <button
-                type="button"
-                phx-click="error-sort"
-                phx-value-sort="oldest"
-                phx-target={@myself}
-                class={[
-                  "px-2 py-1 rounded-r-md border border-gray-300 dark:border-gray-600",
-                  if(@error_sort == :oldest,
-                    do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
-                    else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
-                  )
-                ]}
-              >
-                Oldest
-              </button>
-            </div>
-
-            <div class="flex items-center space-x-1">
-              <button
-                type="button"
-                phx-click="error-nav"
-                phx-value-dir="prev"
-                phx-target={@myself}
-                disabled={@error_index == 0}
-                class={[
-                  "p-1 rounded",
-                  if(@error_index == 0,
-                    do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
-                    else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-                  )
-                ]}
-              >
-                <Icons.chevron_left class="w-5 h-5" />
-              </button>
-              <span class="text-sm text-gray-500 dark:text-gray-400 tabular min-w-[4rem] text-center">
-                {@error_index + 1} of {length(@job.errors)}
-              </span>
-              <button
-                type="button"
-                phx-click="error-nav"
-                phx-value-dir="next"
-                phx-target={@myself}
-                disabled={@error_index >= length(@job.errors) - 1}
-                class={[
-                  "p-1 rounded",
-                  if(@error_index >= length(@job.errors) - 1,
-                    do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
-                    else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-                  )
-                ]}
-              >
-                <Icons.chevron_right class="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
+          </span>
+        </button>
 
         <div id="errors-content" class={["mt-3", if(Enum.empty?(@job.errors), do: "hidden")]}>
           <%= if Enum.any?(@job.errors) do %>
-            <% sorted_errors = sort_errors(@job.errors, @error_sort) %>
-            <% current_error = Enum.at(sorted_errors, @error_index) %>
-            <.error_entry error={current_error} />
+            <div class="flex items-center justify-end mb-3 space-x-4">
+              <div class="flex items-center text-sm">
+                <button
+                  type="button"
+                  phx-click="error-sort"
+                  phx-value-sort="desc"
+                  phx-target={@myself}
+                  class={[
+                    "px-2 py-1 cusror-pointer rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600",
+                    if(@error_sort == :desc,
+                      do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
+                      else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+                    )
+                  ]}
+                >
+                  Newest
+                </button>
+                <button
+                  type="button"
+                  phx-click="error-sort"
+                  phx-value-sort="asc"
+                  phx-target={@myself}
+                  class={[
+                    "px-2 py-1 cusror-pointer rounded-r-md border border-gray-300 dark:border-gray-600",
+                    if(@error_sort == :asc,
+                      do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
+                      else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+                    )
+                  ]}
+                >
+                  Oldest
+                </button>
+              </div>
+
+              <div class="flex items-center space-x-1">
+                <button
+                  type="button"
+                  phx-click="error-nav"
+                  phx-value-dir="prev"
+                  phx-target={@myself}
+                  disabled={@error_index == 0}
+                  class={[
+                    "p-1 rounded",
+                    if(@error_index == 0,
+                      do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
+                      else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                    )
+                  ]}
+                >
+                  <Icons.chevron_left class="w-5 h-5" />
+                </button>
+                <span class="text-sm text-gray-500 dark:text-gray-400 tabular min-w-[4rem] text-center">
+                  {@error_index + 1} of {length(@job.errors)}
+                </span>
+                <button
+                  type="button"
+                  phx-click="error-nav"
+                  phx-value-dir="next"
+                  phx-target={@myself}
+                  disabled={@error_index >= length(@job.errors) - 1}
+                  class={[
+                    "p-1 rounded",
+                    if(@error_index >= length(@job.errors) - 1,
+                      do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
+                      else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                    )
+                  ]}
+                >
+                  <Icons.chevron_right class="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <.error_entry errors={@job.errors} index={@error_index} sort={@error_sort} />
           <% else %>
             <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
               <Icons.check_circle class="w-5 h-5" />
@@ -346,11 +334,146 @@ defmodule Oban.Web.Jobs.DetailComponent do
       </div>
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 class="flex font-semibold mb-3 space-x-2 text-gray-400">
-          <Icons.hashtag />
-          <span>Meta</span>
-        </h3>
-        <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
+        <button
+          id="meta-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_meta()}
+        >
+          <Icons.chevron_right
+            id="meta-chevron"
+            class={["w-5 h-5 transition-transform", if(meta_present?(@job), do: "rotate-90")]}
+          />
+          <span class="font-semibold">Meta</span>
+        </button>
+
+        <div id="meta-content" class={["mt-3", unless(meta_present?(@job), do: "hidden")]}>
+          <div class="grid grid-cols-2 gap-6">
+            <div>
+              <h4 class="flex font-medium mb-2 text-xs uppercase text-gray-500 dark:text-gray-400">
+                Job Meta
+              </h4>
+              <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
+            </div>
+
+            <div>
+              <h4 class="flex font-medium mb-2 text-xs uppercase text-gray-500 dark:text-gray-400">
+                Recorded Output
+              </h4>
+              <%= if @job.meta["recorded"] do %>
+                <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
+              <% else %>
+                <span class="text-sm text-gray-400 dark:text-gray-500">No recorded output</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+        <button
+          id="edit-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_edit()}
+        >
+          <Icons.chevron_right
+            id="edit-chevron"
+            class={["w-5 h-5 transition-transform", if(editable?(@job), do: "rotate-90")]}
+          />
+          <span class="font-semibold">Edit Job</span>
+          <span
+            :if={not editable?(@job)}
+            id="edit-hint"
+            class="flex items-center"
+            data-title="Only available, scheduled, and retryable jobs can be edited"
+            phx-hook="Tippy"
+          >
+            <Icons.info_circle class="w-4 h-4 text-gray-400" />
+          </span>
+        </button>
+
+        <div id="edit-content" class={["mt-3", unless(editable?(@job), do: "hidden")]}>
+          <fieldset disabled={not editable?(@job)}>
+            <form
+              id="job-edit-form"
+              class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+              phx-change="edit-change"
+              phx-submit="save-job"
+              phx-target={@myself}
+            >
+              <.form_field label="Worker" name="worker" value={@job.worker} />
+
+              <.select_field
+                label="Queue"
+                name="queue"
+                value={@job.queue}
+                options={queue_options(@queues)}
+              />
+
+              <.form_field
+                label="Priority"
+                name="priority"
+                value={@job.priority}
+                type="number"
+                placeholder="0"
+              />
+
+              <.form_field
+                label="Max Attempts"
+                name="max_attempts"
+                value={@job.max_attempts}
+                type="number"
+                placeholder="20"
+              />
+
+              <.form_field
+                label="Scheduled At"
+                name="scheduled_at"
+                value={format_datetime(@job.scheduled_at)}
+                type="datetime-local"
+              />
+
+              <.form_field
+                label="Tags"
+                name="tags"
+                value={format_job_tags(@job.tags)}
+                placeholder="tag1, tag2"
+                colspan="col-span-3"
+              />
+
+              <.form_field
+                label="Args"
+                name="args"
+                value={format_job_args(@job.args)}
+                colspan="col-span-2"
+                type="textarea"
+                placeholder="{}"
+                rows={3}
+              />
+
+              <.form_field
+                label="Meta"
+                name="meta"
+                value={format_job_meta(@job.meta)}
+                colspan="col-span-2"
+                type="textarea"
+                placeholder="{}"
+                rows={3}
+              />
+
+              <div class="col-span-4 flex justify-end items-center gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={not @edit_changed?}
+                  class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </fieldset>
+        </div>
       </div>
     </div>
     """
@@ -385,11 +508,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   def handle_event("error-sort", %{"sort" => sort}, socket) do
     sort = String.to_existing_atom(sort)
+
     {:noreply, assign(socket, error_sort: sort, error_index: 0)}
   end
 
   def handle_event("error-nav", %{"dir" => "prev"}, socket) do
     index = max(0, socket.assigns.error_index - 1)
+
     {:noreply, assign(socket, error_index: index)}
   end
 
@@ -399,16 +524,45 @@ defmodule Oban.Web.Jobs.DetailComponent do
     {:noreply, assign(socket, error_index: index)}
   end
 
-  # Helpers
+  def handle_event("edit-change", params, socket) do
+    changed? =
+      params
+      |> parse_edit_params(socket.assigns.job)
+      |> Enum.any?(fn {_key, val} -> not is_nil(val) end)
 
-  defp sort_errors(errors, :newest), do: Enum.reverse(errors)
-  defp sort_errors(errors, :oldest), do: errors
+    {:noreply, assign(socket, edit_changed?: changed?)}
+  end
+
+  def handle_event("save-job", params, socket) do
+    job = socket.assigns.job
+
+    changes =
+      params
+      |> parse_edit_params(job)
+      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+      |> Map.new()
+
+    if map_size(changes) > 0 do
+      send(self(), {:update_job, job, changes})
+    end
+
+    {:noreply, assign(socket, edit_changed?: false)}
+  end
+
+  # Helpers
 
   defp format_args(job, resolver) do
     Resolver.call_with_fallback(resolver, :format_job_args, [job])
   end
 
-  defp format_meta(job, resolver) do
+  defp format_meta(%{meta: meta} = job, resolver) do
+    job =
+      if meta["recorded"] do
+        %{job | meta: Map.delete(meta, "return")}
+      else
+        job
+      end
+
     Resolver.call_with_fallback(resolver, :format_job_meta, [job])
   end
 
@@ -417,16 +571,23 @@ defmodule Oban.Web.Jobs.DetailComponent do
       %{"recorded" => true, "return" => value} ->
         Resolver.call_with_fallback(resolver, :format_recorded, [value, job])
 
-      _ ->
+      %{"recorded" => true} ->
         "No Recording Yet"
+
+      _ ->
+        "Recording Not Enabled"
     end
   end
 
-  attr :error, :map, required: true
-
   defp error_entry(assigns) do
-    {message, stacktrace} = parse_error(assigns.error["error"])
-    assigns = assign(assigns, message: message, stacktrace: stacktrace)
+    error =
+      assigns.errors
+      |> Enum.sort_by(& &1["attempt"], assigns.sort)
+      |> Enum.at(assigns.index)
+
+    {message, stacktrace} = parse_error(error["error"])
+
+    assigns = assign(assigns, error: error, message: message, stacktrace: stacktrace)
 
     ~H"""
     <div class="mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
@@ -474,12 +635,15 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.remove_class("rotate-90", to: "#errors-chevron.rotate-90")
   end
 
-  defp toggle_recorded do
+  defp toggle_meta do
     %JS{}
-    |> JS.toggle(to: "#recorded-content", in: "fade-in-scale", out: "fade-out-scale")
-    |> JS.add_class("rotate-90", to: "#recorded-chevron:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#recorded-chevron.rotate-90")
+    |> JS.toggle(to: "#meta-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#meta-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#meta-chevron.rotate-90")
   end
+
+  defp meta_present?(%{meta: meta}) when map_size(meta) == 0, do: false
+  defp meta_present?(_job), do: true
 
   attr :icon, :string, required: true
   attr :label, :string, required: true
@@ -513,4 +677,79 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp status_icon(%{name: "life_buoy"} = assigns),
     do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
+
+  defp toggle_edit do
+    %JS{}
+    |> JS.toggle(to: "#edit-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#edit-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#edit-chevron.rotate-90")
+  end
+
+  defp scroll_to_edit do
+    %JS{}
+    |> JS.show(to: "#edit-content", transition: "fade-in-scale")
+    |> JS.add_class("rotate-90", to: "#edit-chevron")
+    |> JS.focus(to: "#job-edit-form input")
+  end
+
+  defp editable?(%{state: state}) do
+    state in ~w(scheduled retryable available)
+  end
+
+  defp parse_edit_params(params, job) do
+    [
+      worker: new_val?(parse_string(params["worker"]), job.worker),
+      queue: new_val?(parse_string(params["queue"]), job.queue),
+      priority: new_val?(parse_int(params["priority"]), job.priority),
+      max_attempts: new_val?(parse_int(params["max_attempts"]), job.max_attempts),
+      scheduled_at: new_val?(parse_datetime(params["scheduled_at"]), job.scheduled_at),
+      tags: new_val?(parse_tags(params["tags"]), job.tags),
+      args: new_val?(parse_json(params["args"]), job.args),
+      meta: new_val?(parse_json(params["meta"]), job.meta)
+    ]
+  end
+
+  defp new_val?(nil, _current), do: nil
+  defp new_val?("", _current), do: nil
+  defp new_val?(val, val), do: nil
+  defp new_val?(val, _current), do: val
+
+  defp parse_string(nil), do: nil
+  defp parse_string(""), do: nil
+  defp parse_string(str), do: String.trim(str)
+
+  defp parse_datetime(nil), do: nil
+  defp parse_datetime(""), do: nil
+
+  defp parse_datetime(str) when is_binary(str) do
+    case NaiveDateTime.from_iso8601(str <> ":00") do
+      {:ok, datetime} -> datetime
+      _ -> nil
+    end
+  end
+
+  defp format_datetime(nil), do: nil
+
+  defp format_datetime(%DateTime{} = datetime) do
+    datetime
+    |> DateTime.to_naive()
+    |> format_datetime()
+  end
+
+  defp format_datetime(%NaiveDateTime{} = datetime) do
+    datetime
+    |> NaiveDateTime.truncate(:second)
+    |> NaiveDateTime.to_iso8601()
+    |> String.slice(0, 16)
+  end
+
+  defp format_job_tags(nil), do: nil
+  defp format_job_tags([]), do: nil
+  defp format_job_tags(tags) when is_list(tags), do: Enum.join(tags, ", ")
+
+  defp format_job_args(args) when is_map(args), do: Oban.JSON.encode!(args)
+  defp format_job_args(_), do: "{}"
+
+  defp format_job_meta(meta) when is_map(meta), do: Oban.JSON.encode!(meta)
+  defp format_job_meta(_), do: "{}"
 end
