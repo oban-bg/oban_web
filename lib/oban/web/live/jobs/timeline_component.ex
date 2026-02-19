@@ -145,9 +145,11 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp compute_entry_state(job) do
+    snoozed = Map.get(job.meta, "snoozed", 0)
+
     cond do
       job.state == "retryable" -> "retryable"
-      job.attempt > 1 -> "retryable"
+      job.attempt > 1 and snoozed < job.attempt -> "retryable"
       true -> "scheduled"
     end
   end
