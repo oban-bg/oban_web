@@ -40,78 +40,51 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </button>
 
         <div class="flex space-x-3">
-          <.status_badge :if={@job.meta["recorded"]} icon="camera" label="Recorded" />
-          <.status_badge :if={@job.meta["encrypted"]} icon="lock_closed" label="Encrypted" />
-          <.status_badge :if={@job.meta["structured"]} icon="table_cells" label="Structured" />
-          <.status_badge :if={@job.meta["decorated"]} icon="sparkles" label="Decorated" />
-          <.status_badge :if={@job.meta["rescued"]} icon="life_buoy" label="Rescued" />
+          <Core.status_badge :if={@job.meta["recorded"]} icon="camera" label="Recorded" />
+          <Core.status_badge :if={@job.meta["encrypted"]} icon="lock_closed" label="Encrypted" />
+          <Core.status_badge :if={@job.meta["structured"]} icon="table_cells" label="Structured" />
+          <Core.status_badge :if={@job.meta["decorated"]} icon="sparkles" label="Decorated" />
+          <Core.status_badge :if={@job.meta["rescued"]} icon="life_buoy" label="Rescued" />
 
-          <%= if can?(:cancel_jobs, @access) and cancelable?(@job) do %>
-            <button
-              id="detail-cancel"
-              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-yellow-600 hover:border-yellow-600"
-              data-disable-with="Cancelling…"
-              phx-target={@myself}
-              phx-click="cancel"
-              type="button"
-            >
-              <Icons.x_circle class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-yellow-500" />
-              Cancel
-            </button>
-          <% end %>
+          <Core.icon_button
+            id="detail-cancel"
+            icon="x_circle"
+            label="Cancel"
+            color="yellow"
+            disabled={not cancelable?(@job)}
+            phx-target={@myself}
+            phx-click="cancel"
+          />
 
-          <%= if can?(:retry_jobs, @access) and runnable?(@job) do %>
-            <button
-              id="detail-retry"
-              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 hover:border-blue-600"
-              data-disable-with="Running…"
-              phx-target={@myself}
-              phx-click="retry"
-              type="button"
-            >
-              <Icons.arrow_right_circle class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-blue-500" />
-              Run Now
-            </button>
-          <% end %>
+          <Core.icon_button
+            id="detail-retry"
+            icon="arrow_path"
+            label="Retry"
+            color="blue"
+            disabled={not (runnable?(@job) or retryable?(@job))}
+            phx-target={@myself}
+            phx-click="retry"
+          />
 
-          <%= if can?(:retry_jobs, @access) and retryable?(@job) do %>
-            <button
-              id="detail-retry"
-              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:border-blue-600"
-              data-disable-with="Retrying…"
-              phx-target={@myself}
-              phx-click="retry"
-              type="button"
-            >
-              <Icons.arrow_path class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-blue-500" />
-              Retry
-            </button>
-          <% end %>
+          <Core.icon_button
+            id="detail-delete"
+            icon="trash"
+            label="Delete"
+            color="red"
+            disabled={not deletable?(@job)}
+            confirm="Are you sure you want to delete this job?"
+            phx-target={@myself}
+            phx-click="delete"
+          />
 
-          <%= if can?(:delete_jobs, @access) and deletable?(@job) do %>
-            <button
-              id="detail-delete"
-              class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-red-500 hover:border-red-600"
-              data-confirm="Are you sure you want to delete this job?"
-              data-disable-with="Deleting…"
-              phx-target={@myself}
-              phx-click="delete"
-              type="button"
-            >
-              <Icons.trash class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-red-500" /> Delete
-            </button>
-          <% end %>
-
-          <button
-            :if={editable?(@job)}
+          <Core.icon_button
             id="detail-edit"
-            class="group flex items-center cursor-pointer text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:text-violet-500 hover:border-violet-600"
+            icon="pencil_square"
+            label="Edit"
+            color="violet"
+            disabled={not editable?(@job)}
             phx-click={scroll_to_edit()}
-            type="button"
-          >
-            <Icons.pencil_square class="-ml-1 mr-1 h-5 w-5 text-gray-500 group-hover:text-violet-500" />
-            Edit
-          </button>
+          />
         </div>
       </div>
 
@@ -645,38 +618,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp meta_present?(%{meta: meta}) when map_size(meta) == 0, do: false
   defp meta_present?(_job), do: true
 
-  attr :icon, :string, required: true
-  attr :label, :string, required: true
-
-  defp status_badge(assigns) do
-    ~H"""
-    <div class="group flex items-center cursor-default select-none">
-      <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
-        <.status_icon name={@icon} />
-        <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
-          {@label}
-        </span>
-      </span>
-    </div>
-    """
-  end
-
   defp job_title(job), do: Map.get(job.meta, "decorated_name", job.worker)
-
-  defp status_icon(%{name: "camera"} = assigns),
-    do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
-
-  defp status_icon(%{name: "lock_closed"} = assigns),
-    do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
-
-  defp status_icon(%{name: "table_cells"} = assigns),
-    do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
-
-  defp status_icon(%{name: "sparkles"} = assigns),
-    do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
-
-  defp status_icon(%{name: "life_buoy"} = assigns),
-    do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
 
   defp toggle_edit do
     %JS{}

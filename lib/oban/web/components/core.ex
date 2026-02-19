@@ -241,4 +241,104 @@ defmodule Oban.Web.Components.Core do
     </button>
     """
   end
+
+  @doc """
+  A status badge with icon that expands to show label on hover.
+  """
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+
+  def status_badge(assigns) do
+    ~H"""
+    <div class="group flex items-center cursor-default select-none">
+      <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+        <.badge_icon name={@icon} />
+        <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
+          {@label}
+        </span>
+      </span>
+    </div>
+    """
+  end
+
+  defp badge_icon(%{name: "camera"} = assigns), do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
+  defp badge_icon(%{name: "life_buoy"} = assigns), do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
+  defp badge_icon(%{name: "lock_closed"} = assigns), do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
+  defp badge_icon(%{name: "sparkles"} = assigns), do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
+  defp badge_icon(%{name: "table_cells"} = assigns), do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
+
+  @doc """
+  An icon-only button that expands to show label on hover. Supports disabled state.
+  """
+  attr :id, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :color, :string, required: true
+  attr :disabled, :boolean, default: false
+  attr :confirm, :string, default: nil
+  attr :rest, :global
+
+  def icon_button(assigns) do
+    color_classes =
+      case {assigns.color, assigns.disabled} do
+        {_, true} ->
+          "text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 cursor-not-allowed"
+
+        {"yellow", false} ->
+          "text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 cursor-pointer hover:text-yellow-600 hover:border-yellow-600"
+
+        {"blue", false} ->
+          "text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 cursor-pointer hover:text-blue-500 hover:border-blue-600"
+
+        {"red", false} ->
+          "text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 cursor-pointer hover:text-red-500 hover:border-red-600"
+
+        {"violet", false} ->
+          "text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 cursor-pointer hover:text-violet-500 hover:border-violet-600"
+      end
+
+    icon_color =
+      if assigns.disabled do
+        "text-gray-400 dark:text-gray-600"
+      else
+        case assigns.color do
+          "yellow" -> "text-gray-500 group-hover:text-yellow-500"
+          "blue" -> "text-gray-500 group-hover:text-blue-500"
+          "red" -> "text-gray-500 group-hover:text-red-500"
+          "violet" -> "text-gray-500 group-hover:text-violet-500"
+        end
+      end
+
+    assigns = assign(assigns, color_classes: color_classes, icon_color: icon_color)
+
+    ~H"""
+    <button
+      id={@id}
+      type="button"
+      disabled={@disabled}
+      data-confirm={@confirm}
+      class={[
+        "group inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 rounded-md border text-sm font-medium transition-all duration-200",
+        unless(@disabled, do: "group-hover:pr-3"),
+        @color_classes
+      ]}
+      {@rest}
+    >
+      <.button_icon name={@icon} class={["h-5 w-5 shrink-0", @icon_color]} />
+      <span class={[
+        "overflow-hidden transition-all duration-200 whitespace-nowrap",
+        if(@disabled, do: "max-w-0", else: "max-w-0 group-hover:max-w-24 group-hover:ml-1.5")
+      ]}>
+        {@label}
+      </span>
+    </button>
+    """
+  end
+
+  defp button_icon(%{name: "arrow_path"} = assigns), do: ~H[<Icons.arrow_path class={@class} />]
+  defp button_icon(%{name: "pause_circle"} = assigns), do: ~H[<Icons.pause_circle class={@class} />]
+  defp button_icon(%{name: "pencil_square"} = assigns), do: ~H[<Icons.pencil_square class={@class} />]
+  defp button_icon(%{name: "play_circle"} = assigns), do: ~H[<Icons.play_circle class={@class} />]
+  defp button_icon(%{name: "trash"} = assigns), do: ~H[<Icons.trash class={@class} />]
+  defp button_icon(%{name: "x_circle"} = assigns), do: ~H[<Icons.x_circle class={@class} />]
 end

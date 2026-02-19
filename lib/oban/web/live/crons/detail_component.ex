@@ -27,58 +27,37 @@ defmodule Oban.Web.Crons.DetailComponent do
         </.link>
 
         <div class="flex space-x-3">
-          <div :if={@cron.dynamic?} class="group flex items-center pl-16 -ml-16">
-            <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
-              <Icons.sparkles class="h-4 w-4 shrink-0" />
-              <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
-                Dynamic
-              </span>
-            </span>
-          </div>
+          <Core.status_badge :if={@cron.dynamic?} icon="sparkles" label="Dynamic" />
 
-          <button
-            :if={can?(:insert_jobs, @access)}
-            type="button"
+          <Core.icon_button
             id="run-now-button"
-            data-title="Insert a job for this cron immediately"
-            phx-hook="Tippy"
-            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
+            icon="play_circle"
+            label="Run Now"
+            color="blue"
             phx-click="run-now"
             phx-target={@myself}
-          >
-            <Icons.play_circle class="mr-2 h-5 w-5" /> Run Now
-          </button>
+          />
 
-          <button
-            :if={@cron.dynamic? and can?(:pause_queues, @access)}
-            type="button"
+          <Core.icon_button
             id="toggle-pause-button"
-            data-title={if @cron.paused?, do: "Resume scheduling jobs", else: "Pause scheduling jobs"}
-            phx-hook="Tippy"
-            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer"
+            icon={if @cron.paused?, do: "play_circle", else: "pause_circle"}
+            label={if @cron.paused?, do: "Resume", else: "Pause"}
+            color="yellow"
+            disabled={not @cron.dynamic?}
             phx-click="toggle-pause"
             phx-target={@myself}
-          >
-            <%= if @cron.paused? do %>
-              <Icons.play_circle class="mr-2 h-5 w-5" /> Resume
-            <% else %>
-              <Icons.pause_circle class="mr-2 h-5 w-5" /> Pause
-            <% end %>
-          </button>
+          />
 
-          <button
-            :if={@cron.dynamic? and can?(:delete_jobs, @access)}
-            type="button"
+          <Core.icon_button
             id="delete-cron-button"
-            data-title="Delete this dynamic cron"
-            phx-hook="Tippy"
-            class="flex items-center text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-500 focus-visible:border-rose-500 hover:text-rose-600 hover:border-rose-500 cursor-pointer"
+            icon="trash"
+            label="Delete"
+            color="red"
+            disabled={not @cron.dynamic?}
+            confirm="Are you sure you want to delete this cron?"
             phx-click="delete-cron"
             phx-target={@myself}
-            data-confirm="Are you sure you want to delete this cron?"
-          >
-            <Icons.trash class="mr-2 h-5 w-5" /> Delete
-          </button>
+          />
         </div>
       </div>
 
