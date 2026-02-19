@@ -126,7 +126,7 @@ defmodule ObanDash.Application do
   defp oban_opts do
     [
       engine: engine(),
-      notifier: Oban.Notifiers.PG,
+      notifier: Oban.Notifiers.Postgres,
       repo: ObanDash.Repo,
       prefix: Application.fetch_env!(:oban_dash, :oban_prefix),
       plugins: false,
