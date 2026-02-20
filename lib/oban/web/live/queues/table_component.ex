@@ -9,7 +9,7 @@ defmodule Oban.Web.Queues.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="queues-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
+      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
         <.queue_header label="name" class="ml-12 w-1/3 text-left" />
         <div class="ml-auto flex items-center space-x-6">
           <.queue_header label="nodes" class="w-16 text-right" />

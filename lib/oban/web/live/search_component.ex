@@ -58,7 +58,7 @@ defmodule Oban.Web.SearchComponent do
             aria-label="Add filters"
             aria-placeholder="Add filters"
             autocorrect="false"
-            class="min-w-[10rem] flex-grow my-2 px-0 py-0.5 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-600 focus:ring-0"
+            class="min-w-[10rem] flex-grow my-2 px-0 py-0.5 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0"
             id="search-input"
             name="terms"
             phx-blur={hide_focus()}

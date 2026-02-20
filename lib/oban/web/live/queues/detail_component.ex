@@ -194,7 +194,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   <select
                     id="global_partition_fields"
                     name="global_partition_fields"
-                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
                   >
                     {options_for_select(partition_options(), @inputs.global_partition_fields)}
@@ -207,7 +207,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   </label>
 
                   <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
                     disabled={
                       keyless_partition?(@inputs.global_partition_fields) or
                         not can?(:scale_queues, @access)
@@ -285,7 +285,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   <select
                     id="rate_partition_fields"
                     name="rate_partition_fields"
-                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
                   >
                     {options_for_select(partition_options(), @inputs.rate_partition_fields)}
@@ -298,7 +298,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   </label>
 
                   <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
                     disabled={
                       keyless_partition?(@inputs.rate_partition_fields) or
                         not can?(:scale_queues, @access)

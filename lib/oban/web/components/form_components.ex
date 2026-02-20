@@ -40,7 +40,7 @@ defmodule Oban.Web.FormComponents do
           rows={@rows}
           disabled={@disabled}
           placeholder={@placeholder}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         >{@value}</textarea>
       <% else %>
         <input
@@ -51,7 +51,7 @@ defmodule Oban.Web.FormComponents do
           disabled={@disabled}
           placeholder={@placeholder}
           required={@required}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         />
       <% end %>
     </div>
@@ -74,7 +74,7 @@ defmodule Oban.Web.FormComponents do
         id={@name}
         name={@name}
         disabled={@disabled}
-        class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+        class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
       >
         <option :for={{label, val} <- @options} value={val} selected={val == @value}>
           {label}

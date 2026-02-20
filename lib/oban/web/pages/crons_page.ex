@@ -75,7 +75,7 @@ defmodule Oban.Web.CronsPage do
                   can?(:insert_jobs, @access) &&
                     "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
                   not can?(:insert_jobs, @access) &&
-                    "text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
+                    "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
                 ]}
               >
                 <Icons.plus_circle class="mr-1 h-4 w-4" /> New
@@ -84,7 +84,7 @@ defmodule Oban.Web.CronsPage do
           </div>
 
           <div id="crons-table" class="min-w-full">
-            <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
+            <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
               <.header label="name" class="pl-3 w-1/3 text-left" />
               <div class="ml-auto flex items-center space-x-6">
                 <.header label="history" class="w-80 text-center" />
@@ -166,7 +166,7 @@ defmodule Oban.Web.CronsPage do
     """
   end
 
-  defp loader_class(_), do: "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
 
   attr :history, :list, required: true
   attr :id, :string, required: true

@@ -157,7 +157,7 @@ defmodule Oban.Web.JobsPage do
                     can?(:insert_jobs, @access) &&
                       "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
                     not can?(:insert_jobs, @access) &&
-                      "text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
+                      "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
                   ]}
                 >
                   <Icons.plus_circle class="mr-1 h-4 w-4" /> New

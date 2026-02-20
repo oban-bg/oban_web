@@ -75,7 +75,7 @@ defmodule Oban.Web.Queues.DetailInsanceComponent do
     ~H"""
     <button
       rel="toggle-pause"
-      class="block text-gray-400 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-500"
+      class="block text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-500"
       disabled={@disabled}
       phx-click="toggle-pause"
       phx-target={@target}

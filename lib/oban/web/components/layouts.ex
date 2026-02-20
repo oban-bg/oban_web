@@ -131,7 +131,7 @@ defmodule Oban.Web.Layouts do
               <div class="ml-4 flex-shrink-0 flex">
                 <button
                   phx-click="lv:clear-flash"
-                  class="inline-flex text-gray-400 dark:text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:text-gray-500 transition ease-in-out duration-150"
+                  class="inline-flex text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:text-gray-500 transition ease-in-out duration-150"
                 >
                   <Icons.x_mark class="w-5 h-5" />
                 </button>

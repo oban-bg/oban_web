@@ -59,7 +59,7 @@ defmodule Oban.Web.Components.Core do
       <div class="flex">
         <input
           autocomplete="off"
-          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-500 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
+          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
           disabled={@disabled}
           inputmode="numeric"
           name={@name}
@@ -114,7 +114,7 @@ defmodule Oban.Web.Components.Core do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        class="text-gray-500 dark:text-gray-400 disabled:text-gray-400 disabled:dark:text-gray-600 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
+        class="text-gray-500 dark:text-gray-400 disabled:text-gray-400 disabled:dark:text-gray-500 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
         data-title={@title}
         disabled={@disabled}
         id={"#{@name}-menu-toggle"}
@@ -308,7 +308,7 @@ defmodule Oban.Web.Components.Core do
 
     icon_color =
       if assigns.disabled do
-        "text-gray-400 dark:text-gray-600"
+        "text-gray-400 dark:text-gray-500"
       else
         case assigns.color do
           "yellow" -> "text-gray-500 group-hover:text-yellow-500"

@@ -276,7 +276,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                   class={[
                     "p-1 rounded",
                     if(@error_index == 0,
-                      do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
+                      do: "text-gray-300 dark:text-gray-500 cursor-not-allowed",
                       else:
                         "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     )
@@ -296,7 +296,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                   class={[
                     "p-1 rounded",
                     if(@error_index >= length(@job.errors) - 1,
-                      do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
+                      do: "text-gray-300 dark:text-gray-500 cursor-not-allowed",
                       else:
                         "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     )

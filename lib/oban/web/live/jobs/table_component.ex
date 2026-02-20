@@ -41,7 +41,7 @@ defmodule Oban.Web.Jobs.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="jobs-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600">
+      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
         <.header label="details" class="ml-12" />
         <.header label="queue" class="ml-auto text-right" />
         <.header label="time" class="w-20 pr-3 text-right" />
@@ -232,5 +232,5 @@ defmodule Oban.Web.Jobs.TableComponent do
     """
   end
 
-  defp loader_class(_), do: "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
 end

@@ -36,7 +36,7 @@ defmodule Oban.Web.SidebarComponents do
       <header class="flex justify-between items-center py-3">
         <button
           id={"#{@name}-toggle"}
-          class="text-gray-400 hover:text-violet-500 dark:text-gray-600 dark:hover:text-violet-500"
+          class="text-gray-400 hover:text-violet-500 dark:text-gray-500 dark:hover:text-violet-500"
           data-title={"Toggle #{@name}"}
           phx-click={toggle(@name)}
           phx-hook="Tippy"
