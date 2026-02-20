@@ -18,17 +18,22 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     :ok
   end
 
-  test "restricting action buttons based on access" do
+  test "restricting action buttons based on job state" do
     job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "retryable"}
 
-    html = render_component(Component, assigns(job, access: :read_only), router: Router)
-    refute html =~ ~s(phx-click="cancel")
-
-    html = render_component(Component, assigns(job, access: :all), router: Router)
+    html = render_component(Component, assigns(job), router: Router)
+    # Retryable jobs can be cancelled
     assert html =~ ~s(phx-click="cancel")
+    refute html =~ ~s(id="detail-cancel" type="button" disabled)
+
+    # Available job can be cancelled
+    job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "available"}
+    html = render_component(Component, assigns(job), router: Router)
+    assert html =~ ~s(phx-click="cancel")
+    refute html =~ ~s(id="detail-cancel" type="button" disabled)
   end
 
-  test "restricting actions based on job state" do
+  test "disabling actions based on job state" do
     now = DateTime.utc_now()
     scheduled_at = DateTime.add(now, -60, :second)
 
@@ -44,8 +49,12 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
 
     html = render_component(Component, assigns(job), router: Router)
 
+    # Executing jobs can be cancelled (not disabled)
     assert html =~ ~s(phx-click="cancel")
-    refute html =~ ~s(phx-click="delete")
+    refute html =~ ~s(id="detail-cancel" type="button" disabled)
+
+    # Executing jobs cannot be deleted (button is disabled)
+    assert html =~ ~s(id="detail-delete" type="button" disabled)
   end
 
   test "customizing args formatting with a resolver" do

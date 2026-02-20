@@ -152,7 +152,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
           </div>
 
           <div class="grid grid-cols-3 gap-4 mb-4 px-3">
-
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Queue
@@ -242,7 +241,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     "px-2 py-1 cusror-pointer rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600",
                     if(@error_sort == :desc,
                       do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
-                      else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+                      else:
+                        "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
                     )
                   ]}
                 >
@@ -257,7 +257,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     "px-2 py-1 cusror-pointer rounded-r-md border border-gray-300 dark:border-gray-600",
                     if(@error_sort == :asc,
                       do: "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
-                      else: "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
+                      else:
+                        "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750"
                     )
                   ]}
                 >
@@ -276,7 +277,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     "p-1 rounded",
                     if(@error_index == 0,
                       do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
-                      else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                      else:
+                        "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     )
                   ]}
                 >
@@ -295,7 +297,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     "p-1 rounded",
                     if(@error_index >= length(@job.errors) - 1,
                       do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
-                      else: "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                      else:
+                        "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     )
                   ]}
                 >
@@ -330,7 +333,11 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
         <div id="meta-content" class="mt-3">
           <div class="grid grid-cols-3 gap-4">
-            <div id="job-args" tabindex="-1" class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4 focus:outline-none">
+            <div
+              id="job-args"
+              tabindex="-1"
+              class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4 focus:outline-none"
+            >
               <div class="flex justify-between items-start mb-2">
                 <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
                   Args
@@ -619,7 +626,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
     <div class="mb-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-md">
       <div class="flex items-center justify-between mb-3 text-sm text-gray-500 dark:text-gray-400">
         <span>Attempt {@error["attempt"]}</span>
-        <span>{Timing.datetime_to_words(@error["at"])} <span class="text-gray-400 dark:text-gray-500">({@error["at"]})</span></span>
+        <span>
+          {Timing.datetime_to_words(@error["at"])}
+          <span class="text-gray-400 dark:text-gray-500">({@error["at"]})</span>
+        </span>
       </div>
 
       <div class="font-mono text-base font-medium text-gray-800 dark:text-gray-200 mb-4">

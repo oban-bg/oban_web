@@ -140,7 +140,7 @@ defmodule Oban.Web.Components.Icons do
 
     ~H"""
     <span
-      class={["inline-block bg-current", @normalized_class]}
+      class={["block bg-current", @normalized_class]}
       style={"mask-image: url(#{@icon_url}); -webkit-mask-image: url(#{@icon_url}); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"}
       aria-hidden="true"
       {@rest}

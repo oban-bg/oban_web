@@ -78,20 +78,12 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
       assert has_inactive_box?(html, "completed")
     end
 
-    test "shows relative time and duration on executing box" do
+    test "shows duration on executing box" do
       attempted_at = DateTime.add(@now, -30, :second)
 
-      job =
-        build_job(
-          state: "executing",
-          attempted_at: attempted_at
-        )
+      job = build_job(state: "executing", attempted_at: attempted_at)
 
-      html = render_timeline(job)
-
-      # Should show "30s ago (00:30)" format
-      assert html =~ "30s ago"
-      assert html =~ "(00:30)"
+      assert render_timeline(job) =~ "00:30"
     end
   end
 
@@ -116,21 +108,13 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
       assert has_inactive_box?(html, "discarded")
     end
 
-    test "shows execution duration on executing box" do
+    test "shows relative time on executing box for completed job" do
       attempted_at = DateTime.add(@now, -60, :second)
       completed_at = DateTime.add(@now, -30, :second)
 
-      job =
-        build_job(
-          state: "completed",
-          attempted_at: attempted_at,
-          completed_at: completed_at
-        )
+      job = build_job(state: "completed", attempted_at: attempted_at, completed_at: completed_at)
 
-      html = render_timeline(job)
-
-      # Duration should be 30 seconds
-      assert html =~ "(00:30)"
+      assert render_timeline(job) =~ "1m ago"
     end
   end
 

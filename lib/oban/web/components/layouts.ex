@@ -119,11 +119,11 @@ defmodule Oban.Web.Layouts do
       <div class="max-w-sm w-full bg-white dark:bg-black dark:bg-opacity-90 shadow-lg rounded-lg pointer-events-auto">
         <div class="rounded-lg ring-1 ring-black/5 overflow-hidden">
           <div class="p-4">
-            <div class="flex items-start">
+            <div class="flex items-center">
               <div class="flex-shrink-0 text-green-400">
                 <Icons.check_circle />
               </div>
-              <div class="ml-3 w-0 flex-1 pt-0.5">
+              <div class="ml-3 w-0 flex-1">
                 <p class="text-sm leading-5 font-medium text-gray-900 dark:text-gray-100">
                   {Phoenix.Flash.get(assigns.flash, :info)}
                 </p>

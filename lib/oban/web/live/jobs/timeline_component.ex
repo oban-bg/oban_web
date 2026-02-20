@@ -35,10 +35,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       data-terminal-discarded={to_string(@path.terminal == "discarded")}
     >
       <div id="timeline-boxes" class="relative">
-        <svg
-          id="timeline-connectors"
-          class="absolute inset-0 overflow-visible pointer-events-none"
-        />
+        <svg id="timeline-connectors" class="absolute inset-0 overflow-visible pointer-events-none" />
 
         <div class="relative grid grid-cols-4 gap-x-2 sm:gap-x-4 lg:gap-x-8 gap-y-3 sm:gap-y-5">
           <.state_box state="scheduled" job={@job} path={@path} now={@now} />
@@ -230,10 +227,10 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   defp format_timestamp("executing", job, now) do
     cond do
-      job.state == "executing" ->
+      job.state == "executing" and job.attempted_at ->
         job.attempted_at |> DateTime.diff(now) |> Timing.to_duration()
 
-      job.state in ["completed", "cancelled", "discarded"] ->
+      job.state in ["completed", "cancelled", "discarded"] and job.attempted_at ->
         job.attempted_at |> DateTime.diff(now) |> Timing.to_words()
 
       true ->

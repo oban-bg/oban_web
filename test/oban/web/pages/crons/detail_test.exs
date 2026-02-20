@@ -99,14 +99,13 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       refute has_element?(live, "button", "Pause")
     end
 
-    test "pause button not shown for static crons" do
+    test "pause button is disabled for static crons" do
       static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
 
-      refute has_element?(live, "button", "Pause")
-      refute has_element?(live, "button", "Resume")
+      assert has_element?(live, "button[disabled]", "Pause")
     end
 
     test "edit form is disabled for static crons" do
@@ -201,13 +200,13 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert [] = DynamicCron.all(Oban)
     end
 
-    test "delete button not shown for static crons" do
+    test "delete button is disabled for static crons" do
       static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
 
-      refute has_element?(live, "button", "Delete")
+      assert has_element?(live, "button[disabled]", "Delete")
     end
 
     test "editing and saving a dynamic cron" do

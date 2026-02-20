@@ -76,7 +76,9 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
   end
 
   defp timestamp_for(job) do
-    datetime = job.completed_at || job.cancelled_at || job.discarded_at || job.attempted_at || job.scheduled_at
+    datetime =
+      job.completed_at || job.cancelled_at || job.discarded_at || job.attempted_at ||
+        job.scheduled_at
 
     datetime
     |> DateTime.from_naive!("Etc/UTC")

@@ -85,13 +85,24 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     end
 
     test "updating job fields successfully", %{live: live} do
-      job = insert_job!([ref: 1], state: "available", worker: WorkerA, priority: 0, max_attempts: 20, tags: [])
+      job =
+        insert_job!([ref: 1],
+          state: "available",
+          worker: WorkerA,
+          priority: 0,
+          max_attempts: 20,
+          tags: []
+        )
 
       open_state(live, "available")
       open_details(live, job)
 
       live
-      |> form("#job-edit-form", %{"priority" => "5", "max_attempts" => "10", "tags" => "alpha, beta"})
+      |> form("#job-edit-form", %{
+        "priority" => "5",
+        "max_attempts" => "10",
+        "tags" => "alpha, beta"
+      })
       |> render_submit()
 
       with_backoff(fn ->

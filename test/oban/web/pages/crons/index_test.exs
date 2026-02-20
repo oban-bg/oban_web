@@ -158,7 +158,6 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
       |> element("#new-cron-button")
       |> render_click()
 
-      # Type in worker and check that name field updates
       html =
         live
         |> element("#new-cron-form")

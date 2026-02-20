@@ -4,7 +4,7 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.Jobs.{ChartComponent, DetailComponent}
+  alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
   alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
@@ -13,7 +13,12 @@ defmodule Oban.Web.JobsPage do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
+    socket =
+      socket
+      |> assign(assigns)
+      |> assign_new(:show_new_form, fn -> false end)
+
+    {:ok, socket}
   end
 
   @impl Phoenix.LiveComponent
@@ -129,7 +134,7 @@ defmodule Oban.Web.JobsPage do
                 resolver={@resolver}
               />
 
-              <div class="pl-3 ml-auto">
+              <div class="pl-3 ml-auto flex items-center">
                 <span :if={Enum.any?(@selected)} class="block py-2 text-sm font-semibold">
                   {MapSet.size(@selected)} Selected
                 </span>
@@ -139,6 +144,24 @@ defmodule Oban.Web.JobsPage do
                   params={@params}
                   by={~w(time attempt queue worker)}
                 />
+
+                <.link
+                  :if={Enum.empty?(@selected)}
+                  patch={can?(:insert_jobs, @access) && oban_path([:jobs, :new])}
+                  id="new-job-button"
+                  data-title="Create a new job"
+                  phx-hook="Tippy"
+                  aria-disabled={not can?(:insert_jobs, @access)}
+                  class={[
+                    "ml-3 h-10 flex items-center text-sm bg-white dark:bg-gray-800 px-3 py-2 border rounded-md",
+                    can?(:insert_jobs, @access) &&
+                      "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
+                    not can?(:insert_jobs, @access) &&
+                      "text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
+                  ]}
+                >
+                  <Icons.plus_circle class="mr-1 h-4 w-4" /> New
+                </.link>
               </div>
             </div>
 
@@ -154,6 +177,15 @@ defmodule Oban.Web.JobsPage do
           <% end %>
         </div>
       </div>
+
+      <.live_component
+        :if={@show_new_form}
+        id="new-job-form"
+        access={@access}
+        conf={@conf}
+        module={NewComponent}
+        queues={@queues}
+      />
     </div>
     """
   end
@@ -220,6 +252,15 @@ defmodule Oban.Web.JobsPage do
   end
 
   @impl Page
+  def handle_params(%{"id" => "new"} = params, _uri, socket) do
+    params = params_with_defaults(params, socket)
+
+    {:noreply,
+     socket
+     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Job"))
+     |> assign(params: params)}
+  end
+
   def handle_params(%{"id" => job_id} = params, _uri, socket) do
     params = params_with_defaults(params, socket)
     conf = socket.assigns.conf
@@ -233,7 +274,7 @@ defmodule Oban.Web.JobsPage do
 
         {:noreply,
          socket
-         |> assign(detailed: job, page_title: page_title(job))
+         |> assign(detailed: job, show_new_form: false, page_title: page_title(job))
          |> assign(history: history)
          |> assign(params: params)}
     end
@@ -246,7 +287,7 @@ defmodule Oban.Web.JobsPage do
 
     socket =
       socket
-      |> assign(detailed: nil, page_title: page_title("Jobs"))
+      |> assign(detailed: nil, show_new_form: false, page_title: page_title("Jobs"))
       |> assign(history: [])
       |> assign(params: params)
       |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
@@ -303,6 +344,10 @@ defmodule Oban.Web.JobsPage do
     end)
 
     {:noreply, socket}
+  end
+
+  def handle_info({:flash, mode, message}, socket) do
+    {:noreply, put_flash_with_clear(socket, mode, message)}
   end
 
   # Filtering

@@ -312,4 +312,97 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       |> render_click()
     end
   end
+
+  describe "new job" do
+    test "new button is disabled when user has read_only access" do
+      {:ok, live, _html} = live(build_conn(), "/oban-readonly")
+
+      assert has_element?(live, "#new-job-button[aria-disabled]")
+    end
+
+    test "creates a job with all options", %{live: live} do
+      gossip(node: "web-1", queue: "alpha")
+      gossip(node: "web-1", queue: "gamma")
+
+      refresh(live)
+
+      live
+      |> element("#new-job-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/jobs/new")
+
+      live
+      |> form("#new-job-form", %{
+        "worker" => "MyApp.Workers.FullOptionsWorker",
+        "args" => ~s({"key": "value"}),
+        "queue" => "alpha",
+        "priority" => "3",
+        "max_attempts" => "5",
+        "tags" => "tag1, tag2"
+      })
+      |> render_submit()
+
+      job = Repo.get_by!(Job, worker: "MyApp.Workers.FullOptionsWorker")
+
+      assert job.queue == "alpha"
+      assert job.priority == 3
+      assert job.max_attempts == 5
+      assert job.tags == ["tag1", "tag2"]
+
+      assert_patch(live, "/oban/jobs/#{job.id}")
+    end
+
+    test "creates a scheduled job", %{live: live} do
+      live
+      |> element("#new-job-button")
+      |> render_click()
+
+      future_time =
+        DateTime.utc_now()
+        |> DateTime.add(3600, :second)
+        |> Calendar.strftime("%Y-%m-%dT%H:%M")
+
+      live
+      |> form("#new-job-form", %{"worker" => "ScheduledWorker", "scheduled_at" => future_time})
+      |> render_submit()
+
+      job = Repo.get_by!(Job, worker: "ScheduledWorker")
+
+      assert_patch(live, "/oban/jobs/#{job.id}")
+    end
+
+    test "stays on drawer when args is invalid JSON", %{live: live} do
+      live
+      |> element("#new-job-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/jobs/new")
+
+      live
+      |> form("#new-job-form", %{
+        "worker" => "MyApp.Workers.InvalidJsonWorker",
+        "args" => "not valid json"
+      })
+      |> render_submit()
+
+      # Drawer stays open, no redirect
+      assert has_element?(live, "#new-job")
+      refute Repo.get_by(Job, worker: "MyApp.Workers.InvalidJsonWorker")
+    end
+
+    test "closes drawer on escape key", %{live: live} do
+      live
+      |> element("#new-job-button")
+      |> render_click()
+
+      assert_patch(live, "/oban/jobs/new")
+
+      live
+      |> element("#new-job")
+      |> render_keydown(%{"key" => "Escape"})
+
+      assert_patch(live, "/oban/jobs")
+    end
+  end
 end
