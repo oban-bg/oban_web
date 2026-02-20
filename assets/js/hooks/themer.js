@@ -13,11 +13,19 @@ const Themer = {
   },
 
   mounted() {
+    this.mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    this.onMediaChange = () => this.applyTheme()
+    this.mediaQuery.addEventListener("change", this.onMediaChange)
+
     this.handleEvent("update-theme", ({ theme }) => {
       store("theme", theme)
 
       this.applyTheme()
     })
+  },
+
+  destroyed() {
+    this.mediaQuery.removeEventListener("change", this.onMediaChange)
   },
 }
 
