@@ -81,9 +81,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
     toggle_select_all(live)
 
-    live
-    |> element("#sidebar #filter-paused")
-    |> render_click()
+    {:ok, live, _html} = live(build_conn(), "/oban/queues?stats=paused")
 
     refute has_element?(live, "#queue-alpha")
     assert has_element?(live, "#queue-bravo")

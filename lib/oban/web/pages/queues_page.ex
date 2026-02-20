@@ -5,8 +5,7 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Met
 
-  alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent}
-  alias Oban.Web.Queues.{SidebarComponent, TableComponent}
+  alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(modes nodes sort_by sort_dir stats)
@@ -14,15 +13,8 @@ defmodule Oban.Web.QueuesPage do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="queues-page" class="w-full flex flex-col my-6 md:flex-row">
-      <SidebarComponent.sidebar
-        queues={@queues}
-        params={without_defaults(@params, @default_params)}
-        width={@sidebar_width}
-        csp_nonces={@csp_nonces}
-      />
-
-      <div class="flex-grow">
+    <div id="queues-page" class="w-full my-6">
+      <div>
         <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
           <%= if @detail do %>
             <.live_component
