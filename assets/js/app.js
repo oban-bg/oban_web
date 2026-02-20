@@ -60,6 +60,14 @@ window.addEventListener("phx:scroll-top", () => {
   window.scrollTo({ top: 0, behavior: "instant" });
 });
 
+window.addEventListener("phx:copy-to-clipboard", (event) => {
+  const text = event.detail.text;
+
+  if (text) {
+    navigator.clipboard.writeText(text);
+  }
+});
+
 // Mounting ---
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");

@@ -1,7 +1,6 @@
 defmodule Oban.Web.Crons.NewComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Crons.Helpers
   import Oban.Web.FormComponents
 
   alias Oban.Pro.Plugins.DynamicCron

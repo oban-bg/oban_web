@@ -262,10 +262,18 @@ defmodule Oban.Web.Components.Core do
   end
 
   defp badge_icon(%{name: "camera"} = assigns), do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
-  defp badge_icon(%{name: "life_buoy"} = assigns), do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
-  defp badge_icon(%{name: "lock_closed"} = assigns), do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
-  defp badge_icon(%{name: "sparkles"} = assigns), do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
-  defp badge_icon(%{name: "table_cells"} = assigns), do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "life_buoy"} = assigns),
+    do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "lock_closed"} = assigns),
+    do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "sparkles"} = assigns),
+    do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "table_cells"} = assigns),
+    do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
 
   @doc """
   An icon-only button that expands to show label on hover. Supports disabled state.
@@ -276,6 +284,7 @@ defmodule Oban.Web.Components.Core do
   attr :color, :string, required: true
   attr :disabled, :boolean, default: false
   attr :confirm, :string, default: nil
+  attr :tooltip, :string, default: nil
   attr :rest, :global
 
   def icon_button(assigns) do
@@ -317,6 +326,8 @@ defmodule Oban.Web.Components.Core do
       type="button"
       disabled={@disabled}
       data-confirm={@confirm}
+      data-title={@tooltip}
+      phx-hook={if @tooltip, do: "Tippy"}
       class={[
         "group inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 rounded-md border text-sm font-medium transition-all duration-200",
         unless(@disabled, do: "group-hover:pr-3"),
@@ -336,8 +347,13 @@ defmodule Oban.Web.Components.Core do
   end
 
   defp button_icon(%{name: "arrow_path"} = assigns), do: ~H[<Icons.arrow_path class={@class} />]
-  defp button_icon(%{name: "pause_circle"} = assigns), do: ~H[<Icons.pause_circle class={@class} />]
-  defp button_icon(%{name: "pencil_square"} = assigns), do: ~H[<Icons.pencil_square class={@class} />]
+
+  defp button_icon(%{name: "pause_circle"} = assigns),
+    do: ~H[<Icons.pause_circle class={@class} />]
+
+  defp button_icon(%{name: "pencil_square"} = assigns),
+    do: ~H[<Icons.pencil_square class={@class} />]
+
   defp button_icon(%{name: "play_circle"} = assigns), do: ~H[<Icons.play_circle class={@class} />]
   defp button_icon(%{name: "trash"} = assigns), do: ~H[<Icons.trash class={@class} />]
   defp button_icon(%{name: "x_circle"} = assigns), do: ~H[<Icons.x_circle class={@class} />]

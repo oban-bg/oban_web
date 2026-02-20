@@ -1,9 +1,6 @@
 defmodule Oban.Web.Jobs.DetailComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Crons.Helpers,
-    only: [parse_int: 1, parse_json: 1, parse_tags: 1, queue_options: 1]
-
   import Oban.Web.FormComponents
 
   alias Oban.Web.Jobs.{HistoryChartComponent, TimelineComponent}
@@ -51,6 +48,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="x_circle"
             label="Cancel"
             color="yellow"
+            tooltip="Cancel this job"
             disabled={not cancelable?(@job)}
             phx-target={@myself}
             phx-click="cancel"
@@ -61,6 +59,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="arrow_path"
             label="Retry"
             color="blue"
+            tooltip="Retry this job"
             disabled={not (runnable?(@job) or retryable?(@job))}
             phx-target={@myself}
             phx-click="retry"
@@ -71,6 +70,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="trash"
             label="Delete"
             color="red"
+            tooltip="Delete this job"
             disabled={not deletable?(@job)}
             confirm="Are you sure you want to delete this job?"
             phx-target={@myself}
@@ -82,6 +82,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="pencil_square"
             label="Edit"
             color="violet"
+            tooltip="Edit this job"
             disabled={not editable?(@job)}
             phx-click={scroll_to_edit()}
           />
@@ -180,15 +181,22 @@ defmodule Oban.Web.Jobs.DetailComponent do
             </div>
           </div>
 
-          <div class="mt-4 px-3">
-            <div class="flex flex-col">
+          <div class="mt-4 pl-3">
+            <button
+              id="args-preview"
+              type="button"
+              class="w-[calc(100%+0.75rem)] py-2 px-3 -mx-3 flex flex-col text-left rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+              data-title="View full args"
+              phx-hook="Tippy"
+              phx-click={scroll_to_args()}
+            >
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Args
               </span>
-              <samp class="font-mono text-sm text-gray-600 dark:text-gray-300 line-clamp-2 break-all">
+              <samp class="font-mono text-sm text-gray-600 dark:text-gray-300 line-clamp-1 break-all">
                 {format_args(@job, @resolver)}
               </samp>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -315,24 +323,68 @@ defmodule Oban.Web.Jobs.DetailComponent do
         >
           <Icons.chevron_right
             id="meta-chevron"
-            class={["w-5 h-5 transition-transform", if(meta_present?(@job), do: "rotate-90")]}
+            class={["w-5 h-5 transition-transform", "rotate-90"]}
           />
-          <span class="font-semibold">Meta</span>
+          <span class="font-semibold">Job Data</span>
         </button>
 
-        <div id="meta-content" class={["mt-3", unless(meta_present?(@job), do: "hidden")]}>
-          <div class="grid grid-cols-2 gap-6">
-            <div>
-              <h4 class="flex font-medium mb-2 text-xs uppercase text-gray-500 dark:text-gray-400">
-                Job Meta
-              </h4>
+        <div id="meta-content" class="mt-3">
+          <div class="grid grid-cols-3 gap-4">
+            <div id="job-args" tabindex="-1" class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4 focus:outline-none">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                  Args
+                </h4>
+                <button
+                  type="button"
+                  id="copy-args"
+                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                  data-title="Copy to clipboard"
+                  phx-hook="Tippy"
+                  phx-click={copy_to_clipboard(format_args(@job, @resolver))}
+                >
+                  <Icons.clipboard class="w-4 h-4" />
+                </button>
+              </div>
+              <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_args(@job, @resolver)}</pre>
+            </div>
+
+            <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                  Meta
+                </h4>
+                <button
+                  type="button"
+                  id="copy-meta"
+                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                  data-title="Copy to clipboard"
+                  phx-hook="Tippy"
+                  phx-click={copy_to_clipboard(format_meta(@job, @resolver))}
+                >
+                  <Icons.clipboard class="w-4 h-4" />
+                </button>
+              </div>
               <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
             </div>
 
-            <div>
-              <h4 class="flex font-medium mb-2 text-xs uppercase text-gray-500 dark:text-gray-400">
-                Recorded Output
-              </h4>
+            <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+              <div class="flex justify-between items-start mb-2">
+                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                  Recorded Output
+                </h4>
+                <button
+                  :if={@job.meta["recorded"]}
+                  type="button"
+                  id="copy-recorded"
+                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                  data-title="Copy to clipboard"
+                  phx-hook="Tippy"
+                  phx-click={copy_to_clipboard(format_recorded(@job, @resolver))}
+                >
+                  <Icons.clipboard class="w-4 h-4" />
+                </button>
+              </div>
               <%= if @job.meta["recorded"] do %>
                 <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
               <% else %>
@@ -419,23 +471,20 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 label="Args"
                 name="args"
                 value={format_job_args(@job.args)}
-                colspan="col-span-2"
-                type="textarea"
-                placeholder="{}"
-                rows={3}
-              />
-
-              <.form_field
-                label="Meta"
-                name="meta"
-                value={format_job_meta(@job.meta)}
-                colspan="col-span-2"
+                colspan="col-span-4"
                 type="textarea"
                 placeholder="{}"
                 rows={3}
               />
 
               <div class="col-span-4 flex justify-end items-center gap-3 pt-4">
+                <button
+                  type="button"
+                  phx-click={cancel_edit(@myself)}
+                  class="px-6 py-2 text-gray-600 dark:text-gray-400 text-sm font-medium rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 cursor-pointer"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={not @edit_changed?}
@@ -504,6 +553,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> Enum.any?(fn {_key, val} -> not is_nil(val) end)
 
     {:noreply, assign(socket, edit_changed?: changed?)}
+  end
+
+  def handle_event("cancel-edit", _params, socket) do
+    {:noreply, assign(socket, edit_changed?: false)}
   end
 
   def handle_event("save-job", params, socket) do
@@ -615,9 +668,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.remove_class("rotate-90", to: "#meta-chevron.rotate-90")
   end
 
-  defp meta_present?(%{meta: meta}) when map_size(meta) == 0, do: false
-  defp meta_present?(_job), do: true
-
   defp job_title(job), do: Map.get(job.meta, "decorated_name", job.worker)
 
   defp toggle_edit do
@@ -634,6 +684,25 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.focus(to: "#job-edit-form input")
   end
 
+  defp cancel_edit(target) do
+    %JS{}
+    |> JS.hide(to: "#edit-content", transition: "fade-out-scale")
+    |> JS.remove_class("rotate-90", to: "#edit-chevron")
+    |> JS.dispatch("reset", to: "#job-edit-form")
+    |> JS.push("cancel-edit", target: target)
+  end
+
+  defp scroll_to_args do
+    %JS{}
+    |> JS.show(to: "#meta-content")
+    |> JS.add_class("rotate-90", to: "#meta-chevron")
+    |> JS.focus(to: "#job-args")
+  end
+
+  defp copy_to_clipboard(text) do
+    JS.dispatch("phx:copy-to-clipboard", detail: %{text: text})
+  end
+
   defp editable?(%{state: state}) do
     state in ~w(scheduled retryable available)
   end
@@ -646,8 +715,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       max_attempts: new_val?(parse_int(params["max_attempts"]), job.max_attempts),
       scheduled_at: new_val?(parse_datetime(params["scheduled_at"]), job.scheduled_at),
       tags: new_val?(parse_tags(params["tags"]), job.tags),
-      args: new_val?(parse_json(params["args"]), job.args),
-      meta: new_val?(parse_json(params["meta"]), job.meta)
+      args: new_val?(parse_json(params["args"]), job.args)
     ]
   end
 
@@ -655,10 +723,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp new_val?("", _current), do: nil
   defp new_val?(val, val), do: nil
   defp new_val?(val, _current), do: val
-
-  defp parse_string(nil), do: nil
-  defp parse_string(""), do: nil
-  defp parse_string(str), do: String.trim(str)
 
   defp parse_datetime(nil), do: nil
   defp parse_datetime(""), do: nil
@@ -691,7 +755,4 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp format_job_args(args) when is_map(args), do: Oban.JSON.encode!(args)
   defp format_job_args(_), do: "{}"
-
-  defp format_job_meta(meta) when is_map(meta), do: Oban.JSON.encode!(meta)
-  defp format_job_meta(_), do: "{}"
 end

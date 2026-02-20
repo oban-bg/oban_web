@@ -1,7 +1,7 @@
 defmodule Oban.Web.Crons.DetailComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Crons.Helpers
+  import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1]
   import Oban.Web.FormComponents
 
   alias Oban.Job
@@ -34,6 +34,7 @@ defmodule Oban.Web.Crons.DetailComponent do
             icon="play_circle"
             label="Run Now"
             color="blue"
+            tooltip="Insert a job for this cron immediately"
             phx-click="run-now"
             phx-target={@myself}
           />
@@ -43,6 +44,7 @@ defmodule Oban.Web.Crons.DetailComponent do
             icon={if @cron.paused?, do: "play_circle", else: "pause_circle"}
             label={if @cron.paused?, do: "Resume", else: "Pause"}
             color="yellow"
+            tooltip={if @cron.paused?, do: "Resume scheduling jobs", else: "Pause scheduling jobs"}
             disabled={not @cron.dynamic?}
             phx-click="toggle-pause"
             phx-target={@myself}
@@ -53,6 +55,7 @@ defmodule Oban.Web.Crons.DetailComponent do
             icon="trash"
             label="Delete"
             color="red"
+            tooltip="Delete this cron"
             disabled={not @cron.dynamic?}
             confirm="Are you sure you want to delete this cron?"
             phx-click="delete-cron"
