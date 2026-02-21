@@ -99,7 +99,9 @@ defmodule Oban.Web.QueueQuery do
 
     counts = %{
       available: Met.latest(name, :full_count, group: "queue", filters: [state: "available"]),
-      executing: Met.latest(name, :full_count, group: "queue", filters: [state: "executing"])
+      executing: Met.latest(name, :full_count, group: "queue", filters: [state: "executing"]),
+      scheduled: Met.latest(name, :full_count, group: "queue", filters: [state: "scheduled"]),
+      retryable: Met.latest(name, :full_count, group: "queue", filters: [state: "retryable"])
     }
 
     name

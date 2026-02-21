@@ -56,6 +56,12 @@ defmodule Oban.Web.Queue do
     Enum.any?(checks, &is_map(&1["rate_limit"]))
   end
 
+  def partitioned?(%Queue{checks: checks}) do
+    Enum.any?(checks, fn check ->
+      get_in(check, ["global_limit", "partition"]) || get_in(check, ["rate_limit", "partition"])
+    end)
+  end
+
   def terminating?(%Queue{checks: checks}) do
     Enum.any?(checks, & &1["shutdown_started_at"])
   end
