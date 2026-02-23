@@ -29,7 +29,7 @@ select:-moz-focusring {
 /* Tippy */
 
 .tippy-box {
-  @apply relative bg-gray-950 text-gray-100 dark:bg-gray-50 dark:text-gray-900 shadow text-sm rounded font-normal outline-none;
+  @apply relative bg-gray-800 text-gray-200 dark:bg-gray-200 dark:text-gray-800 shadow text-sm rounded font-normal outline-none;
 
   transition-property: transform, visibility, opacity;
 }
@@ -75,7 +75,7 @@ select:-moz-focusring {
 }
 
 .tippy-svg-arrow{
-  @apply w-4 h-4 fill-current text-gray-950 dark:text-gray-50;
+  @apply w-4 h-4 fill-current text-gray-800 dark:text-gray-200;
 
   text-align: initial;
 }
