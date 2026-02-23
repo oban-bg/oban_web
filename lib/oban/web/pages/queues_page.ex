@@ -5,15 +5,15 @@ defmodule Oban.Web.QueuesPage do
 
   alias Oban.Met
 
-  alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
-  alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
+  alias Oban.Web.Queues.{DetailComponent, DetailInstanceComponent, TableComponent}
+  alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry, Timing}
 
   @inc_limit 20
   @max_limit 100
   @min_limit 20
 
   @known_params ~w(limit modes nodes sort_by sort_dir stats)
-  @keep_on_mount ~w(checks counts default_params detail history params queues selected)a
+  @keep_on_mount ~w(checks counts default_params detail history node_history params queues selected)a
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -28,6 +28,7 @@ defmodule Oban.Web.QueuesPage do
               conf={@conf}
               checks={@checks}
               module={DetailComponent}
+              node_history={@node_history}
               queue={@detail}
             />
           <% else %>
@@ -149,6 +150,7 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:history, fn -> %{} end)
+    |> assign_new(:node_history, fn -> %{} end)
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
@@ -163,10 +165,18 @@ defmodule Oban.Web.QueuesPage do
     limit = params[:limit] || @min_limit
     queues = QueueQuery.all_queues(params, conf)
 
+    node_history =
+      if socket.assigns.detail do
+        node_history(conf, socket.assigns.detail)
+      else
+        %{}
+      end
+
     assign(socket,
       checks: checks(conf),
       counts: counts(conf),
-      history: history(conf),
+      history: queue_history(conf),
+      node_history: node_history,
       queues: queues,
       show_less?: limit > @min_limit,
       show_more?: limit < @max_limit and length(queues) == limit
@@ -181,28 +191,27 @@ defmodule Oban.Web.QueuesPage do
     Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
   end
 
-  defp history(conf) do
-    conf.name
-    |> Met.timeslice(:exec_count,
-      by: 5,
-      group: "queue",
-      lookback: 300,
-      operation: :sum
-    )
-    |> transform_history()
+  defp queue_history(conf) do
+    transform_history(conf, group: "queue", lookback: 300)
   end
 
-  defp transform_history(timeslice_data) do
-    now = System.system_time(:millisecond)
+  defp node_history(conf, queue) do
+    transform_history(conf, group: "node", lookback: 600, filters: [queue: queue])
+  end
 
-    timeslice_data
-    |> Enum.group_by(&elem(&1, 2), fn {index, count, _queue} ->
-      timestamp = now - index * 5 * 1000
+  defp transform_history(conf, opts) do
+    by = 5
+    since = Timing.snap(System.system_time(:second), by)
+    opts = Keyword.merge(opts, by: by, since: since)
+
+    conf.name
+    |> Met.timeslice(:exec_count, opts)
+    |> Enum.group_by(&elem(&1, 2), fn {index, count, _group} ->
+      timestamp = (since - index * 5) * 1000
+
       {index, %{count: count, timestamp: timestamp}}
     end)
-    |> Map.new(fn {queue, data} ->
-      {queue, Map.new(data)}
-    end)
+    |> Map.new(fn {group, data} -> {group, Map.new(data)} end)
   end
 
   attr :active, :boolean, required: true
@@ -401,6 +410,16 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  def handle_info({:stop_queue, queue}, socket) do
+    enforce_access!(:stop_queues, socket.assigns.access)
+
+    Telemetry.action(:stop_queue, socket, [queue: queue], fn ->
+      Oban.stop_queue(socket.assigns.conf.name, queue: queue)
+    end)
+
+    {:noreply, put_flash_with_clear(socket, :info, "Queue #{queue} stopped")}
+  end
+
   def handle_info({:toggle_select, queue}, socket) do
     selected = socket.assigns.selected
 
@@ -449,7 +468,7 @@ defmodule Oban.Web.QueuesPage do
 
     if Keyword.has_key?(opts, :limit) do
       for checks <- socket.assigns.checks do
-        send_update(DetailInsanceComponent, id: node_name(checks), local_limit: opts[:limit])
+        send_update(DetailInstanceComponent, id: node_name(checks), local_limit: opts[:limit])
       end
     end
 

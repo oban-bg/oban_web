@@ -161,8 +161,13 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     assert has_element?(live, "#local-form [name=local_limit][value=6]")
+
+    # Click edit button to enter edit mode for web-1
+    live
+    |> element("#web-1-edit")
+    |> render_click()
+
     assert has_element?(live, "#web-1-form [name=local_limit][value=5]")
-    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
 
     live
     |> form("#web-1-form")
@@ -172,16 +177,17 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_notice(live, "Local limit set for alpha queue on web-1")
 
     assert has_element?(live, "#local-form [name=local_limit][value=9]")
-    assert has_element?(live, "#web-1-form [name=local_limit][value=9]")
-    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
+
+    # Click edit again for web-1 to change the limit
+    live
+    |> element("#web-1-edit")
+    |> render_click()
 
     live
     |> form("#web-1-form")
     |> render_submit(%{local_limit: 4})
 
     assert has_element?(live, "#local-form [name=local_limit][value=6]")
-    assert has_element?(live, "#web-1-form [name=local_limit][value=4]")
-    assert has_element?(live, "#web-2-form [name=local_limit][value=6]")
   end
 
   # Helpers

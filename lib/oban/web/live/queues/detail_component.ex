@@ -7,7 +7,9 @@ defmodule Oban.Web.Queues.DetailComponent do
   alias Oban.Config
   alias Oban.Met
   alias Oban.Web.Components.Core
-  alias Oban.Web.Queues.DetailInsanceComponent
+  alias Oban.Web.Queue
+  alias Oban.Web.Queues.DetailInstanceComponent
+  alias Oban.Web.Timing
 
   @impl Phoenix.LiveComponent
   def update(%{local_limit: new_limit}, socket) do
@@ -32,14 +34,20 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   def update(assigns, socket) do
     checks = Enum.filter(assigns.checks, &(&1["queue"] == assigns.queue))
+    queue = %Queue{name: assigns.queue, checks: checks}
 
     counts =
       Met.latest(assigns.conf.name, :full_count, group: "state", filters: [queue: assigns.queue])
 
+    history = queue_history(assigns.conf, assigns.queue)
+
     socket =
       socket
       |> assign(access: assigns.access, conf: assigns.conf, queue: assigns.queue)
-      |> assign(counts: counts, checks: checks)
+      |> assign(counts: counts, checks: checks, queue_struct: queue, history: history)
+      |> assign(node_history: assigns[:node_history] || %{})
+      |> assign_new(:instances_open?, fn -> true end)
+      |> assign_new(:config_open?, fn -> false end)
       |> assign_new(:inputs, fn ->
         %{
           local_limit: local_limit(checks),
@@ -52,6 +60,7 @@ defmodule Oban.Web.Queues.DetailComponent do
           rate_partition_keys: partition_value(checks, "rate_limit", "keys")
         }
       end)
+      |> push_event("queue-history", %{history: history})
 
     {:ok, socket}
   end
@@ -60,320 +69,565 @@ defmodule Oban.Web.Queues.DetailComponent do
   def render(assigns) do
     ~H"""
     <div id="queue-details">
-      <div class="flex justify-between items-center px-3 py-6">
+      <.header
+        access={@access}
+        checks={@checks}
+        myself={@myself}
+        queue={@queue}
+        queue_struct={@queue_struct}
+      />
+
+      <div class="grid grid-cols-3 gap-6 px-3 py-6">
+        <div class="col-span-2">
+          <.history_chart queue={@queue} />
+        </div>
+
+        <div class="col-span-1">
+          <.stats_grid checks={@checks} counts={@counts} inputs={@inputs} />
+        </div>
+      </div>
+
+      <.instances_section
+        access={@access}
+        checks={@checks}
+        instances_open?={@instances_open?}
+        myself={@myself}
+        node_history={@node_history}
+      />
+
+      <.config_section
+        access={@access}
+        checks={@checks}
+        conf={@conf}
+        config_open?={@config_open?}
+        inputs={@inputs}
+        myself={@myself}
+        queue={@queue}
+      />
+    </div>
+    """
+  end
+
+  # Header Component
+
+  defp header(assigns) do
+    all_paused? = Queue.all_paused?(assigns.queue_struct)
+    any_paused? = Queue.any_paused?(assigns.queue_struct)
+    terminating? = Queue.terminating?(assigns.queue_struct)
+
+    assigns =
+      assign(assigns,
+        all_paused?: all_paused?,
+        any_paused?: any_paused?,
+        terminating?: terminating?
+      )
+
+    ~H"""
+    <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
+      <button
+        id="back-link"
+        class="flex items-center hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0"
+        data-escape-back={true}
+        phx-hook="HistoryBack"
+        type="button"
+      >
+        <Icons.arrow_left class="w-5 h-5" />
+        <span class="text-lg capitalize font-bold ml-2">{@queue} Queue</span>
+      </button>
+
+      <div class="flex space-x-3">
+        <Core.status_badge
+          :if={@terminating?}
+          id="status-terminating"
+          icon="power"
+          label="Terminating"
+        />
+        <Core.status_badge
+          :if={@all_paused? and not @terminating?}
+          id="status-paused"
+          icon="pause_circle"
+          label="Paused"
+        />
+        <Core.status_badge
+          :if={@any_paused? and not @all_paused? and not @terminating?}
+          id="status-partial"
+          icon="play_pause_circle"
+          label="Partial"
+        />
+
+        <Core.icon_button
+          id="detail-pause-resume"
+          icon={if @all_paused?, do: "play_circle", else: "pause_circle"}
+          label={if @all_paused?, do: "Resume", else: "Pause"}
+          color="yellow"
+          tooltip={if @all_paused?, do: "Resume all nodes", else: "Pause all nodes"}
+          disabled={not can?(:pause_queues, @access)}
+          phx-target={@myself}
+          phx-click={if @all_paused?, do: "resume-queue", else: "pause-queue"}
+        />
+
+        <Core.icon_button
+          id="detail-stop"
+          icon="x_circle"
+          label="Stop"
+          color="red"
+          tooltip="Stop this queue on all nodes"
+          disabled={not can?(:stop_queues, @access)}
+          confirm="Are you sure you want to stop this queue?"
+          phx-target={@myself}
+          phx-click="stop-queue"
+        />
+
+        <Core.icon_button
+          id="detail-edit"
+          icon="pencil_square"
+          label="Edit"
+          color="violet"
+          tooltip="Edit queue configuration"
+          disabled={not can?(:scale_queues, @access)}
+          phx-click={scroll_to_config()}
+        />
+      </div>
+    </div>
+    """
+  end
+
+  # History Chart Component
+
+  defp history_chart(assigns) do
+    ~H"""
+    <div class="group relative">
+      <div
+        id="queue-detail-chart"
+        class="h-64 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+        phx-hook="QueueDetailChart"
+        phx-update="ignore"
+      >
+      </div>
+      <.link
+        navigate={oban_path(:jobs, %{queue: @queue, state: "completed"})}
+        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        View all jobs <Icons.arrow_right class="w-3 h-3" />
+      </.link>
+    </div>
+    """
+  end
+
+  # Stats Grid Component
+
+  defp stats_grid(assigns) do
+    ~H"""
+    <div class="space-y-4">
+      <div class="grid grid-cols-4 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Executing
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {executing_count(@checks)}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Available
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["available"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Scheduled
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["scheduled"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Retryable
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["retryable"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Cancelled
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["cancelled"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Discarded
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["discarded"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Completed
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {integer_to_estimate(@counts["completed"])}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Started
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200">
+            {started_at(@checks)}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Local Limit
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {local_limit_display(@checks)}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Global Limit
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {global_limit_display(@inputs)}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Rate Limit
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {rate_limit_display(@inputs)}
+          </span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # Instances Section Component
+
+  defp instances_section(assigns) do
+    ~H"""
+    <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
+      <div class="px-3 py-6">
         <button
-          id="back-link"
-          class="flex items-center hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0"
-          phx-hook="HistoryBack"
+          id="instances-toggle"
           type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_instances(@myself)}
         >
-          <Icons.arrow_left class="w-5 h-5" />
-          <span class="text-lg capitalize font-bold ml-2">{@queue} Queue</span>
+          <Icons.chevron_right
+            id="instances-chevron"
+            class={["w-5 h-5 transition-transform", if(@instances_open?, do: "rotate-90")]}
+          />
+          <span class="font-semibold">
+            Instances
+            <span class="text-gray-400 font-normal">
+              ({length(@checks)})
+            </span>
+          </span>
         </button>
-      </div>
 
-      <table class="table-fixed w-full bg-blue-50 dark:bg-blue-950 dark:bg-opacity-25">
-        <thead>
-          <tr class="text-sm text-gray-600 dark:text-gray-100 dark:text-opacity-60">
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Started</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Executing</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Available</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Scheduled</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Retryable</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Cancelled</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Discarded</th>
-            <th scope="col" class="text-left font-normal pt-6 pb-1 px-3">Completed</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="text-lg text-gray-800 dark:text-gray-100 tabular">
-            <td class="pb-6 px-3">
-              <div class="flex items-center space-x-2">
-                <Icons.clock class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span>{started_at(@checks)}</span>
-              </div>
-            </td>
+        <div id="instances-content" class={["mt-3", unless(@instances_open?, do: "hidden")]}>
+          <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+            <thead>
+              <tr class="bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-500">
+                <th
+                  scope="col"
+                  class="w-1/3 text-left text-xs font-medium uppercase tracking-wider pl-3 py-3"
+                >
+                  Node/Name
+                </th>
+                <th scope="col" class="text-left text-xs font-medium uppercase tracking-wider py-3">
+                  Activity
+                </th>
+                <th
+                  scope="col"
+                  class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pr-4"
+                >
+                  Limit
+                </th>
+                <th
+                  scope="col"
+                  class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3"
+                >
+                  Executing
+                </th>
+                <th
+                  scope="col"
+                  class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3"
+                >
+                  Started
+                </th>
+                <th
+                  scope="col"
+                  class="w-24 text-right text-xs font-medium uppercase tracking-wider pr-3 py-3"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-            <td class="pb-6 px-3">
-              <div class="flex items-center space-x-2">
-                <Icons.cog class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                <span>{executing_count(@checks)}</span>
-              </div>
-            </td>
-
-            <%= for state <- ~w(available scheduled retryable cancelled discarded completed) do %>
-              <td class="pb-6 px-3">
-                <div class="flex items-center space-x-2">
-                  <Icons.square_stack class="w-4 h-5 text-gray-600 dark:text-gray-300" />
-                  <span>{integer_to_estimate(@counts[state])}</span>
-                </div>
-              </td>
-            <% end %>
-          </tr>
-        </tbody>
-      </table>
-
-      <div>
-        <div class="flex items-center pl-3 py-6">
-          <Icons.adjustments_horizontal class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400" />
-          <h3 class="font-medium text-base">Configuration</h3>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+              <%= for check <- @checks do %>
+                <.live_component
+                  access={@access}
+                  checks={check}
+                  id={node_name(check)}
+                  module={DetailInstanceComponent}
+                  node_history={Map.get(@node_history, check["node"], [])}
+                />
+              <% end %>
+            </tbody>
+          </table>
         </div>
+      </div>
+    </div>
+    """
+  end
 
-        <div class="flex w-full px-3 border-t border-gray-200 dark:border-gray-700">
-          <form
-            id="local-form"
-            class="w-2/12 pr-3 pt-3 pb-6"
-            phx-target={@myself}
-            phx-change="form-change"
-            phx-submit="local-submit"
-          >
-            <h3 class="flex items-center mb-4">
-              <Icons.map_pin class="w-5 h-5 mr-1 text-gray-500" />
-              <span class="text-base font-medium">Local</span>
-            </h3>
+  # Config Section Component
 
-            <Core.number_input
-              disabled={not can?(:scale_queues, @access)}
-              label="Limit"
-              myself={@myself}
-              name="local_limit"
-              value={@inputs.local_limit}
-            />
+  defp config_section(assigns) do
+    ~H"""
+    <div id="queue-config" class="border-t border-gray-200 dark:border-gray-700">
+      <div class="px-3 py-6">
+        <button
+          id="config-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_config(@myself)}
+        >
+          <Icons.chevron_right
+            id="config-chevron"
+            class={["w-5 h-5 transition-transform", if(@config_open?, do: "rotate-90")]}
+          />
+          <span class="font-semibold">Edit Configuration</span>
+        </button>
 
-            <.submit_input
-              locked={not can?(:scale_queues, @access)}
-              disabled={
-                @inputs.local_limit == local_limit(@checks) or not can?(:scale_queues, @access)
-              }
-              label="Scale"
-            />
-          </form>
+        <div id="config-content" class={["mt-3", unless(@config_open?, do: "hidden")]}>
+          <div class="flex w-full bg-gray-50 dark:bg-gray-800 rounded-md p-4 space-x-6">
+            <form
+              id="local-form"
+              class="w-2/12"
+              phx-target={@myself}
+              phx-change="form-change"
+              phx-submit="local-submit"
+            >
+              <h3 class="flex items-center mb-4">
+                <Icons.map_pin class="w-5 h-5 mr-1 text-gray-500" />
+                <span class="text-base font-medium">Local</span>
+              </h3>
 
-          <form
-            class={"relative w-5/12 px-3 pt-3 pb-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}
-            id="global-form"
-            phx-change="form-change"
-            phx-submit="global-update"
-            phx-target={@myself}
-          >
-            <.pro_blocker :if={missing_pro?(@conf)} />
+              <Core.number_input
+                disabled={not can?(:scale_queues, @access)}
+                label="Limit"
+                myself={@myself}
+                name="local_limit"
+                value={@inputs.local_limit}
+              />
 
-            <div class={
-              if missing_pro?(@conf),
-                do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
-            }>
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="flex items-center">
-                  <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
-                  <span class="text-base font-medium">Global</span>
-                </h3>
+              <.submit_input
+                locked={not can?(:scale_queues, @access)}
+                disabled={
+                  @inputs.local_limit == local_limit(@checks) or not can?(:scale_queues, @access)
+                }
+                label="Scale"
+              />
+            </form>
 
-                <.toggle_button
-                  disabled={not can?(:scale_queues, @access)}
-                  enabled={not is_nil(@inputs.global_allowed)}
-                  feature="global"
-                  myself={@myself}
-                />
-              </div>
+            <form
+              class={"relative flex-1 px-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30 rounded-md"}"}
+              id="global-form"
+              phx-change="form-change"
+              phx-submit="global-update"
+              phx-target={@myself}
+            >
+              <.pro_blocker :if={missing_pro?(@conf)} />
 
-              <div class="flex w-full space-x-3 mb-6">
-                <Core.number_input
-                  disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
-                  label="Limit"
-                  myself={@myself}
-                  name="global_allowed"
-                  value={@inputs.global_allowed}
-                />
-              </div>
+              <div class={
+                if missing_pro?(@conf),
+                  do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
+              }>
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="flex items-center">
+                    <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
+                    <span class="text-base font-medium">Global</span>
+                  </h3>
 
-              <div class="flex w-full space-x-3">
-                <div class="w-1/2">
-                  <label for="global_partition_fields" class="block font-medium text-sm mb-2">
-                    Partition Fields
-                  </label>
-                  <select
-                    id="global_partition_fields"
-                    name="global_partition_fields"
-                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  <.toggle_button
+                    disabled={not can?(:scale_queues, @access)}
+                    enabled={not is_nil(@inputs.global_allowed)}
+                    feature="global"
+                    myself={@myself}
+                  />
+                </div>
+
+                <div class="flex w-full space-x-3 mb-6">
+                  <Core.number_input
                     disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
-                  >
-                    {options_for_select(partition_options(), @inputs.global_partition_fields)}
-                  </select>
-                </div>
-
-                <div class="w-1/2">
-                  <label for="global_partition_keys" class="block font-medium text-sm mb-2">
-                    Partition Keys
-                  </label>
-
-                  <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    disabled={
-                      keyless_partition?(@inputs.global_partition_fields) or
-                        not can?(:scale_queues, @access)
-                    }
-                    id="global_partition_keys"
-                    name="global_partition_keys"
-                    type="text"
-                    value={@inputs.global_partition_keys}
+                    label="Limit"
+                    myself={@myself}
+                    name="global_allowed"
+                    value={@inputs.global_allowed}
                   />
                 </div>
-              </div>
 
-              <.submit_input
-                locked={not can?(:scale_queues, @access)}
-                disabled={global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
-                label="Apply"
-              />
-            </div>
-          </form>
+                <div class="flex w-full space-x-3">
+                  <div class="w-1/2">
+                    <label for="global_partition_fields" class="block font-medium text-sm mb-2">
+                      Partition Fields
+                    </label>
+                    <select
+                      id="global_partition_fields"
+                      name="global_partition_fields"
+                      class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
+                    >
+                      {options_for_select(partition_options(), @inputs.global_partition_fields)}
+                    </select>
+                  </div>
 
-          <form
-            class={"relative w-5/12 pt-3 pb-6 pl-3 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30"}"}
-            id="rate-limit-form"
-            phx-change="form-change"
-            phx-submit="rate-limit-update"
-            phx-target={@myself}
-          >
-            <.pro_blocker :if={missing_pro?(@conf)} />
+                  <div class="w-1/2">
+                    <label for="global_partition_keys" class="block font-medium text-sm mb-2">
+                      Partition Keys
+                    </label>
 
-            <div class={
-              if missing_pro?(@conf),
-                do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
-            }>
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="flex items-center">
-                  <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
-                  <span class="text-base font-medium">Rate Limit</span>
-                </h3>
+                    <input
+                      class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                      disabled={
+                        keyless_partition?(@inputs.global_partition_fields) or
+                          not can?(:scale_queues, @access)
+                      }
+                      id="global_partition_keys"
+                      name="global_partition_keys"
+                      type="text"
+                      value={@inputs.global_partition_keys}
+                    />
+                  </div>
+                </div>
 
-                <.toggle_button
-                  disabled={not can?(:scale_queues, @access)}
-                  enabled={not is_nil(@inputs.rate_allowed)}
-                  feature="rate-limit"
-                  myself={@myself}
+                <.submit_input
+                  locked={not can?(:scale_queues, @access)}
+                  disabled={global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                  label="Apply"
                 />
               </div>
+            </form>
 
-              <div class="flex w-full space-x-3 mb-6">
-                <div class="w-1/2">
-                  <Core.number_input
-                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                    label="Allowed"
+            <form
+              class={"relative flex-1 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30 rounded-md"}"}
+              id="rate-limit-form"
+              phx-change="form-change"
+              phx-submit="rate-limit-update"
+              phx-target={@myself}
+            >
+              <.pro_blocker :if={missing_pro?(@conf)} />
+
+              <div class={
+                if missing_pro?(@conf),
+                  do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
+              }>
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="flex items-center">
+                    <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
+                    <span class="text-base font-medium">Rate Limit</span>
+                  </h3>
+
+                  <.toggle_button
+                    disabled={not can?(:scale_queues, @access)}
+                    enabled={not is_nil(@inputs.rate_allowed)}
+                    feature="rate-limit"
                     myself={@myself}
-                    name="rate_allowed"
-                    value={@inputs.rate_allowed}
                   />
                 </div>
 
-                <div class="w-1/2">
-                  <Core.number_input
-                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                    label="Period"
-                    myself={@myself}
-                    name="rate_period"
-                    value={@inputs.rate_period}
-                  />
+                <div class="flex w-full space-x-3 mb-6">
+                  <div class="w-1/2">
+                    <Core.number_input
+                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
+                      label="Allowed"
+                      myself={@myself}
+                      name="rate_allowed"
+                      value={@inputs.rate_allowed}
+                    />
+                  </div>
+
+                  <div class="w-1/2">
+                    <Core.number_input
+                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
+                      label="Period"
+                      myself={@myself}
+                      name="rate_period"
+                      value={@inputs.rate_period}
+                    />
+                  </div>
                 </div>
+
+                <div class="flex w-full space-x-3">
+                  <div class="w-1/2">
+                    <label for="rate_partition_fields" class="block font-medium text-sm mb-2">
+                      Partition Fields
+                    </label>
+                    <select
+                      id="rate_partition_fields"
+                      name="rate_partition_fields"
+                      class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
+                    >
+                      {options_for_select(partition_options(), @inputs.rate_partition_fields)}
+                    </select>
+                  </div>
+
+                  <div class="w-1/2">
+                    <label for="rate_keys" class="block font-medium text-sm mb-2">
+                      Partition Keys
+                    </label>
+
+                    <input
+                      class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                      disabled={
+                        keyless_partition?(@inputs.rate_partition_fields) or
+                          not can?(:scale_queues, @access)
+                      }
+                      id="rate_partition_keys"
+                      name="rate_partition_keys"
+                      type="text"
+                      value={@inputs.rate_partition_keys}
+                    />
+                  </div>
+                </div>
+
+                <.submit_input
+                  locked={not can?(:scale_queues, @access)}
+                  disabled={rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                  label="Apply"
+                />
               </div>
-
-              <div class="flex w-full space-x-3">
-                <div class="w-1/2">
-                  <label for="rate_partition_fields" class="block font-medium text-sm mb-2">
-                    Partition Fields
-                  </label>
-                  <select
-                    id="rate_partition_fields"
-                    name="rate_partition_fields"
-                    class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                  >
-                    {options_for_select(partition_options(), @inputs.rate_partition_fields)}
-                  </select>
-                </div>
-
-                <div class="w-1/2">
-                  <label for="rate_keys" class="block font-medium text-sm mb-2">
-                    Partition Keys
-                  </label>
-
-                  <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                    disabled={
-                      keyless_partition?(@inputs.rate_partition_fields) or
-                        not can?(:scale_queues, @access)
-                    }
-                    id="rate_partition_keys"
-                    name="rate_partition_keys"
-                    type="text"
-                    value={@inputs.rate_partition_keys}
-                  />
-                </div>
-              </div>
-
-              <.submit_input
-                locked={not can?(:scale_queues, @access)}
-                disabled={rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
-                label="Apply"
-              />
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
-
-      <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center pl-3 py-6">
-          <Icons.square_2x2 class="w-6 h-6 mr-1 text-gray-600 dark:text-gray-400" />
-          <h3 class="font-medium text-base">Instances</h3>
-        </div>
-
-        <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
-          <thead>
-            <tr class="bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-500">
-              <th
-                scope="col"
-                class="w-1/2 text-left text-xs font-medium uppercase tracking-wider pl-3 py-3"
-              >
-                Node/Name
-              </th>
-              <th
-                scope="col"
-                class="w-12 text-right text-xs font-medium uppercase tracking-wider py-3"
-              >
-                Executing
-              </th>
-              <th
-                scope="col"
-                class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3"
-              >
-                Started
-              </th>
-              <th
-                scope="col"
-                class="w-8 text-left text-xs font-medium uppercase tracking-wider pl-6 py-3"
-              >
-                Pause
-              </th>
-              <th
-                scope="col"
-                class="w-32 text-left text-xs font-medium uppercase tracking-wider pr-3 py-3"
-              >
-                Scale
-              </th>
-            </tr>
-          </thead>
-
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-            <%= for checks <- @checks do %>
-              <.live_component
-                access={@access}
-                checks={checks}
-                id={node_name(checks)}
-                module={DetailInsanceComponent}
-              />
-            <% end %>
-          </tbody>
-        </table>
       </div>
     </div>
     """
@@ -541,6 +795,38 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, assign(socket, inputs: inputs)}
   end
 
+  def handle_event("pause-queue", _params, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    send(self(), {:pause_queue, socket.assigns.queue})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("resume-queue", _params, socket) do
+    enforce_access!(:pause_queues, socket.assigns.access)
+
+    send(self(), {:resume_queue, socket.assigns.queue})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("stop-queue", _params, socket) do
+    enforce_access!(:stop_queues, socket.assigns.access)
+
+    send(self(), {:stop_queue, socket.assigns.queue})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-instances", _params, socket) do
+    {:noreply, assign(socket, instances_open?: not socket.assigns.instances_open?)}
+  end
+
+  def handle_event("toggle-config", _params, socket) do
+    {:noreply, assign(socket, config_open?: not socket.assigns.config_open?)}
+  end
+
   # Components
 
   defp toggle_button(assigns) do
@@ -604,6 +890,31 @@ defmodule Oban.Web.Queues.DetailComponent do
       </a>
     </span>
     """
+  end
+
+  # JS Functions
+
+  defp toggle_instances(myself) do
+    %JS{}
+    |> JS.toggle(to: "#instances-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#instances-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#instances-chevron.rotate-90")
+    |> JS.push("toggle-instances", target: myself)
+  end
+
+  defp toggle_config(myself) do
+    %JS{}
+    |> JS.toggle(to: "#config-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#config-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#config-chevron.rotate-90")
+    |> JS.push("toggle-config", target: myself)
+  end
+
+  defp scroll_to_config do
+    %JS{}
+    |> JS.show(to: "#config-content", transition: "fade-in-scale")
+    |> JS.add_class("rotate-90", to: "#config-chevron")
+    |> JS.focus(to: "#local-form input")
   end
 
   # Helpers
@@ -685,6 +996,44 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   defp keyless_partition?(inputs), do: inputs not in ["args", "args,worker"]
+
+  defp local_limit_display(checks) do
+    limits = Enum.map(checks, & &1["local_limit"])
+
+    if Enum.uniq(limits) |> length() == 1 do
+      List.first(limits)
+    else
+      "varies"
+    end
+  end
+
+  defp global_limit_display(%{global_allowed: nil}), do: "—"
+  defp global_limit_display(%{global_allowed: allowed}), do: allowed
+
+  defp rate_limit_display(%{rate_allowed: nil}), do: "—"
+
+  defp rate_limit_display(%{rate_allowed: allowed, rate_period: period}) do
+    "#{allowed}/#{period}s"
+  end
+
+  defp queue_history(conf, queue) do
+    by = 5
+    since = Timing.snap(System.system_time(:second), by)
+
+    conf.name
+    |> Met.timeslice(:exec_count, by: by, lookback: 600, filters: [queue: queue], since: since)
+    |> transform_history(since, by)
+  end
+
+  defp transform_history(timeslice_data, since, by) do
+    timeslice_data
+    |> Enum.map(fn {index, count, _group} ->
+      timestamp = (since - index * by) * 1000
+
+      %{count: count, timestamp: timestamp}
+    end)
+    |> Enum.sort_by(& &1.timestamp)
+  end
 
   # Pro Helpers
 

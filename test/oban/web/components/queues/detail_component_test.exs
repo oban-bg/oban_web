@@ -58,6 +58,53 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
   end
 
+  test "displaying status badges based on queue state" do
+    # Paused badge when all nodes are paused
+    checks = [build_gossip(queue: @queue, paused: true)]
+    html = render_component(Component, assigns(checks: checks), router: Router)
+
+    assert has_fragment?(html, "#status-paused")
+    refute has_fragment?(html, "#status-partial")
+    refute has_fragment?(html, "#status-terminating")
+
+    # Partial badge when some nodes are paused
+    checks = [
+      build_gossip(queue: @queue, node: "web.1", paused: true),
+      build_gossip(queue: @queue, node: "web.2", paused: false)
+    ]
+
+    html = render_component(Component, assigns(checks: checks), router: Router)
+
+    refute has_fragment?(html, "#status-paused")
+    assert has_fragment?(html, "#status-partial")
+
+    # Terminating badge when shutdown has started
+    checks = [build_gossip(queue: @queue, shutdown_started_at: DateTime.utc_now())]
+    html = render_component(Component, assigns(checks: checks), router: Router)
+
+    assert has_fragment?(html, "#status-terminating")
+  end
+
+  test "showing header action buttons" do
+    html = render_component(Component, assigns([]), router: Router)
+
+    assert has_fragment?(html, "#detail-pause-resume")
+    assert has_fragment?(html, "#detail-stop")
+    assert has_fragment?(html, "#detail-edit")
+  end
+
+  test "restricting header actions based on access" do
+    html = render_component(Component, assigns(access: :read_only), router: Router)
+
+    assert has_fragment?(html, "#detail-pause-resume[disabled]")
+    assert has_fragment?(html, "#detail-stop[disabled]")
+
+    html = render_component(Component, assigns(access: :all), router: Router)
+
+    refute has_fragment?(html, "#detail-pause-resume[disabled]")
+    refute has_fragment?(html, "#detail-stop[disabled]")
+  end
+
   defp assigns(opts) do
     [access: :all, conf: Config.new(repo: Repo), id: :detail, queue: @queue]
     |> Keyword.put(:counts, [counts()])

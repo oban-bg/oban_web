@@ -4,12 +4,8 @@ defmodule Oban.Web.Queues.TableComponent do
   import Oban.Web.Helpers, only: [integer_to_estimate: 1, oban_path: 1]
   import Oban.Web.Helpers.QueueHelper
 
+  alias Oban.Web.Components.Core
   alias Oban.Web.Queue
-
-  @sparkline_count 60
-  @sparkline_height 16
-  @sparkline_bar_width 4
-  @sparkline_gap 1
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -58,88 +54,6 @@ defmodule Oban.Web.Queues.TableComponent do
     <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
       {@label}
     </span>
-    """
-  end
-
-  attr :history, :map, required: true
-  attr :id, :string, required: true
-  attr :total_limit, :integer, required: true
-
-  defp queue_sparkline(assigns) do
-    history = assigns.history
-    total_limit = max(assigns.total_limit, 1)
-    now = System.system_time(:millisecond)
-    max_index = @sparkline_count - 1
-
-    {bars, tooltip_data} =
-      for slot <- 0..max_index, reduce: {[], []} do
-        {bars_acc, tool_acc} ->
-          index = max_index - slot
-          timestamp = now - index * 5 * 1000
-          x = slot * (@sparkline_bar_width + @sparkline_gap)
-
-          case Map.get(history, index) do
-            %{count: count} ->
-              height = min(count / total_limit, 1.0) * @sparkline_height
-              bar = %{x: x, height: max(height, 0)}
-              tooltip = %{timestamp: timestamp, count: count}
-
-              {[bar | bars_acc], [tooltip | tool_acc]}
-
-            nil ->
-              tooltip = %{timestamp: timestamp, count: 0}
-
-              {bars_acc, [tooltip | tool_acc]}
-          end
-      end
-
-    bars = Enum.reverse(bars)
-    tooltip_data = Enum.reverse(tooltip_data)
-
-    placeholders =
-      for slot <- 0..max_index do
-        %{x: slot * (@sparkline_bar_width + @sparkline_gap)}
-      end
-
-    width = @sparkline_count * (@sparkline_bar_width + @sparkline_gap)
-
-    assigns =
-      assigns
-      |> assign(bars: bars, placeholders: placeholders, width: width)
-      |> assign(height: @sparkline_height, bar_width: @sparkline_bar_width)
-      |> assign(tooltip_data: tooltip_data)
-
-    ~H"""
-    <svg
-      id={@id}
-      width={@width}
-      height={@height}
-      viewBox={"0 0 #{@width} #{@height}"}
-      class="flex-shrink-0 cursor-pointer"
-      phx-hook="QueueSparkline"
-      data-tooltip={Oban.JSON.encode!(@tooltip_data)}
-      data-bar-width={@bar_width}
-    >
-      <rect
-        :for={placeholder <- @placeholders}
-        x={placeholder.x}
-        y={@height - 2}
-        width={@bar_width}
-        height="2"
-        fill="#e5e7eb"
-        class="dark:fill-gray-700"
-        rx="0.5"
-      />
-      <rect
-        :for={bar <- @bars}
-        x={bar.x}
-        y={@height - bar.height}
-        width={@bar_width}
-        height={bar.height}
-        fill="#22d3ee"
-        rx="1"
-      />
-    </svg>
     """
   end
 
@@ -208,10 +122,10 @@ defmodule Oban.Web.Queues.TableComponent do
           </div>
 
           <div class="w-80 flex justify-center">
-            <.queue_sparkline
+            <Core.sparkline
               id={"sparkline-#{@queue.name}"}
               history={@history}
-              total_limit={@total_limit}
+              max_value={@total_limit}
             />
           </div>
 

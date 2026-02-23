@@ -246,11 +246,12 @@ defmodule Oban.Web.Components.Core do
   A status badge with icon that expands to show label on hover.
   """
   attr :icon, :string, required: true
+  attr :id, :string, default: nil
   attr :label, :string, required: true
 
   def status_badge(assigns) do
     ~H"""
-    <div class="group flex items-center cursor-default select-none">
+    <div id={@id} class="group flex items-center cursor-default select-none">
       <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
         <.badge_icon name={@icon} />
         <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
@@ -286,6 +287,15 @@ defmodule Oban.Web.Components.Core do
 
   defp badge_icon(%{name: "link"} = assigns),
     do: ~H[<Icons.link class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "power"} = assigns),
+    do: ~H[<Icons.power class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "pause_circle"} = assigns),
+    do: ~H[<Icons.pause_circle class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "play_pause_circle"} = assigns),
+    do: ~H[<Icons.play_pause_circle class="h-4 w-4 shrink-0" />]
 
   @doc """
   An icon-only button that expands to show label on hover. Supports disabled state.
@@ -369,4 +379,105 @@ defmodule Oban.Web.Components.Core do
   defp button_icon(%{name: "play_circle"} = assigns), do: ~H[<Icons.play_circle class={@class} />]
   defp button_icon(%{name: "trash"} = assigns), do: ~H[<Icons.trash class={@class} />]
   defp button_icon(%{name: "x_circle"} = assigns), do: ~H[<Icons.x_circle class={@class} />]
+
+  # Sparkline
+
+  attr :id, :string, required: true
+  attr :history, :map, required: true
+  attr :max_value, :integer, default: nil
+  attr :bar_width, :integer, default: 4
+  attr :count, :integer, default: 60
+  attr :gap, :integer, default: 1
+  attr :height, :integer, default: 16
+  attr :class, :string, default: nil
+
+  def sparkline(assigns) do
+    history = assigns.history
+    count = assigns.count
+    bar_width = assigns.bar_width
+    gap = assigns.gap
+    height = assigns.height
+    max_index = count - 1
+
+    max_value =
+      if assigns.max_value do
+        max(assigns.max_value, 1)
+      else
+        history
+        |> Map.values()
+        |> Enum.reduce(1, fn %{count: c}, acc -> max(c, acc) end)
+      end
+
+    now = System.system_time(:millisecond)
+
+    {bars, tooltip_data} =
+      for slot <- 0..max_index, reduce: {[], []} do
+        {bars_acc, tool_acc} ->
+          index = max_index - slot
+          timestamp = now - index * 5 * 1000
+          x = slot * (bar_width + gap)
+
+          case Map.get(history, index) do
+            %{count: c} ->
+              bar_height = min(c / max_value, 1.0) * height
+              bar = %{x: x, height: max(bar_height, 0)}
+              tooltip = %{timestamp: timestamp, count: c}
+
+              {[bar | bars_acc], [tooltip | tool_acc]}
+
+            nil ->
+              tooltip = %{timestamp: timestamp, count: 0}
+
+              {bars_acc, [tooltip | tool_acc]}
+          end
+      end
+
+    bars = Enum.reverse(bars)
+    tooltip_data = Enum.reverse(tooltip_data)
+
+    placeholders =
+      for slot <- 0..max_index do
+        %{x: slot * (bar_width + gap)}
+      end
+
+    width = count * (bar_width + gap)
+
+    assigns =
+      assigns
+      |> assign(bars: bars, placeholders: placeholders, width: width)
+      |> assign(tooltip_data: tooltip_data)
+
+    ~H"""
+    <svg
+      id={@id}
+      width={@width}
+      height={@height}
+      viewBox={"0 0 #{@width} #{@height}"}
+      class={["flex-shrink-0", @class]}
+      phx-hook="QueueSparkline"
+      data-tooltip={Oban.JSON.encode!(@tooltip_data)}
+      data-bar-width={@bar_width}
+    >
+      <rect
+        :for={placeholder <- @placeholders}
+        x={placeholder.x}
+        y={@height - 2}
+        width={@bar_width}
+        height="2"
+        fill="#e5e7eb"
+        class="dark:fill-gray-700"
+        rx="0.5"
+      />
+      <rect
+        :for={bar <- @bars}
+        x={bar.x}
+        y={@height - bar.height}
+        width={@bar_width}
+        height={bar.height}
+        fill="#22d3ee"
+        rx="1"
+      />
+    </svg>
+    """
+  end
 end
