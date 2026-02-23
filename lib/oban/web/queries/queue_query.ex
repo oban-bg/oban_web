@@ -94,6 +94,7 @@ defmodule Oban.Web.QueueQuery do
 
   def all_queues(params, %{name: name}) do
     {sort_by, sort_dir} = parse_sort(params)
+    limit = Map.get(params, :limit) || Map.get(params, "limit")
 
     conditions = Map.take(params, filterable())
 
@@ -104,12 +105,15 @@ defmodule Oban.Web.QueueQuery do
       retryable: Met.latest(name, :full_count, group: "queue", filters: [state: "retryable"])
     }
 
-    name
-    |> Met.checks()
-    |> Enum.group_by(& &1["queue"])
-    |> Enum.map(&new(&1, counts))
-    |> Enum.filter(&filter(&1, conditions))
-    |> Enum.sort_by(&order(&1, sort_by), sort_dir)
+    queues =
+      name
+      |> Met.checks()
+      |> Enum.group_by(& &1["queue"])
+      |> Enum.map(&new(&1, counts))
+      |> Enum.filter(&filter(&1, conditions))
+      |> Enum.sort_by(&order(&1, sort_by), sort_dir)
+
+    if limit, do: Enum.take(queues, limit), else: queues
   end
 
   defp new({name, checks}, counts) do

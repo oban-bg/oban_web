@@ -8,7 +8,11 @@ defmodule Oban.Web.QueuesPage do
   alias Oban.Web.Queues.{DetailComponent, DetailInsanceComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
-  @known_params ~w(modes nodes sort_by sort_dir stats)
+  @inc_limit 20
+  @max_limit 100
+  @min_limit 20
+
+  @known_params ~w(limit modes nodes sort_by sort_dir stats)
   @keep_on_mount ~w(checks counts default_params detail history params queues selected)a
 
   @impl Phoenix.LiveComponent
@@ -103,7 +107,7 @@ defmodule Oban.Web.QueuesPage do
                   id="queues-sort"
                   by={~w(name nodes avail exec local global rate_limit started)}
                   page={:queues}
-                  params={@params}
+                  params={sort_params(@params, @default_params)}
                 />
               </div>
             </div>
@@ -117,6 +121,14 @@ defmodule Oban.Web.QueuesPage do
               queues={@queues}
               selected={@selected}
             />
+
+            <div
+              :if={@show_less? or @show_more?}
+              class="py-6 flex items-center justify-center space-x-6 border-t border-gray-200 dark:border-gray-700"
+            >
+              <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
+              <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
+            </div>
           <% end %>
         </div>
       </div>
@@ -126,7 +138,7 @@ defmodule Oban.Web.QueuesPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = fn -> %{sort_by: "name", sort_dir: "asc"} end
+    default = fn -> %{limit: @min_limit, sort_by: "name", sort_dir: "asc"} end
 
     assigns =
       Map.drop(socket.assigns, @keep_on_mount)
@@ -140,14 +152,25 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
+    |> assign_new(:show_less?, fn -> false end)
+    |> assign_new(:show_more?, fn -> false end)
   end
 
   @impl Page
   def handle_refresh(socket) do
     conf = socket.assigns.conf
-    queues = QueueQuery.all_queues(socket.assigns.params, conf)
+    params = socket.assigns.params
+    limit = params[:limit] || @min_limit
+    queues = QueueQuery.all_queues(params, conf)
 
-    assign(socket, counts: counts(conf), checks: checks(conf), history: history(conf), queues: queues)
+    assign(socket,
+      checks: checks(conf),
+      counts: counts(conf),
+      history: history(conf),
+      queues: queues,
+      show_less?: limit > @min_limit,
+      show_more?: limit < @max_limit and length(queues) == limit
+    )
   end
 
   defp checks(conf) do
@@ -180,6 +203,39 @@ defmodule Oban.Web.QueuesPage do
     |> Map.new(fn {queue, data} ->
       {queue, Map.new(data)}
     end)
+  end
+
+  attr :active, :boolean, required: true
+  attr :click, :string, required: true
+  attr :label, :string, required: true
+  attr :myself, :any, required: true
+
+  defp load_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={"font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 #{loader_class(@active)}"}
+      phx-target={@myself}
+      phx-click={@click}
+    >
+      {@label}
+    </button>
+    """
+  end
+
+  defp loader_class(true) do
+    """
+    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
+    border-gray-200 dark:border-gray-800 hover:border-gray-400
+    """
+  end
+
+  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+
+  defp sort_params(params, default_params) do
+    params
+    |> without_defaults(default_params)
+    |> Map.merge(Map.take(params, [:sort_by, :sort_dir]))
   end
 
   defp select_mode(checks, selected) do
@@ -241,6 +297,22 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_event("toggle-select-all", _params, socket) do
     send(self(), :toggle_select_all)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("load-less", _params, socket) do
+    if socket.assigns.show_less? do
+      send(self(), {:params, :limit, -@inc_limit})
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("load-more", _params, socket) do
+    if socket.assigns.show_more? do
+      send(self(), {:params, :limit, @inc_limit})
+    end
 
     {:noreply, socket}
   end
@@ -382,6 +454,15 @@ defmodule Oban.Web.QueuesPage do
     end
 
     {:noreply, put_flash_with_clear(socket, :info, scale_message(queue, opts))}
+  end
+
+  def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
+    params =
+      socket.assigns.params
+      |> Map.update!(:limit, &(&1 + inc))
+      |> without_defaults(socket.assigns.default_params)
+
+    {:noreply, push_patch(socket, to: oban_path(:queues, params), replace: true)}
   end
 
   def handle_info(_, socket) do

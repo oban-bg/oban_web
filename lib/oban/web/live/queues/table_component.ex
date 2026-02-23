@@ -1,6 +1,7 @@
 defmodule Oban.Web.Queues.TableComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.Helpers, only: [integer_to_estimate: 1, oban_path: 1]
   import Oban.Web.Helpers.QueueHelper
 
   alias Oban.Web.Queue
@@ -20,8 +21,7 @@ defmodule Oban.Web.Queues.TableComponent do
           <.queue_header label="utilization" class="w-56 text-center" />
           <.queue_header label="history" class="w-80 text-center" />
           <.queue_header label="pending" class="w-42 text-center" />
-          <.queue_header label="nodes" class="w-14 text-center" />
-          <.queue_header label="started" class="w-28 text-right" />
+          <.queue_header label="nodes" class="w-20 text-center" />
           <.queue_header label="status" class="w-20 pr-3 text-right" />
         </div>
       </ul>
@@ -168,20 +168,21 @@ defmodule Oban.Web.Queues.TableComponent do
           {@queue.name}
         </div>
 
-        <% {exec, limit, percent} = utilization(@queue) %>
-        <div rel="utilization" class="w-56 flex items-center px-6 text-gray-500 dark:text-gray-300">
-          <span
-            class="flex items-center"
-            data-title="Executing / Limit"
-            id={"#{@queue.name}-util"}
-            phx-hook="Tippy"
-          >
-            <div class="w-28 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div class="h-full rounded-full bg-emerald-400" style={"width: #{percent}%"} />
-            </div>
-            <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
-          </span>
-          <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
+        <div class="ml-auto flex items-center space-x-6">
+          <% {exec, limit, percent} = utilization(@queue) %>
+          <div rel="utilization" class="w-56 flex items-center text-gray-500 dark:text-gray-300">
+            <span
+              class="flex items-center"
+              data-title="Executing / Limit"
+              id={"#{@queue.name}-util"}
+              phx-hook="Tippy"
+            >
+              <div class="w-28 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full bg-emerald-400" style={"width: #{percent}%"} />
+              </div>
+              <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
+            </span>
+            <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
               <Icons.globe
                 :if={Queue.global_limit?(@queue)}
                 class="w-4 h-4"
@@ -204,14 +205,13 @@ defmodule Oban.Web.Queues.TableComponent do
                 phx-hook="Tippy"
               />
             </div>
-        </div>
+          </div>
 
-        <div class="w-80 flex justify-center">
-          <.queue_sparkline id={"sparkline-#{@queue.name}"} history={@history} total_limit={@total_limit} />
-        </div>
+          <div class="w-80 flex justify-center">
+            <.queue_sparkline id={"sparkline-#{@queue.name}"} history={@history} total_limit={@total_limit} />
+          </div>
 
-        <div class="flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
-          <div rel="pending" class="w-42 flex items-center justify-end">
+          <div rel="pending" class="w-42 flex items-center justify-end tabular text-gray-500 dark:text-gray-300">
             <span class="w-14 flex items-center space-x-1.5" data-title="Available" id={"#{@queue.name}-avail"} phx-hook="Tippy">
               <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.available)}</span>
               <span class={["w-2 h-2 rounded-full", if(@queue.counts.available > 0, do: "bg-cyan-400", else: "bg-gray-300 dark:bg-gray-600")]} />
@@ -226,19 +226,8 @@ defmodule Oban.Web.Queues.TableComponent do
             </span>
           </div>
 
-          <span rel="nodes" class="w-14 text-center">
+          <span rel="nodes" class="w-14 text-center text-gray-500 dark:text-gray-300">
             {length(@queue.checks)}
-          </span>
-
-          <span
-            rel="started"
-            class="w-28 text-right"
-            id={"#{@queue.name}-started"}
-            data-timestamp={started_at_unix(@queue)}
-            phx-hook="Relativize"
-            phx-update="ignore"
-          >
-            {started_at(@queue)}
           </span>
 
           <div class="w-20 pr-3 flex justify-center items-center space-x-1">
@@ -289,17 +278,5 @@ defmodule Oban.Web.Queues.TableComponent do
     limit = Queue.local_limit(queue)
     percent = if limit > 0, do: min(round(exec / limit * 100), 100), else: 0
     {exec, limit, percent}
-  end
-
-  defp started_at_unix(queue) do
-    queue.checks
-    |> Enum.map(& &1["started_at"])
-    |> Enum.map(&iso_to_unix/1)
-    |> Enum.min()
-  end
-
-  defp iso_to_unix(iso_string) do
-    {:ok, dt, _} = DateTime.from_iso8601(iso_string)
-    DateTime.to_unix(dt, :millisecond)
   end
 end
