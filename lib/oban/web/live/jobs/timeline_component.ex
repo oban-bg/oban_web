@@ -27,6 +27,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       id="job-timeline"
       class="w-full"
       phx-hook="TimelineConnectors"
+      data-entry-suspended={to_string(@path.entry == "suspended")}
       data-entry-scheduled={to_string(@path.entry == "scheduled")}
       data-entry-retryable={to_string(@path.entry == "retryable")}
       data-engaged={to_string(@path.engaged)}
@@ -38,12 +39,12 @@ defmodule Oban.Web.Jobs.TimelineComponent do
         <svg id="timeline-connectors" class="absolute inset-0 overflow-visible pointer-events-none" />
 
         <div class="relative grid grid-cols-4 gap-x-2 sm:gap-x-4 lg:gap-x-8 gap-y-3 sm:gap-y-5">
-          <.state_box state="scheduled" job={@job} path={@path} now={@now} />
+          <.state_box state="suspended" job={@job} path={@path} now={@now} />
           <div></div>
           <div></div>
           <.state_box state="completed" job={@job} path={@path} now={@now} />
 
-          <div></div>
+          <.state_box state="scheduled" job={@job} path={@path} now={@now} />
           <.state_box state="available" job={@job} path={@path} now={@now} />
           <.state_box state="executing" job={@job} path={@path} now={@now} />
           <.state_box state="cancelled" job={@job} path={@path} now={@now} />
@@ -147,8 +148,13 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     cond do
       job.state == "retryable" -> "retryable"
       job.attempt > 1 and snoozed < job.attempt -> "retryable"
+      suspended?(job) -> "suspended"
       true -> "scheduled"
     end
+  end
+
+  defp suspended?(job) do
+    job.state == "suspended" or (job.state == "scheduled" and job.meta["on_hold"])
   end
 
   defp compute_terminal_state(job) do
@@ -164,14 +170,19 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   defp box_status(state, job, path) do
     cond do
+      state == "suspended" and suspended?(job) -> :active
       state == job.state -> :active
       state_completed?(state, job, path) -> :completed
       true -> :inactive
     end
   end
 
+  defp state_completed?("suspended", job, path) do
+    path.entry == "suspended" and not suspended?(job)
+  end
+
   defp state_completed?("scheduled", job, path) do
-    path.entry == "scheduled" and job.state != "scheduled"
+    path.entry in ["scheduled", "suspended"] and job.state not in ["scheduled", "suspended"]
   end
 
   defp state_completed?("retryable", _job, path) do
@@ -201,11 +212,19 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   # Timestamp formatting
 
-  defp format_timestamp("scheduled", job, now) do
-    if job.attempt > 1 or job.state == "retryable" do
-      nil
+  defp format_timestamp("suspended", job, now) do
+    if suspended?(job) do
+      format_time(job.inserted_at, now)
     else
-      format_time(job.scheduled_at, now)
+      nil
+    end
+  end
+
+  defp format_timestamp("scheduled", job, now) do
+    cond do
+      job.attempt > 1 or job.state == "retryable" -> nil
+      suspended?(job) -> nil
+      true -> format_time(job.scheduled_at, now)
     end
   end
 
@@ -261,8 +280,15 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   defp timestamp_title(state, job) do
     timestamp =
       case state do
+        "suspended" ->
+          if(suspended?(job), do: job.inserted_at)
+
         "scheduled" ->
-          if(job.attempt > 1 or job.state == "retryable", do: nil, else: job.scheduled_at)
+          cond do
+            job.attempt > 1 or job.state == "retryable" -> nil
+            suspended?(job) -> nil
+            true -> job.scheduled_at
+          end
 
         "retryable" ->
           if(job.state == "retryable" or job.attempt > 1, do: job.scheduled_at)
@@ -285,6 +311,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
     label =
       case state do
+        "suspended" -> "Inserted At"
         "scheduled" -> "Scheduled At"
         "retryable" -> "Retrying At"
         "available" -> "Started At"

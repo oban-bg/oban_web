@@ -275,6 +275,18 @@ defmodule Oban.Web.Components.Core do
   defp badge_icon(%{name: "table_cells"} = assigns),
     do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
 
+  defp badge_icon(%{name: "square_2x2"} = assigns),
+    do: ~H[<Icons.square_2x2 class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "rectangle_group"} = assigns),
+    do: ~H[<Icons.rectangle_group class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "user_group"} = assigns),
+    do: ~H[<Icons.user_group class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "link"} = assigns),
+    do: ~H[<Icons.link class="h-4 w-4 shrink-0" />]
+
   @doc """
   An icon-only button that expands to show label on hover. Supports disabled state.
   """

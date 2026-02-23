@@ -20,12 +20,31 @@ const TimelineConnectors = {
 
     const boxEdge = (id, side) => {
       const rect = this.el.querySelector(`#timeline-${id}`).getBoundingClientRect();
-      return {
-        x: (side === "right" ? rect.right : rect.left) - containerRect.left,
-        y: rect.top - containerRect.top + rect.height / 2,
-      };
+      let x, y;
+      switch (side) {
+        case "right":
+          x = rect.right - containerRect.left;
+          y = rect.top - containerRect.top + rect.height / 2;
+          break;
+        case "left":
+          x = rect.left - containerRect.left;
+          y = rect.top - containerRect.top + rect.height / 2;
+          break;
+        case "top":
+          x = rect.left - containerRect.left + rect.width / 2;
+          y = rect.top - containerRect.top;
+          break;
+        case "bottom":
+          x = rect.left - containerRect.left + rect.width / 2;
+          y = rect.bottom - containerRect.top;
+          break;
+      }
+      return { x, y };
     };
 
+    const suspended = boxEdge("suspended", "right");
+    const suspendedB = boxEdge("suspended", "bottom");
+    const scheduledT = boxEdge("scheduled", "top");
     const scheduled = boxEdge("scheduled", "right");
     const retryable = boxEdge("retryable", "right");
     const availableL = boxEdge("available", "left");
@@ -37,6 +56,7 @@ const TimelineConnectors = {
     const discarded = boxEdge("discarded", "left");
 
     const data = this.el.dataset;
+    const entrySuspended = data.entrySuspended === "true";
     const entryScheduled = data.entryScheduled === "true";
     const entryRetryable = data.entryRetryable === "true";
     const engaged = data.engaged === "true";
@@ -48,8 +68,11 @@ const TimelineConnectors = {
 
     const linePath = (from, to) => `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
 
+    const verticalPath = (from, to) => `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
+
     const paths = [
-      { d: curvePath(scheduled, availableL), active: entryScheduled && engaged },
+      { d: verticalPath(suspendedB, scheduledT), active: entrySuspended },
+      { d: linePath(scheduled, availableL), active: (entryScheduled || entrySuspended) && engaged },
       { d: curvePath(retryable, availableL), active: entryRetryable && engaged },
       { d: linePath(availableR, executingL), active: engaged },
       { d: curvePath(executingR, completed), active: data.terminalCompleted === "true" },

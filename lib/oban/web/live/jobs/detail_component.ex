@@ -37,6 +37,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </button>
 
         <div class="flex space-x-3">
+          <Core.status_badge :if={@job.meta["batch"]} icon="square_2x2" label="Batch" />
+          <Core.status_badge :if={@job.meta["workflow"]} icon="rectangle_group" label="Workflow" />
+          <Core.status_badge :if={@job.meta["chunk"]} icon="user_group" label="Chunk" />
+          <Core.status_badge :if={@job.meta["chain"]} icon="link" label="Chain" />
           <Core.status_badge :if={@job.meta["recorded"]} icon="camera" label="Recorded" />
           <Core.status_badge :if={@job.meta["encrypted"]} icon="lock_closed" label="Encrypted" />
           <Core.status_badge :if={@job.meta["structured"]} icon="table_cells" label="Structured" />
@@ -152,14 +156,20 @@ defmodule Oban.Web.Jobs.DetailComponent do
           </div>
 
           <div class="grid grid-cols-3 gap-4 mb-4 px-3">
-            <div class="flex flex-col">
+            <.link
+              id="queue-link"
+              patch={oban_path([:queues, @job.queue])}
+              class="flex flex-col -m-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              data-title="View queue details"
+              phx-hook="Tippy"
+            >
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
                 Queue
               </span>
               <span class="text-base text-gray-800 dark:text-gray-200">
                 {@job.queue}
               </span>
-            </div>
+            </.link>
 
             <div class="flex flex-col">
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">

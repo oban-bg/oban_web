@@ -208,21 +208,61 @@ defmodule Oban.Web.Queues.TableComponent do
           </div>
 
           <div class="w-80 flex justify-center">
-            <.queue_sparkline id={"sparkline-#{@queue.name}"} history={@history} total_limit={@total_limit} />
+            <.queue_sparkline
+              id={"sparkline-#{@queue.name}"}
+              history={@history}
+              total_limit={@total_limit}
+            />
           </div>
 
-          <div rel="pending" class="w-42 flex items-center justify-end tabular text-gray-500 dark:text-gray-300">
-            <span class="w-14 flex items-center space-x-1.5" data-title="Available" id={"#{@queue.name}-avail"} phx-hook="Tippy">
+          <div
+            rel="pending"
+            class="w-42 flex items-center justify-end tabular text-gray-500 dark:text-gray-300"
+          >
+            <span
+              class="w-14 flex items-center space-x-1.5"
+              data-title="Available"
+              id={"#{@queue.name}-avail"}
+              phx-hook="Tippy"
+            >
               <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.available)}</span>
-              <span class={["w-2 h-2 rounded-full", if(@queue.counts.available > 0, do: "bg-cyan-400", else: "bg-gray-300 dark:bg-gray-600")]} />
+              <span class={[
+                "w-2 h-2 rounded-full",
+                if(@queue.counts.available > 0,
+                  do: "bg-cyan-400",
+                  else: "bg-gray-300 dark:bg-gray-600"
+                )
+              ]} />
             </span>
-            <span class="w-14 flex items-center space-x-1.5" data-title="Scheduled" id={"#{@queue.name}-sched"} phx-hook="Tippy">
+            <span
+              class="w-14 flex items-center space-x-1.5"
+              data-title="Scheduled"
+              id={"#{@queue.name}-sched"}
+              phx-hook="Tippy"
+            >
               <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.scheduled)}</span>
-              <span class={["w-2 h-2 rounded-full", if(@queue.counts.scheduled > 0, do: "bg-emerald-400", else: "bg-gray-300 dark:bg-gray-600")]} />
+              <span class={[
+                "w-2 h-2 rounded-full",
+                if(@queue.counts.scheduled > 0,
+                  do: "bg-emerald-400",
+                  else: "bg-gray-300 dark:bg-gray-600"
+                )
+              ]} />
             </span>
-            <span class="w-14 flex items-center space-x-1.5" data-title="Retryable" id={"#{@queue.name}-retry"} phx-hook="Tippy">
+            <span
+              class="w-14 flex items-center space-x-1.5"
+              data-title="Retryable"
+              id={"#{@queue.name}-retry"}
+              phx-hook="Tippy"
+            >
               <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.retryable)}</span>
-              <span class={["w-2 h-2 rounded-full", if(@queue.counts.retryable > 0, do: "bg-yellow-400", else: "bg-gray-300 dark:bg-gray-600")]} />
+              <span class={[
+                "w-2 h-2 rounded-full",
+                if(@queue.counts.retryable > 0,
+                  do: "bg-yellow-400",
+                  else: "bg-gray-300 dark:bg-gray-600"
+                )
+              ]} />
             </span>
           </div>
 
