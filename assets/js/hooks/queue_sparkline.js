@@ -1,18 +1,17 @@
 import tippy, { followCursor, roundArrow } from "tippy.js"
-import { STATE_COLORS, GRAY } from "../lib/colors"
+import { CYAN } from "../lib/colors"
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp)
   return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    second: "2-digit",
     hour12: true,
   })
 }
 
-const Sparkline = {
+const QueueSparkline = {
   mounted() {
     this.initData()
   },
@@ -24,13 +23,20 @@ const Sparkline = {
   initData() {
     this.data = JSON.parse(this.el.dataset.tooltip)
     this.barWidth = parseInt(this.el.dataset.barWidth, 10)
-    this.offset = parseInt(this.el.dataset.offset, 10)
     this.step = this.barWidth + 1 // bar width + gap
 
     // Get all the bar rects (skip placeholders which have height="2")
     this.bars = Array.from(this.el.querySelectorAll("rect")).filter(
       (rect) => rect.getAttribute("height") !== "2"
     )
+
+    // Build a map from slot position to bar element for sparse data
+    this.barsBySlot = new Map()
+    this.bars.forEach((bar) => {
+      const x = parseInt(bar.getAttribute("x"), 10)
+      const slot = Math.floor(x / this.step)
+      this.barsBySlot.set(slot, bar)
+    })
 
     if (this.tippy) return // Already initialized
 
@@ -46,40 +52,41 @@ const Sparkline = {
       trigger: "manual",
     })
 
-    this.lastIndex = null
+    this.lastSlot = null
 
     this.el.addEventListener("mousemove", (event) => {
       const rect = this.el.getBoundingClientRect()
       const x = event.clientX - rect.left
       const slot = Math.floor(x / this.step)
-      const index = slot - this.offset
 
       // Clear previous highlight
-      if (this.lastIndex !== null && this.lastIndex !== index) {
-        const prevBar = this.bars[this.lastIndex]
+      if (this.lastSlot !== null && this.lastSlot !== slot) {
+        const prevBar = this.barsBySlot.get(this.lastSlot)
         if (prevBar) prevBar.style.opacity = "1"
       }
 
-      if (index >= 0 && index < this.data.length) {
-        const point = this.data[index]
-        const color = STATE_COLORS[point.state] || GRAY
+      if (slot >= 0 && slot < this.data.length) {
+        const point = this.data[slot]
+        const countLabel = point.count === 1 ? "job" : "jobs"
         const content = `
-          <span style="color: ${color}; font-weight: 600;">${point.state}</span>
+          <span style="color: ${CYAN}; font-weight: 600;">${point.count}</span>
+          <span style="color: #9ca3af;"> ${countLabel}</span>
           <span style="color: #9ca3af; margin-left: 4px;">${formatTime(point.timestamp)}</span>
         `
         this.tippy.setContent(content)
         this.tippy.show()
 
-        // Highlight current bar, dim others
-        this.bars.forEach((bar, i) => {
-          bar.style.opacity = i === index ? "1" : "0.4"
+        // Highlight current bar if it exists, dim others
+        this.bars.forEach((bar) => {
+          const barSlot = Math.floor(parseInt(bar.getAttribute("x"), 10) / this.step)
+          bar.style.opacity = barSlot === slot ? "1" : "0.4"
         })
-        this.lastIndex = index
+        this.lastSlot = slot
       } else {
         this.tippy.hide()
         // Reset all bars
         this.bars.forEach((bar) => (bar.style.opacity = "1"))
-        this.lastIndex = null
+        this.lastSlot = null
       }
     })
 
@@ -87,7 +94,7 @@ const Sparkline = {
       this.tippy.hide()
       // Reset all bars
       this.bars.forEach((bar) => (bar.style.opacity = "1"))
-      this.lastIndex = null
+      this.lastSlot = null
     })
   },
 
@@ -98,4 +105,4 @@ const Sparkline = {
   },
 }
 
-export default Sparkline
+export default QueueSparkline

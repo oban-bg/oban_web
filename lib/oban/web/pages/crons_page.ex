@@ -211,7 +211,7 @@ defmodule Oban.Web.CronsPage do
       height={@height}
       viewBox={"0 0 #{@width} #{@height}"}
       class="flex-shrink-0 cursor-pointer"
-      phx-hook="Sparkline"
+      phx-hook="CronSparkline"
       data-tooltip={Oban.JSON.encode!(@tooltip_data)}
       data-bar-width={@bar_width}
       data-offset={@offset}

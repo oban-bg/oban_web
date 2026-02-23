@@ -5,6 +5,11 @@ defmodule Oban.Web.Queues.TableComponent do
 
   alias Oban.Web.Queue
 
+  @sparkline_count 60
+  @sparkline_height 16
+  @sparkline_bar_width 4
+  @sparkline_gap 1
+
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
@@ -12,7 +17,8 @@ defmodule Oban.Web.Queues.TableComponent do
       <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
         <.queue_header label="name" class="ml-12 w-1/4 text-left" />
         <div class="ml-auto flex items-center space-x-6">
-          <.queue_header label="utilization" class="flex-1 text-center" />
+          <.queue_header label="utilization" class="w-56 text-center" />
+          <.queue_header label="history" class="w-80 text-center" />
           <.queue_header label="pending" class="w-42 text-center" />
           <.queue_header label="nodes" class="w-14 text-center" />
           <.queue_header label="started" class="w-28 text-right" />
@@ -31,9 +37,11 @@ defmodule Oban.Web.Queues.TableComponent do
         <.queue_row
           :for={queue <- @queues}
           access={@access}
+          history={Map.get(@history, queue.name, %{})}
           myself={@myself}
           queue={queue}
           selected={MapSet.member?(@selected, queue.name)}
+          total_limit={Queue.local_limit(queue)}
         />
       </ul>
     </div>
@@ -53,10 +61,94 @@ defmodule Oban.Web.Queues.TableComponent do
     """
   end
 
+  attr :history, :map, required: true
+  attr :id, :string, required: true
+  attr :total_limit, :integer, required: true
+
+  defp queue_sparkline(assigns) do
+    history = assigns.history
+    total_limit = max(assigns.total_limit, 1)
+    now = System.system_time(:millisecond)
+    max_index = @sparkline_count - 1
+
+    {bars, tooltip_data} =
+      for slot <- 0..max_index, reduce: {[], []} do
+        {bars_acc, tool_acc} ->
+          index = max_index - slot
+          timestamp = now - index * 5 * 1000
+          x = slot * (@sparkline_bar_width + @sparkline_gap)
+
+          case Map.get(history, index) do
+            %{count: count} ->
+              height = min(count / total_limit, 1.0) * @sparkline_height
+              bar = %{x: x, height: max(height, 0)}
+              tooltip = %{timestamp: timestamp, count: count}
+
+              {[bar | bars_acc], [tooltip | tool_acc]}
+
+            nil ->
+              tooltip = %{timestamp: timestamp, count: 0}
+
+              {bars_acc, [tooltip | tool_acc]}
+          end
+      end
+
+    bars = Enum.reverse(bars)
+    tooltip_data = Enum.reverse(tooltip_data)
+
+    placeholders =
+      for slot <- 0..max_index do
+        %{x: slot * (@sparkline_bar_width + @sparkline_gap)}
+      end
+
+    width = @sparkline_count * (@sparkline_bar_width + @sparkline_gap)
+
+    assigns =
+      assigns
+      |> assign(bars: bars, placeholders: placeholders, width: width)
+      |> assign(height: @sparkline_height, bar_width: @sparkline_bar_width)
+      |> assign(tooltip_data: tooltip_data)
+
+    ~H"""
+    <svg
+      id={@id}
+      width={@width}
+      height={@height}
+      viewBox={"0 0 #{@width} #{@height}"}
+      class="flex-shrink-0 cursor-pointer"
+      phx-hook="QueueSparkline"
+      data-tooltip={Oban.JSON.encode!(@tooltip_data)}
+      data-bar-width={@bar_width}
+    >
+      <rect
+        :for={placeholder <- @placeholders}
+        x={placeholder.x}
+        y={@height - 2}
+        width={@bar_width}
+        height="2"
+        fill="#e5e7eb"
+        class="dark:fill-gray-700"
+        rx="0.5"
+      />
+      <rect
+        :for={bar <- @bars}
+        x={bar.x}
+        y={@height - bar.height}
+        width={@bar_width}
+        height={bar.height}
+        fill="#22d3ee"
+        rx="1"
+      />
+    </svg>
+    """
+  end
+
   attr :access, :map, required: true
+  attr :history, :map, required: true
   attr :myself, :any, required: true
   attr :queue, :string, required: true
   attr :selected, :boolean, default: false
+  attr :total_limit, :integer, required: true
 
   defp queue_row(assigns) do
     ~H"""
@@ -77,12 +169,19 @@ defmodule Oban.Web.Queues.TableComponent do
         </div>
 
         <% {exec, limit, percent} = utilization(@queue) %>
-        <div rel="utilization" class="flex-1 flex items-center px-6 text-gray-500 dark:text-gray-300">
-          <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div class="h-full rounded-full bg-orange-400" style={"width: #{percent}%"} />
-          </div>
-          <span class="w-14 text-right tabular">{exec}/{limit}</span>
-          <div class="w-14 flex items-center justify-start space-x-1 pl-2 text-gray-400 dark:text-gray-500">
+        <div rel="utilization" class="w-56 flex items-center px-6 text-gray-500 dark:text-gray-300">
+          <span
+            class="flex items-center"
+            data-title="Executing / Limit"
+            id={"#{@queue.name}-util"}
+            phx-hook="Tippy"
+          >
+            <div class="w-28 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div class="h-full rounded-full bg-emerald-400" style={"width: #{percent}%"} />
+            </div>
+            <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
+          </span>
+          <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
               <Icons.globe
                 :if={Queue.global_limit?(@queue)}
                 class="w-4 h-4"
@@ -105,6 +204,10 @@ defmodule Oban.Web.Queues.TableComponent do
                 phx-hook="Tippy"
               />
             </div>
+        </div>
+
+        <div class="w-80 flex justify-center">
+          <.queue_sparkline id={"sparkline-#{@queue.name}"} history={@history} total_limit={@total_limit} />
         </div>
 
         <div class="flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">

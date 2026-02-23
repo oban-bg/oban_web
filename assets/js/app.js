@@ -13,7 +13,8 @@ import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
 import Shortcuts from "./hooks/shortcuts";
 import SidebarResizer from "./hooks/sidebar_resizer";
-import Sparkline from "./hooks/sparkline";
+import CronSparkline from "./hooks/cron_sparkline";
+import QueueSparkline from "./hooks/queue_sparkline";
 import Themer from "./hooks/themer";
 import TimelineConnectors from "./hooks/timeline_connectors";
 import Tippy from "./hooks/tippy";
@@ -21,15 +22,16 @@ import Tippy from "./hooks/tippy";
 const hooks = {
   Completer,
   CronChart,
+  CronSparkline,
   JobHistoryChart,
   JobsChart,
   HistoryBack,
   Instantiator,
+  QueueSparkline,
   Refresher,
   Relativize,
   Shortcuts,
   SidebarResizer,
-  Sparkline,
   Themer,
   TimelineConnectors,
   Tippy,

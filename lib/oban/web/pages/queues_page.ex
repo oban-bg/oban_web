@@ -9,6 +9,7 @@ defmodule Oban.Web.QueuesPage do
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(modes nodes sort_by sort_dir stats)
+  @keep_on_mount ~w(checks counts default_params detail history params queues selected)a
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -111,6 +112,7 @@ defmodule Oban.Web.QueuesPage do
               id="queues-table"
               module={TableComponent}
               access={@access}
+              history={@history}
               params={@params}
               queues={@queues}
               selected={@selected}
@@ -121,8 +123,6 @@ defmodule Oban.Web.QueuesPage do
     </div>
     """
   end
-
-  @keep_on_mount ~w(checks counts default_params detail params queues selected)a
 
   @impl Page
   def handle_mount(socket) do
@@ -136,6 +136,7 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:counts, fn -> counts(socket.assigns.conf) end)
     |> assign_new(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
+    |> assign_new(:history, fn -> %{} end)
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
@@ -146,7 +147,7 @@ defmodule Oban.Web.QueuesPage do
     conf = socket.assigns.conf
     queues = QueueQuery.all_queues(socket.assigns.params, conf)
 
-    assign(socket, counts: counts(conf), checks: checks(conf), queues: queues)
+    assign(socket, counts: counts(conf), checks: checks(conf), history: history(conf), queues: queues)
   end
 
   defp checks(conf) do
@@ -155,6 +156,30 @@ defmodule Oban.Web.QueuesPage do
 
   defp counts(conf) do
     Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
+  end
+
+  defp history(conf) do
+    conf.name
+    |> Met.timeslice(:exec_count,
+      by: 5,
+      group: "queue",
+      lookback: 300,
+      operation: :sum
+    )
+    |> transform_history()
+  end
+
+  defp transform_history(timeslice_data) do
+    now = System.system_time(:millisecond)
+
+    timeslice_data
+    |> Enum.group_by(&elem(&1, 2), fn {index, count, _queue} ->
+      timestamp = now - index * 5 * 1000
+      {index, %{count: count, timestamp: timestamp}}
+    end)
+    |> Map.new(fn {queue, data} ->
+      {queue, Map.new(data)}
+    end)
   end
 
   defp select_mode(checks, selected) do

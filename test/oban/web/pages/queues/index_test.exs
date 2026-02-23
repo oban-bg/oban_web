@@ -22,7 +22,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert has_element?(live, "#queues-table li#queue-gamma")
   end
 
-  test "viewing aggregate rate-limit details", %{live: live} do
+  test "viewing rate-limit indicator", %{live: live} do
     rate_limit = %{
       allowed: 10,
       period: 60,
@@ -35,7 +35,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
     refresh(live)
 
-    assert has_element?(live, "#queue-alpha [rel=rate]", "6/10 per 1m")
+    assert has_element?(live, "#queue-alpha #alpha-has-rate")
   end
 
   test "pausing and resuming selected queues", %{live: live} do
