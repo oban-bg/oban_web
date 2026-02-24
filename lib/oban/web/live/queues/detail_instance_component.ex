@@ -203,5 +203,4 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
 
     {:noreply, assign(socket, local_limit: limit, editing?: false)}
   end
-
 end

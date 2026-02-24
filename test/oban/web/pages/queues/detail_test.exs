@@ -108,7 +108,10 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
     live
     |> form("#global-form")
-    |> render_submit(%{global_partition_fields: "meta,worker", global_partition_keys: "tenant_id"})
+    |> render_submit(%{
+      global_partition_fields: "meta,worker",
+      global_partition_keys: "tenant_id"
+    })
 
     assert_signal(%{
       "action" => "scale",

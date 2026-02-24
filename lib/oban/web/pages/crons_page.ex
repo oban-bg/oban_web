@@ -3,7 +3,7 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  import Oban.Web.Crons.Helpers, only: [maybe_to_unix: 1, state_icon: 1]
+  import Oban.Web.Crons.Helpers, only: [maybe_to_unix: 1, show_name?: 1, state_icon: 1]
 
   alias Oban.Web.Crons.{DetailComponent, NewComponent}
   alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
@@ -503,8 +503,4 @@ defmodule Oban.Web.CronsPage do
   defp has_tags?(opts), do: Map.has_key?(opts, "tags") and opts["tags"] != []
 
   defp get_tags(opts), do: Map.get(opts, "tags", [])
-
-  defp show_name?(%{dynamic?: true, name: name, worker: worker}), do: name != worker
-
-  defp show_name?(_cron), do: false
 end

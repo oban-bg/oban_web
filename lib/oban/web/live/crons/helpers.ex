@@ -47,4 +47,7 @@ defmodule Oban.Web.Crons.Helpers do
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.to_unix(:millisecond)
   end
+
+  def show_name?(%{dynamic?: true, name: name, worker: worker}), do: name != worker
+  def show_name?(_cron), do: false
 end

@@ -1,7 +1,7 @@
 defmodule Oban.Web.Crons.DetailComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1]
+  import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1, show_name?: 1]
   import Oban.Web.FormComponents
 
   alias Oban.Job
@@ -23,7 +23,12 @@ defmodule Oban.Web.Crons.DetailComponent do
           phx-hook="Tippy"
         >
           <Icons.arrow_left class="w-5 h-5" />
-          <span class="text-lg font-bold ml-2">{@cron.worker}</span>
+          <span class="text-lg font-bold ml-2">
+            {@cron.worker}
+            <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
+              ({@cron.name})
+            </span>
+          </span>
         </.link>
 
         <div class="flex space-x-3">
