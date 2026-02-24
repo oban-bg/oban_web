@@ -13,7 +13,7 @@ defmodule Oban.Web.ThemeComponent do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:block"
+        class="cursor-pointer text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-700 dark:hover:text-gray-200 hidden md:block"
         data-title="Change theme"
         id="theme-menu-toggle"
         phx-hook="Tippy"
@@ -24,7 +24,7 @@ defmodule Oban.Web.ThemeComponent do
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-32 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
+        class="hidden absolute z-50 top-full right-0 mt-2 py-2 w-32 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
         id="theme-menu"
         role="listbox"
         tabindex="-1"

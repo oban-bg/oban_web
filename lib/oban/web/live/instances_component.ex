@@ -38,7 +38,7 @@ defmodule Oban.Web.InstancesComponent do
       <button
         aria-expanded="true"
         aria-haspopup="listbox"
-        class="rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300
+        class="cursor-pointer rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300
         hover:text-gray-800 dark:hover:text-gray-200
         hover:bg-black/5 dark:hover:bg-white/5
         ring-1 ring-inset ring-gray-400 dark:ring-gray-700
@@ -53,7 +53,7 @@ defmodule Oban.Web.InstancesComponent do
       </button>
 
       <ul
-        class="hidden absolute z-10 top-full right-0 mt-2 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5"
+        class="hidden absolute z-10 top-full right-0 mt-2 py-2 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5"
         id="instance-select-menu"
       >
         <li

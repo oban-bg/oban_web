@@ -29,7 +29,7 @@ defmodule Oban.Web.RefreshComponent do
         aria-haspopup="listbox"
         aria-expanded="true"
         aria-labelledby="listbox-label"
-        class="text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-600 dark:hover:text-gray-200 hidden md:flex"
+        class="cursor-pointer text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-700 dark:hover:text-gray-200 hidden md:flex"
         data-title="Change refresh rate"
         id="refresh-menu-toggle"
         phx-hook="Tippy"
@@ -41,7 +41,7 @@ defmodule Oban.Web.RefreshComponent do
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-18 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
+        class="hidden absolute z-50 top-full right-0 mt-2 py-2 w-18 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
         id="refresh-menu"
         role="listbox"
         tabindex="-1"
