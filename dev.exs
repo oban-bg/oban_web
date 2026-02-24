@@ -483,6 +483,50 @@ defmodule Oban.Workers.WeeklyUpdate do
   end
 end
 
+# Workflow Workers
+
+defmodule Oban.Workers.DocumentProcessor do
+  use Oban.Pro.Worker, queue: :media
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(500, 12_000)
+end
+
+defmodule Oban.Workers.OrderProcessor do
+  use Oban.Pro.Worker, queue: :fulfillment, recorded: true
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(300, 8_000)
+end
+
+defmodule Oban.Workers.DataPipeline do
+  use Oban.Pro.Worker, queue: :etl
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(1_000, 20_000)
+end
+
+defmodule Oban.Workers.TenantProvisioner do
+  use Oban.Pro.Worker, queue: :default
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(500, 15_000)
+end
+
+defmodule Oban.Workers.ApprovalHandler do
+  use Oban.Pro.Worker, queue: :default, recorded: true
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(300, 10_000)
+end
+
+defmodule Oban.Workers.Notifier do
+  use Oban.Pro.Worker, queue: :notifications
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: WebDev.Generator.random_perform(200, 5_000)
+end
+
 # Repo
 
 defmodule WebDev.Repo do
@@ -503,6 +547,222 @@ defmodule WebDev.Migration1 do
   def up, do: Oban.Pro.Migration.up()
 
   def down, do: Oban.Pro.Migration.down()
+end
+
+# Workflows
+
+defmodule WebDev.Workflows do
+  alias Oban.Pro.Workflow
+  alias Oban.Workers.{DocumentProcessor, Notifier, OrderProcessor, TenantProvisioner}
+
+  # ETL Cascade Functions
+
+  def etl_extract(_ctx) do
+    WebDev.Generator.random_perform(2_000, 10_000)
+    {:ok, %{extracted_at: DateTime.utc_now()}}
+  end
+
+  def etl_transform(_ctx) do
+    WebDev.Generator.random_perform(3_000, 12_000)
+    {:ok, %{transformed_at: DateTime.utc_now()}}
+  end
+
+  def etl_load(_ctx) do
+    WebDev.Generator.random_perform(5_000, 15_000)
+    {:ok, %{loaded_at: DateTime.utc_now()}}
+  end
+
+  def etl_verify(_ctx) do
+    WebDev.Generator.random_perform(1_000, 6_000)
+    {:ok, %{verified_at: DateTime.utc_now()}}
+  end
+
+  def etl_index(_ctx) do
+    WebDev.Generator.random_perform(2_000, 9_000)
+    {:ok, %{indexed_at: DateTime.utc_now()}}
+  end
+
+  def etl_notify(_ctx) do
+    WebDev.Generator.random_perform(500, 3_000)
+    {:ok, %{notified_at: DateTime.utc_now()}}
+  end
+
+  # Tenant Cascade Functions
+
+  def tenant_setup(_ctx) do
+    WebDev.Generator.random_perform(200, 800)
+    {:ok, %{setup_at: DateTime.utc_now()}}
+  end
+
+  def tenant_provision(_ctx) do
+    WebDev.Generator.random_perform(300, 1_200)
+    {:ok, %{provisioned_at: DateTime.utc_now()}}
+  end
+
+  def tenant_configure(_ctx) do
+    WebDev.Generator.random_perform(200, 600)
+    {:ok, %{configured_at: DateTime.utc_now()}}
+  end
+
+  def tenant_activate(_ctx) do
+    WebDev.Generator.random_perform(100, 400)
+    {:ok, %{activated_at: DateTime.utc_now()}}
+  end
+
+  # Approval Cascade Functions
+
+  def approval_submit(_ctx) do
+    WebDev.Generator.random_perform(100, 300)
+    {:ok, %{submitted_at: DateTime.utc_now()}}
+  end
+
+  def approval_review(_ctx) do
+    WebDev.Generator.random_perform(200, 800)
+
+    if :rand.uniform(100) <= 20 do
+      {:cancel, "rejected"}
+    else
+      {:ok, %{reviewed_at: DateTime.utc_now()}}
+    end
+  end
+
+  def approval_decide(_ctx) do
+    WebDev.Generator.random_perform(100, 400)
+    {:ok, %{decided_at: DateTime.utc_now()}}
+  end
+
+  def approval_execute(_ctx) do
+    WebDev.Generator.random_perform(300, 1_000)
+    {:ok, %{executed_at: DateTime.utc_now()}}
+  end
+
+  def approval_notify(_ctx) do
+    WebDev.Generator.random_perform(50, 200)
+    {:ok, %{notified_at: DateTime.utc_now()}}
+  end
+
+  # Workflow Builders
+
+  def document_processing do
+    [workflow_name: "document-processing"]
+    |> Workflow.new()
+    |> Workflow.add(:ingest, DocumentProcessor.new(%{step: "ingest"}))
+    |> Workflow.add(:parse, DocumentProcessor.new(%{step: "parse"}), deps: [:ingest])
+    |> Workflow.add(:index, DocumentProcessor.new(%{step: "index"}), deps: [:parse])
+    |> Workflow.add(:archive, DocumentProcessor.new(%{step: "archive"}), deps: [:index])
+    |> Workflow.add(:notify, Notifier.new(%{type: "document_processed"}), deps: [:archive])
+  end
+
+  def order_fulfillment do
+    validation =
+      Workflow.new()
+      |> Workflow.add(:validate_customer, OrderProcessor.new(%{step: "validate_customer"}))
+      |> Workflow.add(:validate_payment, OrderProcessor.new(%{step: "validate_payment"}))
+      |> Workflow.add(:check_inventory, OrderProcessor.new(%{step: "check_inventory"}))
+
+    shipping =
+      Workflow.new()
+      |> Workflow.add(:pick_items, OrderProcessor.new(%{step: "pick_items"}))
+      |> Workflow.add(:generate_label, OrderProcessor.new(%{step: "generate_label"}))
+      |> Workflow.add(:ship_order, OrderProcessor.new(%{step: "ship_order"}), deps: [:pick_items, :generate_label])
+
+    [workflow_name: "order-fulfillment"]
+    |> Workflow.new()
+    |> Workflow.add(:receive_order, OrderProcessor.new(%{step: "receive_order"}))
+    |> Workflow.add_workflow(:validation, validation, deps: [:receive_order])
+    |> Workflow.add(:confirm_order, OrderProcessor.new(%{step: "confirm_order"}), deps: [:validation])
+    |> Workflow.add_workflow(:shipping, shipping, deps: [:confirm_order])
+    |> Workflow.add(:notify, Notifier.new(%{step: "notify", type: "order_shipped"}), deps: [:shipping])
+  end
+
+  def data_migration do
+    source = Enum.random(~w(legacy_db csv_import api_sync s3_bucket))
+
+    Workflow.new()
+    |> Workflow.put_context(%{source: source})
+    |> Workflow.add_cascade(:extract, &etl_extract/1, queue: :etl)
+    |> Workflow.add_cascade(:transform, &etl_transform/1, deps: [:extract], queue: :etl)
+    |> Workflow.add_cascade(:load, &etl_load/1, deps: [:transform], queue: :etl)
+    |> Workflow.add_cascade(:verify, &etl_verify/1, deps: [:load], queue: :etl)
+    |> Workflow.add_cascade(:index, &etl_index/1, deps: [:verify], queue: :etl)
+    |> Workflow.add_cascade(:notify, &etl_notify/1, deps: [:index], queue: :notifications)
+  end
+
+  def tenant_onboarding do
+    tenant_count = Enum.random(3..5)
+    tenant_ids = for num <- 1..tenant_count, do: "tenant_#{num}"
+
+    [workflow_name: "tenant-onboarding"]
+    |> Workflow.new()
+    |> Workflow.add(:initialize, TenantProvisioner.new(%{step: "initialize", tenant_count: tenant_count}))
+    |> Workflow.add_cascade(:tenants, {tenant_ids, &provision_tenant/2}, deps: [:initialize])
+    |> Workflow.add(:aggregate, TenantProvisioner.new(%{step: "aggregate"}), deps: [:tenants])
+    |> Workflow.add(:report, TenantProvisioner.new(%{step: "report"}), deps: [:aggregate])
+    |> Workflow.add(:notify, Notifier.new(%{type: "tenants_onboarded"}), deps: [:report])
+  end
+
+  def provision_tenant(tenant_id, _ctx) do
+    WebDev.Generator.random_perform(500, 3_000)
+    {:ok, %{tenant_id: tenant_id, provisioned_at: DateTime.utc_now()}}
+  end
+
+  def approval_chain do
+    request_id = Faker.UUID.v4()
+
+    [workflow_name: "approval-chain", ignore_cancelled: true]
+    |> Workflow.new()
+    |> Workflow.put_context(%{request_id: request_id})
+    |> Workflow.add_cascade(:submit, &approval_submit/1)
+    |> Workflow.add_cascade(:review, &approval_review/1, deps: [:submit])
+    |> Workflow.add_cascade(:decide, &approval_decide/1, deps: [:review])
+    |> Workflow.add_cascade(:execute, &approval_execute/1, deps: [:decide])
+    |> Workflow.add_cascade(:notify, &approval_notify/1, deps: [:execute], queue: :notifications)
+  end
+end
+
+defmodule WebDev.WorkflowGenerator do
+  use GenServer
+
+  @min_delay 5_000
+  @max_delay 30_000
+
+  @workflows [
+    :document_processing,
+    :order_fulfillment,
+    :data_migration,
+    :tenant_onboarding,
+    :approval_chain
+  ]
+
+  def start_link(opts) do
+    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
+
+    GenServer.start_link(__MODULE__, opts, name: name)
+  end
+
+  @impl GenServer
+  def init(_opts) do
+    Enum.each(@workflows, &schedule_generation/1)
+
+    {:ok, []}
+  end
+
+  @impl GenServer
+  def handle_info({:generate, workflow}, state) do
+    WebDev.Workflows
+    |> apply(workflow, [])
+    |> Oban.insert_all()
+
+    schedule_generation(workflow)
+
+    {:noreply, state}
+  end
+
+  defp schedule_generation(workflow) do
+    delay = Enum.random(@min_delay..@max_delay)
+
+    Process.send_after(self(), {:generate, workflow}, delay)
+  end
 end
 
 # Phoenix
@@ -587,14 +847,17 @@ oban_opts = [
   queues: [
     analysis: 30,
     default: 30,
+    etl: 10,
     events: 20,
-    health: [global_limit: 1],
     exports: [global_limit: 8],
+    fulfillment: 15,
+    health: [global_limit: 1],
     mailers: [local_limit: 10, rate_limit: [allowed: 90, period: 15]],
     media: [
       local_limit: 20,
       rate_limit: [allowed: 120, period: 60, partition: [fields: [:worker]]]
-    ]
+    ],
+    notifications: 10
   ],
   plugins: [
     {Oban.Pro.Plugins.DynamicLifeline, []},
@@ -630,6 +893,7 @@ Task.async(fn ->
     {Oban, oban_opts},
     {Oban, slow_oban_opts},
     {WebDev.Generator, []},
+    {WebDev.WorkflowGenerator, []},
     {WebDev.Endpoint, []}
   ]
 
