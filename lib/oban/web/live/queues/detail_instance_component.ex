@@ -44,13 +44,13 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
             <input type="hidden" name="node" value={@checks["node"]} />
 
             <div class="flex items-center space-x-4">
-              <div class="w-32">
-                <Core.number_input
-                  label={false}
+              <div class="w-24">
+                <input
+                  type="number"
                   name="local_limit"
                   value={@local_limit}
                   disabled={not can?(:scale_queues, @access)}
-                  myself={@myself}
+                  class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                 />
               </div>
 
@@ -82,8 +82,8 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
             count={120}
           />
         </td>
-        <td class="text-right py-3 pr-4 tabular">{@checks["local_limit"]}</td>
         <td class="text-right py-3 tabular">{executing_count(@checks)}</td>
+        <td class="text-right py-3 tabular">{@checks["local_limit"]}</td>
         <td class="text-right py-3">{started_at(@checks)}</td>
         <td class="pr-3 py-3">
           <div class="flex items-center justify-end space-x-2">
@@ -204,15 +204,4 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
     {:noreply, assign(socket, local_limit: limit, editing?: false)}
   end
 
-  def handle_event("increment", _params, socket) do
-    {:noreply, assign(socket, local_limit: socket.assigns.local_limit + 1)}
-  end
-
-  def handle_event("decrement", _params, socket) do
-    if socket.assigns.local_limit > 1 do
-      {:noreply, assign(socket, local_limit: socket.assigns.local_limit - 1)}
-    else
-      {:noreply, socket}
-    end
-  end
 end

@@ -1,8 +1,8 @@
 defmodule Oban.Web.Queues.DetailComponent do
   use Oban.Web, :live_component
 
+  import Oban.Web.FormComponents
   import Oban.Web.Helpers.QueueHelper
-  import Phoenix.HTML.Form, only: [options_for_select: 2]
 
   alias Oban.Config
   alias Oban.Met
@@ -52,6 +52,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         %{
           local_limit: local_limit(checks),
           global_allowed: global_allowed(checks),
+          global_burst: global_burst(checks),
           global_partition_fields: partition_value(checks, "global_limit", "fields"),
           global_partition_keys: partition_value(checks, "global_limit", "keys"),
           rate_allowed: rate_allowed(checks),
@@ -205,7 +206,7 @@ defmodule Oban.Web.Queues.DetailComponent do
       >
       </div>
       <.link
-        navigate={oban_path(:jobs, %{queue: @queue, state: "completed"})}
+        navigate={oban_path(:jobs, %{queues: @queue, state: "completed"})}
         class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
         View all jobs <Icons.arrow_right class="w-3 h-3" />
@@ -364,19 +365,19 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </th>
                 <th
                   scope="col"
-                  class="w-16 text-right text-xs font-medium uppercase tracking-wider py-3 pr-4"
-                >
-                  Limit
-                </th>
-                <th
-                  scope="col"
-                  class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3"
+                  class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3"
                 >
                   Executing
                 </th>
                 <th
                   scope="col"
-                  class="w-24 text-right text-xs font-medium uppercase tracking-wider py-3"
+                  class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3"
+                >
+                  Limit
+                </th>
+                <th
+                  scope="col"
+                  class="w-20 text-right text-xs font-medium uppercase tracking-wider py-3"
                 >
                   Started
                 </th>
@@ -427,25 +428,24 @@ defmodule Oban.Web.Queues.DetailComponent do
         </button>
 
         <div id="config-content" class={["mt-3", unless(@config_open?, do: "hidden")]}>
-          <div class="flex w-full bg-gray-50 dark:bg-gray-800 rounded-md p-4 space-x-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4">
             <form
               id="local-form"
-              class="w-2/12"
               phx-target={@myself}
               phx-change="form-change"
               phx-submit="local-submit"
             >
               <h3 class="flex items-center mb-4">
                 <Icons.map_pin class="w-5 h-5 mr-1 text-gray-500" />
-                <span class="text-base font-medium">Local</span>
+                <span class="text-base font-medium">Local Limit</span>
               </h3>
 
-              <Core.number_input
-                disabled={not can?(:scale_queues, @access)}
+              <.form_field
                 label="Limit"
-                myself={@myself}
                 name="local_limit"
                 value={@inputs.local_limit}
+                type="number"
+                disabled={not can?(:scale_queues, @access)}
               />
 
               <.submit_input
@@ -458,172 +458,226 @@ defmodule Oban.Web.Queues.DetailComponent do
             </form>
 
             <form
-              class={"relative flex-1 px-6 border-l border-r border-gray-200 dark:border-gray-700 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30 rounded-md"}"}
+              class="p-4 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800"
               id="global-form"
               phx-change="form-change"
               phx-submit="global-update"
               phx-target={@myself}
             >
-              <.pro_blocker :if={missing_pro?(@conf)} />
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="flex items-center">
+                  <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
+                  <span class="text-base font-medium">Global Limit</span>
+                  <span
+                    id="global-limit-info"
+                    data-title="Limits total concurrent jobs across all nodes"
+                    phx-hook="Tippy"
+                    class="ml-1"
+                  >
+                    <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  </span>
+                </h3>
 
-              <div class={
-                if missing_pro?(@conf),
-                  do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
-              }>
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="flex items-center">
-                    <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
-                    <span class="text-base font-medium">Global</span>
-                  </h3>
+                <.toggle_button
+                  disabled={not can?(:scale_queues, @access) or missing_pro?(@conf)}
+                  enabled={not is_nil(@inputs.global_allowed)}
+                  feature="global"
+                  myself={@myself}
+                />
+              </div>
 
-                  <.toggle_button
-                    disabled={not can?(:scale_queues, @access)}
-                    enabled={not is_nil(@inputs.global_allowed)}
-                    feature="global"
-                    myself={@myself}
-                  />
-                </div>
-
-                <div class="flex w-full space-x-3 mb-6">
-                  <Core.number_input
-                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
-                    label="Limit"
-                    myself={@myself}
+              <div class="flex w-full mb-6">
+                <div class="w-1/2 pr-1.5">
+                  <.form_field
+                    label="Allowed"
                     name="global_allowed"
                     value={@inputs.global_allowed}
+                    type="number"
+                    disabled={
+                      not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
+                        missing_pro?(@conf)
+                    }
+                  />
+                </div>
+              </div>
+
+              <div class="flex w-full space-x-3 mb-4">
+                <div class="w-1/2">
+                  <.select_field
+                    label="Partition Fields"
+                    name="global_partition_fields"
+                    value={@inputs.global_partition_fields}
+                    options={partition_options()}
+                    disabled={
+                      not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
+                        missing_pro?(@conf)
+                    }
                   />
                 </div>
 
-                <div class="flex w-full space-x-3">
-                  <div class="w-1/2">
-                    <label for="global_partition_fields" class="block font-medium text-sm mb-2">
-                      Partition Fields
-                    </label>
-                    <select
-                      id="global_partition_fields"
-                      name="global_partition_fields"
-                      class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
-                    >
-                      {options_for_select(partition_options(), @inputs.global_partition_fields)}
-                    </select>
-                  </div>
+                <div class="w-1/2">
+                  <label for="global_partition_keys" class="block font-medium text-sm mb-2">
+                    Partition Keys
+                  </label>
 
-                  <div class="w-1/2">
-                    <label for="global_partition_keys" class="block font-medium text-sm mb-2">
-                      Partition Keys
-                    </label>
-
-                    <input
-                      class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                      disabled={
-                        keyless_partition?(@inputs.global_partition_fields) or
-                          not can?(:scale_queues, @access)
-                      }
-                      id="global_partition_keys"
-                      name="global_partition_keys"
-                      type="text"
-                      value={@inputs.global_partition_keys}
-                    />
-                  </div>
+                  <input
+                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                    disabled={
+                      keyless_partition?(@inputs.global_partition_fields) or
+                        not can?(:scale_queues, @access) or missing_pro?(@conf)
+                    }
+                    id="global_partition_keys"
+                    name="global_partition_keys"
+                    type="text"
+                    value={@inputs.global_partition_keys}
+                  />
                 </div>
+              </div>
 
+              <div class="mb-4">
+                <.checkbox_field
+                  label="Burst"
+                  name="global_burst"
+                  checked={@inputs.global_burst}
+                  disabled={
+                    not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
+                      is_nil(@inputs.global_partition_fields) or missing_pro?(@conf)
+                  }
+                  hint="Allow partitions to exceed limit when capacity available"
+                />
+              </div>
+
+              <div class="flex flex-col items-end gap-2">
                 <.submit_input
                   locked={not can?(:scale_queues, @access)}
-                  disabled={global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                  disabled={
+                    global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access) or
+                      missing_pro?(@conf)
+                  }
                   label="Apply"
                 />
+                <a
+                  :if={missing_pro?(@conf)}
+                  rel="requires-pro"
+                  href="https://oban.pro/docs/pro/Oban.Pro.Engines.Smart.html"
+                  target="_blank"
+                  class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                >
+                  Requires Smart Engine
+                  <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                </a>
               </div>
             </form>
 
             <form
-              class={"relative flex-1 #{if missing_pro?(@conf), do: "bg-white dark:bg-black bg-opacity-30 rounded-md"}"}
+              class="p-4 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800"
               id="rate-limit-form"
               phx-change="form-change"
               phx-submit="rate-limit-update"
               phx-target={@myself}
             >
-              <.pro_blocker :if={missing_pro?(@conf)} />
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="flex items-center">
+                  <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
+                  <span class="text-base font-medium">Rate Limit</span>
+                  <span
+                    id="rate-limit-info"
+                    data-title="Limits jobs executed within a time window"
+                    phx-hook="Tippy"
+                    class="ml-1"
+                  >
+                    <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  </span>
+                </h3>
 
-              <div class={
-                if missing_pro?(@conf),
-                  do: "opacity-20 cursor-not-allowed pointer-events-none select-none"
-              }>
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="flex items-center">
-                    <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
-                    <span class="text-base font-medium">Rate Limit</span>
-                  </h3>
+                <.toggle_button
+                  disabled={not can?(:scale_queues, @access) or missing_pro?(@conf)}
+                  enabled={not is_nil(@inputs.rate_allowed)}
+                  feature="rate-limit"
+                  myself={@myself}
+                />
+              </div>
 
-                  <.toggle_button
-                    disabled={not can?(:scale_queues, @access)}
-                    enabled={not is_nil(@inputs.rate_allowed)}
-                    feature="rate-limit"
-                    myself={@myself}
+              <div class="flex w-full space-x-3 mb-6">
+                <div class="w-1/2">
+                  <.form_field
+                    label="Allowed"
+                    name="rate_allowed"
+                    value={@inputs.rate_allowed}
+                    type="number"
+                    disabled={
+                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
+                        missing_pro?(@conf)
+                    }
                   />
                 </div>
 
-                <div class="flex w-full space-x-3 mb-6">
-                  <div class="w-1/2">
-                    <Core.number_input
-                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                      label="Allowed"
-                      myself={@myself}
-                      name="rate_allowed"
-                      value={@inputs.rate_allowed}
-                    />
-                  </div>
+                <div class="w-1/2">
+                  <.form_field
+                    label="Period"
+                    name="rate_period"
+                    value={@inputs.rate_period}
+                    type="number"
+                    disabled={
+                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
+                        missing_pro?(@conf)
+                    }
+                  />
+                </div>
+              </div>
 
-                  <div class="w-1/2">
-                    <Core.number_input
-                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                      label="Period"
-                      myself={@myself}
-                      name="rate_period"
-                      value={@inputs.rate_period}
-                    />
-                  </div>
+              <div class="flex w-full space-x-3">
+                <div class="w-1/2">
+                  <.select_field
+                    label="Partition Fields"
+                    name="rate_partition_fields"
+                    value={@inputs.rate_partition_fields}
+                    options={partition_options()}
+                    disabled={
+                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
+                        missing_pro?(@conf)
+                    }
+                  />
                 </div>
 
-                <div class="flex w-full space-x-3">
-                  <div class="w-1/2">
-                    <label for="rate_partition_fields" class="block font-medium text-sm mb-2">
-                      Partition Fields
-                    </label>
-                    <select
-                      id="rate_partition_fields"
-                      name="rate_partition_fields"
-                      class="block w-full font-mono text-sm pl-3 pr-10 py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
-                    >
-                      {options_for_select(partition_options(), @inputs.rate_partition_fields)}
-                    </select>
-                  </div>
+                <div class="w-1/2">
+                  <label for="rate_partition_keys" class="block font-medium text-sm mb-2">
+                    Partition Keys
+                  </label>
 
-                  <div class="w-1/2">
-                    <label for="rate_keys" class="block font-medium text-sm mb-2">
-                      Partition Keys
-                    </label>
-
-                    <input
-                      class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
-                      disabled={
-                        keyless_partition?(@inputs.rate_partition_fields) or
-                          not can?(:scale_queues, @access)
-                      }
-                      id="rate_partition_keys"
-                      name="rate_partition_keys"
-                      type="text"
-                      value={@inputs.rate_partition_keys}
-                    />
-                  </div>
+                  <input
+                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                    disabled={
+                      keyless_partition?(@inputs.rate_partition_fields) or
+                        not can?(:scale_queues, @access) or missing_pro?(@conf)
+                    }
+                    id="rate_partition_keys"
+                    name="rate_partition_keys"
+                    type="text"
+                    value={@inputs.rate_partition_keys}
+                  />
                 </div>
+              </div>
 
+              <div class="flex flex-col items-end gap-2 mt-4">
                 <.submit_input
                   locked={not can?(:scale_queues, @access)}
-                  disabled={rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                  disabled={
+                    rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access) or
+                      missing_pro?(@conf)
+                  }
                   label="Apply"
                 />
+                <a
+                  :if={missing_pro?(@conf)}
+                  rel="requires-pro"
+                  href="https://oban.pro/docs/pro/Oban.Pro.Engines.Smart.html"
+                  target="_blank"
+                  class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                >
+                  Requires Smart Engine
+                  <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                </a>
               </div>
             </form>
           </div>
@@ -648,6 +702,13 @@ defmodule Oban.Web.Queues.DetailComponent do
   def handle_event("form-change", %{"_target" => ["global_partition_fields"]} = params, socket) do
     fields = params["global_partition_fields"]
     inputs = %{socket.assigns.inputs | global_partition_fields: fields}
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("form-change", %{"_target" => ["global_burst"]} = params, socket) do
+    burst = params["global_burst"] == "true"
+    inputs = %{socket.assigns.inputs | global_burst: burst}
 
     {:noreply, assign(socket, inputs: inputs)}
   end
@@ -689,12 +750,14 @@ defmodule Oban.Web.Queues.DetailComponent do
 
         socket.assigns.inputs
         |> Map.replace!(:global_allowed, nil)
+        |> Map.replace!(:global_burst, false)
         |> Map.replace!(:global_partition_fields, nil)
         |> Map.replace!(:global_partition_keys, nil)
       else
         allowed = String.to_integer(params["global_allowed"])
         fields = maybe_split(params["global_partition_fields"])
         keys = maybe_split(params["global_partition_keys"])
+        burst = params["global_burst"] == "true"
 
         global_limit =
           case fields do
@@ -703,15 +766,18 @@ defmodule Oban.Web.Queues.DetailComponent do
 
             ["worker"] ->
               %{allowed: allowed, partition: [fields: fields]}
+              |> maybe_add_burst(burst)
 
             _ ->
               %{allowed: allowed, partition: [fields: fields, keys: keys]}
+              |> maybe_add_burst(burst)
           end
 
         send(self(), {:scale_queue, socket.assigns.queue, global_limit: global_limit})
 
         socket.assigns.inputs
         |> Map.replace!(:global_allowed, allowed)
+        |> Map.replace!(:global_burst, burst)
         |> Map.replace!(:global_partition_fields, Enum.join(fields, ","))
         |> Map.replace!(:global_partition_keys, Enum.join(keys, ","))
       end
@@ -761,19 +827,18 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, assign(socket, inputs: inputs)}
   end
 
-  def handle_event("increment", %{"field" => field}, socket) do
-    {:noreply, change_input(socket, field, 1)}
-  end
-
-  def handle_event("decrement", %{"field" => field}, socket) do
-    {:noreply, change_input(socket, field, -1)}
-  end
-
   def handle_event("toggle-feature", %{"feature" => "global"}, socket) do
     inputs =
-      Map.update!(socket.assigns.inputs, :global_allowed, fn value ->
-        if is_nil(value), do: socket.assigns.inputs.local_limit, else: nil
-      end)
+      if is_nil(socket.assigns.inputs.global_allowed) do
+        socket.assigns.inputs
+        |> Map.put(:global_allowed, socket.assigns.inputs.local_limit)
+      else
+        socket.assigns.inputs
+        |> Map.put(:global_allowed, nil)
+        |> Map.put(:global_burst, false)
+        |> Map.put(:global_partition_fields, nil)
+        |> Map.put(:global_partition_keys, nil)
+      end
 
     {:noreply, assign(socket, inputs: inputs)}
   end
@@ -878,20 +943,6 @@ defmodule Oban.Web.Queues.DetailComponent do
     """
   end
 
-  defp pro_blocker(assigns) do
-    ~H"""
-    <span
-      rel="requires-pro"
-      class="text-center w-full text-sm text-gray-600 dark:text-gray-300 absolute top-1/2 -mt-6 -ml-3"
-    >
-      Requires
-      <a href="https://oban.pro" class="text-blue-500 font-semibold">
-        Oban Pro <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block align-text-top" />
-      </a>
-    </span>
-    """
-  end
-
   # JS Functions
 
   defp toggle_instances(myself) do
@@ -934,6 +985,14 @@ defmodule Oban.Web.Queues.DetailComponent do
     |> Enum.find_value(& &1["allowed"])
   end
 
+  defp global_burst(checks) do
+    checks
+    |> Enum.map(& &1["global_limit"])
+    |> Enum.filter(&is_map/1)
+    |> Enum.find_value(& &1["burst"])
+    |> Kernel.==(true)
+  end
+
   defp rate_allowed(checks) do
     checks
     |> Enum.map(& &1["rate_limit"])
@@ -961,6 +1020,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp global_unchanged?(checks, inputs) do
     inputs.global_allowed == global_allowed(checks) and
+      inputs.global_burst == global_burst(checks) and
       inputs.global_partition_fields == partition_value(checks, "global_limit", "fields") and
       inputs.global_partition_keys == partition_value(checks, "global_limit", "keys")
   end
@@ -972,30 +1032,26 @@ defmodule Oban.Web.Queues.DetailComponent do
       inputs.rate_partition_keys == partition_value(checks, "rate_limit", "keys")
   end
 
-  defp change_input(socket, field, change) do
-    field = String.to_existing_atom(field)
-
-    inputs =
-      Map.update!(socket.assigns.inputs, field, fn value ->
-        if is_integer(value) and value + change > 0 do
-          value + change
-        else
-          value
-        end
-      end)
-
-    assign(socket, inputs: inputs)
-  end
-
   defp maybe_split(""), do: []
   defp maybe_split(nil), do: []
   defp maybe_split(value) when is_binary(value), do: String.split(value, ",")
 
+  defp maybe_add_burst(global_limit, true), do: Map.put(global_limit, :burst, true)
+  defp maybe_add_burst(global_limit, false), do: global_limit
+
   defp partition_options do
-    [Off: nil, Worker: "worker", Args: "args", "Worker + Args": "args,worker"]
+    [
+      Off: nil,
+      Worker: "worker",
+      Args: "args",
+      Meta: "meta",
+      "Worker + Args": "args,worker",
+      "Worker + Meta": "meta,worker"
+    ]
   end
 
-  defp keyless_partition?(inputs), do: inputs not in ["args", "args,worker"]
+  defp keyless_partition?(fields),
+    do: fields not in ["args", "meta", "args,worker", "meta,worker"]
 
   defp local_limit_display(checks) do
     limits = Enum.map(checks, & &1["local_limit"])

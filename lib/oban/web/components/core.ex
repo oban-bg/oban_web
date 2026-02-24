@@ -41,65 +41,6 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
-  @doc """
-  A numerical input with increment and decrement buttons.
-  """
-  def number_input(assigns) do
-    ~H"""
-    <div>
-      <%= if @label do %>
-        <label
-          for={@name}
-          class={"block font-medium text-sm mb-2 #{if @disabled, do: "text-gray-600 dark:text-gray-400", else: "opacity-50"}"}
-        >
-          {@label}
-        </label>
-      <% end %>
-
-      <div class="flex">
-        <input
-          autocomplete="off"
-          class="w-1/2 flex-1 min-w-0 block font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-l-md focus:ring-blue-400 focus:border-blue-400"
-          disabled={@disabled}
-          inputmode="numeric"
-          name={@name}
-          pattern="[1-9][0-9]*"
-          placeholder="Off"
-          type="text"
-          value={@value}
-        />
-
-        <div class="w-9">
-          <button
-            rel="inc"
-            class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-tr-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-            disabled={@disabled}
-            type="button"
-            phx-click="increment"
-            phx-target={@myself}
-            phx-value-field={@name}
-          >
-            <Icons.chevron_up class="w-3 h-3 text-gray-600 dark:text-gray-200" />
-          </button>
-
-          <button
-            rel="dec"
-            class="block -ml-px px-3 py-1 bg-gray-300 dark:bg-gray-500 rounded-br-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
-            disabled={@disabled}
-            tabindex="-1"
-            type="button"
-            phx-click="decrement"
-            phx-target={@myself}
-            phx-value-field={@name}
-          >
-            <Icons.chevron_down class="w-3 h-3 text-gray-600 dark:text-gray-200" />
-          </button>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
   slot :inner_block, required: true
   attr :name, :string, required: true
   attr :options, :list, required: true

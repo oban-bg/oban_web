@@ -88,6 +88,60 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
   end
 
   @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  test "configuring global partitioning with meta fields" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "meta", global_partition_keys: "tenant_id"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 10,
+        "partition" => [["fields", ["meta"]], ["keys", ["tenant_id"]]]
+      },
+      "queue" => "alpha"
+    })
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "meta,worker", global_partition_keys: "tenant_id"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 10,
+        "partition" => [["fields", ["meta", "worker"]], ["keys", ["tenant_id"]]]
+      },
+      "queue" => "alpha"
+    })
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  test "enabling burst mode for partitioned global limits" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "worker", global_burst: "true"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 10,
+        "burst" => true,
+        "partition" => [["fields", ["worker"]]]
+      },
+      "queue" => "alpha"
+    })
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
   test "setting the rate limit across all nodes" do
     gossip(local_limit: 5, queue: "alpha")
 
