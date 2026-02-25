@@ -43,6 +43,7 @@ defmodule Oban.Web.ShortcutsComponent do
                 <.list_item description="Go to jobs" shortcut="J" />
                 <.list_item description="Go to queues" shortcut="Q" />
                 <.list_item description="Go to crons" shortcut="C" />
+                <.list_item description="Go to workflows" shortcut="W" />
 
                 <.list_item description="Focus search" shortcut="/" />
                 <.list_item description="Toggle refresh" shortcut="r" />

@@ -723,8 +723,8 @@ end
 defmodule WebDev.WorkflowGenerator do
   use GenServer
 
-  @min_delay 5_000
-  @max_delay 30_000
+  @min_delay 8_000
+  @max_delay 60_000
 
   @workflows [
     :document_processing,

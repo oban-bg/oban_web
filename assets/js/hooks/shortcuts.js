@@ -4,6 +4,7 @@ const PAIRS = {
   C: "#nav-crons",
   J: "#nav-jobs",
   Q: "#nav-queues",
+  W: "#nav-workflows",
   r: "#refresh-selector",
   t: "#theme-selector",
 }
