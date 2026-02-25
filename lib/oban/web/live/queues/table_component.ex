@@ -22,11 +22,29 @@ defmodule Oban.Web.Queues.TableComponent do
         </div>
       </ul>
 
+      <div :if={Enum.empty?(@queues) and Enum.empty?(@checks)} class="py-16 px-6 text-center">
+        <Icons.queue_list class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No queues</h3>
+        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          Queues process jobs concurrently. They'll appear here once your Oban instance starts with queues configured.
+        </p>
+        <div class="mt-4">
+          <a
+            href="https://hexdocs.pm/oban/defining_queues.html"
+            target="_blank"
+            rel="noopener"
+            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+          >
+            Learn about queues <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </div>
+
       <div
-        :if={Enum.empty?(@queues)}
+        :if={Enum.empty?(@queues) and not Enum.empty?(@checks)}
         class="flex items-center justify-center py-12 space-x-2 text-lg text-gray-600 dark:text-gray-300"
       >
-        <Icons.no_symbol /> <span>No queues running match the current set of filters.</span>
+        <Icons.no_symbol /> <span>No queues match the current filters.</span>
       </div>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
