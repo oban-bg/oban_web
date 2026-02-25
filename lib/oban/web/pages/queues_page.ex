@@ -117,6 +117,7 @@ defmodule Oban.Web.QueuesPage do
               id="queues-table"
               module={TableComponent}
               access={@access}
+              checks={@checks}
               history={@history}
               params={@params}
               queues={@queues}

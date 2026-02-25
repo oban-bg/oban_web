@@ -95,9 +95,21 @@ defmodule Oban.Web.CronsPage do
               </div>
             </ul>
 
-            <div :if={Enum.empty?(@crontab)} class="text-lg text-center py-12">
-              <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
-                <Icons.no_symbol /> <span>No crons are configured.</span>
+            <div :if={Enum.empty?(@crontab)} class="py-16 px-6 text-center">
+              <Icons.clock class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+              <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No crons</h3>
+              <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                Crons run jobs on a schedule. Configure them in your Oban supervisor or create them dynamically.
+              </p>
+              <div class="mt-4">
+                <a
+                  href="https://hexdocs.pm/oban/periodic_jobs.html"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+                >
+                  Learn about crons <span aria-hidden="true">&rarr;</span>
+                </a>
               </div>
             </div>
 

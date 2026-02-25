@@ -21,9 +21,21 @@ defmodule Oban.Web.Workflows.TableComponent do
         </div>
       </ul>
 
-      <div :if={Enum.empty?(@workflows)} class="text-lg text-center py-12">
-        <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
-          <Icons.no_symbol /> <span>No workflows found.</span>
+      <div :if={Enum.empty?(@workflows)} class="py-16 px-6 text-center">
+        <Icons.rectangle_group class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No workflows</h3>
+        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          Workflows coordinate jobs with dependencies. They'll appear here once jobs with workflow metadata are enqueued.
+        </p>
+        <div class="mt-4">
+          <a
+            href="https://oban.pro/docs/pro/Oban.Pro.Workflow.html"
+            target="_blank"
+            rel="noopener"
+            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+          >
+            Learn about workflows <span aria-hidden="true">&rarr;</span>
+          </a>
         </div>
       </div>
 
