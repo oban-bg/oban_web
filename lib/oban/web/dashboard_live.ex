@@ -1,7 +1,7 @@
 defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
-  alias Oban.Web.{CronsPage, JobsPage, QueuesPage}
+  alias Oban.Web.{CronsPage, JobsPage, QueuesPage, WorkflowsPage}
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
@@ -221,6 +221,7 @@ defmodule Oban.Web.DashboardLive do
   defp resolve_page(%{"page" => "jobs"}), do: %{name: :jobs, comp: JobsPage}
   defp resolve_page(%{"page" => "queues"}), do: %{name: :queues, comp: QueuesPage}
   defp resolve_page(%{"page" => "crons"}), do: %{name: :crons, comp: CronsPage}
+  defp resolve_page(%{"page" => "workflows"}), do: %{name: :workflows, comp: WorkflowsPage}
   defp resolve_page(_params), do: %{name: :jobs, comp: JobsPage}
 
   ## Refresh Helpers
