@@ -210,7 +210,137 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="px-3 py-6">
+      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+        <button
+          id="diagnostics-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click={toggle_diagnostics()}
+        >
+          <Icons.chevron_right
+            id="diagnostics-chevron"
+            class={["w-5 h-5 transition-transform", if(executing?(@job), do: "rotate-90")]}
+          />
+          <span class="font-semibold">Diagnostics</span>
+          <span
+            id="diagnostics-pro-badge"
+            class="inline-flex items-center px-1.5 py-0.5 rounded text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+            data-title="Diagnostics for executing Oban.Pro.Worker jobs"
+            phx-hook="Tippy"
+          >
+            Pro
+          </span>
+        </button>
+
+        <div id="diagnostics-content" class={["mt-3", unless(executing?(@job), do: "hidden")]}>
+          <%= if @diagnostics do %>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                    Process Info
+                  </h4>
+                  <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                    Refreshed at {format_diagnostics_time(@diagnostics_at)}
+                  </span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Status</span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_status(@diagnostics["info"]["status"])}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Memory</span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_bytes(@diagnostics["info"]["memory"])}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Message Queue
+                    </span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_number(@diagnostics["info"]["message_queue_len"])}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Reductions
+                    </span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_number(@diagnostics["info"]["reductions"])}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Heap Size
+                    </span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_number(@diagnostics["info"]["heap_size"])}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">
+                      Stack Size
+                    </span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {format_number(@diagnostics["info"]["stack_size"])}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+                <div class="flex justify-between items-start mb-3">
+                  <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                    Current Stacktrace
+                  </h4>
+                  <button
+                    :if={@diagnostics["info"]["current_stacktrace"]}
+                    type="button"
+                    id="copy-stacktrace"
+                    class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                    data-title="Copy to clipboard"
+                    phx-hook="Tippy"
+                    phx-click={copy_to_clipboard(@diagnostics["info"]["current_stacktrace"])}
+                  >
+                    <Icons.clipboard class="w-4 h-4" />
+                  </button>
+                </div>
+                <%= if @diagnostics["info"]["current_stacktrace"] do %>
+                  <div class="space-y-1 max-h-64 overflow-y-auto">
+                    <div
+                      :for={frame <- parse_stacktrace(@diagnostics["info"]["current_stacktrace"])}
+                      class="font-mono text-xs text-gray-600 dark:text-gray-400 py-1.5 px-2 bg-white dark:bg-gray-900 rounded border-l-2 border-gray-300 dark:border-gray-600"
+                    >
+                      {frame}
+                    </div>
+                  </div>
+                <% else %>
+                  <span class="text-sm text-gray-400 dark:text-gray-500">
+                    No stacktrace available
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          <% else %>
+            <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
+              <Icons.clock class="w-5 h-5" />
+              <span class="text-sm">
+                <%= if executing?(@job) do %>
+                  Waiting for diagnostics...
+                <% else %>
+                  Diagnostics are only available for executing jobs
+                <% end %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <.live_component
           id="detail-history-chart"
           module={HistoryChartComponent}
@@ -690,6 +820,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp job_title(job), do: Map.get(job.meta, "decorated_name", job.worker)
 
+  defp toggle_diagnostics do
+    %JS{}
+    |> JS.toggle(to: "#diagnostics-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#diagnostics-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#diagnostics-chevron.rotate-90")
+  end
+
   defp toggle_edit do
     %JS{}
     |> JS.toggle(to: "#edit-content", in: "fade-in-scale", out: "fade-out-scale")
@@ -725,6 +862,34 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp editable?(%{state: state}) do
     state in ~w(scheduled retryable available)
+  end
+
+  defp executing?(%{state: state}), do: state == "executing"
+
+  defp format_bytes(nil), do: "—"
+  defp format_bytes(bytes) when bytes < 1024, do: "#{bytes} B"
+  defp format_bytes(bytes) when bytes < 1024 * 1024, do: "#{Float.round(bytes / 1024, 1)} KB"
+  defp format_bytes(bytes), do: "#{Float.round(bytes / 1024 / 1024, 1)} MB"
+
+  defp format_number(nil), do: "—"
+  defp format_number(num) when is_integer(num), do: integer_to_delimited(num)
+
+  defp format_status(nil), do: "—"
+  defp format_status(status) when is_binary(status), do: String.capitalize(status)
+
+  defp format_diagnostics_time(unix_time) when is_integer(unix_time) do
+    unix_time
+    |> DateTime.from_unix!()
+    |> Calendar.strftime("%H:%M:%S")
+  end
+
+  defp parse_stacktrace(nil), do: []
+
+  defp parse_stacktrace(stacktrace) when is_binary(stacktrace) do
+    stacktrace
+    |> String.split("\n")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
   end
 
   defp parse_edit_params(params, job) do

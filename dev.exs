@@ -112,7 +112,7 @@ end
 defmodule Oban.Workers.AvatarProcessor do
   @moduledoc false
 
-  use Oban.Worker, queue: :media, tags: ["media"]
+  use Oban.Pro.Worker, queue: :media, tags: ["media"]
 
   alias Faker.Avatar
   alias WebDev.Generator
@@ -149,7 +149,7 @@ end
 defmodule Oban.Workers.DigestMailer do
   @moduledoc false
 
-  use Oban.Worker, queue: :mailers, max_attempts: 1, tags: ["notification"]
+  use Oban.Pro.Worker, queue: :mailers, max_attempts: 1, tags: ["notification"]
 
   alias Faker.{Company, Internet}
   alias WebDev.Generator
@@ -187,7 +187,7 @@ end
 defmodule Oban.Workers.MailingListSyncer do
   @moduledoc false
 
-  use Oban.Worker, queue: :events, tags: ["notification"]
+  use Oban.Pro.Worker, queue: :events, tags: ["notification"]
 
   alias Faker.{Address, Date, Internet, Person}
   alias WebDev.Generator
@@ -250,7 +250,7 @@ end
 defmodule Oban.Workers.PushNotifier do
   @moduledoc false
 
-  use Oban.Worker, queue: :events, max_attempts: 10
+  use Oban.Pro.Worker, queue: :events, max_attempts: 10
 
   alias Faker.{Team, UUID}
   alias WebDev.Generator
@@ -272,7 +272,7 @@ end
 defmodule Oban.Workers.ReadabilityAnalyzer do
   @moduledoc false
 
-  use Oban.Worker, queue: :analysis
+  use Oban.Pro.Worker, queue: :analysis
 
   alias Faker.Lorem.Shakespeare
   alias Faker.UUID
@@ -295,7 +295,7 @@ end
 defmodule Oban.Workers.ReceiptMailer do
   @moduledoc false
 
-  use Oban.Worker, queue: :mailers, max_attempts: 10
+  use Oban.Pro.Worker, queue: :mailers, max_attempts: 10
 
   alias Faker.{Commerce, Company, UUID}
   alias WebDev.Generator
@@ -332,6 +332,7 @@ end
 defmodule Oban.Workers.TranscriptionAnalyzer do
   @moduledoc false
 
+  # Purposefully using Oban.Worker rather than Oban.Pro.Worker
   use Oban.Worker, queue: :analysis
 
   alias Faker.Lorem.Shakespeare

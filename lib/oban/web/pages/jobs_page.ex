@@ -55,6 +55,8 @@ defmodule Oban.Web.JobsPage do
               id="detail"
               access={@access}
               conf={@conf}
+              diagnostics={@diagnostics}
+              diagnostics_at={@diagnostics_at}
               history={@history}
               init_state={@init_state}
               job={@detailed}
@@ -203,6 +205,8 @@ defmodule Oban.Web.JobsPage do
     %{socket | assigns: assigns}
     |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
+    |> assign_new(:diagnostics, fn -> nil end)
+    |> assign_new(:diagnostics_at, fn -> nil end)
     |> assign_new(:history, fn -> [] end)
     |> assign_new(:jobs, fn -> [] end)
     |> assign_new(:nodes, fn -> [] end)
@@ -239,8 +243,25 @@ defmodule Oban.Web.JobsPage do
         []
       end
 
+    diagnostics =
+      if detailed && detailed.state == "executing" do
+        Oban.Notifier.notify(conf.name, :diagnostics, %{job_id: detailed.id})
+        socket.assigns.diagnostics
+      else
+        nil
+      end
+
+    diagnostics_at =
+      if diagnostics do
+        socket.assigns.diagnostics_at
+      else
+        nil
+      end
+
     assign(socket,
       detailed: detailed,
+      diagnostics: diagnostics,
+      diagnostics_at: diagnostics_at,
       history: history,
       jobs: jobs,
       nodes: nodes(conf),
@@ -270,11 +291,14 @@ defmodule Oban.Web.JobsPage do
         {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
 
       job ->
+        Oban.Notifier.listen(conf.name, [:diagnostics_reply])
+
         history = JobQuery.job_history(job, conf)
 
         {:noreply,
          socket
          |> assign(detailed: job, show_new_form: false, page_title: page_title(job))
+         |> assign(diagnostics: nil, diagnostics_at: nil)
          |> assign(history: history)
          |> assign(params: params)}
     end
@@ -283,11 +307,14 @@ defmodule Oban.Web.JobsPage do
   def handle_params(params, _uri, socket) do
     %{conf: conf, resolver: resolver} = socket.assigns
 
+    Oban.Notifier.unlisten(conf.name, [:diagnostics_reply])
+
     params = params_with_defaults(params, socket)
 
     socket =
       socket
       |> assign(detailed: nil, show_new_form: false, page_title: page_title("Jobs"))
+      |> assign(diagnostics: nil, diagnostics_at: nil)
       |> assign(history: [])
       |> assign(params: params)
       |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
@@ -348,6 +375,16 @@ defmodule Oban.Web.JobsPage do
 
   def handle_info({:flash, mode, message}, socket) do
     {:noreply, put_flash_with_clear(socket, mode, message)}
+  end
+
+  # Diagnostics
+
+  def handle_info({:notification, :diagnostics_reply, %{"job_id" => job_id} = payload}, socket) do
+    if socket.assigns.detailed && socket.assigns.detailed.id == job_id do
+      {:noreply, assign(socket, diagnostics: payload, diagnostics_at: System.os_time(:second))}
+    else
+      {:noreply, socket}
+    end
   end
 
   # Filtering
