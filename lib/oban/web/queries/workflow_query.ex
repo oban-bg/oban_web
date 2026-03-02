@@ -269,15 +269,22 @@ defmodule Oban.Web.WorkflowQuery do
     Repo.all(conf, query)
   end
 
+  @skip_workers ~w(Oban.Pro.Workers.Context)
+
   defp fetch_initial_worker(conf, workflow_id) do
     query =
       Job
       |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
+      |> where([j], j.worker not in @skip_workers)
       |> order_by([j], asc: j.id)
       |> limit(1)
-      |> select([j], j.worker)
+      |> select([j], %{worker: j.worker, meta: j.meta})
 
-    Repo.one(conf, query) || "Unknown"
+    case Repo.one(conf, query) do
+      %{meta: %{"decorated_name" => name}} -> name
+      %{worker: worker} when is_binary(worker) -> worker
+      nil -> "Unknown"
+    end
   end
 
   def get_sub_workflows(conf, workflow_id, limit \\ 10) do
