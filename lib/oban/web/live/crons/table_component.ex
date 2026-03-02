@@ -234,8 +234,11 @@ defmodule Oban.Web.Crons.TableComponent do
 
   defp state_title(cron) do
     case cron.last_state do
-      nil -> "Unknown, no previous runs"
-      state -> "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
+      nil ->
+        "Unknown, no previous runs"
+
+      state ->
+        "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
     end
   end
 

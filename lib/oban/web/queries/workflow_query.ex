@@ -287,6 +287,24 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
+  def get_workflow(conf, workflow_id) do
+    build_workflow(%{workflow_id: workflow_id}, conf)
+  end
+
+  def get_parent_workflow(conf, workflow_id) do
+    query =
+      Job
+      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
+      |> where([j], fragment("? \\? 'sup_workflow_id'", j.meta))
+      |> limit(1)
+      |> select([j], fragment("?->>'sup_workflow_id'", j.meta))
+
+    case Repo.one(conf, query) do
+      nil -> nil
+      parent_id -> build_workflow(%{workflow_id: parent_id}, conf)
+    end
+  end
+
   def get_sub_workflows(conf, workflow_id, limit \\ 10) do
     query =
       Job
