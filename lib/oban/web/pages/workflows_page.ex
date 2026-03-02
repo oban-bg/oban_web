@@ -3,14 +3,14 @@ defmodule Oban.Web.WorkflowsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Page, WorkflowQuery}
+  alias Oban.Web.{Page, SortComponent, WorkflowQuery}
   alias Oban.Web.Workflows.TableComponent
 
   @known_params ~w(limit sort_by sort_dir)
 
-  @inc_limit 20
+  @inc_limit 10
   @max_limit 100
-  @min_limit 20
+  @min_limit 10
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -23,6 +23,15 @@ defmodule Oban.Web.WorkflowsPage do
         >
           <div class="flex-none flex items-center px-3">
             <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Workflows</h2>
+          </div>
+
+          <div class="pl-3 ml-auto flex items-center">
+            <SortComponent.select
+              id="workflows-sort"
+              by={~w(inserted started duration total progress)}
+              page={:workflows}
+              params={@params}
+            />
           </div>
         </div>
 
@@ -69,7 +78,7 @@ defmodule Oban.Web.WorkflowsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = %{limit: @min_limit, sort_by: "id", sort_dir: "desc"}
+    default = %{limit: @min_limit, sort_by: "inserted", sort_dir: "desc"}
 
     socket
     |> assign(:default_params, default)
