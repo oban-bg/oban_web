@@ -3,10 +3,10 @@ defmodule Oban.Web.WorkflowsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Page, SortComponent, WorkflowQuery}
+  alias Oban.Web.{Page, SearchComponent, SortComponent, WorkflowQuery}
   alias Oban.Web.Workflows.TableComponent
 
-  @known_params ~w(limit sort_by sort_dir)
+  @known_params ~w(ids limit names queues sort_by sort_dir states workers)
 
   @inc_limit 10
   @max_limit 100
@@ -24,6 +24,16 @@ defmodule Oban.Web.WorkflowsPage do
           <div class="flex-none flex items-center px-3">
             <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Workflows</h2>
           </div>
+
+          <.live_component
+            conf={@conf}
+            id="search"
+            module={SearchComponent}
+            page={:workflows}
+            params={without_defaults(@params, @default_params)}
+            queryable={WorkflowQuery}
+            resolver={@resolver}
+          />
 
           <div class="pl-3 ml-auto flex items-center">
             <SortComponent.select
