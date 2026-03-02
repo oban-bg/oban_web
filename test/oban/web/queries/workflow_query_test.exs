@@ -58,6 +58,36 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
     end
   end
 
+  describe "get_sub_workflows/3" do
+    test "returns sub-workflows for a parent workflow", %{conf: conf} do
+      insert_workflow!(conf, "parent-wf", name: "parent", worker: "ParentWorker")
+      insert_sub_workflow!(conf, "sub-wf-1", "parent-wf", name: "child-1", worker: "ChildWorker1")
+      insert_sub_workflow!(conf, "sub-wf-2", "parent-wf", name: "child-2", worker: "ChildWorker2")
+
+      subs = WorkflowQuery.get_sub_workflows(conf, "parent-wf")
+
+      assert length(subs) == 2
+      assert Enum.sort(Enum.map(subs, & &1.id)) == ["sub-wf-1", "sub-wf-2"]
+    end
+
+    test "respects the limit parameter", %{conf: conf} do
+      insert_workflow!(conf, "parent-wf", worker: "ParentWorker")
+      insert_sub_workflow!(conf, "sub-1", "parent-wf", worker: "Worker1")
+      insert_sub_workflow!(conf, "sub-2", "parent-wf", worker: "Worker2")
+      insert_sub_workflow!(conf, "sub-3", "parent-wf", worker: "Worker3")
+
+      subs = WorkflowQuery.get_sub_workflows(conf, "parent-wf", 2)
+
+      assert length(subs) == 2
+    end
+
+    test "returns empty list when no sub-workflows exist", %{conf: conf} do
+      insert_workflow!(conf, "lonely-wf", worker: "LonelyWorker")
+
+      assert [] == WorkflowQuery.get_sub_workflows(conf, "lonely-wf")
+    end
+  end
+
   defp workflow_ids(conf, params) do
     params
     |> Map.new()
@@ -87,4 +117,24 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp insert_sub_workflow!(conf, workflow_id, parent_workflow_id, opts) do
+    meta =
+      maybe_put(
+        %{workflow_id: workflow_id, sup_workflow_id: parent_workflow_id},
+        :workflow_name,
+        Keyword.get(opts, :name)
+      )
+
+    job_opts =
+      opts
+      |> Keyword.take([:queue, :state])
+      |> Keyword.put(:meta, meta)
+      |> Keyword.put(:conf, conf)
+      |> Keyword.put_new(:queue, :default)
+
+    worker = Keyword.get(opts, :worker, "DefaultWorker")
+
+    insert_job!(%{}, Keyword.put(job_opts, :worker, worker))
+  end
 end
