@@ -121,8 +121,8 @@ defmodule Oban.Workers.AvatarProcessor do
     new(%{id: Enum.random(100..10_000), image_url: Avatar.image_url()}, opts)
   end
 
-  @impl Worker
-  def perform(_job), do: Generator.random_perform(300, 3_000)
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(300, 3_000)
 end
 
 defmodule Oban.Workers.BotCleaner do
@@ -158,8 +158,8 @@ defmodule Oban.Workers.DigestMailer do
     new(%{email: Internet.email(), project: Company.bullshit()}, opts)
   end
 
-  @impl Worker
-  def perform(_job), do: Generator.random_perform(100, 5_000)
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(100, 5_000)
 end
 
 defmodule Oban.Workers.ExportGenerator do
@@ -206,10 +206,10 @@ defmodule Oban.Workers.MailingListSyncer do
     })
   end
 
-  @impl Worker
-  def perform(_job), do: Generator.random_perform(400, 2_500)
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(400, 2_500)
 
-  @impl Worker
+  @impl Oban.Pro.Worker
   def timeout(_job), do: :timer.seconds(20)
 end
 
@@ -262,10 +262,10 @@ defmodule Oban.Workers.PushNotifier do
     new(%{fcm_ids: ids, message: "Welcome to #{Team.name()}"}, opts)
   end
 
-  @impl Worker
-  def perform(_job), do: Generator.random_perform(300, 5_000)
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(300, 5_000)
 
-  @impl Worker
+  @impl Oban.Pro.Worker
   def backoff(_job), do: 30
 end
 
@@ -282,8 +282,8 @@ defmodule Oban.Workers.ReadabilityAnalyzer do
     new(%{id: UUID.v4(), phrase: Shakespeare.hamlet()}, opts)
   end
 
-  @impl Worker
-  def perform(_job) do
+  @impl Oban.Pro.Worker
+  def process(_job) do
     if :rand.uniform() < 0.75 do
       Generator.random_perform(1_000, 15_000)
     else
@@ -304,8 +304,8 @@ defmodule Oban.Workers.ReceiptMailer do
     new(%{account: Company.name(), id: UUID.v4(), price: Commerce.price()}, opts)
   end
 
-  @impl Worker
-  def perform(_job), do: Generator.random_perform(400, 6_000)
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(400, 6_000)
 end
 
 defmodule Oban.Workers.SyntaxAnalyzer do
