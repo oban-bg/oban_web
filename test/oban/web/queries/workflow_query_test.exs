@@ -36,7 +36,10 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
 
       assert ["wf-media"] == workflow_ids(conf, queues: ~w(media))
       assert ["wf-default"] == workflow_ids(conf, queues: ~w(default))
-      assert sort(["wf-media", "wf-default"]) == workflow_ids(conf, queues: ~w(media default)) |> sort()
+
+      assert sort(["wf-media", "wf-default"]) ==
+               workflow_ids(conf, queues: ~w(media default)) |> sort()
+
       assert [] == workflow_ids(conf, queues: ~w(unknown))
     end
 

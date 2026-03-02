@@ -1,7 +1,7 @@
 defmodule Oban.Web.Workflows.TableComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Helpers, only: [integer_to_estimate: 1]
+  import Oban.Web.Helpers, only: [integer_to_estimate: 1, oban_path: 1]
 
   alias Oban.Web.Timing
 
@@ -69,7 +69,10 @@ defmodule Oban.Web.Workflows.TableComponent do
   defp workflow_row(assigns) do
     ~H"""
     <li id={"workflow-#{@workflow.id}"}>
-      <div class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
+      <div
+        class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30 cursor-pointer"
+        phx-click={JS.navigate(oban_path([:workflows, @workflow.id]))}
+      >
         <div class="pl-3 py-3.5 flex flex-grow items-center">
           <div class="w-1/3">
             <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
@@ -124,7 +127,8 @@ defmodule Oban.Web.Workflows.TableComponent do
       id={"sub-workflow-#{@workflow.id}"}
       class={[
         "flex items-center bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800",
-        @first && "shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+        @first &&
+          "shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
       ]}
     >
       <div class="pl-3 py-3 flex flex-grow items-center">
@@ -187,6 +191,7 @@ defmodule Oban.Web.Workflows.TableComponent do
               "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
           )
         ]}
+        onclick="event.stopPropagation()"
         phx-click="toggle-subs"
         phx-value-id={@workflow.id}
         data-title={if @expanded, do: "Collapse sub-workflows", else: "Expand sub-workflows"}

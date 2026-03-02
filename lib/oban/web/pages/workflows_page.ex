@@ -3,10 +3,14 @@ defmodule Oban.Web.WorkflowsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.{Page, SearchComponent, SortComponent, WorkflowQuery}
-  alias Oban.Web.Workflows.TableComponent
+  alias Oban.Pro.Workflow
+  alias Oban.Web.{Page, SearchComponent, SortComponent, Telemetry, WorkflowQuery}
+  alias Oban.Web.Workflows.{DetailComponent, TableComponent}
+
+  @compile {:no_warn_undefined, Oban.Pro.Workflow}
 
   @known_params ~w(ids limit names queues sort_by sort_dir states workers)
+  @keep_on_mount ~w(default_params detail detail_subs expanded params parent_workflow sub_workflows workflow workflows)a
 
   @inc_limit 10
   @max_limit 100
@@ -17,49 +21,61 @@ defmodule Oban.Web.WorkflowsPage do
     ~H"""
     <div id="workflows-page" class="w-full my-6">
       <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
-        <div
-          id="workflows-header"
-          class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex-none flex items-center px-3">
-            <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Workflows</h2>
+        <%= if @detail do %>
+          <.live_component
+            id="detail"
+            access={@access}
+            conf={@conf}
+            module={DetailComponent}
+            workflow={@workflow}
+            parent_workflow={@parent_workflow}
+            sub_workflows={@detail_subs}
+          />
+        <% else %>
+          <div
+            id="workflows-header"
+            class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
+          >
+            <div class="flex-none flex items-center px-3">
+              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Workflows</h2>
+            </div>
+
+            <.live_component
+              conf={@conf}
+              id="search"
+              module={SearchComponent}
+              page={:workflows}
+              params={without_defaults(@params, @default_params)}
+              queryable={WorkflowQuery}
+              resolver={@resolver}
+            />
+
+            <div class="pl-3 ml-auto flex items-center">
+              <SortComponent.select
+                id="workflows-sort"
+                by={~w(inserted started duration total progress)}
+                page={:workflows}
+                params={@params}
+              />
+            </div>
           </div>
 
           <.live_component
-            conf={@conf}
-            id="search"
-            module={SearchComponent}
-            page={:workflows}
-            params={without_defaults(@params, @default_params)}
-            queryable={WorkflowQuery}
-            resolver={@resolver}
+            id="workflows-table"
+            module={TableComponent}
+            workflows={@workflows}
+            expanded={@expanded}
+            sub_workflows={@sub_workflows}
           />
 
-          <div class="pl-3 ml-auto flex items-center">
-            <SortComponent.select
-              id="workflows-sort"
-              by={~w(inserted started duration total progress)}
-              page={:workflows}
-              params={@params}
-            />
+          <div
+            :if={@show_less? or @show_more?}
+            class="py-6 flex items-center justify-center space-x-6 border-t border-gray-200 dark:border-gray-700"
+          >
+            <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
+            <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
           </div>
-        </div>
-
-        <.live_component
-          id="workflows-table"
-          module={TableComponent}
-          workflows={@workflows}
-          expanded={@expanded}
-          sub_workflows={@sub_workflows}
-        />
-
-        <div
-          :if={@show_less? or @show_more?}
-          class="py-6 flex items-center justify-center space-x-6 border-t border-gray-200 dark:border-gray-700"
-        >
-          <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
-          <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
-        </div>
+        <% end %>
       </div>
     </div>
     """
@@ -96,31 +112,68 @@ defmodule Oban.Web.WorkflowsPage do
   def handle_mount(socket) do
     default = %{limit: @min_limit, sort_by: "inserted", sort_dir: "desc"}
 
-    socket
+    assigns = Map.drop(socket.assigns, @keep_on_mount)
+
+    %{socket | assigns: assigns}
     |> assign(:default_params, default)
+    |> assign_new(:detail, fn -> nil end)
+    |> assign_new(:detail_subs, fn -> [] end)
+    |> assign_new(:expanded, fn -> MapSet.new() end)
     |> assign_new(:params, fn -> default end)
-    |> assign_new(:workflows, fn -> [] end)
+    |> assign_new(:parent_workflow, fn -> nil end)
     |> assign_new(:show_less?, fn -> false end)
     |> assign_new(:show_more?, fn -> false end)
-    |> assign_new(:expanded, fn -> MapSet.new() end)
     |> assign_new(:sub_workflows, fn -> %{} end)
+    |> assign_new(:workflow, fn -> nil end)
+    |> assign_new(:workflows, fn -> [] end)
   end
 
   @impl Page
   def handle_refresh(socket) do
-    %{params: params, conf: conf} = socket.assigns
+    %{params: params, conf: conf, detail: detail} = socket.assigns
 
-    workflows = WorkflowQuery.all_workflows(params, conf)
-    limit = params.limit
+    if detail do
+      workflow = WorkflowQuery.get_workflow(conf, detail)
+      detail_subs = WorkflowQuery.get_sub_workflows(conf, detail)
+      parent_workflow = WorkflowQuery.get_parent_workflow(conf, detail)
 
-    assign(socket,
-      workflows: workflows,
-      show_less?: limit > @min_limit,
-      show_more?: limit < @max_limit and length(workflows) == limit
-    )
+      assign(socket,
+        workflow: workflow,
+        detail_subs: detail_subs,
+        parent_workflow: parent_workflow
+      )
+    else
+      workflows = WorkflowQuery.all_workflows(params, conf)
+      limit = params.limit
+
+      assign(socket,
+        workflows: workflows,
+        show_less?: limit > @min_limit,
+        show_more?: limit < @max_limit and length(workflows) == limit
+      )
+    end
   end
 
   @impl Page
+  def handle_params(%{"id" => workflow_id}, _uri, socket) do
+    workflow = WorkflowQuery.get_workflow(socket.assigns.conf, workflow_id)
+    detail_subs = WorkflowQuery.get_sub_workflows(socket.assigns.conf, workflow_id)
+    parent_workflow = WorkflowQuery.get_parent_workflow(socket.assigns.conf, workflow_id)
+
+    title = workflow.display_name || "Workflow"
+
+    socket =
+      assign(socket,
+        detail: workflow_id,
+        workflow: workflow,
+        detail_subs: detail_subs,
+        parent_workflow: parent_workflow,
+        page_title: page_title(title)
+      )
+
+    {:noreply, socket}
+  end
+
   def handle_params(params, _uri, socket) do
     params =
       params
@@ -130,7 +183,7 @@ defmodule Oban.Web.WorkflowsPage do
     socket =
       socket
       |> assign(page_title: page_title("Workflows"))
-      |> assign(params: Map.merge(socket.assigns.default_params, params))
+      |> assign(detail: nil, params: Map.merge(socket.assigns.default_params, params))
       |> handle_refresh()
 
     {:noreply, socket}
@@ -186,6 +239,36 @@ defmodule Oban.Web.WorkflowsPage do
 
   def handle_info(:refresh, socket) do
     {:noreply, handle_refresh(socket)}
+  end
+
+  def handle_info({:cancel_workflow, workflow_id}, socket) do
+    enforce_access!(:cancel_jobs, socket.assigns.access)
+
+    Telemetry.action(:cancel_workflow, socket, [workflow_id: workflow_id], fn ->
+      Workflow.cancel_jobs(socket.assigns.conf.name, workflow_id)
+    end)
+
+    socket =
+      socket
+      |> handle_refresh()
+      |> put_flash_with_clear(:info, "Workflow jobs cancelled")
+
+    {:noreply, socket}
+  end
+
+  def handle_info({:retry_workflow, workflow_id}, socket) do
+    enforce_access!(:retry_jobs, socket.assigns.access)
+
+    Telemetry.action(:retry_workflow, socket, [workflow_id: workflow_id], fn ->
+      Workflow.retry_jobs(socket.assigns.conf.name, workflow_id)
+    end)
+
+    socket =
+      socket
+      |> handle_refresh()
+      |> put_flash_with_clear(:info, "Workflow jobs retried")
+
+    {:noreply, socket}
   end
 
   def handle_info(_event, socket) do
