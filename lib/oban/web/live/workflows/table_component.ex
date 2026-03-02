@@ -40,7 +40,12 @@ defmodule Oban.Web.Workflows.TableComponent do
       </div>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-        <.workflow_row :for={workflow <- @workflows} workflow={workflow} />
+        <.workflow_row
+          :for={workflow <- @workflows}
+          workflow={workflow}
+          expanded={MapSet.member?(@expanded, workflow.id)}
+          sub_workflows={Map.get(@sub_workflows, workflow.id, [])}
+        />
       </ul>
     </div>
     """
@@ -58,39 +63,97 @@ defmodule Oban.Web.Workflows.TableComponent do
   end
 
   attr :workflow, :map, required: true
+  attr :expanded, :boolean, required: true
+  attr :sub_workflows, :list, required: true
 
   defp workflow_row(assigns) do
     ~H"""
-    <li
-      id={"workflow-#{@workflow.id}"}
-      class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
-    >
-      <div class="pl-3 py-3.5 flex flex-grow items-center">
-        <div class="w-1/3">
-          <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
-            {@workflow.display_name}
-          </span>
-
-          <div :if={Enum.any?(@workflow.queues)} class="flex flex-wrap items-center gap-1.5 mt-1">
-            <span
-              :for={queue <- @workflow.queues}
-              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-            >
-              {queue}
+    <li id={"workflow-#{@workflow.id}"}>
+      <div class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
+        <div class="pl-3 py-3.5 flex flex-grow items-center">
+          <div class="w-1/3">
+            <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
+              {@workflow.display_name}
             </span>
+
+            <div :if={Enum.any?(@workflow.queues)} class="flex flex-wrap items-center gap-1.5 mt-1">
+              <span
+                :for={queue <- @workflow.queues}
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+              >
+                {queue}
+              </span>
+            </div>
+          </div>
+
+          <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
+            <.subs_count workflow={@workflow} expanded={@expanded} />
+
+            <.progress_bar workflow={@workflow} />
+
+            <.activity_counts workflow={@workflow} />
+
+            <.format_duration workflow={@workflow} />
+
+            <.started_at workflow={@workflow} />
+
+            <div class="w-16 pr-4 flex justify-end">
+              <.status_indicator state={@workflow.state} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div :if={@expanded}>
+        <.sub_workflow_row
+          :for={{sub, idx} <- Enum.with_index(@sub_workflows)}
+          workflow={sub}
+          first={idx == 0}
+        />
+      </div>
+    </li>
+    """
+  end
+
+  attr :workflow, :map, required: true
+  attr :first, :boolean, required: true
+
+  defp sub_workflow_row(assigns) do
+    ~H"""
+    <div
+      id={"sub-workflow-#{@workflow.id}"}
+      class={[
+        "flex items-center bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800",
+        @first && "shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+      ]}
+    >
+      <div class="pl-3 py-3 flex flex-grow items-center">
+        <div class="w-1/3 flex items-center">
+          <Icons.arrow_turn_down_right class="w-4 h-4 text-gray-400 dark:text-gray-500 mr-2 flex-shrink-0" />
+          <div>
+            <span class="font-medium text-sm text-gray-600 dark:text-gray-400">
+              {@workflow.display_name}
+            </span>
+
+            <div :if={Enum.any?(@workflow.queues)} class="flex flex-wrap items-center gap-1.5 mt-1">
+              <span
+                :for={queue <- @workflow.queues}
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500"
+              >
+                {queue}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
-          <.subs_count workflow={@workflow} />
+        <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-400">
+          <.nested_subs_count workflow={@workflow} />
 
           <.progress_bar workflow={@workflow} />
 
           <.activity_counts workflow={@workflow} />
 
-          <span class="w-24 text-right text-sm">
-            <.format_duration duration={@workflow.duration} />
-          </span>
+          <.format_duration workflow={@workflow} />
 
           <.started_at workflow={@workflow} />
 
@@ -99,20 +162,67 @@ defmodule Oban.Web.Workflows.TableComponent do
           </div>
         </div>
       </div>
-    </li>
+    </div>
     """
   end
 
   attr :workflow, :map, required: true
+  attr :expanded, :boolean, required: true
 
   defp subs_count(assigns) do
     count = map_size(assigns.workflow.subs)
     assigns = assign(assigns, count: count)
 
     ~H"""
-    <span class="w-14 text-center text-sm">
-      {@count}
-    </span>
+    <div class="w-14 flex justify-center">
+      <button
+        :if={@count > 0}
+        type="button"
+        class={[
+          "px-2.5 py-0.5 text-sm font-medium rounded-full cursor-pointer transition-colors",
+          "focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+          if(@expanded,
+            do: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300",
+            else:
+              "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+          )
+        ]}
+        phx-click="toggle-subs"
+        phx-value-id={@workflow.id}
+        data-title={if @expanded, do: "Collapse sub-workflows", else: "Expand sub-workflows"}
+        id={"subs-#{@workflow.id}"}
+        phx-hook="Tippy"
+      >
+        {@count}
+      </button>
+      <span :if={@count == 0} class="text-sm text-gray-400 dark:text-gray-500">
+        0
+      </span>
+    </div>
+    """
+  end
+
+  attr :workflow, :map, required: true
+
+  defp nested_subs_count(assigns) do
+    count = map_size(assigns.workflow.subs)
+    assigns = assign(assigns, count: count)
+
+    ~H"""
+    <div class="w-14 flex justify-center">
+      <span
+        :if={@count > 0}
+        class="px-2.5 py-0.5 text-sm font-medium rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+        data-title="Nested sub-workflows cannot be expanded"
+        id={"nested-subs-#{@workflow.id}"}
+        phx-hook="Tippy"
+      >
+        {@count}
+      </span>
+      <span :if={@count == 0} class="text-sm text-gray-400 dark:text-gray-500">
+        0
+      </span>
+    </div>
     """
   end
 
@@ -189,10 +299,10 @@ defmodule Oban.Web.Workflows.TableComponent do
 
   defp started_at(assigns) do
     counts = assigns.workflow.counts
-    has_executed = Map.get(counts, :executing, 0) + Map.get(counts, :completed, 0) > 0
+    executed? = Map.get(counts, :executing, 0) + Map.get(counts, :completed, 0) > 0
 
     started =
-      if has_executed do
+      if executed? do
         assigns.workflow.started_at
       end
 
@@ -215,22 +325,45 @@ defmodule Oban.Web.Workflows.TableComponent do
     """
   end
 
-  attr :duration, :integer, required: true
+  attr :workflow, :map, required: true
 
   defp format_duration(assigns) do
+    workflow = assigns.workflow
+    executing? = workflow.state == :executing
+    started? = not is_nil(workflow.started_at)
+
     formatted =
-      if is_nil(assigns.duration) or assigns.duration <= 0 do
+      if is_nil(workflow.duration) or workflow.duration <= 0 do
         "-"
       else
-        assigns.duration
+        workflow.duration
         |> div(1000)
         |> Timing.to_duration()
       end
 
-    assigns = assign(assigns, formatted: formatted)
+    assigns =
+      assign(assigns,
+        executing?: executing?,
+        started?: started?,
+        formatted: formatted,
+        started_at: workflow.started_at
+      )
 
     ~H"""
-    {@formatted}
+    <span
+      :if={@executing? and @started?}
+      class="w-24 text-right text-sm"
+      id={"wf-duration-#{@workflow.id}"}
+      data-timestamp={DateTime.to_unix(@started_at, :millisecond)}
+      data-relative-mode="duration"
+      phx-hook="Relativize"
+      phx-update="ignore"
+    >
+      -
+    </span>
+    <span :if={not (@executing? and @started?)} class="w-24 text-right text-sm">
+      {@formatted}
+    </span>
     """
   end
 

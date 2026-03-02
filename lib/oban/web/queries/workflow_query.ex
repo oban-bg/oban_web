@@ -279,4 +279,17 @@ defmodule Oban.Web.WorkflowQuery do
 
     Repo.one(conf, query) || "Unknown"
   end
+
+  def get_sub_workflows(conf, workflow_id, limit \\ 10) do
+    query =
+      Job
+      |> where([j], fragment("?->>'sup_workflow_id' = ?", j.meta, ^workflow_id))
+      |> group_by([j], fragment("?->>'workflow_id'", j.meta))
+      |> limit(^limit)
+      |> select([j], %{workflow_id: fragment("?->>'workflow_id'", j.meta)})
+
+    conf
+    |> Repo.all(query)
+    |> Enum.map(&build_workflow(&1, conf))
+  end
 end
