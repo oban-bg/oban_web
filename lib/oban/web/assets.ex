@@ -21,6 +21,12 @@ defmodule Oban.Web.Assets do
 
   @icons Map.new(icon_files)
 
+  # Font
+
+  @external_resource font_path = Path.join(@static_path, "fonts/Inter.woff2")
+
+  @font File.read!(font_path)
+
   # CSS
 
   @external_resource css_path = Path.join(@static_path, "app.css")
@@ -53,6 +59,10 @@ defmodule Oban.Web.Assets do
 
   def call(conn, :js) do
     serve_asset(conn, @js, "text/javascript")
+  end
+
+  def call(conn, :font) do
+    serve_asset(conn, @font, "font/woff2")
   end
 
   def call(conn, :icon) do
