@@ -149,7 +149,7 @@ defmodule Oban.Web.Crons.TableComponent do
     <li id={"cron-#{@id}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
       <.link
         patch={oban_path([:crons, @cron.name])}
-        class="pl-3 py-3.5 flex flex-grow items-center cursor-pointer"
+        class="pl-3 py-3.5 flex flex-grow items-center"
       >
         <div class="w-1/3">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">

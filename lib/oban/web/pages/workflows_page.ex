@@ -15,11 +15,9 @@ defmodule Oban.Web.WorkflowsPage do
     default_params
     detail
     detail_subs
-    expanded
     graph_data
     params
     parent_workflow
-    sub_workflows
     workflow
     workflows
   )a
@@ -77,8 +75,6 @@ defmodule Oban.Web.WorkflowsPage do
             id="workflows-table"
             module={TableComponent}
             workflows={@workflows}
-            expanded={@expanded}
-            sub_workflows={@sub_workflows}
           />
 
           <div
@@ -131,12 +127,10 @@ defmodule Oban.Web.WorkflowsPage do
     |> assign(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:detail_subs, fn -> [] end)
-    |> assign_new(:expanded, fn -> MapSet.new() end)
     |> assign_new(:params, fn -> default end)
     |> assign_new(:parent_workflow, fn -> nil end)
     |> assign_new(:show_less?, fn -> false end)
     |> assign_new(:show_more?, fn -> false end)
-    |> assign_new(:sub_workflows, fn -> %{} end)
     |> assign_new(:workflow, fn -> nil end)
     |> assign_new(:workflows, fn -> [] end)
   end
@@ -221,27 +215,6 @@ defmodule Oban.Web.WorkflowsPage do
     if socket.assigns.show_more? do
       send(self(), {:params, :limit, @inc_limit})
     end
-
-    {:noreply, socket}
-  end
-
-  def handle_event("toggle-subs", %{"id" => workflow_id}, socket) do
-    %{expanded: expanded, sub_workflows: sub_workflows, conf: conf} = socket.assigns
-
-    socket =
-      if MapSet.member?(expanded, workflow_id) do
-        assign(socket, expanded: MapSet.delete(expanded, workflow_id))
-      else
-        sub_workflows =
-          if Map.has_key?(sub_workflows, workflow_id) do
-            sub_workflows
-          else
-            subs = WorkflowQuery.get_sub_workflows(conf, workflow_id)
-            Map.put(sub_workflows, workflow_id, subs)
-          end
-
-        assign(socket, expanded: MapSet.put(expanded, workflow_id), sub_workflows: sub_workflows)
-      end
 
     {:noreply, socket}
   end
