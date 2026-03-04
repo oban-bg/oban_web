@@ -31,8 +31,9 @@ const WorkflowGraph = {
     this.graphData = null;
     this.zoomIndex = DEFAULT_ZOOM_INDEX;
     this.needsInitialCenter = true;
-    this.trackActiveNode = false;
+    this.trackActiveNode = true;
     this.lastTrackedNodeId = null;
+    this.direction = "LR"; // "LR" (left-right) or "TB" (top-bottom)
 
     this.applyDotGridBackground();
     this.setupPanning();
@@ -101,9 +102,9 @@ const WorkflowGraph = {
       return;
     }
 
-    // Create dagre graph - LR means left to right
+    // Create dagre graph
     const graph = new dagre.graphlib.Graph();
-    graph.setGraph({ rankdir: "LR", nodesep: 20, ranksep: 50, marginx: 30, marginy: 20 });
+    graph.setGraph({ rankdir: this.direction, nodesep: 20, ranksep: 50, marginx: 30, marginy: 20 });
     graph.setDefaultEdgeLabel(() => ({}));
 
     // Build a map of job name -> job for dependency resolution
@@ -331,30 +332,41 @@ const WorkflowGraph = {
 
       if (!sourceNode || !targetNode) return;
 
-      const startX = sourceNode.x + sourceNode.width / 2;
-      const startY = sourceNode.y;
-      // End the line before the arrowhead
-      const endX = targetNode.x - targetNode.width / 2 - ARROW_SIZE;
-      const endY = targetNode.y;
-      const arrowX = targetNode.x - targetNode.width / 2;
-
-      // Bezier curve - ends before the arrow
-      const midX = (startX + arrowX) / 2;
-      const path = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
-
       const strokeColor = isDark ? "#4b5563" : "#9ca3af";
       const dashArray = edgeData.suspended ? "6 4" : "none";
 
+      let path, arrowPoints;
+
+      if (this.direction === "TB") {
+        // Top-to-bottom: edges go from bottom of source to top of target
+        const startX = sourceNode.x;
+        const startY = sourceNode.y + sourceNode.height / 2;
+        const endY = targetNode.y - targetNode.height / 2 - ARROW_SIZE;
+        const endX = targetNode.x;
+        const arrowY = targetNode.y - targetNode.height / 2;
+
+        const midY = (startY + arrowY) / 2;
+        path = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+
+        // Arrow pointing down
+        arrowPoints = `${endX},${arrowY} ${endX - ARROW_SIZE / 2},${arrowY - ARROW_SIZE} ${endX + ARROW_SIZE / 2},${arrowY - ARROW_SIZE}`;
+      } else {
+        // Left-to-right: edges go from right of source to left of target
+        const startX = sourceNode.x + sourceNode.width / 2;
+        const startY = sourceNode.y;
+        const endX = targetNode.x - targetNode.width / 2 - ARROW_SIZE;
+        const endY = targetNode.y;
+        const arrowX = targetNode.x - targetNode.width / 2;
+
+        const midX = (startX + arrowX) / 2;
+        path = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+
+        // Arrow pointing right
+        arrowPoints = `${arrowX},${endY} ${arrowX - ARROW_SIZE},${endY - ARROW_SIZE / 2} ${arrowX - ARROW_SIZE},${endY + ARROW_SIZE / 2}`;
+      }
+
       content += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="${dashArray}" />`;
-
-      // Arrow marker - points right (into target node)
-      const arrowTipX = arrowX;
-      const arrowTipY = endY;
-      const arrowBackX = arrowX - ARROW_SIZE;
-      const arrowTopY = endY - ARROW_SIZE / 2;
-      const arrowBottomY = endY + ARROW_SIZE / 2;
-
-      content += `<polygon points="${arrowTipX},${arrowTipY} ${arrowBackX},${arrowTopY} ${arrowBackX},${arrowBottomY}" fill="${strokeColor}" />`;
+      content += `<polygon points="${arrowPoints}" fill="${strokeColor}" />`;
     });
 
     // Draw nodes
@@ -554,12 +566,18 @@ const WorkflowGraph = {
     if (!this.bounds || !this.viewSize) return;
 
     const zoom = ZOOM_LEVELS[this.zoomIndex];
+    const scaledWidth = this.viewSize.width / zoom;
     const scaledHeight = this.viewSize.height / zoom;
 
-    // Horizontally: start at left edge (small margin)
-    this.pan.x = 20;
-    // Vertically: center the graph
-    this.pan.y = (scaledHeight - this.bounds.height) / 2;
+    if (this.direction === "TB") {
+      // Top-bottom: center horizontally, start at top
+      this.pan.x = (scaledWidth - this.bounds.width) / 2;
+      this.pan.y = 20;
+    } else {
+      // Left-right: start at left, center vertically
+      this.pan.x = 20;
+      this.pan.y = (scaledHeight - this.bounds.height) / 2;
+    }
   },
 
   zoomIn() {
@@ -693,6 +711,7 @@ const WorkflowGraph = {
           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0" />
         </svg>
       </button>
+      <button id="toggle-direction" class="${buttonClass}" title="Toggle layout direction"></button>
     `;
 
     this.el.style.position = "relative";
@@ -703,6 +722,33 @@ const WorkflowGraph = {
     controls.querySelector("#zoom-out").addEventListener("click", () => this.zoomOut());
     controls.querySelector("#reset-view").addEventListener("click", () => this.resetView());
     controls.querySelector("#toggle-tracking").addEventListener("click", () => this.toggleTracking());
+    controls.querySelector("#toggle-direction").addEventListener("click", () => this.toggleDirection());
+
+    this.updateDirectionIcon();
+  },
+
+  toggleDirection() {
+    this.direction = this.direction === "LR" ? "TB" : "LR";
+    this.needsInitialCenter = true;
+    this.updateDirectionIcon();
+    if (this.graphData) this.render();
+  },
+
+  updateDirectionIcon() {
+    const btn = this.el.querySelector("#toggle-direction");
+    if (!btn) return;
+
+    // Show icon indicating current direction (bidirectional arrows)
+    const icon = this.direction === "LR"
+      ? `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+         </svg>`
+      : `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+           <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+         </svg>`;
+
+    btn.innerHTML = icon;
+    btn.title = this.direction === "LR" ? "Layout: left to right" : "Layout: top to bottom";
   },
 
   updateControlColors() {
