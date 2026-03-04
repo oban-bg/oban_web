@@ -19,6 +19,7 @@ import QueueSparkline from "./hooks/queue_sparkline";
 import Themer from "./hooks/themer";
 import TimelineConnectors from "./hooks/timeline_connectors";
 import Tippy from "./hooks/tippy";
+import WorkflowGraph from "./hooks/workflow_graph";
 
 const hooks = {
   Completer,
@@ -37,6 +38,7 @@ const hooks = {
   Themer,
   TimelineConnectors,
   Tippy,
+  WorkflowGraph,
 };
 
 // Topbar ---

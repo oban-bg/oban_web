@@ -191,9 +191,9 @@ defmodule Oban.Web.Workflows.TableComponent do
               "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
           )
         ]}
-        onclick="event.stopPropagation()"
         phx-click="toggle-subs"
         phx-value-id={@workflow.id}
+        onclick="event.stopPropagation(); event.preventDefault();"
         data-title={if @expanded, do: "Collapse sub-workflows", else: "Expand sub-workflows"}
         id={"subs-#{@workflow.id}"}
         phx-hook="Tippy"

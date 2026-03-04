@@ -311,10 +311,113 @@ defmodule Oban.Web.WorkflowQuery do
       |> where([j], fragment("?->>'sup_workflow_id' = ?", j.meta, ^workflow_id))
       |> group_by([j], fragment("?->>'workflow_id'", j.meta))
       |> limit(^limit)
-      |> select([j], %{workflow_id: fragment("?->>'workflow_id'", j.meta)})
+      |> select([j], %{
+        workflow_id: fragment("?->>'workflow_id'", j.meta),
+        sub_name: fragment("MAX(?->>'sub_name')", j.meta)
+      })
 
     conf
     |> Repo.all(query)
-    |> Enum.map(&build_workflow(&1, conf))
+    |> Enum.map(&build_sub_workflow(&1, conf))
+  end
+
+  defp build_sub_workflow(%{workflow_id: workflow_id, sub_name: sub_name}, conf) do
+    status = Oban.Pro.Workflow.status(conf.name, workflow_id)
+
+    Map.merge(status, %{
+      display_name: sub_name || status.name || workflow_id
+    })
+  end
+
+  # TODO: Use meta ? 'workflow_id' condition to ensure index usage
+
+  def get_workflow_graph(conf, workflow_id) do
+    query =
+      Job
+      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
+      |> select([j], %{
+        id: j.id,
+        state: j.state,
+        worker: j.worker,
+        meta:
+          fragment(
+            """
+              jsonb_build_object(
+                'name', ?->>'name',
+                'deps', ?->'deps',
+                'workflow_name', ?->>'workflow_name',
+                'decorated_name', ?->>'decorated_name',
+                'handler', ?->>'handler',
+                'context', (?->>'context')::boolean
+              )
+            """,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta
+          )
+      })
+
+    jobs = Repo.all(conf, query)
+
+    # Get sub-workflow info (base query without parent_dep)
+    base_sub_query =
+      Job
+      |> where([j], fragment("?->>'sup_workflow_id' = ?", j.meta, ^workflow_id))
+      |> group_by([j], fragment("?->>'workflow_id'", j.meta))
+      |> select([j], %{
+        workflow_id: fragment("?->>'workflow_id'", j.meta),
+        workflow_name: fragment("MAX(?->>'workflow_name')", j.meta),
+        sub_name: fragment("MAX(?->>'sub_name')", j.meta),
+        state:
+          fragment(
+            """
+              CASE
+                WHEN bool_or(? = 'executing') THEN 'executing'
+                WHEN bool_or(? = 'discarded') THEN 'discarded'
+                WHEN bool_or(? = 'cancelled') THEN 'cancelled'
+                WHEN bool_or(? = 'retryable') THEN 'retryable'
+                WHEN bool_and(? = 'completed') THEN 'completed'
+                ELSE 'pending'
+              END
+            """,
+            j.state,
+            j.state,
+            j.state,
+            j.state,
+            j.state
+          )
+      })
+
+    # Wrap to add parent_dep via correlated subquery
+    sub_query =
+      from(s in subquery(base_sub_query),
+        select: %{
+          workflow_id: s.workflow_id,
+          workflow_name: s.workflow_name,
+          sub_name: s.sub_name,
+          state: s.state,
+          parent_dep:
+            fragment(
+              """
+                (SELECT dep->>1
+                 FROM oban_jobs j2,
+                      LATERAL jsonb_array_elements(j2.meta->'deps') AS dep
+                 WHERE j2.meta->>'workflow_id' = ?
+                   AND jsonb_typeof(dep) = 'array'
+                   AND dep->>0 = ?
+                 LIMIT 1)
+              """,
+              s.workflow_id,
+              ^workflow_id
+            )
+        }
+      )
+
+    sub_workflows = Repo.all(conf, sub_query)
+
+    %{jobs: jobs, sub_workflows: sub_workflows}
   end
 end

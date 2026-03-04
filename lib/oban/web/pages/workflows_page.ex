@@ -10,7 +10,19 @@ defmodule Oban.Web.WorkflowsPage do
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
 
   @known_params ~w(ids limit names queues sort_by sort_dir states workers)
-  @keep_on_mount ~w(default_params detail detail_subs expanded params parent_workflow sub_workflows workflow workflows)a
+
+  @keep_on_mount ~w(
+    default_params
+    detail
+    detail_subs
+    expanded
+    graph_data
+    params
+    parent_workflow
+    sub_workflows
+    workflow
+    workflows
+  )a
 
   @inc_limit 10
   @max_limit 100
@@ -30,6 +42,7 @@ defmodule Oban.Web.WorkflowsPage do
             workflow={@workflow}
             parent_workflow={@parent_workflow}
             sub_workflows={@detail_subs}
+            graph_data={@graph_data}
           />
         <% else %>
           <div
@@ -136,11 +149,13 @@ defmodule Oban.Web.WorkflowsPage do
       workflow = WorkflowQuery.get_workflow(conf, detail)
       detail_subs = WorkflowQuery.get_sub_workflows(conf, detail)
       parent_workflow = WorkflowQuery.get_parent_workflow(conf, detail)
+      graph_data = WorkflowQuery.get_workflow_graph(conf, detail)
 
       assign(socket,
         workflow: workflow,
         detail_subs: detail_subs,
-        parent_workflow: parent_workflow
+        parent_workflow: parent_workflow,
+        graph_data: graph_data
       )
     else
       workflows = WorkflowQuery.all_workflows(params, conf)
@@ -156,9 +171,12 @@ defmodule Oban.Web.WorkflowsPage do
 
   @impl Page
   def handle_params(%{"id" => workflow_id}, _uri, socket) do
-    workflow = WorkflowQuery.get_workflow(socket.assigns.conf, workflow_id)
-    detail_subs = WorkflowQuery.get_sub_workflows(socket.assigns.conf, workflow_id)
-    parent_workflow = WorkflowQuery.get_parent_workflow(socket.assigns.conf, workflow_id)
+    conf = socket.assigns.conf
+
+    workflow = WorkflowQuery.get_workflow(conf, workflow_id)
+    detail_subs = WorkflowQuery.get_sub_workflows(conf, workflow_id)
+    parent_workflow = WorkflowQuery.get_parent_workflow(conf, workflow_id)
+    graph_data = WorkflowQuery.get_workflow_graph(conf, workflow_id)
 
     title = workflow.display_name || "Workflow"
 
@@ -168,6 +186,7 @@ defmodule Oban.Web.WorkflowsPage do
         workflow: workflow,
         detail_subs: detail_subs,
         parent_workflow: parent_workflow,
+        graph_data: graph_data,
         page_title: page_title(title)
       )
 

@@ -4,6 +4,7 @@
   "scripts": {},
   "dependencies": {
     "chart.js": "^4.4.7",
+    "dagre": "^0.8.5",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
     "phoenix_live_view": "file:../deps/phoenix_live_view",

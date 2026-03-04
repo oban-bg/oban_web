@@ -718,6 +718,17 @@ defmodule WebDev.Workflows do
     |> Workflow.add_cascade(:execute, &approval_execute/1, deps: [:decide])
     |> Workflow.add_cascade(:notify, &approval_notify/1, deps: [:execute], queue: :notifications)
   end
+
+  def media_processing do
+    [workflow_name: "media-processing"]
+    |> Workflow.new()
+    |> Workflow.add(:upload, DocumentProcessor.new(%{step: "upload"}))
+    |> Workflow.add(:thumbnail, DocumentProcessor.new(%{step: "thumbnail"}), deps: [:upload])
+    |> Workflow.add(:transcode, DocumentProcessor.new(%{step: "transcode"}), deps: [:upload])
+    |> Workflow.add(:metadata, DocumentProcessor.new(%{step: "metadata"}), deps: [:upload])
+    |> Workflow.add(:publish, DocumentProcessor.new(%{step: "publish"}), deps: [:thumbnail, :transcode, :metadata])
+    |> Workflow.add(:notify, Notifier.new(%{type: "media_ready"}), deps: [:publish])
+  end
 end
 
 defmodule WebDev.WorkflowGenerator do
@@ -731,7 +742,8 @@ defmodule WebDev.WorkflowGenerator do
     :order_fulfillment,
     :data_migration,
     :tenant_onboarding,
-    :approval_chain
+    :approval_chain,
+    :media_processing
   ]
 
   def start_link(opts) do
