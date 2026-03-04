@@ -14,8 +14,18 @@ defmodule Oban.Web.Workflows.DetailComponent do
       |> assign_new(:sub_workflows, fn -> [] end)
       |> assign_new(:graph_open?, fn -> true end)
       |> assign_new(:subs_open?, fn -> has_subs? end)
+      |> assign_new(:graph_data, fn -> %{jobs: [], sub_workflows: []} end)
+      |> push_graph_data()
 
     {:ok, socket}
+  end
+
+  defp push_graph_data(socket) do
+    if socket.assigns[:graph_open?] do
+      push_event(socket, "graph-data", socket.assigns.graph_data)
+    else
+      socket
+    end
   end
 
   @impl Phoenix.LiveComponent
@@ -29,8 +39,8 @@ defmodule Oban.Web.Workflows.DetailComponent do
         parent_workflow={@parent_workflow}
       />
 
-      <div class="grid grid-cols-5 gap-6 px-3 py-6">
-        <div class="col-span-3">
+      <div class="grid grid-cols-6 gap-6 px-3 py-6">
+        <div class="col-span-4">
           <.progress_bar workflow={@workflow} />
         </div>
 
@@ -39,7 +49,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
         </div>
       </div>
 
-      <.graph_section myself={@myself} graph_open?={@graph_open?} />
+      <.graph_section myself={@myself} graph_open?={@graph_open?} graph_data={@graph_data} />
 
       <.sub_workflows_section
         myself={@myself}
@@ -147,10 +157,10 @@ defmodule Oban.Web.Workflows.DetailComponent do
     ~H"""
     <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
       <div class="flex items-center justify-between mb-3">
-        <span class="text-lg font-semibold text-gray-700 dark:text-gray-200">
+        <span class="text-base font-semibold text-gray-700 dark:text-gray-200">
           {@percent}% Complete
         </span>
-        <span class="text-sm text-gray-500 dark:text-gray-400 tabular">
+        <span class="text-base text-gray-500 dark:text-gray-400 tabular">
           {@completed}/{@total} jobs
         </span>
       </div>
@@ -182,6 +192,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   attr :myself, :any, required: true
   attr :graph_open?, :boolean, required: true
+  attr :graph_data, :map, required: true
 
   defp graph_section(assigns) do
     ~H"""
@@ -202,11 +213,14 @@ defmodule Oban.Web.Workflows.DetailComponent do
         </button>
 
         <div :if={@graph_open?} class="mt-3">
-          <div class="h-80 bg-gray-50 dark:bg-gray-800 rounded-md flex items-center justify-center">
-            <div class="text-center text-gray-400 dark:text-gray-500">
-              <Icons.rectangle_group class="w-12 h-12 mx-auto mb-3" />
-              <p class="text-sm">Workflow graph coming soon</p>
-            </div>
+          <div
+            id="workflow-graph"
+            class="h-96 rounded-md overflow-hidden shadow-inner bg-gray-50 dark:bg-gray-900 workflow-graph-canvas"
+            phx-hook="WorkflowGraph"
+            phx-target={@myself}
+            phx-update="ignore"
+          >
+            <svg class="w-full h-full"></svg>
           </div>
         </div>
       </div>
@@ -220,63 +234,67 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   defp stats_grid(assigns) do
     ~H"""
-    <div class="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md h-full">
-      <div class="flex flex-col col-span-2">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Workflow ID
-        </span>
-        <span class="text-base text-gray-800 dark:text-gray-200 font-mono">
-          {@workflow.id}
-        </span>
-      </div>
-
-      <div class="flex flex-col">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Status
-        </span>
-        <span class="text-base text-gray-800 dark:text-gray-200 capitalize">
-          {@workflow.state}
-        </span>
-      </div>
-
-      <div class="flex flex-col">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Started
-        </span>
-        <span class="text-base text-gray-800 dark:text-gray-200">
-          <.format_started_at workflow={@workflow} />
-        </span>
-      </div>
-
-      <div class="flex flex-col">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Duration
-        </span>
-        <span class="text-base text-gray-800 dark:text-gray-200">
-          <.format_duration workflow={@workflow} />
-        </span>
-      </div>
-
-      <div class="flex flex-col">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Sub-workflows
-        </span>
-        <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-          {map_size(@workflow.subs)}
-        </span>
-      </div>
-
-      <div class="flex flex-col col-span-3">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Queues
-        </span>
-        <div class="flex flex-wrap items-center gap-1.5">
-          <span
-            :for={queue <- @workflow.queues}
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-          >
-            {queue}
+    <div class="flex flex-col gap-4 h-full">
+      <div class="grid grid-cols-4 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+        <div class="flex flex-col col-span-4">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Workflow ID
           </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 font-mono">
+            {@workflow.id}
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Started
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200">
+            <.format_started_at workflow={@workflow} />
+          </span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Duration
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200">
+            <.format_duration workflow={@workflow} />
+          </span>
+        </div>
+
+        <div class="flex flex-col col-span-2">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Status
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 capitalize">
+            {@workflow.state}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-4 px-3">
+        <div class="flex flex-col">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Subs
+          </span>
+          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {map_size(@workflow.subs)}
+          </span>
+        </div>
+
+        <div class="flex flex-col col-span-3">
+          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Queues
+          </span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span
+              :for={queue <- @workflow.queues}
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+            >
+              {queue}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -286,12 +304,12 @@ defmodule Oban.Web.Workflows.DetailComponent do
   attr :workflow, :map, required: true
 
   defp format_started_at(assigns) do
-    counts = assigns.workflow.counts
+    counts = assigns.workflow[:counts] || %{}
     executed? = Map.get(counts, :executing, 0) + Map.get(counts, :completed, 0) > 0
 
     started =
       if executed? do
-        assigns.workflow.started_at
+        assigns.workflow[:started_at]
       end
 
     assigns = assign(assigns, started: started)
@@ -299,7 +317,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
     ~H"""
     <span
       :if={@started}
-      id={"wf-detail-started-#{@workflow.id}"}
+      id={"wf-detail-started-#{@workflow[:id]}"}
       data-timestamp={DateTime.to_unix(@started, :millisecond)}
       phx-hook="Relativize"
       phx-update="ignore"
@@ -314,14 +332,16 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   defp format_duration(assigns) do
     workflow = assigns.workflow
-    executing? = workflow.state == :executing
-    started? = not is_nil(workflow.started_at)
+    executing? = workflow[:state] == :executing
+    started_at = workflow[:started_at]
+    started? = not is_nil(started_at)
+    duration = workflow[:duration]
 
     formatted =
-      if is_nil(workflow.duration) or workflow.duration <= 0 do
+      if is_nil(duration) or duration <= 0 do
         "—"
       else
-        workflow.duration
+        duration
         |> div(1000)
         |> Timing.to_duration()
       end
@@ -331,13 +351,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
         executing?: executing?,
         started?: started?,
         formatted: formatted,
-        started_at: workflow.started_at
+        started_at: started_at
       )
 
     ~H"""
     <span
       :if={@executing? and @started?}
-      id={"wf-detail-duration-#{@workflow.id}"}
+      id={"wf-detail-duration-#{@workflow[:id]}"}
       data-timestamp={DateTime.to_unix(@started_at, :millisecond)}
       data-relative-mode="duration"
       phx-hook="Relativize"
@@ -393,12 +413,18 @@ defmodule Oban.Web.Workflows.DetailComponent do
                     Name
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
                     Progress
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                    Started
                   </th>
                   <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">
                     Duration
                   </th>
-                  <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">
+                  <th class="px-3 py-2 text-center text-xs font-medium uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
@@ -417,58 +443,73 @@ defmodule Oban.Web.Workflows.DetailComponent do
   attr :workflow, :map, required: true
 
   defp sub_workflow_row(assigns) do
-    completed = Map.get(assigns.workflow.counts, :completed, 0)
-    total = assigns.workflow.total
+    counts = assigns.workflow[:counts] || %{}
+    completed = Map.get(counts, :completed, 0)
+    total = assigns.workflow[:total] || 0
     percent = if total > 0, do: round(completed / total * 100), else: 0
+    state = assigns.workflow[:state]
 
-    assigns = assign(assigns, completed: completed, total: total, percent: percent)
+    assigns =
+      assign(assigns,
+        completed: completed,
+        total: total,
+        percent: percent,
+        state: state
+      )
 
     ~H"""
-    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700/50">
-      <td class="px-3 py-3">
-        <.link
-          navigate={oban_path([:workflows, @workflow.id])}
-          class="font-medium text-sm text-violet-600 hover:text-violet-500 dark:text-violet-400"
-        >
-          {@workflow.display_name}
-        </.link>
-      </td>
-      <td class="px-3 py-3">
-        <div class="flex items-center">
-          <div class="w-24 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden mr-2">
-            <div class="h-full rounded-full bg-cyan-400" style={"width: #{@percent}%"} />
+    <.link navigate={oban_path([:workflows, @workflow[:id]])} class="contents">
+      <tr class="hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer">
+        <td class="px-3 py-3 font-medium text-sm text-gray-700 dark:text-gray-300">
+          {@workflow[:display_name]}
+        </td>
+        <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
+          {@workflow[:id]}
+        </td>
+        <td class="px-3 py-3">
+          <div class="flex items-center">
+            <div class="w-24 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden mr-2">
+              <div class="h-full rounded-full bg-cyan-400" style={"width: #{@percent}%"} />
+            </div>
+            <span class="text-sm text-gray-500 dark:text-gray-400 tabular">
+              {@completed}/{@total}
+            </span>
           </div>
-          <span class="text-sm text-gray-500 dark:text-gray-400 tabular">
-            {@completed}/{@total}
-          </span>
-        </div>
-      </td>
-      <td class="px-3 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-        <.format_duration workflow={@workflow} />
-      </td>
-      <td class="px-3 py-3 text-right">
-        <.status_icon state={@workflow.state} />
-      </td>
-    </tr>
+        </td>
+        <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
+          <.format_started_at workflow={@workflow} />
+        </td>
+        <td class="px-3 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
+          <.format_duration workflow={@workflow} />
+        </td>
+        <td class="px-3 py-3 text-center">
+          <.status_icon state={@state} />
+        </td>
+      </tr>
+    </.link>
     """
   end
 
-  attr :state, :atom, required: true
+  attr :state, :atom, default: nil
 
   defp status_icon(assigns) do
     ~H"""
-    <%= case @state do %>
-      <% :executing -> %>
-        <Icons.play_circle class="w-5 h-5 text-emerald-400 inline" />
-      <% :completed -> %>
-        <Icons.check_circle class="w-5 h-5 text-cyan-400 inline" />
-      <% :cancelled -> %>
-        <Icons.x_circle class="w-5 h-5 text-violet-400 inline" />
-      <% :discarded -> %>
-        <Icons.exclamation_circle class="w-5 h-5 text-rose-400 inline" />
-      <% _ -> %>
-        <Icons.minus_circle class="w-5 h-5 text-gray-400 inline" />
-    <% end %>
+    <span class="inline-flex">
+      <%= case @state do %>
+        <% :executing -> %>
+          <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+        <% :completed -> %>
+          <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+        <% :retryable -> %>
+          <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
+        <% :cancelled -> %>
+          <Icons.x_circle class="w-5 h-5 text-violet-400" />
+        <% :discarded -> %>
+          <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+        <% _ -> %>
+          <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+      <% end %>
+    </span>
     """
   end
 
@@ -488,11 +529,24 @@ defmodule Oban.Web.Workflows.DetailComponent do
   end
 
   def handle_event("toggle-graph", _params, socket) do
-    {:noreply, assign(socket, :graph_open?, not socket.assigns[:graph_open?])}
+    graph_open? = not socket.assigns[:graph_open?]
+
+    socket = assign(socket, :graph_open?, graph_open?)
+    socket = if graph_open?, do: push_graph_data(socket), else: socket
+
+    {:noreply, socket}
   end
 
   def handle_event("toggle-subs", _params, socket) do
     {:noreply, assign(socket, :subs_open?, not socket.assigns[:subs_open?])}
+  end
+
+  def handle_event("navigate-to-job", %{"job_id" => job_id}, socket) do
+    {:noreply, push_navigate(socket, to: oban_path([:jobs, job_id]))}
+  end
+
+  def handle_event("navigate-to-workflow", %{"workflow_id" => workflow_id}, socket) do
+    {:noreply, push_navigate(socket, to: oban_path([:workflows, workflow_id]))}
   end
 
   # Helpers

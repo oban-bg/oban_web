@@ -68,10 +68,11 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     status = box_status(assigns.state, assigns.job, assigns.path)
     visual_status = visual_status(assigns.state, status)
     {border_class, bg_class, text_color} = Map.fetch!(@status_colors, visual_status)
+    icon = icon_for_box(status, assigns.state)
 
     assigns =
       assigns
-      |> assign(:status, status)
+      |> assign(:icon, icon)
       |> assign(:border_class, border_class)
       |> assign(:bg_class, bg_class)
       |> assign(:text_color, text_color)
@@ -87,7 +88,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     >
       <div class="flex items-center gap-1 sm:gap-2">
         <span class={"flex items-center justify-center w-5 h-5 #{@text_color}"}>
-          <.state_icon status={@status} state={@state} />
+          <.state_icon icon={@icon} />
         </span>
         <span class={"hidden sm:inline text-sm font-semibold capitalize #{@text_color}"}>
           {@state}
@@ -100,35 +101,28 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     """
   end
 
-  attr :status, :atom, required: true
-  attr :state, :string, required: true
+  defp icon_for_box(:inactive, _state), do: :pending
+  defp icon_for_box(:active, state) when state in ~w(completed cancelled discarded), do: :done
+  defp icon_for_box(:active, _state), do: :executing
+  defp icon_for_box(:completed, _state), do: :done
 
-  defp state_icon(%{status: :inactive} = assigns) do
+  attr :icon, :atom, required: true
+
+  defp state_icon(%{icon: :pending} = assigns) do
     ~H"""
     <Icons.ellipsis_horizontal_circle class="w-5 h-5" />
     """
   end
 
-  defp state_icon(%{state: state} = assigns) when state in ~w(completed cancelled discarded) do
+  defp state_icon(%{icon: :executing} = assigns) do
     ~H"""
-    <Icons.check class="w-5 h-5" />
+    <Icons.spinner class="w-5 h-5 animate-spin" />
     """
   end
 
-  defp state_icon(%{status: :active} = assigns) do
+  defp state_icon(%{icon: :done} = assigns) do
     ~H"""
-    <svg class="w-4 h-4 animate-spin" fill="currentColor" viewBox="0 0 20 20">
-      <path
-        d="M10 1a.9.9 0 110 1.8 7.2 7.2 0 107.2 7.2.9.9 0 111.8 0 9 9 0 11-9-9z"
-        fill-rule="nonzero"
-      />
-    </svg>
-    """
-  end
-
-  defp state_icon(%{status: :completed} = assigns) do
-    ~H"""
-    <Icons.check class="w-5 h-5" />
+    <Icons.check_circle class="w-5 h-5" />
     """
   end
 

@@ -294,7 +294,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         </div>
       </div>
 
-      <div class="grid grid-cols-3 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+      <div class="grid grid-cols-3 gap-4 p-3 rounded-md">
         <div class="flex flex-col">
           <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
             Local Limit
