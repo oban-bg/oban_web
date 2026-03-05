@@ -3,27 +3,9 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   use Phoenix.Component
 
+  alias Oban.Web.Colors
   alias Oban.Web.Components.Icons
   alias Oban.Web.Timing
-
-  # Colors per state - matches workflow graph and progress bar
-  @state_colors %{
-    "suspended" => {"border-gray-400", "bg-gray-400/10", "text-gray-600 dark:text-gray-400"},
-    "scheduled" =>
-      {"border-indigo-400", "bg-indigo-400/10", "text-indigo-600 dark:text-indigo-400"},
-    "available" => {"border-blue-400", "bg-blue-400/10", "text-blue-600 dark:text-blue-400"},
-    "retryable" =>
-      {"border-yellow-400", "bg-yellow-400/10", "text-yellow-600 dark:text-yellow-400"},
-    "executing" =>
-      {"border-emerald-400", "bg-emerald-400/10", "text-emerald-600 dark:text-emerald-400"},
-    "completed" => {"border-cyan-400", "bg-cyan-400/10", "text-cyan-600 dark:text-cyan-400"},
-    "cancelled" =>
-      {"border-violet-400", "bg-violet-400/10", "text-violet-600 dark:text-violet-400"},
-    "discarded" => {"border-rose-400", "bg-rose-400/10", "text-rose-600 dark:text-rose-400"}
-  }
-
-  @inactive_colors {"border-gray-300 dark:border-gray-600", "bg-gray-100 dark:bg-gray-800",
-                    "text-gray-400 dark:text-gray-500"}
 
   def render(assigns) do
     assigns =
@@ -203,8 +185,8 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   defp state_completed?("cancelled", job, _path), do: job.state == "cancelled"
   defp state_completed?("discarded", job, _path), do: job.state == "discarded"
 
-  defp colors_for_box(_state, :inactive), do: @inactive_colors
-  defp colors_for_box(state, _status), do: Map.fetch!(@state_colors, state)
+  defp colors_for_box(_state, :inactive), do: Colors.inactive_classes()
+  defp colors_for_box(state, _status), do: Colors.state_classes(state)
 
   # Timestamp formatting
 
