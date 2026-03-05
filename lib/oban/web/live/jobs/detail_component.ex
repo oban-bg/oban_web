@@ -188,27 +188,28 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 {@job.priority}
               </span>
             </div>
-          </div>
 
-          <div class="mt-4 pl-3">
-            <button
-              id="args-preview"
-              type="button"
-              class="w-[calc(100%+0.75rem)] py-2 px-3 -mx-3 flex flex-col text-left rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-              data-title="View full args"
+            <.link
+              :if={@job.meta["workflow_id"]}
+              id="workflow-link"
+              navigate={oban_path([:workflows, @job.meta["workflow_id"]])}
+              class="flex flex-col col-span-3 -m-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              data-title="View workflow"
               phx-hook="Tippy"
-              phx-click={scroll_to_args()}
             >
               <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Args
+                Workflow
               </span>
-              <samp class="font-mono text-sm text-gray-600 dark:text-gray-300 line-clamp-1 break-all">
-                {format_args(@job, @resolver)}
-              </samp>
-            </button>
+              <span class="text-base text-gray-800 dark:text-gray-200 flex items-center">
+                <Icons.rectangle_group class="w-4 h-4 mr-1.5 text-violet-500" />
+                <span class="truncate">{workflow_display_name(@job)}</span>
+              </span>
+            </.link>
           </div>
         </div>
       </div>
+
+      <.job_data_section job={@job} resolver={@resolver} />
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <button
@@ -222,14 +223,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             class={["w-5 h-5 transition-transform", if(executing?(@job), do: "rotate-90")]}
           />
           <span class="font-semibold">Diagnostics</span>
-          <span
-            id="diagnostics-pro-badge"
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
-            data-title="Diagnostics for executing Oban.Pro.Worker jobs"
-            phx-hook="Tippy"
-          >
-            Pro
-          </span>
+          <.pro_badge id="diagnostics-pro-badge" tooltip="Diagnostics for executing Oban.Pro.Worker jobs" />
         </button>
 
         <div id="diagnostics-content" class={["mt-3", unless(executing?(@job), do: "hidden")]}>
@@ -459,91 +453,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <button
-          id="meta-toggle"
-          type="button"
-          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-          phx-click={toggle_meta()}
-        >
-          <Icons.chevron_right
-            id="meta-chevron"
-            class={["w-5 h-5 transition-transform", "rotate-90"]}
-          />
-          <span class="font-semibold">Job Data</span>
-        </button>
-
-        <div id="meta-content" class="mt-3">
-          <div class="grid grid-cols-3 gap-4">
-            <div
-              id="job-args"
-              tabindex="-1"
-              class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4 focus:outline-none"
-            >
-              <div class="flex justify-between items-start mb-2">
-                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
-                  Args
-                </h4>
-                <button
-                  type="button"
-                  id="copy-args"
-                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
-                  data-title="Copy to clipboard"
-                  phx-hook="Tippy"
-                  phx-click={copy_to_clipboard(format_args(@job, @resolver))}
-                >
-                  <Icons.clipboard class="w-4 h-4" />
-                </button>
-              </div>
-              <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_args(@job, @resolver)}</pre>
-            </div>
-
-            <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
-              <div class="flex justify-between items-start mb-2">
-                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
-                  Meta
-                </h4>
-                <button
-                  type="button"
-                  id="copy-meta"
-                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
-                  data-title="Copy to clipboard"
-                  phx-hook="Tippy"
-                  phx-click={copy_to_clipboard(format_meta(@job, @resolver))}
-                >
-                  <Icons.clipboard class="w-4 h-4" />
-                </button>
-              </div>
-              <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
-            </div>
-
-            <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
-              <div class="flex justify-between items-start mb-2">
-                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
-                  Recorded Output
-                </h4>
-                <button
-                  :if={@job.meta["recorded"]}
-                  type="button"
-                  id="copy-recorded"
-                  class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
-                  data-title="Copy to clipboard"
-                  phx-hook="Tippy"
-                  phx-click={copy_to_clipboard(format_recorded(@job, @resolver))}
-                >
-                  <Icons.clipboard class="w-4 h-4" />
-                </button>
-              </div>
-              <%= if @job.meta["recorded"] do %>
-                <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"><%= format_recorded(@job, @resolver) %></pre>
-              <% else %>
-                <span class="text-sm text-gray-400 dark:text-gray-500">No recorded output</span>
-              <% end %>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <button
           id="edit-toggle"
           type="button"
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
@@ -642,6 +551,117 @@ defmodule Oban.Web.Jobs.DetailComponent do
               </div>
             </form>
           </fieldset>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # Pro Badge
+
+  attr :id, :string, required: true
+  attr :tooltip, :string, required: true
+
+  defp pro_badge(assigns) do
+    ~H"""
+    <span
+      id={@id}
+      class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+      data-title={@tooltip}
+      phx-hook="Tippy"
+    >
+      Pro
+    </span>
+    """
+  end
+
+  # Job Data Section
+
+  attr :job, :map, required: true
+  attr :resolver, :any, required: true
+
+  defp job_data_section(assigns) do
+    ~H"""
+    <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+      <button
+        id="job-data-toggle"
+        type="button"
+        class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+        phx-click={toggle_job_data()}
+      >
+        <Icons.chevron_right
+          id="job-data-chevron"
+          class="w-5 h-5 transition-transform rotate-90"
+        />
+        <span class="font-semibold">Job Data</span>
+      </button>
+
+      <div id="job-data-content" class="mt-3">
+        <div class="grid grid-cols-2 gap-4">
+          <div
+            id="job-args"
+            class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+          >
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                Args
+              </h4>
+              <button
+                type="button"
+                id="copy-args"
+                class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                data-title="Copy to clipboard"
+                phx-hook="Tippy"
+                phx-click={copy_to_clipboard(format_args(@job, @resolver))}
+              >
+                <Icons.clipboard class="w-4 h-4" />
+              </button>
+            </div>
+            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_args(@job, @resolver)}</pre>
+          </div>
+
+          <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                Meta
+              </h4>
+              <button
+                type="button"
+                id="copy-meta"
+                class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                data-title="Copy to clipboard"
+                phx-hook="Tippy"
+                phx-click={copy_to_clipboard(format_meta(@job, @resolver))}
+              >
+                <Icons.clipboard class="w-4 h-4" />
+              </button>
+            </div>
+            <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
+          </div>
+        </div>
+
+        <div :if={@job.meta["recorded"]} class="mt-4">
+          <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex items-center space-x-2">
+                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                  Recorded Output
+                </h4>
+                <.pro_badge id="recorded-pro-badge" tooltip="Recording from Oban.Pro.Worker" />
+              </div>
+              <button
+                type="button"
+                id="copy-recorded"
+                class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                data-title="Copy to clipboard"
+                phx-hook="Tippy"
+                phx-click={copy_to_clipboard(format_recorded(@job, @resolver))}
+              >
+                <Icons.clipboard class="w-4 h-4" />
+              </button>
+            </div>
+            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_recorded(@job, @resolver)}</pre>
+          </div>
         </div>
       </div>
     </div>
@@ -811,14 +831,18 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.remove_class("rotate-90", to: "#errors-chevron.rotate-90")
   end
 
-  defp toggle_meta do
+  defp toggle_job_data do
     %JS{}
-    |> JS.toggle(to: "#meta-content", in: "fade-in-scale", out: "fade-out-scale")
-    |> JS.add_class("rotate-90", to: "#meta-chevron:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#meta-chevron.rotate-90")
+    |> JS.toggle(to: "#job-data-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.add_class("rotate-90", to: "#job-data-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#job-data-chevron.rotate-90")
   end
 
   defp job_title(job), do: Map.get(job.meta, "decorated_name", job.worker)
+
+  defp workflow_display_name(job) do
+    job.meta["workflow_name"] || job.meta["workflow_id"]
+  end
 
   defp toggle_diagnostics do
     %JS{}
@@ -849,12 +873,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.push("cancel-edit", target: target)
   end
 
-  defp scroll_to_args do
-    %JS{}
-    |> JS.show(to: "#meta-content")
-    |> JS.add_class("rotate-90", to: "#meta-chevron")
-    |> JS.focus(to: "#job-args")
-  end
 
   defp copy_to_clipboard(text) do
     JS.dispatch("phx:copy-to-clipboard", detail: %{text: text})
