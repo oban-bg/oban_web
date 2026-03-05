@@ -223,7 +223,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
             class={["w-5 h-5 transition-transform", if(executing?(@job), do: "rotate-90")]}
           />
           <span class="font-semibold">Diagnostics</span>
-          <.pro_badge id="diagnostics-pro-badge" tooltip="Diagnostics for executing Oban.Pro.Worker jobs" />
+          <.pro_badge
+            id="diagnostics-pro-badge"
+            tooltip="Diagnostics for executing Oban.Pro.Worker jobs"
+          />
         </button>
 
         <div id="diagnostics-content" class={["mt-3", unless(executing?(@job), do: "hidden")]}>
@@ -589,19 +592,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
         class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         phx-click={toggle_job_data()}
       >
-        <Icons.chevron_right
-          id="job-data-chevron"
-          class="w-5 h-5 transition-transform rotate-90"
-        />
+        <Icons.chevron_right id="job-data-chevron" class="w-5 h-5 transition-transform rotate-90" />
         <span class="font-semibold">Job Data</span>
       </button>
 
       <div id="job-data-content" class="mt-3">
         <div class="grid grid-cols-2 gap-4">
-          <div
-            id="job-args"
-            class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-          >
+          <div id="job-args" class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
             <div class="flex justify-between items-start mb-2">
               <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
                 Args
@@ -872,7 +869,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
     |> JS.dispatch("reset", to: "#job-edit-form")
     |> JS.push("cancel-edit", target: target)
   end
-
 
   defp copy_to_clipboard(text) do
     JS.dispatch("phx:copy-to-clipboard", detail: %{text: text})

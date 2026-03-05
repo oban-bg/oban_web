@@ -4,16 +4,16 @@ defmodule Oban.Web.Workflows.DetailComponent do
   alias Oban.Web.Timing
   alias Oban.Web.Components.Core
 
+  @states ~w(suspended available scheduled executing retryable completed cancelled discarded)a
+
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
-    has_subs? = map_size(assigns.workflow.subs) > 0
-
     socket =
       socket
       |> assign(assigns)
-      |> assign_new(:sub_workflows, fn -> [] end)
+      |> assign_new(:detail_subs, fn -> [] end)
       |> assign_new(:graph_open?, fn -> true end)
-      |> assign_new(:subs_open?, fn -> has_subs? end)
+      |> assign_new(:subs_open?, fn -> length(assigns[:detail_subs] || []) > 0 end)
       |> assign_new(:graph_data, fn -> %{jobs: [], sub_workflows: []} end)
       |> push_graph_data()
 
@@ -32,31 +32,40 @@ defmodule Oban.Web.Workflows.DetailComponent do
   def render(assigns) do
     ~H"""
     <div id="workflow-details">
-      <.header
-        access={@access}
-        myself={@myself}
-        workflow={@workflow}
-        parent_workflow={@parent_workflow}
-      />
+      <%= if @workflow do %>
+        <.header
+          access={@access}
+          myself={@myself}
+          workflow={@workflow}
+          parent_workflow={@parent_workflow}
+        />
 
-      <div class="grid grid-cols-6 gap-6 px-3 py-6">
-        <div class="col-span-4">
-          <.progress_bar workflow={@workflow} />
+        <div class="grid grid-cols-6 gap-6 px-3 py-6">
+          <div class="col-span-4">
+            <.progress_bar workflow={@workflow} />
+          </div>
+
+          <div class="col-span-2">
+            <.stats_grid workflow={@workflow} detail_subs={@detail_subs} />
+          </div>
         </div>
 
-        <div class="col-span-2">
-          <.stats_grid workflow={@workflow} />
+        <.graph_section myself={@myself} graph_open?={@graph_open?} graph_data={@graph_data} />
+
+        <.sub_workflows_section myself={@myself} subs_open?={@subs_open?} detail_subs={@detail_subs} />
+      <% else %>
+        <div class="flex items-center justify-center py-16">
+          <div class="text-center">
+            <Icons.rectangle_group class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Workflow not found
+            </h3>
+            <p class="mt-2 text-base text-gray-500 dark:text-gray-400">
+              This workflow may have been deleted or doesn't exist.
+            </p>
+          </div>
         </div>
-      </div>
-
-      <.graph_section myself={@myself} graph_open?={@graph_open?} graph_data={@graph_data} />
-
-      <.sub_workflows_section
-        myself={@myself}
-        subs_open?={@subs_open?}
-        sub_workflows={@sub_workflows}
-        workflow={@workflow}
-      />
+      <% end %>
     </div>
     """
   end
@@ -80,7 +89,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           type="button"
         >
           <Icons.arrow_left class="w-5 h-5" />
-          <span class="text-lg font-bold ml-2">{@workflow.display_name}</span>
+          <span class="text-lg font-bold ml-2">{@workflow.name || @workflow.id}</span>
         </button>
 
         <.parent_breadcrumb :if={@parent_workflow} parent={@parent_workflow} />
@@ -93,7 +102,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           label="Cancel"
           color="yellow"
           tooltip="Cancel all jobs in this workflow"
-          disabled={not can?(:cancel_jobs, @access) or @workflow.state in [:completed, :cancelled]}
+          disabled={not can?(:cancel_jobs, @access) or @workflow.state in ~w(completed cancelled)}
           phx-target={@myself}
           phx-click="cancel-workflow"
         />
@@ -124,7 +133,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
         navigate={oban_path([:workflows, @parent.id])}
         class="ml-1 font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400"
       >
-        {@parent.display_name}
+        {@parent.name || @parent.id}
       </.link>
     </div>
     """
@@ -135,24 +144,23 @@ defmodule Oban.Web.Workflows.DetailComponent do
   attr :workflow, :map, required: true
 
   defp progress_bar(assigns) do
-    counts = assigns.workflow.counts
-    total = assigns.workflow.total
+    wf = assigns.workflow
+    total = Enum.reduce(@states, 0, &(Map.fetch!(wf, &1) + &2))
 
     states = [
-      {:scheduled, Map.get(counts, :scheduled, 0), "bg-indigo-400", "Scheduled"},
-      {:available, Map.get(counts, :available, 0), "bg-blue-400", "Available"},
-      {:retryable, Map.get(counts, :retryable, 0), "bg-yellow-400", "Retryable"},
-      {:executing, Map.get(counts, :executing, 0), "bg-emerald-400", "Executing"},
-      {:completed, Map.get(counts, :completed, 0), "bg-cyan-400", "Completed"},
-      {:cancelled, Map.get(counts, :cancelled, 0), "bg-violet-400", "Cancelled"},
-      {:discarded, Map.get(counts, :discarded, 0), "bg-rose-400", "Discarded"}
+      {:scheduled, wf.scheduled, "bg-indigo-400", "Scheduled"},
+      {:available, wf.available, "bg-blue-400", "Available"},
+      {:retryable, wf.retryable, "bg-yellow-400", "Retryable"},
+      {:executing, wf.executing, "bg-emerald-400", "Executing"},
+      {:completed, wf.completed, "bg-cyan-400", "Completed"},
+      {:cancelled, wf.cancelled, "bg-violet-400", "Cancelled"},
+      {:discarded, wf.discarded, "bg-rose-400", "Discarded"}
     ]
 
-    completed = Map.get(counts, :completed, 0)
-    percent = if total > 0, do: round(completed / total * 100), else: 0
+    percent = if total > 0, do: round(wf.completed / total * 100), else: 0
 
     assigns =
-      assign(assigns, states: states, total: total, completed: completed, percent: percent)
+      assign(assigns, states: states, total: total, completed: wf.completed, percent: percent)
 
     ~H"""
     <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
@@ -230,9 +238,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   # Stats Grid
 
-  attr :workflow, :map, required: true
+  attr :workflow, :any, required: true
+  attr :detail_subs, :list, required: true
 
   defp stats_grid(assigns) do
+    queues = Map.get(assigns.workflow.meta || %{}, "queues", [])
+    assigns = assign(assigns, queues: queues)
+
     ~H"""
     <div class="flex flex-col gap-4 h-full">
       <div class="grid grid-cols-4 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
@@ -279,7 +291,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
             Subs
           </span>
           <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {map_size(@workflow.subs)}
+            {length(@detail_subs)}
           </span>
         </div>
 
@@ -289,7 +301,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           </span>
           <div class="flex flex-wrap items-center gap-1.5">
             <span
-              :for={queue <- @workflow.queues}
+              :for={queue <- @queues}
               class="inline-flex items-center px-1.5 py-0.5 rounded text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
             >
               {queue}
@@ -301,23 +313,18 @@ defmodule Oban.Web.Workflows.DetailComponent do
     """
   end
 
-  attr :workflow, :map, required: true
+  attr :workflow, :any, required: true
 
   defp format_started_at(assigns) do
-    counts = assigns.workflow[:counts] || %{}
-    executed? = Map.get(counts, :executing, 0) + Map.get(counts, :completed, 0) > 0
-
-    started =
-      if executed? do
-        assigns.workflow[:started_at]
-      end
-
+    wf = assigns.workflow
+    executed? = wf.executing + wf.completed > 0
+    started = if executed?, do: wf.started_at
     assigns = assign(assigns, started: started)
 
     ~H"""
     <span
       :if={@started}
-      id={"wf-detail-started-#{@workflow[:id]}"}
+      id={"wf-detail-started-#{@workflow.id}"}
       data-timestamp={DateTime.to_unix(@started, :millisecond)}
       phx-hook="Relativize"
       phx-update="ignore"
@@ -328,22 +335,23 @@ defmodule Oban.Web.Workflows.DetailComponent do
     """
   end
 
-  attr :workflow, :map, required: true
+  attr :workflow, :any, required: true
 
   defp format_duration(assigns) do
-    workflow = assigns.workflow
-    executing? = workflow[:state] == :executing
-    started_at = workflow[:started_at]
-    started? = not is_nil(started_at)
-    duration = workflow[:duration]
+    wf = assigns.workflow
+    executing? = wf.state == "executing"
+    started? = not is_nil(wf.started_at)
+
+    duration =
+      if wf.started_at && wf.completed_at do
+        DateTime.diff(wf.completed_at, wf.started_at, :millisecond)
+      end
 
     formatted =
       if is_nil(duration) or duration <= 0 do
         "—"
       else
-        duration
-        |> div(1000)
-        |> Timing.to_duration()
+        duration |> div(1000) |> Timing.to_duration()
       end
 
     assigns =
@@ -351,13 +359,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
         executing?: executing?,
         started?: started?,
         formatted: formatted,
-        started_at: started_at
+        started_at: wf.started_at
       )
 
     ~H"""
     <span
       :if={@executing? and @started?}
-      id={"wf-detail-duration-#{@workflow[:id]}"}
+      id={"wf-detail-duration-#{@workflow.id}"}
       data-timestamp={DateTime.to_unix(@started_at, :millisecond)}
       data-relative-mode="duration"
       phx-hook="Relativize"
@@ -375,11 +383,10 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   attr :myself, :any, required: true
   attr :subs_open?, :boolean, required: true
-  attr :sub_workflows, :list, required: true
-  attr :workflow, :map, required: true
+  attr :detail_subs, :list, required: true
 
   defp sub_workflows_section(assigns) do
-    subs_count = map_size(assigns.workflow.subs)
+    subs_count = length(assigns.detail_subs)
     assigns = assign(assigns, subs_count: subs_count)
 
     ~H"""
@@ -430,7 +437,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                <.sub_workflow_row :for={sub <- @sub_workflows} workflow={sub} />
+                <.sub_workflow_row :for={sub <- @detail_subs} workflow={sub} />
               </tbody>
             </table>
           </div>
@@ -440,31 +447,29 @@ defmodule Oban.Web.Workflows.DetailComponent do
     """
   end
 
-  attr :workflow, :map, required: true
+  attr :workflow, :any, required: true
 
   defp sub_workflow_row(assigns) do
-    counts = assigns.workflow[:counts] || %{}
-    completed = Map.get(counts, :completed, 0)
-    total = assigns.workflow[:total] || 0
-    percent = if total > 0, do: round(completed / total * 100), else: 0
-    state = assigns.workflow[:state]
+    wf = assigns.workflow
+    total = Enum.reduce(@states, 0, &(Map.fetch!(wf, &1) + &2))
+    percent = if total > 0, do: round(wf.completed / total * 100), else: 0
 
     assigns =
       assign(assigns,
-        completed: completed,
+        completed: wf.completed,
         total: total,
         percent: percent,
-        state: state
+        state: wf.state
       )
 
     ~H"""
-    <.link navigate={oban_path([:workflows, @workflow[:id]])} class="contents">
+    <.link navigate={oban_path([:workflows, @workflow.id])} class="contents">
       <tr class="hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer">
         <td class="px-3 py-3 font-medium text-sm text-gray-700 dark:text-gray-300">
-          {@workflow[:display_name]}
+          {@workflow.name || @workflow.id}
         </td>
         <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
-          {@workflow[:id]}
+          {@workflow.id}
         </td>
         <td class="px-3 py-3">
           <div class="flex items-center">
@@ -490,21 +495,21 @@ defmodule Oban.Web.Workflows.DetailComponent do
     """
   end
 
-  attr :state, :atom, default: nil
+  attr :state, :string, default: nil
 
   defp status_icon(assigns) do
     ~H"""
     <span class="inline-flex">
       <%= case @state do %>
-        <% :executing -> %>
+        <% "executing" -> %>
           <Icons.play_circle class="w-5 h-5 text-emerald-400" />
-        <% :completed -> %>
+        <% "completed" -> %>
           <Icons.check_circle class="w-5 h-5 text-cyan-400" />
-        <% :retryable -> %>
+        <% "retryable" -> %>
           <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
-        <% :cancelled -> %>
+        <% "cancelled" -> %>
           <Icons.x_circle class="w-5 h-5 text-violet-400" />
-        <% :discarded -> %>
+        <% "discarded" -> %>
           <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
         <% _ -> %>
           <Icons.minus_circle class="w-5 h-5 text-gray-400" />
@@ -552,9 +557,6 @@ defmodule Oban.Web.Workflows.DetailComponent do
   # Helpers
 
   defp has_retryable?(workflow) do
-    counts = workflow.counts
-
-    Map.get(counts, :retryable, 0) + Map.get(counts, :discarded, 0) +
-      Map.get(counts, :cancelled, 0) > 0
+    workflow.retryable + workflow.discarded + workflow.cancelled > 0
   end
 end

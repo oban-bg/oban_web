@@ -71,11 +71,7 @@ defmodule Oban.Web.WorkflowsPage do
             </div>
           </div>
 
-          <.live_component
-            id="workflows-table"
-            module={TableComponent}
-            workflows={@workflows}
-          />
+          <.live_component id="workflows-table" module={TableComponent} workflows={@workflows} />
 
           <div
             :if={@show_less? or @show_more?}
@@ -172,7 +168,7 @@ defmodule Oban.Web.WorkflowsPage do
     parent_workflow = WorkflowQuery.get_parent_workflow(conf, workflow_id)
     graph_data = WorkflowQuery.get_workflow_graph(conf, workflow_id)
 
-    title = workflow.display_name || "Workflow"
+    title = if workflow, do: workflow.name || workflow_id, else: "Workflow"
 
     socket =
       assign(socket,
