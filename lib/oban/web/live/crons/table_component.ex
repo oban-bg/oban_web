@@ -3,7 +3,7 @@ defmodule Oban.Web.Crons.TableComponent do
 
   import Oban.Web.Crons.Helpers, only: [maybe_to_unix: 1, show_name?: 1, state_icon: 1]
 
-  alias Oban.Web.Cron
+  alias Oban.Web.{Colors, Cron}
 
   @sparkline_count 60
   @sparkline_height 16
@@ -132,14 +132,7 @@ defmodule Oban.Web.Crons.TableComponent do
     """
   end
 
-  defp state_color("available"), do: "#2dd4bf"
-  defp state_color("cancelled"), do: "#a78bfa"
-  defp state_color("completed"), do: "#22d3ee"
-  defp state_color("discarded"), do: "#fb7185"
-  defp state_color("executing"), do: "#fb923c"
-  defp state_color("retryable"), do: "#facc15"
-  defp state_color("scheduled"), do: "#34d399"
-  defp state_color(_), do: "#9ca3af"
+  defp state_color(state), do: Colors.state_hex(state)
 
   attr :cron, Cron
   attr :id, :string

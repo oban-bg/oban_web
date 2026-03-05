@@ -3,6 +3,7 @@ defmodule Oban.Web.Crons.Helpers do
 
   use Phoenix.Component
 
+  alias Oban.Web.Colors
   alias Oban.Web.Components.Icons
 
   attr :state, :string, required: true
@@ -15,22 +16,24 @@ defmodule Oban.Web.Crons.Helpers do
   end
 
   def state_icon(assigns) do
+    assigns = assign(assigns, :color_class, Colors.state_text_class(assigns.state))
+
     ~H"""
     <%= case @state do %>
       <% "available" -> %>
-        <Icons.ellipsis_horizontal_circle class="w-5 h-5 text-teal-400" />
+        <Icons.ellipsis_horizontal_circle class={["w-5 h-5", @color_class]} />
       <% "cancelled" -> %>
-        <Icons.x_circle class="w-5 h-5 text-violet-400" />
+        <Icons.x_circle class={["w-5 h-5", @color_class]} />
       <% "completed" -> %>
-        <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+        <Icons.check_circle class={["w-5 h-5", @color_class]} />
       <% "discarded" -> %>
-        <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+        <Icons.exclamation_circle class={["w-5 h-5", @color_class]} />
       <% "executing" -> %>
-        <Icons.play_circle class="w-5 h-5 text-orange-400" />
+        <Icons.play_circle class={["w-5 h-5", @color_class]} />
       <% "retryable" -> %>
-        <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
+        <Icons.arrow_path class={["w-5 h-5", @color_class]} />
       <% "scheduled" -> %>
-        <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+        <Icons.clock class={["w-5 h-5", @color_class]} />
       <% _ -> %>
         <Icons.minus_circle class="w-5 h-5 text-gray-400" />
     <% end %>
