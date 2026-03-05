@@ -342,14 +342,27 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
     |> Floki.raw_html()
   end
 
+  # Per-state colors (must match timeline_component.ex @state_colors)
+  @state_border_colors %{
+    "suspended" => "border-gray-400",
+    "scheduled" => "border-indigo-400",
+    "available" => "border-blue-400",
+    "retryable" => "border-yellow-400",
+    "executing" => "border-emerald-400",
+    "completed" => "border-cyan-400",
+    "cancelled" => "border-violet-400",
+    "discarded" => "border-rose-400"
+  }
+
   defp has_active_box?(html, state) do
     box = extract_box(html, state)
-    box =~ "border-blue-400"
+    box =~ @state_border_colors[state]
   end
 
   defp has_completed_box?(html, state) do
+    # Completed boxes now use their state color (same as active)
     box = extract_box(html, state)
-    box =~ "border-emerald-400"
+    box =~ @state_border_colors[state]
   end
 
   defp has_inactive_box?(html, state) do
@@ -358,7 +371,8 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
   end
 
   defp has_negative_box?(html, state) do
+    # Negative states (cancelled/discarded) now use their state colors
     box = extract_box(html, state)
-    box =~ "border-rose-400"
+    box =~ @state_border_colors[state]
   end
 end
