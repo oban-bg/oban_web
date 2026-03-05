@@ -209,7 +209,7 @@ defmodule Oban.Workers.MailingListSyncer do
   @impl Oban.Pro.Worker
   def process(_job), do: Generator.random_perform(400, 2_500)
 
-  @impl Oban.Pro.Worker
+  @impl Oban.Worker
   def timeout(_job), do: :timer.seconds(20)
 end
 
@@ -265,7 +265,7 @@ defmodule Oban.Workers.PushNotifier do
   @impl Oban.Pro.Worker
   def process(_job), do: Generator.random_perform(300, 5_000)
 
-  @impl Oban.Pro.Worker
+  @impl Oban.Worker
   def backoff(_job), do: 30
 end
 

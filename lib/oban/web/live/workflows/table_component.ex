@@ -12,7 +12,6 @@ defmodule Oban.Web.Workflows.TableComponent do
       <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
         <.header label="name" class="pl-3 w-1/3 text-left" />
         <div class="ml-auto flex items-center space-x-6">
-          <.header label="subs" class="w-14 text-center" />
           <.header label="progress" class="w-64 text-center" />
           <.header label="activity" class="w-44 text-center" />
           <.header label="duration" class="w-24 text-right" />
@@ -83,8 +82,6 @@ defmodule Oban.Web.Workflows.TableComponent do
           </div>
 
           <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
-            <.subs_count workflow={@workflow} />
-
             <.progress_bar workflow={@workflow} />
 
             <.activity_counts workflow={@workflow} />
@@ -94,7 +91,7 @@ defmodule Oban.Web.Workflows.TableComponent do
             <.started_at workflow={@workflow} />
 
             <div class="w-16 pr-4 flex justify-end">
-              <.status_indicator state={@workflow.state} />
+              <.status_indicator id={@workflow.id} state={@workflow.state} />
             </div>
           </div>
         </div>
@@ -105,34 +102,20 @@ defmodule Oban.Web.Workflows.TableComponent do
 
   attr :workflow, :map, required: true
 
-  defp subs_count(assigns) do
-    count = map_size(assigns.workflow.subs)
-    assigns = assign(assigns, count: count)
-
-    ~H"""
-    <div class="w-14 flex justify-center">
-      <span class="text-sm text-gray-500 dark:text-gray-400">
-        {@count}
-      </span>
-    </div>
-    """
-  end
-
-  attr :workflow, :map, required: true
-
   defp progress_bar(assigns) do
-    completed = Map.get(assigns.workflow.counts, :completed, 0)
+    activity = assigns.workflow.activity
     total = assigns.workflow.total
-    percent = if total > 0, do: min(round(completed / total * 100), 100), else: 0
+    finished = activity.finished
+    percent = if total > 0, do: min(round(finished / total * 100), 100), else: 0
 
-    assigns = assign(assigns, completed: completed, total: total, percent: percent)
+    assigns = assign(assigns, finished: finished, total: total, percent: percent)
 
     ~H"""
     <div class="w-64 flex items-center">
       <div class="w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div class="h-full rounded-full bg-cyan-400" style={"width: #{@percent}%"} />
       </div>
-      <span class="w-14 text-left tabular pl-2 text-sm">{@completed}/{@total}</span>
+      <span class="w-14 text-left tabular pl-2 text-sm">{@finished}/{@total}</span>
     </div>
     """
   end
@@ -140,24 +123,24 @@ defmodule Oban.Web.Workflows.TableComponent do
   attr :workflow, :map, required: true
 
   defp activity_counts(assigns) do
-    counts = assigns.workflow.counts
+    activity = assigns.workflow.activity
     id = assigns.workflow.id
 
     assigns =
       assign(assigns,
         id: id,
-        executing: Map.get(counts, :executing, 0),
-        available: Map.get(counts, :available, 0),
-        retryable: Map.get(counts, :retryable, 0),
-        discarded: Map.get(counts, :discarded, 0)
+        suspended: activity.suspended,
+        pending: activity.pending,
+        executing: activity.executing,
+        finished: activity.finished
       )
 
     ~H"""
     <div class="w-44 flex items-center justify-end text-sm">
+      <.state_count id={"#{@id}-susp"} count={@suspended} color="gray" title="Suspended" />
+      <.state_count id={"#{@id}-pend"} count={@pending} color="blue" title="Pending" />
       <.state_count id={"#{@id}-exec"} count={@executing} color="emerald" title="Executing" />
-      <.state_count id={"#{@id}-avail"} count={@available} color="cyan" title="Available" />
-      <.state_count id={"#{@id}-retry"} count={@retryable} color="yellow" title="Retryable" />
-      <.state_count id={"#{@id}-disc"} count={@discarded} color="pink" title="Discarded" />
+      <.state_count id={"#{@id}-fin"} count={@finished} color="cyan" title="Finished" />
     </div>
     """
   end
@@ -171,10 +154,10 @@ defmodule Oban.Web.Workflows.TableComponent do
     bg_class =
       case {assigns.count, assigns.color} do
         {0, _} -> "bg-gray-300 dark:bg-gray-600"
+        {_, "gray"} -> "bg-gray-400"
+        {_, "blue"} -> "bg-blue-400"
         {_, "emerald"} -> "bg-emerald-400"
         {_, "cyan"} -> "bg-cyan-400"
-        {_, "yellow"} -> "bg-yellow-400"
-        {_, "pink"} -> "bg-pink-400"
       end
 
     assigns = assign(assigns, bg_class: bg_class)
@@ -190,13 +173,9 @@ defmodule Oban.Web.Workflows.TableComponent do
   attr :workflow, :map, required: true
 
   defp started_at(assigns) do
-    counts = assigns.workflow.counts
-    executed? = Map.get(counts, :executing, 0) + Map.get(counts, :completed, 0) > 0
-
-    started =
-      if executed? do
-        assigns.workflow.started_at
-      end
+    activity = assigns.workflow.activity
+    executed? = activity.executing + activity.finished > 0
+    started = if executed?, do: assigns.workflow.started_at
 
     assigns = assign(assigns, started: started)
 
@@ -220,17 +199,20 @@ defmodule Oban.Web.Workflows.TableComponent do
   attr :workflow, :map, required: true
 
   defp format_duration(assigns) do
-    workflow = assigns.workflow
-    executing? = workflow.state == :executing
-    started? = not is_nil(workflow.started_at)
+    wf = assigns.workflow
+    executing? = wf.state == :executing
+    started? = not is_nil(wf.started_at)
+
+    duration =
+      if wf.started_at && wf.completed_at do
+        DateTime.diff(wf.completed_at, wf.started_at, :millisecond)
+      end
 
     formatted =
-      if is_nil(workflow.duration) or workflow.duration <= 0 do
+      if is_nil(duration) or duration <= 0 do
         "-"
       else
-        workflow.duration
-        |> div(1000)
-        |> Timing.to_duration()
+        duration |> div(1000) |> Timing.to_duration()
       end
 
     assigns =
@@ -238,7 +220,7 @@ defmodule Oban.Web.Workflows.TableComponent do
         executing?: executing?,
         started?: started?,
         formatted: formatted,
-        started_at: workflow.started_at
+        started_at: wf.started_at
       )
 
     ~H"""
@@ -259,15 +241,12 @@ defmodule Oban.Web.Workflows.TableComponent do
     """
   end
 
+  attr :id, :string, required: true
   attr :state, :atom, required: true
 
   defp status_indicator(assigns) do
     ~H"""
-    <span
-      data-title={status_title(@state)}
-      id={"workflow-state-#{System.unique_integer([:positive])}"}
-      phx-hook="Tippy"
-    >
+    <span data-title={status_title(@state)} id={"workflow-state-#{@id}"} phx-hook="Tippy">
       <%= case @state do %>
         <% :executing -> %>
           <Icons.play_circle class="w-5 h-5 text-emerald-400" />

@@ -4,9 +4,11 @@ defmodule Oban.Web.WorkflowQuery do
   import Ecto.Query
 
   alias Oban.{Job, Repo}
+  alias Oban.Pro.Workflow.Schema, as: Workflow
   alias Oban.Web.Search
 
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
+  @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
 
   @suggest_qualifier [
     {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
@@ -63,9 +65,10 @@ defmodule Oban.Web.WorkflowQuery do
 
   defp suggest_names(fragment, conf) do
     query =
-      Job
-      |> where([j], fragment("? \\? 'workflow_name'", j.meta))
-      |> select([j], fragment("DISTINCT ?->>'workflow_name'", j.meta))
+      Workflow
+      |> where([wf], not is_nil(wf.name))
+      |> select([wf], wf.name)
+      |> distinct(true)
       |> limit(100)
 
     conf
@@ -75,9 +78,9 @@ defmodule Oban.Web.WorkflowQuery do
 
   defp suggest_queues(fragment, conf) do
     query =
-      Job
-      |> where([j], fragment("? \\? 'workflow_id'", j.meta))
-      |> select([j], j.queue)
+      Workflow
+      |> where([wf], fragment("? \\? 'queues'", wf.meta))
+      |> select([wf], fragment("jsonb_array_elements_text(?->'queues')", wf.meta))
       |> distinct(true)
       |> limit(100)
 
@@ -88,9 +91,9 @@ defmodule Oban.Web.WorkflowQuery do
 
   defp suggest_workers(fragment, conf) do
     query =
-      Job
-      |> where([j], fragment("? \\? 'workflow_id'", j.meta))
-      |> select([j], j.worker)
+      Workflow
+      |> where([wf], fragment("? \\? 'workers'", wf.meta))
+      |> select([wf], fragment("jsonb_array_elements_text(?->'workers')", wf.meta))
       |> distinct(true)
       |> limit(100)
 
@@ -138,108 +141,106 @@ defmodule Oban.Web.WorkflowQuery do
     limit = Map.get(params, :limit, 10)
     sort_by = Map.get(params, :sort_by, "inserted")
     sort_dir = Map.get(params, :sort_dir, "desc")
-    states = Map.get(params, :states)
-
-    # Fetch extra workflows when filtering by state since that filter is applied in-memory
-    fetch_limit = if states, do: limit * 3, else: limit
-
-    params
-    |> fetch_workflow_ids(conf, fetch_limit, sort_by, sort_dir)
-    |> Enum.map(&build_workflow(&1, conf))
-    |> filter_by_states(states)
-    |> Enum.take(limit)
-  end
-
-  defp filter_by_states(workflows, nil), do: workflows
-
-  defp filter_by_states(workflows, states) do
-    Enum.filter(workflows, fn workflow ->
-      to_string(workflow.state) in states
-    end)
-  end
-
-  defp fetch_workflow_ids(params, conf, limit, sort_by, sort_dir) do
     dir = String.to_existing_atom(sort_dir)
 
-    query =
-      Job
-      |> where([j], fragment("? \\? 'workflow_id'", j.meta))
-      |> where([j], fragment("NOT ? \\? 'sup_workflow_id'", j.meta))
-      |> apply_filters(params)
-      |> group_by([j], fragment("?->>'workflow_id'", j.meta))
-      |> limit(^limit)
-      |> select([j], %{workflow_id: fragment("?->>'workflow_id'", j.meta)})
-      |> apply_sort(sort_by, dir)
-
-    Repo.all(conf, query)
+    Workflow
+    |> where([wf], is_nil(wf.parent_id))
+    |> apply_filters(params)
+    |> apply_sort(sort_by, dir)
+    |> limit(^limit)
+    |> then(&Repo.all(conf, &1))
+    |> Enum.map(&build_workflow/1)
   end
 
   defp apply_filters(query, params) do
     query
     |> filter_by_ids(Map.get(params, :ids))
     |> filter_by_names(Map.get(params, :names))
+    |> filter_by_states(Map.get(params, :states))
     |> filter_by_queues(Map.get(params, :queues))
     |> filter_by_workers(Map.get(params, :workers))
   end
 
   defp filter_by_ids(query, nil), do: query
-
-  defp filter_by_ids(query, ids) do
-    where(query, [j], fragment("?->>'workflow_id' = ANY(?)", j.meta, ^ids))
-  end
+  defp filter_by_ids(query, ids), do: where(query, [wf], wf.id in ^ids)
 
   defp filter_by_names(query, nil), do: query
+  defp filter_by_names(query, names), do: where(query, [wf], wf.name in ^names)
 
-  defp filter_by_names(query, names) do
-    where(query, [j], fragment("?->>'workflow_name' = ANY(?)", j.meta, ^names))
-  end
+  defp filter_by_states(query, nil), do: query
+  defp filter_by_states(query, states), do: where(query, [wf], wf.state in ^states)
 
   defp filter_by_queues(query, nil), do: query
 
   defp filter_by_queues(query, queues) do
-    where(query, [j], j.queue in ^queues)
+    where(query, [wf], fragment("?->'queues' \\?| ?", wf.meta, ^queues))
   end
 
   defp filter_by_workers(query, nil), do: query
 
   defp filter_by_workers(query, workers) do
-    where(query, [j], j.worker in ^workers)
+    where(query, [wf], fragment("?->'workers' \\?| ?", wf.meta, ^workers))
   end
 
   defp apply_sort(query, "inserted", dir) do
-    order_by(query, [j], {^dir, max(j.id)})
+    order_by(query, [wf], [{^dir, wf.inserted_at}])
   end
 
   defp apply_sort(query, "started", dir) do
-    order_by(query, [j], {^dir, min(j.attempted_at)})
+    order_by(query, [wf], [{^dir, wf.started_at}])
   end
 
   defp apply_sort(query, "duration", dir) do
     order_by(
       query,
-      [j],
-      {^dir,
-       fragment(
-         "EXTRACT(EPOCH FROM (MAX(COALESCE(?, NOW())) - MIN(?)))",
-         j.completed_at,
-         j.attempted_at
-       )}
+      [wf],
+      [
+        {^dir,
+         fragment("EXTRACT(EPOCH FROM (COALESCE(?, NOW()) - ?))", wf.completed_at, wf.started_at)}
+      ]
     )
   end
 
   defp apply_sort(query, "total", dir) do
-    order_by(query, [j], {^dir, count(j.id)})
+    order_by(
+      query,
+      [wf],
+      [
+        {^dir,
+         fragment(
+           "? + ? + ? + ? + ? + ? + ? + ?",
+           wf.suspended,
+           wf.available,
+           wf.scheduled,
+           wf.executing,
+           wf.retryable,
+           wf.completed,
+           wf.cancelled,
+           wf.discarded
+         )}
+      ]
+    )
   end
 
   defp apply_sort(query, "progress", dir) do
     order_by(
       query,
-      [j],
-      {^dir,
-       fragment(
-         "COUNT(*) FILTER (WHERE ? = 'completed')::float / NULLIF(COUNT(*), 0)",
-         j.state
-       )}
+      [wf],
+      [
+        {^dir,
+         fragment(
+           "?::float / NULLIF(? + ? + ? + ? + ? + ? + ? + ?, 0)",
+           wf.completed,
+           wf.suspended,
+           wf.available,
+           wf.scheduled,
+           wf.executing,
+           wf.retryable,
+           wf.completed,
+           wf.cancelled,
+           wf.discarded
+         )}
+      ]
     )
   end
 
@@ -247,86 +248,51 @@ defmodule Oban.Web.WorkflowQuery do
     apply_sort(query, "inserted", dir)
   end
 
-  defp build_workflow(%{workflow_id: workflow_id}, conf) do
-    status = Oban.Pro.Workflow.status(conf.name, workflow_id)
+  defp build_workflow(%Workflow{} = wf) do
+    pending = wf.available + wf.scheduled + wf.retryable
+    finished = wf.completed + wf.cancelled + wf.discarded
 
-    queues = fetch_workflow_queues(conf, workflow_id)
-    display_name = status.name || fetch_initial_worker(conf, workflow_id)
-
-    Map.merge(status, %{
-      queues: queues,
-      display_name: display_name
-    })
-  end
-
-  defp fetch_workflow_queues(conf, workflow_id) do
-    query =
-      Job
-      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
-      |> distinct([j], j.queue)
-      |> select([j], j.queue)
-
-    Repo.all(conf, query)
-  end
-
-  @skip_workers ~w(Oban.Pro.Workers.Context)
-
-  defp fetch_initial_worker(conf, workflow_id) do
-    query =
-      Job
-      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
-      |> where([j], j.worker not in @skip_workers)
-      |> order_by([j], asc: j.id)
-      |> limit(1)
-      |> select([j], %{worker: j.worker, meta: j.meta})
-
-    case Repo.one(conf, query) do
-      %{meta: %{"decorated_name" => name}} -> name
-      %{worker: worker} when is_binary(worker) -> worker
-      nil -> "Unknown"
-    end
+    %{
+      id: wf.id,
+      name: wf.name,
+      state: String.to_existing_atom(wf.state),
+      total: wf.suspended + pending + wf.executing + finished,
+      activity: %{
+        suspended: wf.suspended,
+        pending: pending,
+        executing: wf.executing,
+        finished: finished
+      },
+      started_at: wf.started_at,
+      completed_at: wf.completed_at,
+      queues: Map.get(wf.meta, "queues", []),
+      display_name: wf.name || wf.id
+    }
   end
 
   def get_workflow(conf, workflow_id) do
-    build_workflow(%{workflow_id: workflow_id}, conf)
+    query = where(Workflow, [wf], wf.id == ^workflow_id)
+    Repo.one(conf, query)
   end
 
   def get_parent_workflow(conf, workflow_id) do
     query =
-      Job
-      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
-      |> where([j], fragment("? \\? 'sup_workflow_id'", j.meta))
-      |> limit(1)
-      |> select([j], fragment("?->>'sup_workflow_id'", j.meta))
+      Workflow
+      |> where([wf], wf.id == ^workflow_id)
+      |> where([wf], not is_nil(wf.parent_id))
+      |> select([wf], wf.parent_id)
 
     case Repo.one(conf, query) do
       nil -> nil
-      parent_id -> build_workflow(%{workflow_id: parent_id}, conf)
+      parent_id -> get_workflow(conf, parent_id)
     end
   end
 
   def get_sub_workflows(conf, workflow_id, limit \\ 10) do
-    query =
-      Job
-      |> where([j], fragment("?->>'sup_workflow_id' = ?", j.meta, ^workflow_id))
-      |> group_by([j], fragment("?->>'workflow_id'", j.meta))
-      |> limit(^limit)
-      |> select([j], %{
-        workflow_id: fragment("?->>'workflow_id'", j.meta),
-        sub_name: fragment("MAX(?->>'sub_name')", j.meta)
-      })
-
-    conf
-    |> Repo.all(query)
-    |> Enum.map(&build_sub_workflow(&1, conf))
-  end
-
-  defp build_sub_workflow(%{workflow_id: workflow_id, sub_name: sub_name}, conf) do
-    status = Oban.Pro.Workflow.status(conf.name, workflow_id)
-
-    Map.merge(status, %{
-      display_name: sub_name || status.name || workflow_id
-    })
+    Workflow
+    |> where([wf], wf.parent_id == ^workflow_id)
+    |> limit(^limit)
+    |> then(&Repo.all(conf, &1))
   end
 
   # TODO: Use meta ? 'workflow_id' condition to ensure index usage

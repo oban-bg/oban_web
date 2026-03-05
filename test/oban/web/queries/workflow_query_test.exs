@@ -1,7 +1,10 @@
 defmodule Oban.Web.Repo.WorkflowQueryTest do
   use Oban.Web.Case, async: false
 
+  alias Oban.Pro.Workflow.Schema, as: Workflow
   alias Oban.Web.WorkflowQuery
+
+  @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
 
   setup do
     name = start_supervised_oban!()
@@ -102,6 +105,38 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
   defp sort(list), do: Enum.sort(list)
 
   defp insert_workflow!(conf, workflow_id, opts) do
+    state = Keyword.get(opts, :state, "available")
+    queue = Keyword.get(opts, :queue, "default") |> to_string()
+    worker = Keyword.get(opts, :worker, "DefaultWorker")
+
+    workflow_attrs =
+      %{
+        id: workflow_id,
+        name: Keyword.get(opts, :name),
+        parent_id: nil,
+        inserted_at: DateTime.utc_now(),
+        meta: %{"queues" => [queue], "workers" => [worker]}
+      }
+      |> put_state_count(state)
+
+    %Workflow{}
+    |> Ecto.Changeset.cast(workflow_attrs, [
+      :id,
+      :name,
+      :parent_id,
+      :inserted_at,
+      :meta,
+      :suspended,
+      :available,
+      :scheduled,
+      :executing,
+      :retryable,
+      :completed,
+      :cancelled,
+      :discarded
+    ])
+    |> conf.repo.insert!()
+
     meta =
       %{workflow_id: workflow_id}
       |> maybe_put(:workflow_name, Keyword.get(opts, :name))
@@ -113,15 +148,58 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       |> Keyword.put(:conf, conf)
       |> Keyword.put_new(:queue, :default)
 
-    worker = Keyword.get(opts, :worker, "DefaultWorker")
-
     insert_job!(%{}, Keyword.put(job_opts, :worker, worker))
+  end
+
+  defp put_state_count(attrs, state) do
+    base = %{
+      suspended: 0,
+      available: 0,
+      scheduled: 0,
+      executing: 0,
+      retryable: 0,
+      completed: 0,
+      cancelled: 0,
+      discarded: 0
+    }
+
+    state_key = String.to_existing_atom(state)
+    counts = Map.put(base, state_key, 1)
+    Map.merge(attrs, counts)
   end
 
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
   defp insert_sub_workflow!(conf, workflow_id, parent_workflow_id, opts) do
+    state = Keyword.get(opts, :state, "available")
+
+    workflow_attrs =
+      %{
+        id: workflow_id,
+        name: Keyword.get(opts, :name),
+        parent_id: parent_workflow_id,
+        inserted_at: DateTime.utc_now()
+      }
+      |> put_state_count(state)
+
+    %Workflow{}
+    |> Ecto.Changeset.cast(workflow_attrs, [
+      :id,
+      :name,
+      :parent_id,
+      :inserted_at,
+      :suspended,
+      :available,
+      :scheduled,
+      :executing,
+      :retryable,
+      :completed,
+      :cancelled,
+      :discarded
+    ])
+    |> conf.repo.insert!()
+
     meta =
       maybe_put(
         %{workflow_id: workflow_id, sup_workflow_id: parent_workflow_id},
