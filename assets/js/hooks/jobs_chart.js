@@ -1,5 +1,5 @@
 import { load, store } from "../lib/settings"
-import { OTHER_PALETTE, STATE_COLORS } from "../lib/colors"
+import { OTHER_PALETTE, STATE_FG } from "../lib/colors"
 
 import {
   BarController,
@@ -259,7 +259,7 @@ const JobsChart = {
       }
 
       const datasets = Object.entries(points).map(([label, data], index) => {
-        const color = group === "state" ? STATE_COLORS[label] : OTHER_PALETTE[index]
+        const color = group === "state" ? STATE_FG[label] : OTHER_PALETTE[index]
 
         return {
           backgroundColor: color,

@@ -13,7 +13,7 @@ export const GRAY = "#9ca3af" // gray-400
 export const OTHER_PALETTE = [CYAN, VIOLET, YELLOW, EMERALD, ORANGE, TEAL, ROSE]
 
 // Must match progress bar colors in detail_component.ex
-export const STATE_COLORS = {
+export const STATE_FG = {
   scheduled: INDIGO,
   available: BLUE,
   retryable: YELLOW,
@@ -21,4 +21,15 @@ export const STATE_COLORS = {
   completed: CYAN,
   cancelled: VIOLET,
   discarded: ROSE,
+}
+
+export const STATE_BG = {
+  scheduled: { light: "#eef2ff", dark: "#1e1b4b" },
+  available: { light: "#eff6ff", dark: "#1e3a8a" },
+  retryable: { light: "#fefce8", dark: "#713f12" },
+  executing: { light: "#ecfdf5", dark: "#064e3b" },
+  completed: { light: "#ecfeff", dark: "#164e63" },
+  cancelled: { light: "#f5f3ff", dark: "#2e1065" },
+  discarded: { light: "#fff1f2", dark: "#4c0519" },
+  pending: { light: "#f9fafb", dark: "#1f2937" },
 }

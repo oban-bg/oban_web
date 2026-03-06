@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from "chart.js"
 
-import { GRAY, STATE_COLORS } from "../lib/colors"
+import { GRAY, STATE_FG } from "../lib/colors"
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip)
 
@@ -149,7 +149,7 @@ const JobHistoryChart = {
       // Exec time dataset (top)
       this.chart.data.datasets[1].data = history.map((point) => point.exec_time)
       this.chart.data.datasets[1].backgroundColor = history.map((point) => {
-        const baseColor = STATE_COLORS[point.state] || GRAY
+        const baseColor = STATE_FG[point.state] || GRAY
         return point.current ? baseColor : this.fadeColor(baseColor, 0.35)
       })
 

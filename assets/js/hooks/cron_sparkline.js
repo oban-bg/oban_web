@@ -1,5 +1,5 @@
 import tippy, { followCursor, roundArrow } from "tippy.js"
-import { STATE_COLORS, GRAY } from "../lib/colors"
+import { STATE_FG, GRAY } from "../lib/colors"
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp)
@@ -62,7 +62,7 @@ const CronSparkline = {
 
       if (index >= 0 && index < this.data.length) {
         const point = this.data[index]
-        const color = STATE_COLORS[point.state] || GRAY
+        const color = STATE_FG[point.state] || GRAY
         const content = `
           <span style="color: ${color}; font-weight: 600;">${point.state}</span>
           <span style="color: #9ca3af; margin-left: 4px;">${formatTime(point.timestamp)}</span>
