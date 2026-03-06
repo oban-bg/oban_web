@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from "chart.js"
 
-import { GRAY, STATE_COLORS } from "../lib/colors"
+import { GRAY, STATE_FG } from "../lib/colors"
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip)
 
@@ -102,7 +102,7 @@ const CronChart = {
       this.chart.data.labels = history.map((point) => point.timestamp)
       this.chart.data.datasets[0].data = history.map((point) => point.duration)
       this.chart.data.datasets[0].backgroundColor = history.map(
-        (point) => STATE_COLORS[point.state] || GRAY
+        (point) => STATE_FG[point.state] || GRAY
       )
       this.chart.update()
     })

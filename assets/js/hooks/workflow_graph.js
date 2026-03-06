@@ -1,18 +1,5 @@
 import dagre from "dagre";
-import { STATE_COLORS } from "../lib/colors";
-
-// Background colors for nodes (light/dark mode)
-// Must match progress bar colors in detail_component.ex
-const STATE_BG = {
-  scheduled: { light: "#eef2ff", dark: "#1e1b4b" },   // indigo
-  available: { light: "#eff6ff", dark: "#1e3a8a" },   // blue
-  retryable: { light: "#fefce8", dark: "#713f12" },   // yellow
-  executing: { light: "#ecfdf5", dark: "#064e3b" },   // emerald
-  completed: { light: "#ecfeff", dark: "#164e63" },   // cyan
-  cancelled: { light: "#f5f3ff", dark: "#2e1065" },   // violet
-  discarded: { light: "#fff1f2", dark: "#4c0519" },   // rose
-  pending: { light: "#f9fafb", dark: "#1f2937" },     // gray
-};
+import { STATE_BG, STATE_FG } from "../lib/colors";
 
 const NODE_WIDTH = 260;
 const NODE_HEIGHT = 56;
@@ -20,7 +7,7 @@ const ARROW_SIZE = 8;
 const ICON_SIZE = 20;
 
 const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25];
-const DEFAULT_ZOOM_INDEX = 2; // 1x zoom
+const DEFAULT_ZOOM_INDEX = 2;
 
 const WorkflowGraph = {
   mounted() {
@@ -33,19 +20,17 @@ const WorkflowGraph = {
     this.needsInitialCenter = true;
     this.trackActiveNode = true;
     this.lastTrackedNodeId = null;
-    this.direction = "LR"; // "LR" (left-right) or "TB" (top-bottom)
+    this.direction = "LR";
 
     this.applyDotGridBackground();
     this.setupPanning();
     this.createControls();
 
-    // Listen for graph data from server
     this.handleEvent("graph-data", (data) => {
       this.graphData = data;
       this.render();
     });
 
-    // Listen for theme changes
     this.themeObserver = new MutationObserver(() => {
       this.applyDotGridBackground();
       this.updateControlColors();
@@ -81,7 +66,7 @@ const WorkflowGraph = {
   },
 
   getStateColors(state) {
-    const borderColor = STATE_COLORS[state] || STATE_COLORS.available;
+    const borderColor = STATE_FG[state] || STATE_FG.available;
     const isDark = this.isDarkMode();
     const bg = STATE_BG[state] || STATE_BG.pending;
     const bgColor = isDark ? bg.dark : bg.light;
@@ -102,13 +87,10 @@ const WorkflowGraph = {
       return;
     }
 
-    // Create dagre graph
     const graph = new dagre.graphlib.Graph();
     graph.setGraph({ rankdir: this.direction, nodesep: 20, ranksep: 50, marginx: 30, marginy: 20 });
     graph.setDefaultEdgeLabel(() => ({}));
 
-    // Build a map of job name -> job for dependency resolution
-    // deps array contains job names from meta.name
     const jobsByName = new Map();
     jobs.forEach((job) => {
       const name = job.meta?.name;
@@ -117,7 +99,6 @@ const WorkflowGraph = {
       }
     });
 
-    // Add job nodes
     jobs.forEach((job) => {
       const displayName = this.getDisplayName(job);
       graph.setNode(`job-${job.id}`, {
@@ -129,13 +110,11 @@ const WorkflowGraph = {
       });
     });
 
-    // Build a map of sub-workflow ID -> sub-workflow for dependency resolution
     const subWorkflowsById = new Map();
     subWorkflows.forEach((sub) => {
       subWorkflowsById.set(sub.workflow_id, sub);
     });
 
-    // Add sub-workflow nodes and edges to parent jobs
     subWorkflows.forEach((sub) => {
       graph.setNode(`sub-${sub.workflow_id}`, {
         label: sub.sub_name || sub.workflow_name || sub.workflow_id.slice(0, 8) + "...",
@@ -145,7 +124,6 @@ const WorkflowGraph = {
         subWorkflow: sub,
       });
 
-      // Connect sub-workflow to parent job via parent_dep (extracted from sub-workflow's deps)
       if (sub.parent_dep) {
         const parentJob = jobsByName.get(sub.parent_dep);
         if (parentJob) {
@@ -189,10 +167,8 @@ const WorkflowGraph = {
       });
     });
 
-    // Layout
     dagre.layout(graph);
 
-    // Compute bounds
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     graph.nodes().forEach((nodeId) => {
       const node = graph.node(nodeId);
@@ -205,37 +181,30 @@ const WorkflowGraph = {
     const graphWidth = maxX - minX + 60;
     const graphHeight = maxY - minY + 40;
 
-    // Get container dimensions
     const svg = container.querySelector("svg");
     const containerRect = container.getBoundingClientRect();
     const viewWidth = containerRect.width;
     const viewHeight = containerRect.height;
 
-    // Store bounds for panning/zooming
     this.bounds = { minX: minX - 30, minY: minY - 20, width: graphWidth, height: graphHeight };
     this.viewSize = { width: viewWidth, height: viewHeight };
 
-    // Center graph on initial render
     if (this.needsInitialCenter) {
       this.centerGraph();
       this.needsInitialCenter = false;
     }
 
-    // Track active node if enabled
     if (this.trackActiveNode) {
       this.centerOnActiveNode(graph);
     }
 
-    // Build SVG content
     const svgContent = this.buildSvgContent(graph, minX - 30, minY - 20);
 
     svg.innerHTML = svgContent;
     this.updateViewBox();
 
-    // Store graph reference for tracking
     this.currentGraph = graph;
 
-    // Add click handlers
     this.setupClickHandlers(svg);
   },
 
@@ -260,13 +229,12 @@ const WorkflowGraph = {
     const name = job.meta?.name;
     const worker = job.meta?.decorated_name || job.meta?.handler || job.worker || "Unknown";
 
-    // Truncate name if too long (from right)
     const maxNameLen = 28;
     const truncatedName = name.length > maxNameLen
       ? name.slice(0, maxNameLen - 1) + "…"
       : name;
 
-    // Truncate worker if too long (from left, to preserve module/function name)
+    // Truncate from left to preserve module/function name
     const maxWorkerLen = 32;
     const truncatedWorker = worker.length > maxWorkerLen
       ? "…" + worker.slice(-(maxWorkerLen - 1))
@@ -279,7 +247,6 @@ const WorkflowGraph = {
     if (!workflowId || workflowId.length <= 20) {
       return `Sub ${workflowId}`;
     }
-    // Show first 6 and last 12 characters: "Sub 019cb3…a51ab36fde"
     return `Sub ${workflowId.slice(0, 6)}…${workflowId.slice(-12)}`;
   },
 
@@ -287,7 +254,6 @@ const WorkflowGraph = {
     let content = "";
     const isDark = this.isDarkMode();
 
-    // Define reusable icons and styles
     content += `
       <defs>
         <style>
@@ -369,7 +335,6 @@ const WorkflowGraph = {
       content += `<polygon points="${arrowPoints}" fill="${strokeColor}" />`;
     });
 
-    // Draw nodes
     graph.nodes().forEach((nodeId) => {
       const node = graph.node(nodeId);
       const nodeX = node.x - node.width / 2;
@@ -395,8 +360,6 @@ const WorkflowGraph = {
     const iconY = nodeY + node.height / 2;
     const textX = nodeX + 12 + ICON_SIZE + 8;
     const displayName = node.displayName;
-
-    // Check if this is a context job (name is "context" and has context: true in meta)
     const isContextJob = job.meta?.name === "context" && job.meta?.context === true;
 
     return `
@@ -426,7 +389,6 @@ const WorkflowGraph = {
     const iconY = nodeY + node.height / 2;
     const textX = nodeX + 12 + ICON_SIZE + 8;
 
-    // Show sub_name as primary, truncated workflow_id as secondary
     const primaryLabel = sub.sub_name || sub.workflow_name || "Sub-workflow";
     const secondaryLabel = this.truncateWorkflowId(sub.workflow_id);
 
@@ -605,7 +567,6 @@ const WorkflowGraph = {
     this.updateTrackingButtonState();
 
     if (this.trackActiveNode && this.currentGraph) {
-      // Reset so we immediately focus on current active node (no animation on toggle)
       this.lastTrackedNodeId = null;
       this.centerOnActiveNode(this.currentGraph, false);
       this.updateViewBox();
@@ -615,7 +576,6 @@ const WorkflowGraph = {
   centerOnActiveNode(graph, animate = true) {
     if (!this.bounds || !this.viewSize) return;
 
-    // Find executing node (job or sub-workflow)
     let activeNode = null;
     let activeNodeId = null;
     graph.nodes().forEach((nodeId) => {
@@ -627,7 +587,6 @@ const WorkflowGraph = {
       }
     });
 
-    // Don't move if no active node, or if it's the same node we're already tracking
     if (!activeNode || activeNodeId === this.lastTrackedNodeId) return;
 
     this.lastTrackedNodeId = activeNodeId;
@@ -636,7 +595,6 @@ const WorkflowGraph = {
     const scaledWidth = this.viewSize.width / zoom;
     const scaledHeight = this.viewSize.height / zoom;
 
-    // Target pan position to center on the active node
     const targetX = scaledWidth / 2 - (activeNode.x - this.bounds.minX);
     const targetY = scaledHeight / 2 - (activeNode.y - this.bounds.minY);
 
@@ -738,7 +696,6 @@ const WorkflowGraph = {
     const btn = this.el.querySelector("#toggle-direction");
     if (!btn) return;
 
-    // Show icon indicating current direction (bidirectional arrows)
     const icon = this.direction === "LR"
       ? `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
@@ -763,7 +720,6 @@ const WorkflowGraph = {
 
     controls.querySelectorAll("button").forEach((btn) => {
       if (btn.id === "toggle-tracking" && this.trackActiveNode) {
-        // Active tracking button gets special styling
         const activeBg = isDark ? "bg-blue-900" : "bg-blue-100";
         const activeBorder = isDark ? "border-blue-500" : "border-blue-400";
         const activeText = isDark ? "text-blue-400" : "text-blue-600";
