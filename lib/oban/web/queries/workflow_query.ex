@@ -295,6 +295,38 @@ defmodule Oban.Web.WorkflowQuery do
     |> then(&Repo.all(conf, &1))
   end
 
+  def get_sub_workflow_jobs(conf, sub_workflow_id) do
+    query =
+      Job
+      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^sub_workflow_id))
+      |> select([j], %{
+        id: j.id,
+        state: j.state,
+        worker: j.worker,
+        meta:
+          fragment(
+            """
+              jsonb_build_object(
+                'name', ?->>'name',
+                'deps', ?->'deps',
+                'workflow_name', ?->>'workflow_name',
+                'decorated_name', ?->>'decorated_name',
+                'handler', ?->>'handler',
+                'context', (?->>'context')::boolean
+              )
+            """,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta,
+            j.meta
+          )
+      })
+
+    Repo.all(conf, query)
+  end
+
   # TODO: Use meta ? 'workflow_id' condition to ensure index usage
 
   def get_workflow_graph(conf, workflow_id) do
