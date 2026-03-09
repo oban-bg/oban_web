@@ -30,6 +30,7 @@ const WorkflowGraph = {
 
     this.handleEvent("graph-data", (data) => {
       this.graphData = data;
+      this.updateTruncationWarning(data.truncated, data.jobs?.length || 0);
 
       this.expandedSubWorkflows.forEach((_, workflowId) => {
         this.pushEventTo(this.el, "expand-sub-workflow", { workflow_id: workflowId });
@@ -39,10 +40,10 @@ const WorkflowGraph = {
     });
 
     this.handleEvent("sub-workflow-jobs", (data) => {
-      const { workflow_id: workflowId, jobs } = data;
+      const { workflow_id: workflowId, jobs, truncated } = data;
       const wasLoading = this.loadingSubWorkflows.has(workflowId);
       this.loadingSubWorkflows.delete(workflowId);
-      this.expandedSubWorkflows.set(workflowId, jobs);
+      this.expandedSubWorkflows.set(workflowId, { jobs, truncated });
 
       if (wasLoading) {
         this.pendingCenterOnNode = `sub-${workflowId}`;
@@ -142,9 +143,9 @@ const WorkflowGraph = {
       const isLoading = this.loadingSubWorkflows.has(sub.workflow_id);
 
       if (isExpanded) {
-        const subJobs = this.expandedSubWorkflows.get(sub.workflow_id);
+        const { jobs: subJobs, truncated: subTruncated } = this.expandedSubWorkflows.get(sub.workflow_id);
         const containerSize = this.calculateExpandedSize(subJobs);
-        expandedSubWorkflowData.set(sub.workflow_id, { sub, subJobs });
+        expandedSubWorkflowData.set(sub.workflow_id, { sub, subJobs, subTruncated });
 
         graph.setNode(`sub-${sub.workflow_id}`, {
           label: sub.sub_name || sub.workflow_name || sub.workflow_id.slice(0, 8) + "...",
@@ -465,7 +466,7 @@ const WorkflowGraph = {
       } else if (node.type === "sub_workflow_expanded") {
         const workflowId = node.subWorkflow.workflow_id;
         const subData = expandedSubWorkflowData.get(workflowId);
-        content += this.renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subData?.subJobs || []);
+        content += this.renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subData?.subJobs || [], subData?.subTruncated || false);
       }
     });
 
@@ -551,12 +552,13 @@ const WorkflowGraph = {
     `;
   },
 
-  renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subJobs) {
+  renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subJobs, truncated = false) {
     const sub = node.subWorkflow;
     const colors = this.getStateColors(sub.state);
     const isDark = this.isDarkMode();
     const textColor = isDark ? "#e5e7eb" : "#374151";
     const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+    const warningColor = isDark ? "#fbbf24" : "#d97706";
     const containerBg = isDark ? "rgba(17, 24, 39, 0.5)" : "rgba(249, 250, 251, 0.5)";
     const headerHeight = 32;
     const padding = 20;
@@ -617,6 +619,15 @@ const WorkflowGraph = {
     const collapseButtonX = nodeX + containerWidth - 28;
     const collapseButtonY = nodeY + headerHeight / 2;
 
+    const truncationWarning = truncated ? `
+      <g>
+        <title>Showing first ${subJobs.length} jobs</title>
+        <svg x="${collapseButtonX - 36}" y="${collapseButtonY - 8}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${warningColor}" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+        </svg>
+      </g>
+    ` : "";
+
     let content = `
       <g>
         <rect x="${nodeX}" y="${nodeY}" width="${containerWidth}" height="${containerHeight}"
@@ -625,6 +636,7 @@ const WorkflowGraph = {
               dominant-baseline="middle" font-size="12" font-weight="600" fill="${textColor}">
           ${this.escapeHtml(primaryLabel)}
         </text>
+        ${truncationWarning}
         <g data-collapse-workflow="${sub.workflow_id}" class="cursor-pointer" role="button">
           <circle cx="${collapseButtonX}" cy="${collapseButtonY}" r="12" fill="transparent" />
           <use href="#icon-minus-circle" x="${collapseButtonX - 10}" y="${collapseButtonY - 10}" width="20" height="20"
@@ -1031,6 +1043,32 @@ const WorkflowGraph = {
 
     btn.innerHTML = icon;
     btn.title = this.direction === "LR" ? "Layout: left to right" : "Layout: top to bottom";
+  },
+
+  updateTruncationWarning(truncated, jobCount) {
+    const existingWarning = this.el.querySelector("#truncation-warning");
+    if (existingWarning) {
+      existingWarning.remove();
+    }
+
+    if (!truncated) return;
+
+    const isDark = this.isDarkMode();
+    const warning = document.createElement("div");
+    warning.id = "truncation-warning";
+    warning.className = `absolute top-3 left-3 right-3 px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
+      isDark
+        ? "bg-yellow-900/80 text-yellow-200 border border-yellow-700"
+        : "bg-yellow-50 text-yellow-800 border border-yellow-200"
+    }`;
+    warning.innerHTML = `
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+      </svg>
+      <span>Showing first ${jobCount} jobs. This workflow has more jobs than can be displayed.</span>
+    `;
+
+    this.el.appendChild(warning);
   },
 
   updateControlColors() {
