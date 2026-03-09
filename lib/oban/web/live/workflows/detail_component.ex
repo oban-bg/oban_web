@@ -149,6 +149,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
     total = Enum.reduce(@states, 0, &(Map.fetch!(wf, &1) + &2))
 
     states = [
+      {:suspended, wf.suspended, "bg-gray-400", "Suspended"},
       {:scheduled, wf.scheduled, "bg-indigo-400", "Scheduled"},
       {:available, wf.available, "bg-blue-400", "Available"},
       {:retryable, wf.retryable, "bg-yellow-400", "Retryable"},
@@ -182,9 +183,9 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
       <div class="flex justify-between mt-3">
         <%= for {_state, count, color, label} <- @states do %>
-          <div class="flex items-center text-sm">
-            <span class={["w-3 h-3 rounded-full mr-1.5", color]} />
-            <span class="text-gray-600 dark:text-gray-400">
+          <div class="group flex items-center text-sm px-2 py-1 -mx-2 -my-1 rounded-full hover:bg-white dark:hover:bg-white/20 transition-all duration-200 cursor-default">
+            <span class={["w-3 h-3 rounded-full shrink-0 mr-1.5", color]} />
+            <span class="text-gray-600 dark:text-gray-400 whitespace-nowrap overflow-hidden transition-all duration-200 w-10 group-hover:w-16 [mask-image:linear-gradient(to_right,black_60%,transparent_100%)] group-hover:[mask-image:none]">
               {label}
             </span>
             <span class="ml-1 font-medium text-gray-700 dark:text-gray-300 tabular">
