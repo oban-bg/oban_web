@@ -10,6 +10,9 @@ defmodule Oban.Web.WorkflowQuery do
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
   @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
 
+  @default_graph_limit 500
+  @default_sub_graph_limit 100
+
   @suggest_qualifier [
     {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
     {"names:", "workflow name", "names:order-fulfillment"},
@@ -272,6 +275,7 @@ defmodule Oban.Web.WorkflowQuery do
 
   def get_workflow(conf, workflow_id) do
     query = where(Workflow, [wf], wf.id == ^workflow_id)
+
     Repo.one(conf, query)
   end
 
@@ -295,10 +299,14 @@ defmodule Oban.Web.WorkflowQuery do
     |> then(&Repo.all(conf, &1))
   end
 
-  def get_sub_workflow_jobs(conf, sub_workflow_id) do
+  def get_sub_workflow_jobs(conf, sub_workflow_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, @default_sub_graph_limit)
+
     query =
       Job
       |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^sub_workflow_id))
+      |> order_by([j], asc: j.id)
+      |> limit(^limit)
       |> select([j], %{
         id: j.id,
         state: j.state,
@@ -324,15 +332,21 @@ defmodule Oban.Web.WorkflowQuery do
           )
       })
 
-    Repo.all(conf, query)
+    jobs = Repo.all(conf, query)
+
+    %{jobs: jobs, truncated: length(jobs) >= limit}
   end
 
   # TODO: Use meta ? 'workflow_id' condition to ensure index usage
 
-  def get_workflow_graph(conf, workflow_id) do
+  def get_workflow_graph(conf, workflow_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, @default_graph_limit)
+
     query =
       Job
       |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
+      |> order_by([j], asc: j.id)
+      |> limit(^limit)
       |> select([j], %{
         id: j.id,
         state: j.state,
@@ -416,6 +430,6 @@ defmodule Oban.Web.WorkflowQuery do
 
     sub_workflows = Repo.all(conf, sub_query)
 
-    %{jobs: jobs, sub_workflows: sub_workflows}
+    %{jobs: jobs, sub_workflows: sub_workflows, truncated: length(jobs) >= limit}
   end
 end

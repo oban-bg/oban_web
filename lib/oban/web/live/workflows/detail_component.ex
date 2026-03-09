@@ -557,9 +557,11 @@ defmodule Oban.Web.Workflows.DetailComponent do
   end
 
   def handle_event("expand-sub-workflow", %{"workflow_id" => sub_workflow_id}, socket) do
-    jobs = WorkflowQuery.get_sub_workflow_jobs(socket.assigns.conf, sub_workflow_id)
+    %{jobs: jobs, truncated: truncated} =
+      WorkflowQuery.get_sub_workflow_jobs(socket.assigns.conf, sub_workflow_id)
 
-    socket = push_event(socket, "sub-workflow-jobs", %{workflow_id: sub_workflow_id, jobs: jobs})
+    payload = %{workflow_id: sub_workflow_id, jobs: jobs, truncated: truncated}
+    socket = push_event(socket, "sub-workflow-jobs", payload)
 
     {:noreply, socket}
   end
