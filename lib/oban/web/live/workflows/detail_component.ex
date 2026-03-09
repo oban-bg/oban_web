@@ -3,6 +3,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   alias Oban.Web.Timing
   alias Oban.Web.Components.Core
+  alias Oban.Web.WorkflowQuery
 
   @states ~w(suspended available scheduled executing retryable completed cancelled discarded)a
 
@@ -552,6 +553,14 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   def handle_event("navigate-to-workflow", %{"workflow_id" => workflow_id}, socket) do
     {:noreply, push_navigate(socket, to: oban_path([:workflows, workflow_id]))}
+  end
+
+  def handle_event("expand-sub-workflow", %{"workflow_id" => sub_workflow_id}, socket) do
+    jobs = WorkflowQuery.get_sub_workflow_jobs(socket.assigns.conf, sub_workflow_id)
+
+    socket = push_event(socket, "sub-workflow-jobs", %{workflow_id: sub_workflow_id, jobs: jobs})
+
+    {:noreply, socket}
   end
 
   # Helpers

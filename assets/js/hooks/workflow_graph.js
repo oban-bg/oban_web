@@ -21,6 +21,8 @@ const WorkflowGraph = {
     this.trackActiveNode = true;
     this.lastTrackedNodeId = null;
     this.direction = "LR";
+    this.expandedSubWorkflows = new Map();
+    this.loadingSubWorkflows = new Set();
 
     this.applyDotGridBackground();
     this.setupPanning();
@@ -28,6 +30,24 @@ const WorkflowGraph = {
 
     this.handleEvent("graph-data", (data) => {
       this.graphData = data;
+
+      this.expandedSubWorkflows.forEach((_, workflowId) => {
+        this.pushEventTo(this.el, "expand-sub-workflow", { workflow_id: workflowId });
+      });
+
+      this.render();
+    });
+
+    this.handleEvent("sub-workflow-jobs", (data) => {
+      const { workflow_id: workflowId, jobs } = data;
+      const wasLoading = this.loadingSubWorkflows.has(workflowId);
+      this.loadingSubWorkflows.delete(workflowId);
+      this.expandedSubWorkflows.set(workflowId, jobs);
+
+      if (wasLoading) {
+        this.pendingCenterOnNode = `sub-${workflowId}`;
+      }
+
       this.render();
     });
 
@@ -115,14 +135,34 @@ const WorkflowGraph = {
       subWorkflowsById.set(sub.workflow_id, sub);
     });
 
+    const expandedSubWorkflowData = new Map();
+
     subWorkflows.forEach((sub) => {
-      graph.setNode(`sub-${sub.workflow_id}`, {
-        label: sub.sub_name || sub.workflow_name || sub.workflow_id.slice(0, 8) + "...",
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-        type: "sub_workflow",
-        subWorkflow: sub,
-      });
+      const isExpanded = this.expandedSubWorkflows.has(sub.workflow_id);
+      const isLoading = this.loadingSubWorkflows.has(sub.workflow_id);
+
+      if (isExpanded) {
+        const subJobs = this.expandedSubWorkflows.get(sub.workflow_id);
+        const containerSize = this.calculateExpandedSize(subJobs);
+        expandedSubWorkflowData.set(sub.workflow_id, { sub, subJobs });
+
+        graph.setNode(`sub-${sub.workflow_id}`, {
+          label: sub.sub_name || sub.workflow_name || sub.workflow_id.slice(0, 8) + "...",
+          width: containerSize.width,
+          height: containerSize.height,
+          type: "sub_workflow_expanded",
+          subWorkflow: sub,
+        });
+      } else {
+        graph.setNode(`sub-${sub.workflow_id}`, {
+          label: sub.sub_name || sub.workflow_name || sub.workflow_id.slice(0, 8) + "...",
+          width: NODE_WIDTH,
+          height: NODE_HEIGHT,
+          type: "sub_workflow",
+          subWorkflow: sub,
+          isLoading: isLoading,
+        });
+      }
 
       if (sub.parent_dep) {
         const parentJob = jobsByName.get(sub.parent_dep);
@@ -143,22 +183,15 @@ const WorkflowGraph = {
         const isSuspended = job.state === "scheduled" && deps.length > 0;
 
         if (Array.isArray(dep)) {
-          // Cross-workflow dependency: ["workflow_id", "name"] or ["workflow_id", "*"]
           const [depWorkflowId, depName] = dep;
 
           if (depName === "*") {
-            // Depends on entire sub-workflow
             const subWorkflow = subWorkflowsById.get(depWorkflowId);
             if (subWorkflow) {
               graph.setEdge(`sub-${depWorkflowId}`, `job-${job.id}`, { suspended: isSuspended });
             }
-          } else {
-            // Depends on specific job in another workflow (parent workflow)
-            // This is for sub-workflow jobs depending on parent jobs - skip for now
-            // as we handle this via the sub_name connection
           }
         } else {
-          // Simple same-workflow dependency
           const depJob = jobsByName.get(dep);
           if (depJob) {
             graph.setEdge(`job-${depJob.id}`, `job-${job.id}`, { suspended: isSuspended });
@@ -198,14 +231,35 @@ const WorkflowGraph = {
       this.centerOnActiveNode(graph);
     }
 
-    const svgContent = this.buildSvgContent(graph, minX - 30, minY - 20);
+    const svgContent = this.buildSvgContent(graph, minX - 30, minY - 20, expandedSubWorkflowData);
 
     svg.innerHTML = svgContent;
     this.updateViewBox();
 
     this.currentGraph = graph;
 
+    if (this.pendingCenterOnNode) {
+      const nodeToCenter = graph.node(this.pendingCenterOnNode);
+      if (nodeToCenter) {
+        this.centerOnNode(nodeToCenter);
+      }
+      this.pendingCenterOnNode = null;
+    }
+
     this.setupClickHandlers(svg);
+  },
+
+  centerOnNode(node) {
+    if (!this.bounds || !this.viewSize) return;
+
+    const zoom = ZOOM_LEVELS[this.zoomIndex];
+    const scaledWidth = this.viewSize.width / zoom;
+    const scaledHeight = this.viewSize.height / zoom;
+
+    const targetX = scaledWidth / 2 - (node.x - this.bounds.minX);
+    const targetY = scaledHeight / 2 - (node.y - this.bounds.minY);
+
+    this.animatePanTo(targetX, targetY);
   },
 
   renderEmpty(container) {
@@ -250,7 +304,63 @@ const WorkflowGraph = {
     return `Sub ${workflowId.slice(0, 6)}…${workflowId.slice(-12)}`;
   },
 
-  buildSvgContent(graph, offsetX, offsetY) {
+  calculateExpandedSize(subJobs) {
+    const headerHeight = 32;
+    const padding = 20;
+
+    if (!subJobs || subJobs.length === 0) {
+      return { width: NODE_WIDTH + padding * 2, height: NODE_HEIGHT + headerHeight + padding * 2 };
+    }
+
+    const innerGraph = new dagre.graphlib.Graph();
+    innerGraph.setGraph({ rankdir: this.direction, nodesep: 15, ranksep: 40, marginx: 10, marginy: 10 });
+    innerGraph.setDefaultEdgeLabel(() => ({}));
+
+    const subJobsByName = new Map();
+    subJobs.forEach((job) => {
+      const name = job.meta?.name;
+      if (name) {
+        subJobsByName.set(name, job);
+      }
+      innerGraph.setNode(`job-${job.id}`, {
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+      });
+    });
+
+    subJobs.forEach((job) => {
+      const deps = job.meta?.deps || [];
+      deps.forEach((dep) => {
+        if (!Array.isArray(dep)) {
+          const depJob = subJobsByName.get(dep);
+          if (depJob) {
+            innerGraph.setEdge(`job-${depJob.id}`, `job-${job.id}`);
+          }
+        }
+      });
+    });
+
+    dagre.layout(innerGraph);
+
+    let innerMinX = Infinity, innerMinY = Infinity, innerMaxX = -Infinity, innerMaxY = -Infinity;
+    innerGraph.nodes().forEach((id) => {
+      const n = innerGraph.node(id);
+      innerMinX = Math.min(innerMinX, n.x - n.width / 2);
+      innerMinY = Math.min(innerMinY, n.y - n.height / 2);
+      innerMaxX = Math.max(innerMaxX, n.x + n.width / 2);
+      innerMaxY = Math.max(innerMaxY, n.y + n.height / 2);
+    });
+
+    const innerWidth = innerMaxX - innerMinX;
+    const innerHeight = innerMaxY - innerMinY;
+
+    return {
+      width: innerWidth + padding * 2,
+      height: innerHeight + headerHeight + padding * 2
+    };
+  },
+
+  buildSvgContent(graph, offsetX, offsetY, expandedSubWorkflowData = new Map()) {
     let content = "";
     const isDark = this.isDarkMode();
 
@@ -286,6 +396,14 @@ const WorkflowGraph = {
         <symbol id="icon-arrow-path" viewBox="0 0 24 24">
           <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                 d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>
+        </symbol>
+        <symbol id="icon-plus-circle" viewBox="0 0 24 24">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+        </symbol>
+        <symbol id="icon-minus-circle" viewBox="0 0 24 24">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
         </symbol>
       </defs>
     `;
@@ -344,6 +462,10 @@ const WorkflowGraph = {
         content += this.renderJobNode(node, nodeX, nodeY, nodeId);
       } else if (node.type === "sub_workflow") {
         content += this.renderSubWorkflowNode(node, nodeX, nodeY, nodeId);
+      } else if (node.type === "sub_workflow_expanded") {
+        const workflowId = node.subWorkflow.workflow_id;
+        const subData = expandedSubWorkflowData.get(workflowId);
+        content += this.renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subData?.subJobs || []);
       }
     });
 
@@ -392,6 +514,25 @@ const WorkflowGraph = {
     const primaryLabel = sub.sub_name || sub.workflow_name || "Sub-workflow";
     const secondaryLabel = this.truncateWorkflowId(sub.workflow_id);
 
+    const expandButtonX = nodeX + node.width - 28;
+    const expandButtonY = nodeY + node.height / 2;
+
+    const loadingSpinner = node.isLoading ? `
+      <g transform="translate(${expandButtonX - 8}, ${expandButtonY - 8})">
+        <circle cx="8" cy="8" r="6" fill="none" stroke="${dimTextColor}" stroke-width="1.5" opacity="0.25"/>
+        <path fill="none" stroke="${dimTextColor}" stroke-width="1.5" stroke-linecap="round"
+              d="M8 2a6 6 0 0 1 6 6">
+          <animateTransform attributeName="transform" type="rotate" from="0 8 8" to="360 8 8" dur="1s" repeatCount="indefinite"/>
+        </path>
+      </g>
+    ` : `
+      <g data-expand-workflow="${sub.workflow_id}" class="cursor-pointer" role="button">
+        <circle cx="${expandButtonX}" cy="${expandButtonY}" r="12" fill="transparent" />
+        <use href="#icon-plus-circle" x="${expandButtonX - 10}" y="${expandButtonY - 10}" width="20" height="20"
+             style="color: ${dimTextColor}" />
+      </g>
+    `;
+
     return `
       <g data-workflow-id="${sub.workflow_id}" class="cursor-pointer workflow-node" role="button">
         <rect x="${nodeX}" y="${nodeY}" width="${node.width}" height="${node.height}"
@@ -406,7 +547,156 @@ const WorkflowGraph = {
           ${this.escapeHtml(secondaryLabel)}
         </text>
       </g>
+      ${loadingSpinner}
     `;
+  },
+
+  renderExpandedSubWorkflowNode(node, nodeX, nodeY, nodeId, subJobs) {
+    const sub = node.subWorkflow;
+    const colors = this.getStateColors(sub.state);
+    const isDark = this.isDarkMode();
+    const textColor = isDark ? "#e5e7eb" : "#374151";
+    const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+    const containerBg = isDark ? "rgba(17, 24, 39, 0.5)" : "rgba(249, 250, 251, 0.5)";
+    const headerHeight = 32;
+    const padding = 20;
+
+    const primaryLabel = sub.sub_name || sub.workflow_name || "Sub-workflow";
+
+    const innerGraph = new dagre.graphlib.Graph();
+    innerGraph.setGraph({ rankdir: this.direction, nodesep: 15, ranksep: 40, marginx: 10, marginy: 10 });
+    innerGraph.setDefaultEdgeLabel(() => ({}));
+
+    const subJobsByName = new Map();
+    subJobs.forEach((job) => {
+      const name = job.meta?.name;
+      if (name) {
+        subJobsByName.set(name, job);
+      }
+      const displayName = this.getDisplayName(job);
+      innerGraph.setNode(`job-${job.id}`, {
+        displayName: displayName,
+        width: NODE_WIDTH,
+        height: NODE_HEIGHT,
+        job: job,
+      });
+    });
+
+    subJobs.forEach((job) => {
+      const deps = job.meta?.deps || [];
+      deps.forEach((dep) => {
+        if (!Array.isArray(dep)) {
+          const depJob = subJobsByName.get(dep);
+          if (depJob) {
+            const isSuspended = job.state === "scheduled" && deps.length > 0;
+            innerGraph.setEdge(`job-${depJob.id}`, `job-${job.id}`, { suspended: isSuspended });
+          }
+        }
+      });
+    });
+
+    dagre.layout(innerGraph);
+
+    let innerMinX = Infinity, innerMinY = Infinity, innerMaxX = -Infinity, innerMaxY = -Infinity;
+    innerGraph.nodes().forEach((id) => {
+      const n = innerGraph.node(id);
+      innerMinX = Math.min(innerMinX, n.x - n.width / 2);
+      innerMinY = Math.min(innerMinY, n.y - n.height / 2);
+      innerMaxX = Math.max(innerMaxX, n.x + n.width / 2);
+      innerMaxY = Math.max(innerMaxY, n.y + n.height / 2);
+    });
+
+    const innerWidth = subJobs.length > 0 ? innerMaxX - innerMinX : NODE_WIDTH;
+    const innerHeight = subJobs.length > 0 ? innerMaxY - innerMinY : NODE_HEIGHT;
+    const containerWidth = innerWidth + padding * 2;
+    const containerHeight = innerHeight + headerHeight + padding * 2;
+
+    const contentOffsetX = nodeX + padding - innerMinX;
+    const contentOffsetY = nodeY + headerHeight + padding - innerMinY;
+
+    const collapseButtonX = nodeX + containerWidth - 28;
+    const collapseButtonY = nodeY + headerHeight / 2;
+
+    let content = `
+      <g>
+        <rect x="${nodeX}" y="${nodeY}" width="${containerWidth}" height="${containerHeight}"
+              rx="8" fill="${containerBg}" stroke="${colors.border}" stroke-width="2" stroke-dasharray="6 3" />
+        <text x="${nodeX + 12}" y="${nodeY + headerHeight / 2 + 1}"
+              dominant-baseline="middle" font-size="12" font-weight="600" fill="${textColor}">
+          ${this.escapeHtml(primaryLabel)}
+        </text>
+        <g data-collapse-workflow="${sub.workflow_id}" class="cursor-pointer" role="button">
+          <circle cx="${collapseButtonX}" cy="${collapseButtonY}" r="12" fill="transparent" />
+          <use href="#icon-minus-circle" x="${collapseButtonX - 10}" y="${collapseButtonY - 10}" width="20" height="20"
+               style="color: ${dimTextColor}" />
+        </g>
+      </g>
+    `;
+
+    const strokeColor = isDark ? "#4b5563" : "#9ca3af";
+    innerGraph.edges().forEach((edge) => {
+      const edgeData = innerGraph.edge(edge);
+      const sourceNode = innerGraph.node(edge.v);
+      const targetNode = innerGraph.node(edge.w);
+      if (!sourceNode || !targetNode) return;
+
+      const dashArray = edgeData.suspended ? "6 4" : "none";
+      const sx = sourceNode.x + contentOffsetX;
+      const sy = sourceNode.y + contentOffsetY;
+      const tx = targetNode.x + contentOffsetX;
+      const ty = targetNode.y + contentOffsetY;
+
+      let path, arrowPoints;
+      if (this.direction === "TB") {
+        const startY = sy + sourceNode.height / 2;
+        const endY = ty - targetNode.height / 2 - ARROW_SIZE;
+        const arrowY = ty - targetNode.height / 2;
+        const midY = (startY + arrowY) / 2;
+        path = `M ${sx} ${startY} C ${sx} ${midY}, ${tx} ${midY}, ${tx} ${endY}`;
+        arrowPoints = `${tx},${arrowY} ${tx - ARROW_SIZE / 2},${arrowY - ARROW_SIZE} ${tx + ARROW_SIZE / 2},${arrowY - ARROW_SIZE}`;
+      } else {
+        const startX = sx + sourceNode.width / 2;
+        const endX = tx - targetNode.width / 2 - ARROW_SIZE;
+        const arrowX = tx - targetNode.width / 2;
+        const midX = (startX + arrowX) / 2;
+        path = `M ${startX} ${sy} C ${midX} ${sy}, ${midX} ${ty}, ${endX} ${ty}`;
+        arrowPoints = `${arrowX},${ty} ${arrowX - ARROW_SIZE},${ty - ARROW_SIZE / 2} ${arrowX - ARROW_SIZE},${ty + ARROW_SIZE / 2}`;
+      }
+
+      content += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="2" stroke-dasharray="${dashArray}" />`;
+      content += `<polygon points="${arrowPoints}" fill="${strokeColor}" />`;
+    });
+
+    innerGraph.nodes().forEach((id) => {
+      const n = innerGraph.node(id);
+      const job = n.job;
+      const jobColors = this.getStateColors(job.state);
+      const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+      const jx = n.x + contentOffsetX - n.width / 2;
+      const jy = n.y + contentOffsetY - n.height / 2;
+      const iconX = jx + 12 + ICON_SIZE / 2;
+      const iconY = jy + n.height / 2;
+      const textX = jx + 12 + ICON_SIZE + 8;
+      const isContextJob = job.meta?.name === "context" && job.meta?.context === true;
+
+      content += `
+        <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button">
+          <rect x="${jx}" y="${jy}" width="${n.width}" height="${n.height}"
+                rx="8" fill="${jobColors.bg}" stroke="${jobColors.border}" stroke-width="2" />
+          ${isContextJob ? this.renderContextIcon(iconX, iconY, jobColors.border) : this.renderStateIcon(job.state, iconX, iconY)}
+          <text x="${textX}" y="${jy + n.height / 2 - 7}"
+                dominant-baseline="middle" font-size="13" font-weight="500" fill="${textColor}">
+            ${this.escapeHtml(n.displayName.name)}
+          </text>
+          <text x="${textX}" y="${jy + n.height / 2 + 11}"
+                dominant-baseline="middle" font-size="11" fill="${dimTextColor}">
+            ${this.escapeHtml(n.displayName.worker)}
+          </text>
+        </g>
+      `;
+    });
+
+    return content;
   },
 
   getStateIconId(state) {
@@ -449,6 +739,22 @@ const WorkflowGraph = {
   },
 
   setupClickHandlers(svg) {
+    svg.querySelectorAll("[data-expand-workflow]").forEach((element) => {
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const workflowId = element.dataset.expandWorkflow;
+        this.expandSubWorkflow(workflowId);
+      });
+    });
+
+    svg.querySelectorAll("[data-collapse-workflow]").forEach((element) => {
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const workflowId = element.dataset.collapseWorkflow;
+        this.collapseSubWorkflow(workflowId);
+      });
+    });
+
     svg.querySelectorAll("[data-job-id]").forEach((element) => {
       element.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -464,6 +770,20 @@ const WorkflowGraph = {
         this.pushEventTo(this.el, "navigate-to-workflow", { workflow_id: workflowId });
       });
     });
+  },
+
+  expandSubWorkflow(workflowId) {
+    if (this.loadingSubWorkflows.has(workflowId) || this.expandedSubWorkflows.has(workflowId)) {
+      return;
+    }
+    this.loadingSubWorkflows.add(workflowId);
+    this.render();
+    this.pushEventTo(this.el, "expand-sub-workflow", { workflow_id: workflowId });
+  },
+
+  collapseSubWorkflow(workflowId) {
+    this.expandedSubWorkflows.delete(workflowId);
+    this.render();
   },
 
   setupPanning() {
@@ -580,7 +900,12 @@ const WorkflowGraph = {
     let activeNodeId = null;
     graph.nodes().forEach((nodeId) => {
       const node = graph.node(nodeId);
-      const state = node.type === "job" ? node.job.state : node.subWorkflow?.state;
+      let state;
+      if (node.type === "job") {
+        state = node.job.state;
+      } else if (node.type === "sub_workflow" || node.type === "sub_workflow_expanded") {
+        state = node.subWorkflow?.state;
+      }
       if (state === "executing") {
         activeNode = node;
         activeNodeId = nodeId;
