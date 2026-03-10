@@ -243,20 +243,16 @@ defmodule Oban.Web.JobsPage do
         []
       end
 
+    # Request fresh diagnostics if executing, but preserve existing data when job stops
     diagnostics =
       if detailed && detailed.state == "executing" do
         Oban.Notifier.notify(conf.name, :diagnostics, %{job_id: detailed.id})
         socket.assigns.diagnostics
       else
-        nil
+        socket.assigns.diagnostics
       end
 
-    diagnostics_at =
-      if diagnostics do
-        socket.assigns.diagnostics_at
-      else
-        nil
-      end
+    diagnostics_at = socket.assigns.diagnostics_at
 
     assign(socket,
       detailed: detailed,

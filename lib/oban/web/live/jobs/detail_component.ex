@@ -8,6 +8,11 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
+    auto_open_diagnostics? =
+      assigns[:diagnostics] != nil and
+        socket.assigns[:diagnostics] == nil and
+        is_struct(assigns[:job]) and assigns.job.state == "executing"
+
     socket =
       socket
       |> assign(assigns)
@@ -15,6 +20,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:error_sort, fn -> :desc end)
       |> assign_new(:edit_changed?, fn -> false end)
       |> assign_new(:queues, fn -> [] end)
+      |> assign_new(:diagnostics_open?, fn -> false end)
+      |> then(fn socket ->
+        if auto_open_diagnostics?, do: assign(socket, :diagnostics_open?, true), else: socket
+      end)
 
     {:ok, socket}
   end
@@ -216,20 +225,19 @@ defmodule Oban.Web.Jobs.DetailComponent do
           id="diagnostics-toggle"
           type="button"
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-          phx-click={toggle_diagnostics()}
+          phx-click="toggle-diagnostics"
+          phx-target={@myself}
         >
           <Icons.chevron_right
             id="diagnostics-chevron"
-            class={["w-5 h-5 transition-transform", if(executing?(@job), do: "rotate-90")]}
+            class={["w-5 h-5 transition-transform", if(@diagnostics_open?, do: "rotate-90")]}
           />
           <span class="font-semibold">Diagnostics</span>
-          <.pro_badge
-            id="diagnostics-pro-badge"
-            tooltip="Diagnostics for executing Oban.Pro.Worker jobs"
-          />
+          <.pro_badge id="diagnostics-badge" tooltip="Diagnostics for executing Oban.Pro.Worker jobs" />
+          <.stale_badge :if={@diagnostics && not executing?(@job)} />
         </button>
 
-        <div id="diagnostics-content" class={["mt-3", unless(executing?(@job), do: "hidden")]}>
+        <div :if={@diagnostics_open?} id="diagnostics-content" class="mt-3">
           <%= if @diagnostics do %>
             <div class="grid grid-cols-2 gap-4">
               <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
@@ -578,6 +586,19 @@ defmodule Oban.Web.Jobs.DetailComponent do
     """
   end
 
+  defp stale_badge(assigns) do
+    ~H"""
+    <span
+      id="diagnostics-stale-badge"
+      class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
+      data-title="Diagnostics data is stale because the job is no longer executing"
+      phx-hook="Tippy"
+    >
+      Stale
+    </span>
+    """
+  end
+
   # Job Data Section
 
   attr :job, :map, required: true
@@ -690,6 +711,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
     end
 
     {:noreply, socket}
+  end
+
+  def handle_event("toggle-diagnostics", _params, socket) do
+    {:noreply, assign(socket, :diagnostics_open?, not socket.assigns.diagnostics_open?)}
   end
 
   def handle_event("error-sort", %{"sort" => sort}, socket) do
@@ -839,13 +864,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp workflow_display_name(job) do
     job.meta["workflow_name"] || job.meta["workflow_id"]
-  end
-
-  defp toggle_diagnostics do
-    %JS{}
-    |> JS.toggle(to: "#diagnostics-content", in: "fade-in-scale", out: "fade-out-scale")
-    |> JS.add_class("rotate-90", to: "#diagnostics-chevron:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#diagnostics-chevron.rotate-90")
   end
 
   defp toggle_edit do

@@ -59,6 +59,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     status = box_status(assigns.state, assigns.job, assigns.path)
     {border_class, bg_class, text_color} = colors_for_box(assigns.state, status)
     icon = icon_for_box(status, assigns.state)
+    dim_class = if status == :completed, do: "saturate-30", else: ""
 
     assigns =
       assigns
@@ -66,12 +67,13 @@ defmodule Oban.Web.Jobs.TimelineComponent do
       |> assign(:border_class, border_class)
       |> assign(:bg_class, bg_class)
       |> assign(:text_color, text_color)
+      |> assign(:dim_class, dim_class)
       |> assign(:timestamp, format_timestamp(assigns.state, assigns.job, assigns.now))
       |> assign(:tooltip, timestamp_title(assigns.state, assigns.job))
 
     ~H"""
     <div
-      class={"flex flex-col sm:flex-row items-center sm:justify-between h-12 sm:h-12 rounded-lg border-2 px-2 sm:px-3 #{@border_class} #{@bg_class}"}
+      class={"flex flex-col sm:flex-row items-center sm:justify-between h-12 sm:h-12 rounded-lg border-2 px-2 sm:px-3 #{@border_class} #{@bg_class} #{@dim_class}"}
       data-title={@tooltip}
       phx-hook="Tippy"
       id={"timeline-#{@state}"}
