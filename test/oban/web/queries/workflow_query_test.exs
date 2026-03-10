@@ -1,10 +1,7 @@
 defmodule Oban.Web.Repo.WorkflowQueryTest do
   use Oban.Web.Case, async: false
 
-  alias Oban.Pro.Workflow.Schema, as: Workflow
-  alias Oban.Web.WorkflowQuery
-
-  @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
+  alias Oban.Web.{Workflow, WorkflowQuery}
 
   setup do
     name = start_supervised_oban!()

@@ -59,7 +59,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     status = box_status(assigns.state, assigns.job, assigns.path)
     {border_class, bg_class, text_color} = colors_for_box(assigns.state, status)
     icon = icon_for_box(status, assigns.state)
-    dim_class = if status == :completed, do: "saturate-30", else: ""
+    dim_class = if status == :completed, do: "saturate-40", else: ""
 
     assigns =
       assigns

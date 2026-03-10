@@ -39,6 +39,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
         <.header
           access={@access}
           myself={@myself}
+          pro_available?={@pro_available?}
           workflow={@workflow}
           parent_workflow={@parent_workflow}
         />
@@ -81,6 +82,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   attr :access, :any, required: true
   attr :myself, :any, required: true
+  attr :pro_available?, :boolean, required: true
   attr :workflow, :map, required: true
   attr :parent_workflow, :map, default: nil
 
@@ -108,8 +110,11 @@ defmodule Oban.Web.Workflows.DetailComponent do
           icon="x_circle"
           label="Cancel"
           color="yellow"
-          tooltip="Cancel all jobs in this workflow"
-          disabled={not can?(:cancel_jobs, @access) or @workflow.state in ~w(completed cancelled)}
+          tooltip={cancel_tooltip(@pro_available?)}
+          disabled={
+            not @pro_available? or not can?(:cancel_jobs, @access) or
+              @workflow.state in ~w(completed cancelled)
+          }
           phx-target={@myself}
           phx-click="cancel-workflow"
         />
@@ -119,8 +124,10 @@ defmodule Oban.Web.Workflows.DetailComponent do
           icon="arrow_path"
           label="Retry"
           color="blue"
-          tooltip="Retry failed jobs in this workflow"
-          disabled={not can?(:retry_jobs, @access) or not has_retryable?(@workflow)}
+          tooltip={retry_tooltip(@pro_available?)}
+          disabled={
+            not @pro_available? or not can?(:retry_jobs, @access) or not has_retryable?(@workflow)
+          }
           phx-target={@myself}
           phx-click="retry-workflow"
         />
@@ -577,6 +584,12 @@ defmodule Oban.Web.Workflows.DetailComponent do
   end
 
   # Helpers
+
+  defp cancel_tooltip(true), do: "Cancel all jobs in this workflow"
+  defp cancel_tooltip(false), do: "Cancel requires Oban Pro"
+
+  defp retry_tooltip(true), do: "Retry failed jobs in this workflow"
+  defp retry_tooltip(false), do: "Retry requires Oban Pro"
 
   defp has_retryable?(workflow) do
     workflow.retryable + workflow.discarded + workflow.cancelled > 0
