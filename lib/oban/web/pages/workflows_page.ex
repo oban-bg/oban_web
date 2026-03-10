@@ -138,7 +138,7 @@ defmodule Oban.Web.WorkflowsPage do
     if detail do
       workflow = WorkflowQuery.get_workflow(conf, detail)
       detail_subs = WorkflowQuery.get_sub_workflows(conf, detail)
-      parent_workflow = WorkflowQuery.get_parent_workflow(conf, detail)
+      parent_workflow = WorkflowQuery.get_sup_workflow(conf, detail)
       graph_data = WorkflowQuery.get_workflow_graph(conf, detail)
 
       assign(socket,
@@ -165,7 +165,7 @@ defmodule Oban.Web.WorkflowsPage do
 
     workflow = WorkflowQuery.get_workflow(conf, workflow_id)
     detail_subs = WorkflowQuery.get_sub_workflows(conf, workflow_id)
-    parent_workflow = WorkflowQuery.get_parent_workflow(conf, workflow_id)
+    parent_workflow = WorkflowQuery.get_sup_workflow(conf, workflow_id)
     graph_data = WorkflowQuery.get_workflow_graph(conf, workflow_id)
 
     title = if workflow, do: workflow.name || workflow_id, else: "Workflow"

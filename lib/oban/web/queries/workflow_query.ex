@@ -10,8 +10,143 @@ defmodule Oban.Web.WorkflowQuery do
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
   @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
 
-  @default_graph_limit 500
+  @default_sup_graph_limit 500
   @default_sub_graph_limit 100
+  @default_suggest_limit 100
+
+  defmacrop has_workflow_id(meta, workflow_id) do
+    quote do
+      fragment(
+        "? \\? 'workflow_id' AND ?->>'workflow_id' = ?",
+        unquote(meta),
+        unquote(meta),
+        unquote(workflow_id)
+      )
+    end
+  end
+
+  defmacrop has_sup_workflow_id(meta, workflow_id) do
+    quote do
+      fragment(
+        "? \\? 'sup_workflow_id' AND ?->>'sup_workflow_id' = ?",
+        unquote(meta),
+        unquote(meta),
+        unquote(workflow_id)
+      )
+    end
+  end
+
+  defmacrop duration_seconds(completed_at, started_at) do
+    quote do
+      fragment(
+        "EXTRACT(EPOCH FROM (COALESCE(?, NOW()) - ?))",
+        unquote(completed_at),
+        unquote(started_at)
+      )
+    end
+  end
+
+  defmacrop total_jobs(wf) do
+    quote do
+      fragment(
+        "? + ? + ? + ? + ? + ? + ? + ?",
+        unquote(wf).suspended,
+        unquote(wf).available,
+        unquote(wf).scheduled,
+        unquote(wf).executing,
+        unquote(wf).retryable,
+        unquote(wf).completed,
+        unquote(wf).cancelled,
+        unquote(wf).discarded
+      )
+    end
+  end
+
+  defmacrop progress_percent(wf) do
+    quote do
+      fragment(
+        "?::float / NULLIF(? + ? + ? + ? + ? + ? + ? + ?, 0)",
+        unquote(wf).completed,
+        unquote(wf).suspended,
+        unquote(wf).available,
+        unquote(wf).scheduled,
+        unquote(wf).executing,
+        unquote(wf).retryable,
+        unquote(wf).completed,
+        unquote(wf).cancelled,
+        unquote(wf).discarded
+      )
+    end
+  end
+
+  defmacrop job_graph_select(job) do
+    quote do
+      %{
+        id: unquote(job).id,
+        state: unquote(job).state,
+        worker: unquote(job).worker,
+        meta:
+          fragment(
+            """
+            jsonb_build_object(
+              'name', ?->>'name',
+              'deps', ?->'deps',
+              'workflow_name', ?->>'workflow_name',
+              'decorated_name', ?->>'decorated_name',
+              'handler', ?->>'handler',
+              'context', (?->>'context')::boolean
+            )
+            """,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta
+          )
+      }
+    end
+  end
+
+  defmacrop aggregate_workflow_state(state) do
+    quote do
+      fragment(
+        """
+        CASE
+          WHEN bool_or(? = 'executing') THEN 'executing'
+          WHEN bool_or(? = 'discarded') THEN 'discarded'
+          WHEN bool_or(? = 'cancelled') THEN 'cancelled'
+          WHEN bool_or(? = 'retryable') THEN 'retryable'
+          WHEN bool_and(? = 'completed') THEN 'completed'
+          ELSE 'pending'
+        END
+        """,
+        unquote(state),
+        unquote(state),
+        unquote(state),
+        unquote(state),
+        unquote(state)
+      )
+    end
+  end
+
+  defmacrop sub_workflow_parent_dep(sub_workflow_id, sup_workflow_id) do
+    quote do
+      fragment(
+        """
+        (SELECT dep->>1
+         FROM oban_jobs j2,
+              LATERAL jsonb_array_elements(j2.meta->'deps') AS dep
+         WHERE j2.meta->>'workflow_id' = ?
+           AND jsonb_typeof(dep) = 'array'
+           AND dep->>0 = ?
+         LIMIT 1)
+        """,
+        unquote(sub_workflow_id),
+        unquote(sup_workflow_id)
+      )
+    end
+  end
 
   @suggest_qualifier [
     {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
@@ -69,10 +204,10 @@ defmodule Oban.Web.WorkflowQuery do
   defp suggest_names(fragment, conf) do
     query =
       Workflow
-      |> where([wf], not is_nil(wf.name))
       |> select([wf], wf.name)
       |> distinct(true)
-      |> limit(100)
+      |> order_by([wf], desc: wf.inserted_at)
+      |> limit(@default_suggest_limit)
 
     conf
     |> Repo.all(query)
@@ -82,10 +217,10 @@ defmodule Oban.Web.WorkflowQuery do
   defp suggest_queues(fragment, conf) do
     query =
       Workflow
-      |> where([wf], fragment("? \\? 'queues'", wf.meta))
       |> select([wf], fragment("jsonb_array_elements_text(?->'queues')", wf.meta))
       |> distinct(true)
-      |> limit(100)
+      |> order_by([wf], desc: wf.inserted_at)
+      |> limit(@default_suggest_limit)
 
     conf
     |> Repo.all(query)
@@ -95,10 +230,10 @@ defmodule Oban.Web.WorkflowQuery do
   defp suggest_workers(fragment, conf) do
     query =
       Workflow
-      |> where([wf], fragment("? \\? 'workers'", wf.meta))
       |> select([wf], fragment("jsonb_array_elements_text(?->'workers')", wf.meta))
       |> distinct(true)
-      |> limit(100)
+      |> order_by([wf], desc: wf.inserted_at)
+      |> limit(@default_suggest_limit)
 
     conf
     |> Repo.all(query)
@@ -194,57 +329,15 @@ defmodule Oban.Web.WorkflowQuery do
   end
 
   defp apply_sort(query, "duration", dir) do
-    order_by(
-      query,
-      [wf],
-      [
-        {^dir,
-         fragment("EXTRACT(EPOCH FROM (COALESCE(?, NOW()) - ?))", wf.completed_at, wf.started_at)}
-      ]
-    )
+    order_by(query, [wf], [{^dir, duration_seconds(wf.completed_at, wf.started_at)}])
   end
 
   defp apply_sort(query, "total", dir) do
-    order_by(
-      query,
-      [wf],
-      [
-        {^dir,
-         fragment(
-           "? + ? + ? + ? + ? + ? + ? + ?",
-           wf.suspended,
-           wf.available,
-           wf.scheduled,
-           wf.executing,
-           wf.retryable,
-           wf.completed,
-           wf.cancelled,
-           wf.discarded
-         )}
-      ]
-    )
+    order_by(query, [wf], [{^dir, total_jobs(wf)}])
   end
 
   defp apply_sort(query, "progress", dir) do
-    order_by(
-      query,
-      [wf],
-      [
-        {^dir,
-         fragment(
-           "?::float / NULLIF(? + ? + ? + ? + ? + ? + ? + ?, 0)",
-           wf.completed,
-           wf.suspended,
-           wf.available,
-           wf.scheduled,
-           wf.executing,
-           wf.retryable,
-           wf.completed,
-           wf.cancelled,
-           wf.discarded
-         )}
-      ]
-    )
+    order_by(query, [wf], [{^dir, progress_percent(wf)}])
   end
 
   defp apply_sort(query, _unknown, dir) do
@@ -279,17 +372,12 @@ defmodule Oban.Web.WorkflowQuery do
     Repo.one(conf, query)
   end
 
-  def get_parent_workflow(conf, workflow_id) do
-    query =
-      Workflow
-      |> where([wf], wf.id == ^workflow_id)
-      |> where([wf], not is_nil(wf.parent_id))
-      |> select([wf], wf.parent_id)
-
-    case Repo.one(conf, query) do
-      nil -> nil
-      parent_id -> get_workflow(conf, parent_id)
-    end
+  def get_sup_workflow(conf, workflow_id) do
+    Workflow
+    |> join(:inner, [child], parent in Workflow, on: child.parent_id == parent.id)
+    |> where([child, _parent], child.id == ^workflow_id)
+    |> select([_child, parent], parent)
+    |> then(&Repo.one(conf, &1))
   end
 
   def get_sub_workflows(conf, workflow_id, limit \\ 10) do
@@ -304,132 +392,58 @@ defmodule Oban.Web.WorkflowQuery do
 
     query =
       Job
-      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^sub_workflow_id))
+      |> where([j], has_workflow_id(j.meta, ^sub_workflow_id))
       |> order_by([j], asc: j.id)
       |> limit(^limit)
-      |> select([j], %{
-        id: j.id,
-        state: j.state,
-        worker: j.worker,
-        meta:
-          fragment(
-            """
-              jsonb_build_object(
-                'name', ?->>'name',
-                'deps', ?->'deps',
-                'workflow_name', ?->>'workflow_name',
-                'decorated_name', ?->>'decorated_name',
-                'handler', ?->>'handler',
-                'context', (?->>'context')::boolean
-              )
-            """,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta
-          )
-      })
+      |> select([j], job_graph_select(j))
 
     jobs = Repo.all(conf, query)
 
     %{jobs: jobs, truncated: length(jobs) >= limit}
   end
 
-  # TODO: Use meta ? 'workflow_id' condition to ensure index usage
-
   def get_workflow_graph(conf, workflow_id, opts \\ []) do
-    limit = Keyword.get(opts, :limit, @default_graph_limit)
+    limit = Keyword.get(opts, :limit, @default_sup_graph_limit)
+    jobs = workflow_graph_jobs(conf, workflow_id, limit)
+    subs = workflow_graph_subs(conf, workflow_id)
 
+    %{jobs: jobs, sub_workflows: subs, truncated: length(jobs) >= limit}
+  end
+
+  defp workflow_graph_jobs(conf, workflow_id, limit) do
     query =
       Job
-      |> where([j], fragment("?->>'workflow_id' = ?", j.meta, ^workflow_id))
+      |> where([j], has_workflow_id(j.meta, ^workflow_id))
+      |> select([j], job_graph_select(j))
       |> order_by([j], asc: j.id)
       |> limit(^limit)
-      |> select([j], %{
-        id: j.id,
-        state: j.state,
-        worker: j.worker,
-        meta:
-          fragment(
-            """
-              jsonb_build_object(
-                'name', ?->>'name',
-                'deps', ?->'deps',
-                'workflow_name', ?->>'workflow_name',
-                'decorated_name', ?->>'decorated_name',
-                'handler', ?->>'handler',
-                'context', (?->>'context')::boolean
-              )
-            """,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta,
-            j.meta
-          )
-      })
 
-    jobs = Repo.all(conf, query)
+    Repo.all(conf, query)
+  end
 
-    # Get sub-workflow info (base query without parent_dep)
-    base_sub_query =
+  defp workflow_graph_subs(conf, workflow_id) do
+    base_query =
       Job
-      |> where([j], fragment("?->>'sup_workflow_id' = ?", j.meta, ^workflow_id))
+      |> where([j], has_sup_workflow_id(j.meta, ^workflow_id))
       |> group_by([j], fragment("?->>'workflow_id'", j.meta))
       |> select([j], %{
         workflow_id: fragment("?->>'workflow_id'", j.meta),
         workflow_name: fragment("MAX(?->>'workflow_name')", j.meta),
         sub_name: fragment("MAX(?->>'sub_name')", j.meta),
-        state:
-          fragment(
-            """
-              CASE
-                WHEN bool_or(? = 'executing') THEN 'executing'
-                WHEN bool_or(? = 'discarded') THEN 'discarded'
-                WHEN bool_or(? = 'cancelled') THEN 'cancelled'
-                WHEN bool_or(? = 'retryable') THEN 'retryable'
-                WHEN bool_and(? = 'completed') THEN 'completed'
-                ELSE 'pending'
-              END
-            """,
-            j.state,
-            j.state,
-            j.state,
-            j.state,
-            j.state
-          )
+        state: aggregate_workflow_state(j.state)
       })
 
-    # Wrap to add parent_dep via correlated subquery
-    sub_query =
-      from(s in subquery(base_sub_query),
+    query =
+      from(s in subquery(base_query),
         select: %{
           workflow_id: s.workflow_id,
           workflow_name: s.workflow_name,
           sub_name: s.sub_name,
           state: s.state,
-          parent_dep:
-            fragment(
-              """
-                (SELECT dep->>1
-                 FROM oban_jobs j2,
-                      LATERAL jsonb_array_elements(j2.meta->'deps') AS dep
-                 WHERE j2.meta->>'workflow_id' = ?
-                   AND jsonb_typeof(dep) = 'array'
-                   AND dep->>0 = ?
-                 LIMIT 1)
-              """,
-              s.workflow_id,
-              ^workflow_id
-            )
+          parent_dep: sub_workflow_parent_dep(s.workflow_id, ^workflow_id)
         }
       )
 
-    sub_workflows = Repo.all(conf, sub_query)
-
-    %{jobs: jobs, sub_workflows: sub_workflows, truncated: length(jobs) >= limit}
+    Repo.all(conf, query)
   end
 end
