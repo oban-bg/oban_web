@@ -9,12 +9,14 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
+    sub_workflows = assigns[:sub_workflows] || []
+
     socket =
       socket
       |> assign(assigns)
-      |> assign_new(:detail_subs, fn -> [] end)
+      |> assign(:sub_workflows, sub_workflows)
       |> assign_new(:graph_open?, fn -> true end)
-      |> assign_new(:subs_open?, fn -> length(assigns[:detail_subs] || []) > 0 end)
+      |> assign_new(:subs_open?, fn -> length(sub_workflows) > 0 end)
       |> assign_new(:graph_data, fn -> %{jobs: [], sub_workflows: []} end)
       |> push_graph_data()
 
@@ -43,17 +45,21 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
         <div class="grid grid-cols-6 gap-6 px-3 py-6">
           <div class="col-span-4">
-            <.progress_bar workflow={@workflow} />
+            <.progress_bar workflow={@workflow} subs={@sub_workflows} />
           </div>
 
           <div class="col-span-2">
-            <.stats_grid workflow={@workflow} detail_subs={@detail_subs} />
+            <.stats_grid workflow={@workflow} sub_workflows={@sub_workflows} />
           </div>
         </div>
 
         <.graph_section myself={@myself} graph_open?={@graph_open?} graph_data={@graph_data} />
 
-        <.sub_workflows_section myself={@myself} subs_open?={@subs_open?} detail_subs={@detail_subs} />
+        <.sub_workflows_section
+          myself={@myself}
+          subs_open?={@subs_open?}
+          sub_workflows={@sub_workflows}
+        />
       <% else %>
         <div class="flex items-center justify-center py-16">
           <div class="text-center">
@@ -143,26 +149,30 @@ defmodule Oban.Web.Workflows.DetailComponent do
   # Progress Bar
 
   attr :workflow, :map, required: true
+  attr :subs, :list, default: []
 
   defp progress_bar(assigns) do
     wf = assigns.workflow
-    total = Enum.reduce(@states, 0, &(Map.fetch!(wf, &1) + &2))
+    sub = count_sub_states(assigns.subs)
+
+    total = Enum.reduce(@states, 0, &(Map.fetch!(wf, &1) + &2)) + length(assigns.subs)
+    completed = wf.completed + sub.completed
 
     states = [
-      {:suspended, wf.suspended, "bg-gray-400", "Suspended"},
-      {:scheduled, wf.scheduled, "bg-indigo-400", "Scheduled"},
-      {:available, wf.available, "bg-blue-400", "Available"},
-      {:retryable, wf.retryable, "bg-yellow-400", "Retryable"},
-      {:executing, wf.executing, "bg-emerald-400", "Executing"},
-      {:completed, wf.completed, "bg-cyan-400", "Completed"},
-      {:cancelled, wf.cancelled, "bg-violet-400", "Cancelled"},
-      {:discarded, wf.discarded, "bg-rose-400", "Discarded"}
+      {:suspended, wf.suspended + sub.suspended, "bg-gray-400", "Suspended"},
+      {:scheduled, wf.scheduled + sub.scheduled, "bg-indigo-400", "Scheduled"},
+      {:available, wf.available + sub.available, "bg-blue-400", "Available"},
+      {:retryable, wf.retryable + sub.retryable, "bg-yellow-400", "Retryable"},
+      {:executing, wf.executing + sub.executing, "bg-emerald-400", "Executing"},
+      {:completed, completed, "bg-cyan-400", "Completed"},
+      {:cancelled, wf.cancelled + sub.cancelled, "bg-violet-400", "Cancelled"},
+      {:discarded, wf.discarded + sub.discarded, "bg-rose-400", "Discarded"}
     ]
 
-    percent = if total > 0, do: round(wf.completed / total * 100), else: 0
+    percent = if total > 0, do: round(completed / total * 100), else: 0
 
     assigns =
-      assign(assigns, states: states, total: total, completed: wf.completed, percent: percent)
+      assign(assigns, states: states, total: total, completed: completed, percent: percent)
 
     ~H"""
     <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
@@ -241,7 +251,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
   # Stats Grid
 
   attr :workflow, :any, required: true
-  attr :detail_subs, :list, required: true
+  attr :sub_workflows, :list, required: true
 
   defp stats_grid(assigns) do
     queues = Map.get(assigns.workflow.meta || %{}, "queues", [])
@@ -293,7 +303,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
             Subs
           </span>
           <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {length(@detail_subs)}
+            {length(@sub_workflows)}
           </span>
         </div>
 
@@ -385,10 +395,10 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   attr :myself, :any, required: true
   attr :subs_open?, :boolean, required: true
-  attr :detail_subs, :list, required: true
+  attr :sub_workflows, :list, required: true
 
   defp sub_workflows_section(assigns) do
-    subs_count = length(assigns.detail_subs)
+    subs_count = length(assigns.sub_workflows)
     assigns = assign(assigns, subs_count: subs_count)
 
     ~H"""
@@ -439,7 +449,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
-                <.sub_workflow_row :for={sub <- @detail_subs} workflow={sub} />
+                <.sub_workflow_row :for={sub <- @sub_workflows} workflow={sub} />
               </tbody>
             </table>
           </div>
@@ -570,5 +580,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   defp has_retryable?(workflow) do
     workflow.retryable + workflow.discarded + workflow.cancelled > 0
+  end
+
+  defp count_sub_states(subs) do
+    init = Map.new(@states, &{&1, 0})
+
+    Enum.reduce(subs, init, fn sub, acc ->
+      Map.update!(acc, String.to_existing_atom(sub.state), &(&1 + 1))
+    end)
   end
 end

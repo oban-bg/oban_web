@@ -14,7 +14,7 @@ defmodule Oban.Web.WorkflowsPage do
   @keep_on_mount ~w(
     default_params
     detail
-    detail_subs
+    sub_workflows
     graph_data
     params
     parent_workflow
@@ -22,9 +22,9 @@ defmodule Oban.Web.WorkflowsPage do
     workflows
   )a
 
-  @inc_limit 10
+  @inc_limit 20
   @max_limit 100
-  @min_limit 10
+  @min_limit 20
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -39,7 +39,7 @@ defmodule Oban.Web.WorkflowsPage do
             module={DetailComponent}
             workflow={@workflow}
             parent_workflow={@parent_workflow}
-            sub_workflows={@detail_subs}
+            sub_workflows={@sub_workflows}
             graph_data={@graph_data}
           />
         <% else %>
@@ -122,7 +122,7 @@ defmodule Oban.Web.WorkflowsPage do
     %{socket | assigns: assigns}
     |> assign(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
-    |> assign_new(:detail_subs, fn -> [] end)
+    |> assign_new(:sub_workflows, fn -> [] end)
     |> assign_new(:params, fn -> default end)
     |> assign_new(:parent_workflow, fn -> nil end)
     |> assign_new(:show_less?, fn -> false end)
@@ -137,13 +137,13 @@ defmodule Oban.Web.WorkflowsPage do
 
     if detail do
       workflow = WorkflowQuery.get_workflow(conf, detail)
-      detail_subs = WorkflowQuery.get_sub_workflows(conf, detail)
+      sub_workflows = WorkflowQuery.get_sub_workflows(conf, detail)
       parent_workflow = WorkflowQuery.get_sup_workflow(conf, detail)
       graph_data = WorkflowQuery.get_workflow_graph(conf, detail)
 
       assign(socket,
         workflow: workflow,
-        detail_subs: detail_subs,
+        sub_workflows: sub_workflows,
         parent_workflow: parent_workflow,
         graph_data: graph_data
       )
@@ -164,7 +164,7 @@ defmodule Oban.Web.WorkflowsPage do
     conf = socket.assigns.conf
 
     workflow = WorkflowQuery.get_workflow(conf, workflow_id)
-    detail_subs = WorkflowQuery.get_sub_workflows(conf, workflow_id)
+    sub_workflows = WorkflowQuery.get_sub_workflows(conf, workflow_id)
     parent_workflow = WorkflowQuery.get_sup_workflow(conf, workflow_id)
     graph_data = WorkflowQuery.get_workflow_graph(conf, workflow_id)
 
@@ -174,7 +174,7 @@ defmodule Oban.Web.WorkflowsPage do
       assign(socket,
         detail: workflow_id,
         workflow: workflow,
-        detail_subs: detail_subs,
+        sub_workflows: sub_workflows,
         parent_workflow: parent_workflow,
         graph_data: graph_data,
         page_title: page_title(title)

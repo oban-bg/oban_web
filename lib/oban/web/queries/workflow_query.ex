@@ -148,6 +148,17 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
+  defmacrop sub_workflow_states(parent_id) do
+    quote do
+      fragment(
+        """
+        (SELECT COALESCE(array_agg(state), '{}') FROM oban_workflows WHERE parent_id = ?)
+        """,
+        unquote(parent_id)
+      )
+    end
+  end
+
   @suggest_qualifier [
     {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
     {"names:", "workflow name", "names:order-fulfillment"},
@@ -286,6 +297,7 @@ defmodule Oban.Web.WorkflowQuery do
     |> apply_filters(params)
     |> apply_sort(sort_by, dir)
     |> limit(^limit)
+    |> select([wf], {wf, sub_workflow_states(wf.id)})
     |> then(&Repo.all(conf, &1))
     |> Enum.map(&build_workflow/1)
   end
@@ -344,26 +356,45 @@ defmodule Oban.Web.WorkflowQuery do
     apply_sort(query, "inserted", dir)
   end
 
-  defp build_workflow(%Workflow{} = wf) do
+  defp build_workflow({%Workflow{} = wf, sub_states}) do
     pending = wf.available + wf.scheduled + wf.retryable
     finished = wf.completed + wf.cancelled + wf.discarded
+    sub_activity = count_sub_activity(sub_states)
 
     %{
       id: wf.id,
       name: wf.name,
       state: String.to_existing_atom(wf.state),
-      total: wf.suspended + pending + wf.executing + finished,
+      total: wf.suspended + pending + wf.executing + finished + length(sub_states),
       activity: %{
-        suspended: wf.suspended,
-        pending: pending,
-        executing: wf.executing,
-        finished: finished
+        suspended: wf.suspended + sub_activity.suspended,
+        pending: pending + sub_activity.pending,
+        executing: wf.executing + sub_activity.executing,
+        finished: finished + sub_activity.finished
       },
       started_at: wf.started_at,
       completed_at: wf.completed_at,
       queues: Map.get(wf.meta, "queues", []),
       display_name: wf.name || wf.id
     }
+  end
+
+  defp count_sub_activity(states) do
+    Enum.reduce(states, %{suspended: 0, pending: 0, executing: 0, finished: 0}, fn state, acc ->
+      case state do
+        "suspended" ->
+          %{acc | suspended: acc.suspended + 1}
+
+        "executing" ->
+          %{acc | executing: acc.executing + 1}
+
+        state when state in ~w(completed cancelled discarded) ->
+          %{acc | finished: acc.finished + 1}
+
+        _ ->
+          %{acc | pending: acc.pending + 1}
+      end
+    end)
   end
 
   def get_workflow(conf, workflow_id) do
