@@ -3,6 +3,8 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
 
   alias Oban.Web.{Workflow, WorkflowQuery}
 
+  @moduletag :pro
+
   setup do
     name = start_supervised_oban!()
     conf = Oban.config(name)
