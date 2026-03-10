@@ -77,7 +77,7 @@ defmodule Oban.Web.CronQuery do
       |> Enum.map(&entry_name/1)
 
     dynamic_names =
-      if Utils.has_dynamic_cron?(conf) do
+      if Utils.has_crons?(conf) do
         query = from c in Oban.Pro.Cron, select: c.name
         Repo.all(conf, query)
       else
@@ -171,7 +171,7 @@ defmodule Oban.Web.CronQuery do
       static_entry ->
         static_entry
 
-      Utils.has_dynamic_cron?(conf) ->
+      Utils.has_crons?(conf) ->
         query =
           from c in Oban.Pro.Cron,
             where: c.name == ^name,
@@ -224,7 +224,7 @@ defmodule Oban.Web.CronQuery do
   end
 
   defp dynamic_crontab(conf) do
-    if Utils.has_dynamic_cron?(conf) do
+    if Utils.has_crons?(conf) do
       query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true, c.paused})
 
       Repo.all(conf, query)

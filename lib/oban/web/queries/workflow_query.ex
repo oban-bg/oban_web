@@ -4,11 +4,7 @@ defmodule Oban.Web.WorkflowQuery do
   import Ecto.Query
 
   alias Oban.{Job, Repo}
-  alias Oban.Pro.Workflow.Schema, as: Workflow
-  alias Oban.Web.Search
-
-  @compile {:no_warn_undefined, Oban.Pro.Workflow}
-  @compile {:no_warn_undefined, Oban.Pro.Workflow.Schema}
+  alias Oban.Web.{Search, Workflow}
 
   @default_sup_graph_limit 500
   @default_sub_graph_limit 100

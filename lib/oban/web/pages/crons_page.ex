@@ -57,7 +57,7 @@ defmodule Oban.Web.CronsPage do
               />
 
               <.link
-                :if={Utils.has_dynamic_cron?(@conf)}
+                :if={Utils.has_crons?(@conf)}
                 patch={can?(:insert_jobs, @access) && oban_path([:crons, :new])}
                 id="new-cron-button"
                 data-title="Create a new dynamic cron"
