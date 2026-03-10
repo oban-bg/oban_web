@@ -1,8 +1,8 @@
 defmodule Oban.Web.Workflows.DetailComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Timing
   alias Oban.Web.Components.Core
+  alias Oban.Web.Timing
   alias Oban.Web.WorkflowQuery
 
   @states ~w(suspended available scheduled executing retryable completed cancelled discarded)a
@@ -182,7 +182,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
       assign(assigns, states: states, total: total, completed: completed, percent: percent)
 
     ~H"""
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-4" id="workflow-progress">
       <div class="flex items-center justify-between mb-3">
         <span class="text-base font-semibold text-gray-700 dark:text-gray-200">
           {@percent}% Complete
@@ -265,7 +265,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
     assigns = assign(assigns, queues: queues)
 
     ~H"""
-    <div class="flex flex-col gap-4 h-full">
+    <div class="flex flex-col gap-4 h-full" id="workflow-stats">
       <div class="grid grid-cols-4 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
         <div class="flex flex-col col-span-4">
           <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">

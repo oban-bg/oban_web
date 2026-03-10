@@ -62,7 +62,7 @@ defmodule Oban.Web.Workflows.TableComponent do
     ~H"""
     <li id={"workflow-#{@workflow.id}"}>
       <.link
-        navigate={oban_path([:workflows, @workflow.id])}
+        patch={oban_path([:workflows, @workflow.id])}
         class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
       >
         <div class="pl-3 py-3.5 flex flex-grow items-center">

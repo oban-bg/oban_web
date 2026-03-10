@@ -3,8 +3,12 @@ defmodule Oban.Web.Workflow do
 
   use Ecto.Schema
 
-  @primary_key {:id, :string, autogenerate: false}
+  @fields ~w(
+    id name parent_id inserted_at meta
+    suspended available scheduled executing retryable completed cancelled discarded
+  )a
 
+  @primary_key {:id, :string, autogenerate: false}
   schema "oban_workflows" do
     field :name, :string
     field :parent_id, :string
@@ -23,5 +27,9 @@ defmodule Oban.Web.Workflow do
     field :started_at, :utc_datetime_usec
     field :completed_at, :utc_datetime_usec
     field :inserted_at, :utc_datetime_usec
+  end
+
+  def changeset(params) do
+    Ecto.Changeset.cast(%__MODULE__{}, params, @fields)
   end
 end
