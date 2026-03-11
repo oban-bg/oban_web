@@ -144,8 +144,8 @@ defmodule Oban.Web.Case do
   # Timing Helpers
 
   def with_backoff(opts \\ [], fun) do
-    total = Keyword.get(opts, :total, 100)
-    sleep = Keyword.get(opts, :sleep, 10)
+    total = Keyword.get(opts, :total, 200)
+    sleep = Keyword.get(opts, :sleep, 5)
 
     with_backoff(fun, 0, total, sleep)
   end
@@ -163,22 +163,20 @@ defmodule Oban.Web.Case do
       end
   end
 
-  # Floki Helpers
+  # HTML Helpers
 
   def has_fragment?(html, selector) do
-    fragment =
-      html
-      |> Floki.parse_fragment!()
-      |> Floki.find(selector)
-
-    fragment != []
+    html
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query(selector)
+    |> Enum.any?()
   end
 
   def has_fragment?(html, selector, text) do
     to_string(text) ==
       html
-      |> Floki.parse_fragment!()
-      |> Floki.find(selector)
-      |> Floki.text()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.query(selector)
+      |> LazyHTML.text()
   end
 end

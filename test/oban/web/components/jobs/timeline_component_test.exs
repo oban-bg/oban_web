@@ -337,9 +337,9 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
 
   defp extract_box(html, state) do
     html
-    |> Floki.parse_fragment!()
-    |> Floki.find("#timeline-#{state}")
-    |> Floki.raw_html()
+    |> LazyHTML.from_fragment()
+    |> LazyHTML.query("#timeline-#{state}")
+    |> LazyHTML.to_html()
   end
 
   # Per-state colors (must match timeline_component.ex @state_colors)
