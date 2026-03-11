@@ -4,9 +4,9 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
+  alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
-  alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
 
   @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
   @ordered_states ~w(executing available scheduled retryable cancelled discarded completed)

@@ -4,9 +4,8 @@ defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-
-  alias Oban.Web.Queues.{DetailComponent, DetailInstanceComponent, TableComponent}
   alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry, Timing}
+  alias Oban.Web.Queues.{DetailComponent, DetailInstanceComponent, TableComponent}
 
   @inc_limit 20
   @max_limit 100

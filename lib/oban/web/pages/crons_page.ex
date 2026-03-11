@@ -3,8 +3,8 @@ defmodule Oban.Web.CronsPage do
 
   use Oban.Web, :live_component
 
-  alias Oban.Web.Crons.{DetailComponent, NewComponent, TableComponent}
   alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
+  alias Oban.Web.Crons.{DetailComponent, NewComponent, TableComponent}
 
   @known_params ~w(limit modes names sort_by sort_dir states workers)
 

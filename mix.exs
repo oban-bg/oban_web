@@ -30,7 +30,14 @@ defmodule Oban.Web.MixProject do
   end
 
   def cli do
-    [preferred_envs: ["test.ci": :test, "test.reset": :test, "test.setup": :test]]
+    [
+      preferred_envs: [
+        precommit: :test,
+        "test.ci": :test,
+        "test.reset": :test,
+        "test.setup": :test
+      ]
+    ]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -143,6 +150,7 @@ defmodule Oban.Web.MixProject do
     [
       "assets.build": ["tailwind default", "esbuild default"],
       dev: "run --no-halt dev.exs",
+      precommit: ["test.ci"],
       release: [
         "assets.build",
         "cmd git tag v#{@version} -f",
@@ -150,6 +158,9 @@ defmodule Oban.Web.MixProject do
         "cmd git push --tags",
         "hex.publish --yes"
       ],
+      "dash.build": "cmd docker build -t oban-dash standalone",
+      "py.dev": "cmd --cd py uv run py-dev",
+      "py.install": "cmd --cd py uv sync",
       "test.reset": ["ecto.drop --quiet", "test.setup"],
       "test.setup": ["ecto.create --quiet", "ecto.migrate --quiet"],
       "test.ci": [
@@ -157,10 +168,7 @@ defmodule Oban.Web.MixProject do
         "deps.unlock --check-unused",
         "credo --strict",
         "test --raise"
-      ],
-      "dash.build": "cmd docker build -t oban-dash standalone",
-      "py.dev": "cmd --cd py uv run py-dev",
-      "py.install": "cmd --cd py uv sync"
+      ]
     ]
   end
 end

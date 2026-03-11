@@ -16,7 +16,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
       |> assign(assigns)
       |> assign(:sub_workflows, sub_workflows)
       |> assign_new(:graph_open?, fn -> true end)
-      |> assign_new(:subs_open?, fn -> length(sub_workflows) > 0 end)
+      |> assign_new(:subs_open?, fn -> match?([_ | _], sub_workflows) end)
       |> assign_new(:graph_data, fn -> %{jobs: [], sub_workflows: []} end)
       |> push_graph_data()
 
