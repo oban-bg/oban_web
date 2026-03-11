@@ -213,7 +213,6 @@ defmodule Oban.Web.WorkflowQuery do
       Workflow
       |> select([wf], wf.name)
       |> distinct(true)
-      |> order_by([wf], desc: wf.inserted_at)
       |> limit(@default_suggest_limit)
 
     conf
@@ -226,7 +225,6 @@ defmodule Oban.Web.WorkflowQuery do
       Workflow
       |> select([wf], fragment("jsonb_array_elements_text(?->'queues')", wf.meta))
       |> distinct(true)
-      |> order_by([wf], desc: wf.inserted_at)
       |> limit(@default_suggest_limit)
 
     conf
@@ -239,7 +237,6 @@ defmodule Oban.Web.WorkflowQuery do
       Workflow
       |> select([wf], fragment("jsonb_array_elements_text(?->'workers')", wf.meta))
       |> distinct(true)
-      |> order_by([wf], desc: wf.inserted_at)
       |> limit(@default_suggest_limit)
 
     conf

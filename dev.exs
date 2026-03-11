@@ -801,8 +801,6 @@ defmodule WebDev.Endpoint do
   socket "/live", Phoenix.LiveView.Socket
   socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
 
-  plug Tidewave
-
   plug Phoenix.LiveReloader
   plug Phoenix.CodeReloader
 
