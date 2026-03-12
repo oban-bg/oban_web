@@ -889,19 +889,11 @@ oban_opts = [
   ]
 ]
 
-slow_oban_opts = [
-  engine: Oban.Pro.Engines.Smart,
-  name: Oban.Slow,
-  notifier: {Oban.Notifiers.Postgres, namespace: :slow},
-  repo: WebDev.Repo
-]
-
 Task.async(fn ->
   children = [
     {Phoenix.PubSub, [name: WebDev.PubSub, adapter: Phoenix.PubSub.PG2]},
     {WebDev.Repo, []},
     {Oban, oban_opts},
-    {Oban, slow_oban_opts},
     {WebDev.Generator, []},
     {WebDev.WorkflowGenerator, []},
     {WebDev.Endpoint, []}
