@@ -4,7 +4,7 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.{JobQuery, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
+  alias Oban.Web.{JobQuery, Metrics, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
 
@@ -262,9 +262,9 @@ defmodule Oban.Web.JobsPage do
       jobs: jobs,
       nodes: nodes(conf),
       os_time: System.os_time(:second),
-      queues: queues(conf),
+      queues: queues(conf, socket.assigns.queues),
       selected: selected,
-      states: states(conf)
+      states: states(conf, socket.assigns.states)
     )
   end
 
@@ -314,7 +314,11 @@ defmodule Oban.Web.JobsPage do
       |> assign(history: [])
       |> assign(params: params)
       |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
-      |> assign(nodes: nodes(conf), queues: queues(conf), states: states(conf))
+      |> assign(nodes: nodes(conf))
+      |> assign(
+        queues: queues(conf, socket.assigns.queues),
+        states: states(conf, socket.assigns.states)
+      )
 
     {:noreply, socket}
   end
@@ -585,15 +589,14 @@ defmodule Oban.Web.JobsPage do
     |> Enum.sort_by(& &1.name)
   end
 
-  def states(conf) do
-    counts = Met.latest(conf.name, :full_count, group: "state")
-
-    for state <- @ordered_states do
-      %{name: state, count: Map.get(counts, state, 0)}
-    end
+  defp states(conf, previous) do
+    Metrics.state_counts(conf.name, @ordered_states, previous)
   end
 
-  def queues(conf) do
-    QueueQuery.all_queues(%{}, conf)
+  defp queues(conf, previous) do
+    previous_counts = Metrics.extract_queue_counts(previous)
+    counts = Metrics.all_queue_counts(conf.name, previous_counts)
+
+    QueueQuery.all_queues(%{}, conf, counts)
   end
 end

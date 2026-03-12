@@ -92,18 +92,13 @@ defmodule Oban.Web.QueueQuery do
 
   # Querying
 
-  def all_queues(params, %{name: name}) do
+  def all_queues(params, conf, counts \\ %{})
+
+  def all_queues(params, %{name: name}, counts) do
     {sort_by, sort_dir} = parse_sort(params)
     limit = Map.get(params, :limit) || Map.get(params, "limit")
 
     conditions = Map.take(params, filterable())
-
-    counts = %{
-      available: Met.latest(name, :full_count, group: "queue", filters: [state: "available"]),
-      executing: Met.latest(name, :full_count, group: "queue", filters: [state: "executing"]),
-      scheduled: Met.latest(name, :full_count, group: "queue", filters: [state: "scheduled"]),
-      retryable: Met.latest(name, :full_count, group: "queue", filters: [state: "retryable"])
-    }
 
     queues =
       name

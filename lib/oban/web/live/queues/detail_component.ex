@@ -7,6 +7,7 @@ defmodule Oban.Web.Queues.DetailComponent do
   alias Oban.Config
   alias Oban.Met
   alias Oban.Web.Components.Core
+  alias Oban.Web.Metrics
   alias Oban.Web.Queue
   alias Oban.Web.Queues.DetailInstanceComponent
   alias Oban.Web.Timing
@@ -36,8 +37,8 @@ defmodule Oban.Web.Queues.DetailComponent do
     checks = Enum.filter(assigns.checks, &(&1["queue"] == assigns.queue))
     queue = %Queue{name: assigns.queue, checks: checks}
 
-    counts =
-      Met.latest(assigns.conf.name, :full_count, group: "state", filters: [queue: assigns.queue])
+    previous_counts = Map.get(socket.assigns, :counts, %{})
+    counts = Metrics.queue_state_counts(assigns.conf.name, assigns.queue, previous_counts)
 
     history = queue_history(assigns.conf, assigns.queue)
 

@@ -4,7 +4,7 @@ defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.{Page, QueueQuery, SearchComponent, SortComponent, Telemetry, Timing}
+  alias Oban.Web.{Metrics, Page, QueueQuery, SearchComponent, SortComponent, Telemetry, Timing}
   alias Oban.Web.Queues.{DetailComponent, DetailInstanceComponent, TableComponent}
 
   @inc_limit 20
@@ -146,7 +146,7 @@ defmodule Oban.Web.QueuesPage do
 
     %{socket | assigns: assigns}
     |> assign_new(:checks, fn -> checks(socket.assigns.conf) end)
-    |> assign_new(:counts, fn -> counts(socket.assigns.conf) end)
+    |> assign_new(:counts, fn -> %{} end)
     |> assign_new(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:history, fn -> %{} end)
@@ -163,7 +163,10 @@ defmodule Oban.Web.QueuesPage do
     conf = socket.assigns.conf
     params = socket.assigns.params
     limit = params[:limit] || @min_limit
-    queues = QueueQuery.all_queues(params, conf)
+
+    previous_counts = Metrics.extract_queue_counts(socket.assigns.queues)
+    queue_counts = Metrics.all_queue_counts(conf.name, previous_counts)
+    queues = QueueQuery.all_queues(params, conf, queue_counts)
 
     node_history =
       if socket.assigns.detail do
@@ -174,7 +177,7 @@ defmodule Oban.Web.QueuesPage do
 
     assign(socket,
       checks: checks(conf),
-      counts: counts(conf),
+      counts: queue_counts[:available],
       history: queue_history(conf),
       node_history: node_history,
       queues: queues,
@@ -185,10 +188,6 @@ defmodule Oban.Web.QueuesPage do
 
   defp checks(conf) do
     Met.checks(conf.name)
-  end
-
-  defp counts(conf) do
-    Met.latest(conf.name, :full_count, group: "queue", filters: [state: "available"])
   end
 
   defp queue_history(conf) do
