@@ -680,7 +680,8 @@ defmodule Oban.Web.JobQuery do
     order_by(query, [j], {^dir, j.queue})
   end
 
-  defp order(query, :time, state, dir) when state in ~w(available retryable scheduled) do
+  defp order(query, :time, state, dir)
+       when state in ~w(suspended available retryable scheduled) do
     order_by(query, [j], {^dir, j.scheduled_at})
   end
 

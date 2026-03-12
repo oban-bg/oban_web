@@ -99,7 +99,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "~> 1.0"},
 
       # Oban
-      {:oban, "~> 2.19"},
+      {:oban, "~> 2.19", github: "oban-bg/oban", override: true},
       {:oban_met, "~> 1.0", github: "oban-bg/oban_met"},
 
       # Databases

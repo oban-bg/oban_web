@@ -133,14 +133,10 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
     cond do
       job.state == "retryable" -> "retryable"
+      job.state == "suspended" -> "suspended"
       job.attempt > 1 and snoozed < job.attempt -> "retryable"
-      suspended?(job) -> "suspended"
       true -> "scheduled"
     end
-  end
-
-  defp suspended?(job) do
-    job.state == "suspended" or (job.state == "scheduled" and job.meta["on_hold"])
   end
 
   defp compute_terminal_state(job) do
@@ -156,7 +152,6 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   defp box_status(state, job, path) do
     cond do
-      state == "suspended" and suspended?(job) -> :active
       state == job.state -> :active
       state_completed?(state, job, path) -> :completed
       true -> :inactive
@@ -164,7 +159,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp state_completed?("suspended", job, path) do
-    path.entry == "suspended" and not suspended?(job)
+    path.entry == "suspended" and job.state != "suspended"
   end
 
   defp state_completed?("scheduled", job, path) do
@@ -176,7 +171,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp state_completed?("available", job, _path) do
-    not is_nil(job.attempted_at) and job.state not in ["available", "scheduled", "retryable"]
+    not is_nil(job.attempted_at) and job.state not in ~w(available scheduled suspended retryable)
   end
 
   defp state_completed?("executing", job, _path) do
@@ -192,44 +187,23 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   # Timestamp formatting
 
-  defp format_timestamp("suspended", job, now) do
-    if suspended?(job) do
-      format_time(job.inserted_at, now)
-    else
-      nil
-    end
-  end
-
-  defp format_timestamp("scheduled", job, now) do
-    cond do
-      job.attempt > 1 or job.state == "retryable" -> nil
-      suspended?(job) -> nil
-      true -> format_time(job.scheduled_at, now)
-    end
-  end
-
-  defp format_timestamp("retryable", job, now) do
-    if job.state == "retryable" or job.attempt > 1 do
-      format_time(job.scheduled_at, now)
-    else
-      nil
-    end
-  end
-
-  defp format_timestamp("available", job, now) do
-    if job.state != "retryable" and job.attempted_at do
-      format_time(job.attempted_at, now)
-    else
-      nil
-    end
-  end
+  @state_labels %{
+    "suspended" => "Inserted At",
+    "scheduled" => "Scheduled At",
+    "retryable" => "Retrying At",
+    "available" => "Started At",
+    "executing" => "Attempted At",
+    "completed" => "Completed At",
+    "cancelled" => "Cancelled At",
+    "discarded" => "Discarded At"
+  }
 
   defp format_timestamp("executing", job, now) do
     cond do
       job.state == "executing" and job.attempted_at ->
         job.attempted_at |> DateTime.diff(now) |> Timing.to_duration()
 
-      job.state in ["completed", "cancelled", "discarded"] and job.attempted_at ->
+      job.state in ~w(completed cancelled discarded) and job.attempted_at ->
         job.attempted_at |> DateTime.diff(now) |> Timing.to_words()
 
       true ->
@@ -237,16 +211,8 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     end
   end
 
-  defp format_timestamp("completed", job, now) do
-    format_time(job.completed_at, now)
-  end
-
-  defp format_timestamp("cancelled", job, now) do
-    format_time(job.cancelled_at, now)
-  end
-
-  defp format_timestamp("discarded", job, now) do
-    format_time(job.discarded_at, now)
+  defp format_timestamp(state, job, now) do
+    format_time(timestamp_for_state(state, job), now)
   end
 
   defp format_time(nil, _now), do: nil
@@ -257,51 +223,29 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     |> Timing.to_words()
   end
 
+  defp timestamp_for_state("suspended", job) do
+    if job.state == "suspended", do: job.inserted_at
+  end
+
+  defp timestamp_for_state("scheduled", job) do
+    if job.attempt == 1 and job.state not in ~w(suspended retryable), do: job.scheduled_at
+  end
+
+  defp timestamp_for_state("retryable", job) do
+    if job.state == "retryable" or job.attempt > 1, do: job.scheduled_at
+  end
+
+  defp timestamp_for_state("available", job) do
+    if job.state != "retryable", do: job.attempted_at
+  end
+
+  defp timestamp_for_state("executing", job), do: job.attempted_at
+  defp timestamp_for_state("completed", job), do: job.completed_at
+  defp timestamp_for_state("cancelled", job), do: job.cancelled_at
+  defp timestamp_for_state("discarded", job), do: job.discarded_at
+
   defp timestamp_title(state, job) do
-    timestamp =
-      case state do
-        "suspended" ->
-          if(suspended?(job), do: job.inserted_at)
-
-        "scheduled" ->
-          cond do
-            job.attempt > 1 or job.state == "retryable" -> nil
-            suspended?(job) -> nil
-            true -> job.scheduled_at
-          end
-
-        "retryable" ->
-          if(job.state == "retryable" or job.attempt > 1, do: job.scheduled_at)
-
-        "available" ->
-          if(job.state == "retryable", do: nil, else: job.attempted_at)
-
-        "executing" ->
-          job.attempted_at
-
-        "completed" ->
-          job.completed_at
-
-        "cancelled" ->
-          job.cancelled_at
-
-        "discarded" ->
-          job.discarded_at
-      end
-
-    label =
-      case state do
-        "suspended" -> "Inserted At"
-        "scheduled" -> "Scheduled At"
-        "retryable" -> "Retrying At"
-        "available" -> "Started At"
-        "executing" -> "Attempted At"
-        "completed" -> "Completed At"
-        "cancelled" -> "Cancelled At"
-        "discarded" -> "Discarded At"
-      end
-
-    "#{label}: #{truncate_sec(timestamp)}"
+    "#{@state_labels[state]}: #{truncate_sec(timestamp_for_state(state, job))}"
   end
 
   defp truncate_sec(nil), do: "—"

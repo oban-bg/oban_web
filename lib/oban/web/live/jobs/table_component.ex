@@ -202,11 +202,21 @@ defmodule Oban.Web.Jobs.TableComponent do
   defp timestamp(job) do
     datetime =
       case job do
-        %{state: state, scheduled_at: at} when state in ~w(available scheduled retryable) -> at
-        %{state: "executing", attempted_at: at} -> at
-        %{state: "cancelled", cancelled_at: at} -> at
-        %{state: "completed", completed_at: at} -> at
-        %{state: "discarded", discarded_at: at} -> at
+        %{state: state, scheduled_at: at}
+        when state in ~w(available scheduled suspended retryable) ->
+          at
+
+        %{state: "executing", attempted_at: at} ->
+          at
+
+        %{state: "cancelled", cancelled_at: at} ->
+          at
+
+        %{state: "completed", completed_at: at} ->
+          at
+
+        %{state: "discarded", discarded_at: at} ->
+          at
       end
 
     if is_struct(datetime) do
