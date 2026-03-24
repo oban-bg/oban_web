@@ -752,8 +752,8 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.replace!(:global_allowed, nil)
         |> Map.replace!(:global_burst, false)
-        |> Map.replace!(:global_partition_fields, nil)
-        |> Map.replace!(:global_partition_keys, nil)
+        |> Map.replace!(:global_partition_fields, "")
+        |> Map.replace!(:global_partition_keys, "")
       else
         allowed = String.to_integer(params["global_allowed"])
         fields = maybe_split(params["global_partition_fields"])
@@ -796,8 +796,8 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.replace!(:rate_allowed, nil)
         |> Map.replace!(:rate_period, nil)
-        |> Map.replace!(:rate_partition_fields, nil)
-        |> Map.replace!(:rate_partition_keys, nil)
+        |> Map.replace!(:rate_partition_fields, "")
+        |> Map.replace!(:rate_partition_keys, "")
       else
         allowed = String.to_integer(params["rate_allowed"])
         period = String.to_integer(params["rate_period"])
@@ -837,8 +837,8 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.put(:global_allowed, nil)
         |> Map.put(:global_burst, false)
-        |> Map.put(:global_partition_fields, nil)
-        |> Map.put(:global_partition_keys, nil)
+        |> Map.put(:global_partition_fields, "")
+        |> Map.put(:global_partition_keys, "")
       end
 
     {:noreply, assign(socket, inputs: inputs)}
@@ -854,8 +854,8 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.put(:rate_allowed, nil)
         |> Map.put(:rate_period, nil)
-        |> Map.put(:rate_partition_fields, nil)
-        |> Map.put(:rate_partition_keys, nil)
+        |> Map.put(:rate_partition_fields, "")
+        |> Map.put(:rate_partition_keys, "")
       end
 
     {:noreply, assign(socket, inputs: inputs)}
@@ -1015,7 +1015,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     |> List.first()
     |> case do
       %{"partition" => %{^key => [_ | _] = value}} -> Enum.join(value, ",")
-      _ -> nil
+      _ -> ""
     end
   end
 
@@ -1042,7 +1042,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp partition_options do
     [
-      Off: nil,
+      Off: "",
       Worker: "worker",
       Args: "args",
       Meta: "meta",
