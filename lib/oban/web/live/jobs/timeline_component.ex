@@ -212,7 +212,9 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp format_timestamp(state, job, now) do
-    format_time(timestamp_for_state(state, job), now)
+    state
+    |> timestamp_for_state(job)
+    |> format_time(now)
   end
 
   defp format_time(nil, _now), do: nil
@@ -228,7 +230,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp timestamp_for_state("scheduled", job) do
-    if job.attempt == 1 and job.state not in ~w(suspended retryable), do: job.scheduled_at
+    if job.attempt < 2 and job.state not in ~w(suspended retryable), do: job.scheduled_at
   end
 
   defp timestamp_for_state("retryable", job) do
@@ -249,5 +251,5 @@ defmodule Oban.Web.Jobs.TimelineComponent do
   end
 
   defp truncate_sec(nil), do: "—"
-  defp truncate_sec(datetime), do: NaiveDateTime.truncate(datetime, :second)
+  defp truncate_sec(datetime), do: DateTime.truncate(datetime, :second)
 end

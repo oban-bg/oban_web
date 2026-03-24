@@ -21,11 +21,24 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:edit_changed?, fn -> false end)
       |> assign_new(:queues, fn -> [] end)
       |> assign_new(:diagnostics_open?, fn -> false end)
+      |> assign_new(:form, fn -> form_from_job(assigns.job) end)
       |> then(fn socket ->
         if auto_open_diagnostics?, do: assign(socket, :diagnostics_open?, true), else: socket
       end)
 
     {:ok, socket}
+  end
+
+  defp form_from_job(job) do
+    %{
+      worker: job.worker,
+      queue: job.queue,
+      priority: job.priority,
+      max_attempts: job.max_attempts,
+      scheduled_at: format_datetime(job.scheduled_at),
+      tags: format_job_tags(job.tags),
+      args: format_job_args(job.args)
+    }
   end
 
   @impl Phoenix.LiveComponent
@@ -494,19 +507,19 @@ defmodule Oban.Web.Jobs.DetailComponent do
               phx-submit="save-job"
               phx-target={@myself}
             >
-              <.form_field label="Worker" name="worker" value={@job.worker} />
+              <.form_field label="Worker" name="worker" value={@form.worker} />
 
               <.select_field
                 label="Queue"
                 name="queue"
-                value={@job.queue}
+                value={@form.queue}
                 options={queue_options(@queues)}
               />
 
               <.form_field
                 label="Priority"
                 name="priority"
-                value={@job.priority}
+                value={@form.priority}
                 type="number"
                 placeholder="0"
               />
@@ -514,7 +527,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
               <.form_field
                 label="Max Attempts"
                 name="max_attempts"
-                value={@job.max_attempts}
+                value={@form.max_attempts}
                 type="number"
                 placeholder="20"
               />
@@ -522,14 +535,14 @@ defmodule Oban.Web.Jobs.DetailComponent do
               <.form_field
                 label="Scheduled At"
                 name="scheduled_at"
-                value={format_datetime(@job.scheduled_at)}
+                value={@form.scheduled_at}
                 type="datetime-local"
               />
 
               <.form_field
                 label="Tags"
                 name="tags"
-                value={format_job_tags(@job.tags)}
+                value={@form.tags}
                 placeholder="tag1, tag2"
                 colspan="col-span-3"
               />
@@ -537,7 +550,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
               <.form_field
                 label="Args"
                 name="args"
-                value={format_job_args(@job.args)}
+                value={@form.args}
                 colspan="col-span-4"
                 type="textarea"
                 placeholder="{}"
@@ -736,16 +749,30 @@ defmodule Oban.Web.Jobs.DetailComponent do
   end
 
   def handle_event("edit-change", params, socket) do
+    job = Map.update!(socket.assigns.job, :scheduled_at, &DateTime.truncate(&1, :second))
+
+    form = %{
+      worker: params["worker"],
+      queue: params["queue"],
+      priority: params["priority"],
+      max_attempts: params["max_attempts"],
+      scheduled_at: params["scheduled_at"],
+      tags: params["tags"],
+      args: params["args"]
+    }
+
     changed? =
       params
-      |> parse_edit_params(socket.assigns.job)
+      |> parse_edit_params(job)
       |> Enum.any?(fn {_key, val} -> not is_nil(val) end)
 
-    {:noreply, assign(socket, edit_changed?: changed?)}
+    {:noreply, assign(socket, form: form, edit_changed?: changed?)}
   end
 
   def handle_event("cancel-edit", _params, socket) do
-    {:noreply, assign(socket, edit_changed?: false)}
+    form = form_from_job(socket.assigns.job)
+
+    {:noreply, assign(socket, form: form, edit_changed?: false)}
   end
 
   def handle_event("save-job", params, socket) do
@@ -761,7 +788,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
       send(self(), {:update_job, job, changes})
     end
 
-    {:noreply, assign(socket, edit_changed?: false)}
+    form = form_from_job(job)
+
+    {:noreply, assign(socket, form: form, edit_changed?: false)}
   end
 
   # Helpers
@@ -945,8 +974,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp parse_datetime(""), do: nil
 
   defp parse_datetime(str) when is_binary(str) do
-    case NaiveDateTime.from_iso8601(str <> ":00") do
-      {:ok, datetime} -> datetime
+    case DateTime.from_iso8601(str <> ":00Z") do
+      {:ok, datetime, 0} -> datetime
       _ -> nil
     end
   end
@@ -955,14 +984,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp format_datetime(%DateTime{} = datetime) do
     datetime
-    |> DateTime.to_naive()
-    |> format_datetime()
-  end
-
-  defp format_datetime(%NaiveDateTime{} = datetime) do
-    datetime
-    |> NaiveDateTime.truncate(:second)
-    |> NaiveDateTime.to_iso8601()
+    |> DateTime.truncate(:second)
+    |> DateTime.to_iso8601()
     |> String.slice(0, 16)
   end
 

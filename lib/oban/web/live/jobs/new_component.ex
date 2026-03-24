@@ -272,8 +272,8 @@ defmodule Oban.Web.Jobs.NewComponent do
   defp parse_scheduled_at(""), do: nil
 
   defp parse_scheduled_at(str) when is_binary(str) do
-    case NaiveDateTime.from_iso8601(str <> ":00") do
-      {:ok, naive} -> DateTime.from_naive!(naive, "Etc/UTC")
+    case DateTime.from_iso8601(str <> ":00Z") do
+      {:ok, datetime} -> datetime
       _ -> nil
     end
   end
