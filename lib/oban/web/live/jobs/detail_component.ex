@@ -788,9 +788,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       send(self(), {:update_job, job, changes})
     end
 
-    form = form_from_job(job)
-
-    {:noreply, assign(socket, form: form, edit_changed?: false)}
+    {:noreply, assign(socket, edit_changed?: false)}
   end
 
   # Helpers
@@ -974,7 +972,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp parse_datetime(""), do: nil
 
   defp parse_datetime(str) when is_binary(str) do
-    case DateTime.from_iso8601(str <> ":00Z") do
+    case DateTime.from_iso8601(str <> "Z") do
       {:ok, datetime, 0} -> datetime
       _ -> nil
     end
@@ -986,7 +984,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
     datetime
     |> DateTime.truncate(:second)
     |> DateTime.to_iso8601()
-    |> String.slice(0, 16)
+    |> String.slice(0, 19)
   end
 
   defp format_job_tags(nil), do: nil

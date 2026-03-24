@@ -114,6 +114,31 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
 
       assert render(live) =~ "Job updated successfully"
     end
+
+    test "updating unrelated fields does not change scheduled_at", %{live: live} do
+      scheduled_at = DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second)
+
+      job =
+        insert_job!([ref: 1],
+          state: "scheduled",
+          worker: WorkerA,
+          priority: 0,
+          scheduled_at: scheduled_at
+        )
+
+      open_state(live, "scheduled")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"priority" => "3"})
+      |> render_submit()
+
+      with_backoff(fn ->
+        updated = Repo.reload!(job)
+        assert updated.priority == 3
+        assert DateTime.compare(updated.scheduled_at, scheduled_at) == :eq
+      end)
+    end
   end
 
   defp open_state(live, state) do
