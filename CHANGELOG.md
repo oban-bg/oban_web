@@ -1,349 +1,228 @@
-# Changelog for Oban Web v2.11
+# Changelog for Oban Web v2.12
 
-All notable changes to `Oban.Web` are documented here.
+This is a major release that overhauls job details, the queues table, queue details, introduces a
+crons page, adds a workflows page, and adds a job creation sidebar.
 
-## 🥂 Web is Free and Open Source
+> #### Requirements {: .info}
+>
+> This release requires Oban v2.21+ and the new V14 migration due to important schema changes. For
+> Pro users, v1.7+ is also required along with the v1.7.0 migration.
 
-Oban Web is now [fully open source][fos] and free (as in champagne 😉)! From now on, Oban Web will
-be [published to Hex][hex] and available for use in your Oban powered applications. See the
-updated, much slimmer, [installation guide][ins] to get started!
+## 🔀 Workflows Page
 
-Web v2.11 is licensed under Apache 2.0, just like Oban and Elixir itself. Previous versions are
-commercially licensed, therefore private, and won't be published to Hex.
+There is a new page for viewing, filtering, and generally managing workflows. The table displays
+workflow progress, activity counts, duration, and nested sub-workflows. Workflows can be filtered
+by properties like name, workers, or status.
 
-Special thanks to all of our customers that supported the project for the past 5 years and made
-open source Oban, and now Web, possible 💛.
+<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
+  <source src="https://media.oban.pro/web-2-12-workflows-av1.mp4" type="video/mp4">
+</video>
 
-[fos]: https://github.com/oban-bg/oban_web
-[hex]: https://hex.pm/packages/oban_web
-[ins]: installation.md
+Clicking into a workflow brings you to a detail view with an interactive graph showing jobs as
+stateful nodes with dependencies. The graph supports panning, zooming, directional layout
+toggling, and a default tracking mode that follows executing nodes. Sub-workflow nodes can be
+expanded inline to reveal their internal jobs, or navigated to for direct management such as
+retrying or cancelling.
 
-## 🐬🪶 MySQL and SQLite
+Workflow viewing remains fast on busy systems or with _large_ workflows thanks to the new
+`oban_workflows` aggregate table in Pro v1.7. It's also compatible with Python Pro, though
+cancel/retry actions require Elixir.
 
-All official Oban and Oban Pro engines are fully supported. Listing, filtering, ordering, and
-searching through jobs works for Postgres, MySQL, and SQLite. That includes the particularly
-gnarly issue of dynamically generating and manipulating JSON for filter auto-suggestions! Nested
-args queries, such as `args.address.city:Edinburgh` work equally well with each engine.
+## ⏰ Crons Page
 
-## 🎛️ Instance Select
+There's also a new page for viewing and managing cron entries. The table displays all static and
+dynamic entries with history sparklines and activity details.
 
-The dashboard will now support switching between Oban instances. A new instance select menu in the
-header allows switching between running Oban instances at runtime. There's no need to mount
-additional dashboards in your application's router to handle multiple instances. The most recently
-selected instance persists between mounts.
+<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
+  <source src="https://media.oban.pro/web-2-12-crons-av1.mp4" type="video/mp4">
+</video>
 
-```diff
-- oban_dashboard "/oban_a", oban_name: Oban.A
-- oban_dashboard "/oban_b", oban_name: Oban.B
-- oban_dashboard "/oban_c", oban_name: Oban.C
-+ oban_dashboard "/oban"
-```
+The cron detail view includes natural language expressions like "Daily at 8:00 and 9:00" or
+"Weekdays except Monday", along with cron entry specifics, and recent job history.
 
-This also eliminates the need for additional router configuration, as the dashboard will select
-the first running Oban instance it finds (with a preference for the default `Oban`).
+For Pro users, `DynamicCron` entires can be created, edited, paused, resumed, or deleted directly
+from a form on the details page.
 
-```diff
-- oban_dashboard "/oban", oban_name: MyOban
-+ oban_dashboard "/oban"
-```
+## 🔍 Job Details
 
-## ☯️ Unified Tables
+The job detail page is rebuilt with a full-width layout and a new timeline component that shows
+the job state machine as a branching diagram rather than a linear progression.
 
-The queue and jobs tables are fully rebuilt with shared, reusable components and matching
-functionality. This makes interacting with jobs clearer while queues gain some much requested
-functionality:
+<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
+  <source src="https://media.oban.pro/web-2-12-jobs-details-av1.mp4" type="video/mp4">
+</video>
 
-- Sidebar - a new queue sidebar shows status counts and enables filtering by statuses such as
-  `paused` or `terminating`.
+A scoped chart displays execution history for that worker's previous jobs and jobs in an
+incomplete, non-executing state can now be edited directly.
 
-- Filtering - queues are auto-complete filterable just like jobs, making it possible to find
-  queues running on a particular node or narrow down by status.
+Executing Pro jobs display live diagnostics including process status, reductions, memory, and
+current stacktrace. The diagnostics panel persists after job completion with a "Stale" indicator
+showing the data is from when the job was running.
 
-- Shared Sorting - queue sorting now behaves identically to jobs, through a shared dropdown.
+## ➡️ Queues Table and Details
 
-- Uniform Navigation - click on any part of the queue row to navigate to details.
+The queues table is redesigned with a utilization gauge and a history sparkline showing 5-minute
+throughput for each queue. The queue sidebar provided minimal value, and it was removed to make
+room for the additional data displayed per-row.
 
-- Condensed Rows - simplify the queue page by removing nested row components. Extra queue details
-  are in the sub-queue page.
+<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
+  <source src="https://media.oban.pro/web-2-12-queues-av1.mp4" type="video/mp4">
+</video>
 
-## 🕯️ Operate on Full Selection
+The queue detail page adds status badges for paused, partial, and terminating states, with
+pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
+options and burst mode configuration.
 
-Apply bulk actions to all selected jobs, not just those visible on the current page.
+## v2.12.0 - 2026-03-23
 
-This expands the select functionality to extend beyond the current page and include all filtered
-jobs, up to a configurable limit. The limit defaults to 1000 and may be overridden with a [resolver
-callback][rsc].
-
-[rsc]: Oban.Web.Resolver.html#c:bulk_action_limit/1
-
-## v2.11.8 - 2026-02-06
-
-### Enhancements
-
-- [Dashboard] Add standalone docker image for simplified Web hosting
-
-  A standalone Docker image is now available for situations where you want an Oban dashboard
-  without mounting Oban.Web within your application.
-
-- [Job] Safely handle missing timestamps in jobs table
-
-  Manual table updates may forget to include a timestamp for a particular state, which crashes the
-  table. This provides an empty fallback for missing timestamps.
-
-## v2.11.7 - 2026-01-22
+While all bug fixes are listed below, the enhancements section only covers a portion of the new
+features. For enhancements, a video is worth many thousands of words.
 
 ### Enhancements
 
-- [Router] Add configurable `:logo_path` option for dashboard
+- [Dashboard] Preserve refresh changes between page changes
 
-  Allow users to customize where the Oban logo links to by passing a `:logo_path` option to the
-  `oban_dashboard/1` router helper. When provided, the logo will link to the specified path
-  instead of the default jobs page.
+  The refresh reverted to the original value between changes because there wasn't a new liveview
+  connection. Now the stored refresh value is synced on change, and reloaded when the component
+  mounts.
 
-- [Query] Help query planner with value rather than subquery
+- [Dahboard] Add a 30s option for refreshing
 
-  Since the condition uses a result of an inner query, database can't reliably estimate that it's
-  worth to use an index. It "thinks" that many rows will be returned in result and decides to use
-  a sequential scan.
+  It's a simple addition that makes watching the cron page a bit more sensible.
 
-  However, when a specific value is provided, database can use the collected statistics to come up
-  with a better plan and use the index.
+- [Dashboard] Serve dynamically loaded mask based svg icons
 
+  Rather than manually defining SVG icons inline, SVG files are tracked and dynamically loaded
+  from a compiled assets module.
 
-### Bug Fixes
+- [Dashboard] Serve font as static asset instead of embedding
 
-- [Jobs] Escape regex match in search highlighting to prevent exceptions
+  Extract font out of the `app.css` and serve it as a stand-alone asset for better caching.
 
-  Unescaped values would crash the LiveView process rather than gracefully returning no matches.
+- [Dashboard] Add help button to primary toolbar
 
-- [Dashboard] Refactor inline styles to include CSP nonces
+  The keyboard shortcuts modal was only accessible via the ? key with no visual indication it
+  existed. Added a help dropdown to the toolbar that links to documentation and opens the
+  shortcuts modal.
 
-  Avoid CSP warnings for inline styles used to control the sidebar.
+- [Jobs] Support suspended state in sidebar and details
 
-- [Dashboard] Respect custom variant for applying dark mode
+  The latest Oban version adds a proper `suspended` state, so there's no more on_hold
+  psuedo-state.
 
-  Additional configuration is required to manually apply dark mode after upgrading to Tailwind 4.
+- [Jobs] Jobs rescued by any lifeline are detectable
 
-- [Jobs] Correct detail background color for dark modes
+  Change the language for orphans to correctly indicate that any lifeline may have rescued them.
 
-## v2.11.6 - 2025-10-24
+- [Jobs] Redesign timeline as state machine visualization
 
-### Bug Fixes
+  Replace the linear horizontal timeline with a branching layout that accurately represents the
+  job state machine. Entry states (scheduled/retryable) flow into available, then executing, which
+  branches to terminal states (completed/cancelled/discarded).
 
-- [Dashboard] Extract current prefix for correct asset routing
+- [Jobs] Add diagnostics for executing jobs
 
-  The prefix was mistakenly hard coded to `/oban`, which broke the dashboard for any non-standard
-  paths. Now the value is extracted from the live view session.
+  Actively executing `Oban.Pro.Worker` jobs now display diagnostics including process status,
+  reductions, memory, and the current stacktrace.
 
-## v2.11.5 - 2025-10-23
+- [Jobs] Add job editing to job detail page
 
-### Enhancements
+  Job's in an incomplete and non-executing state can have their attributes edited. Internally,
+  `Oban.update_job/3` is used to perform the update, so standard validations still apply.
 
-- [Dashboard] Extract CSS and JS assets into dedicated plug module
+- [Jobs] Refine layout and error display for job details
 
-  The changes move CSS/JS assets from layouts into a dedicated plug module, enabling cached and
-  immutable asset serving.
+  Restructure information for job details to emphasize what's important (args, the most recent
+  error), while providing control over which information is displayed.
 
-- [Dashboard] Upgrade to Tailwind v4 with updated styles
+- [Jobs] Show history chart component for job detail
 
-- [Dashboard] Add sidebar resizing with local persistence
+  The new component uses exact historic information for the current job rather than the aggregate
+  metrics used for the primary job chart.
 
-  The sidebar can now be resized within a small range of sizes to compensate for long queue names
-  or larger screens. The adjusted size is persisted as a setting within local storage, preserving
-  it across reloads.
+- [Jobs] Add "New Job" drawer for creating jobs
 
-- [Dashboard] Overhaul navigation for state retention between pages
+  Jobs can now be created directly from the Jobs page using a slide-out drawer. The form includes
+  fields for worker, args, queue, priority, max attempts, scheduled time, and tags. After
+  creation, the user is navigated to the new job's detail page.
 
-  Page navigation uses patch rather than navigate to prevent re-mounting the dashboard. This was
-  essential to retain sidebar changes during page transitions.
+- [Crons] Use name provided by crontab for entry job history
 
-- [Telemetry] Add `queues` to metadata of `*_queues` telemetry events
+  The `cron_name` calculated for Elixir entries isn't compatible with those generated by Python.
+  The `oban-py` metrics now include a `name` option that is used to correctly match entries up
+  with historic jobs.
 
-  Telemetry events for `pause_queues`, `resume_queues`, and `stop_queues` now include the
-  selected queues.
+- [Crons] Add cron parser for complex expressions
 
-### Bug Fixes
+  Parse cron fields into structured data before describing them, enabling support for:
 
-- [Router] Ensure the resolver module is loaded
+  - Combined DOM/DOW patterns like "The 1st, only on Mondays"
+  - Complement detection, "Daily except the 1st" or "except Tuesdays"
+  - Multiple hour values, "Daily at 8:00, 9:00, and 10:00"
+  - Weekday/weekend recognition
 
-  Optional resolver modules are now loaded before checking whether they export a function. This
-  ensures functions are correctly identified, as they aren't automatically loaded locally by
-  Elixir (unless eager module loading is turned on).
+  It's also switched to a 24-hour time format for international consistency.
 
-- [Jobs] Display correct completed_at timestamp in details
+- [Queues] Remove sidebar from queues page                                                                                                                                       The sidebar filters (paused, terminating, modes, nodes) added little
 
-  Completed jobs would show a relative time value that matched how long the job took rather than
-  when it completed.
+  The sidebar filters (paused, terminating, modes, nodes) added little value for a typically small
+  dataset while consuming significant screen space. Filtering remains available via the search
+  component.
 
-- [Dashboard] Use history navigation for detail back buttons
+- [Queues] Add history sparkline graph to queues table
 
-  Clicking the back arrow in job and queue detail pages removed any applied params, as it dropped
-  any non-id params on navigation. The new approach uses a history hook that leverages native
-  window history instead.
+  Display a 5-minute throughput history for each queue using a sparkline
+  visualization with 5-second rollups (60 data points). Hovering over bars
+  shows the job count and timestamp for that interval.
 
-## v2.11.4 - 2025-07-31
+- [Queues] Refine queue detail forms and layout
 
-### Enhancements
+  Expand the queue form partitioning controls with "meta" options and burst mode. Also changes to
+  standard form inputs for numbers and select boxes within the edit form to simplify event
+  handling.
 
-- [Connectivity] Consider metric checks for disconnected status.
+- [Queues] Redesign queue details with actions and history
 
-  The connectivity status is now determined by `Met` output as well as pubsub connectivity.
-  This should make it easier to identify metric issues on solo nodes, e.g. in dev or a
-  staging environment.
+  Add status badges for paused, partial, and terminating states. Include pause/resume, stop, and
+  edit buttons in the header for quick access. Display queue execution history in a chart
+  alongside stats.
 
-### Bug Fixes
+- [Pages] Add empty states for workflows, crons, and queues
 
-- [Dashboard] Read phoenix js assets at compile time.
+  Each page now shows a helpful message with an icon and documentation link when there's nothing
+  to display. The queues page distinguishes between having no queues configured versus filters
+  hiding all results.
 
-  Stop bundling phoenix and liveview assets. Instead, read them at compile time and concatenate
-  with app js.
+- [Pages] Improve dark mode color consistency and contrast
 
-- [Search] Trim strings when splitting to parse integers.
-
-  This prevents "not a textual representation of an integer" errors when splitting on a comma
-  with an empty string.
-
-- [Search] Move all regexes out of module attributes.
-
-  Regexes aren't allowed in module attributes as of OTP 28. This moves them inline rather than
-  hoisted at the top of the module.
-
-- [Sidebar] Fix column header mismatch in sidebar.
-
-  The headers and values in the sidebar were misaligned and showed the wrong values.
-
-## v2.11.3 - 2025-04-21
+  Standardize border colors across form inputs and controls, align form input backgrounds, and
+  increase contrast for disabled elements.
 
 ### Bug Fixes
 
-- [Installer] Prevent compilation errors when igniter isn't installed.
+- [Dahboard] Fix instance switching when resolver returns a list
 
-## v2.11.2 - 2025-04-21
+  Ensure the instance name and allowed instances are strings before comparison
 
-### Enhancements
+- [Dashboard] Poll registry instead of blocking on telemetry
 
-- [Installer] Add igniter powered `oban_web` installer.
+  Replace telemetry-based init that could block for 15 seconds waiting for an init event that may
+  have already fired. Now polls the Oban registry, avoiding the race condition that caused slow
+  websocket reconnections.
 
-  It's now possible to install oban_web with a single igniter command:
+- [Dashboard] Cache sidebar counts to prevent flickering
 
-  ```bash
-  mix igniter.install oban_web
-  ```
+  When the metric reporter's `check_interval` exceeds the 2s lookback window, counts briefly show
+  as zero between broadcasts. Cache previous non-empty counts in a centralized Metrics module and
+  return them when `Met.latest/3` returns an empty map.
 
-  Or install `oban` and `oban_web` at the same time:
+- [Dashboard] Automatically update theme when OS theme changes
 
-  ```bash
-  mix igniter.install oban,oban_web
-  ```
+  Listen for prefers-color-scheme media query changes so the theme updates in real-time when the
+  browser or OS switches between light and dark mode.
 
-- [Resolver] Pattern match on `arg` rather than checking for `decorated` annotation.
+- [Standalone] Use the Postgres notifier for standalone instance
 
-  Matching on term encoded `arg` is more accurate than checking for decorated metadata. This makes
-  the default `format_job_args` compatible with workflow cascade jobs that don't have any `arg`
-  set.
+  The PG notifier can't (easily) connect to an external cluster for notifications. Connection is
+  possible through the Postgres notifier.
 
-- [Page] Upgrade bundled assets to use the Phoenix LiveView JavaScript version to v1.10
-
-- [Chart] Replace inline styles with tailwind classes to avoid inline style CSP warnings.
-
-## v2.11.1 — 2025-02-06
-
-### Enhancements
-
-- [Layout] Display Oban.Met version in layout footer
-
-  The Met version is highly relevant to how Web behaves. This also refactors the version display
-  for reuse with consistent conditionals.
-
-- [Layout] Only show Pro version number when available.
-
-  The version footer shows that Pro isn't available rather than showing a `v` followed by a blank
-  space.
-
-- [Jobs] Auto-complete worker priorities from 0 to 9
-
-  Priority completion only matched values from 0..3, but the full range is 0..9.
-
-### Bug Fixes
-
-- [Jobs] Preserve quotes in `args` and `meta` searches.
-
-  Parsing would strip quotes from args and meta queries. This prevented quoted numeric vaalues to
-  be treated as integers. Now quotes are preserved for `args` and `meta`, just as they are for
-  other qualifiers.
-
-- [Queue Details] Eliminate duplicate id warnings for inputs in queue details.
-
-  The latest live_view alerts when nodes in a view have conflicting ids, which caught a number of
-  instances on the queue details page.
-
-- [Queues] Fix duplicate ids for nodes and queues in sidebar.
-
-- [Search] Correct assigns typo in search component handler.
-
-  The key is `assigns`, not `asigns`.
-
-- [Resolver] Fix resolver access typespec.
-
-  Access options must be a keyword list with boolean values, not just a list of option atoms.
-
-## v2.11.0 — 2025-01-16
-
-### Enhancements
-
-- [Dashboard] Load using non-default Oban instance without any config.
-
-  The dashboard now loads the first running non-default Oban instance, even without anything
-  configured.
-
-- [Jobs] Decode decorated `arg` when formatting job args.
-
-  The decorated `arg` are term encoded and inscrutiable in the standard display. Now the value is
-  decoded and display as the original value.
-
-- [Jobs] Prevent decoding executable functions when displaying `recorded` output.
-
-  By default, recorded content uses the `:safe` flag, which now prevents both atom creation and
-  executable content. This is an extra security precaution to prevent any possible exploits
-  through Web.
-
-- [Queues] Add sidebar similar to the jobs table, including filters to make bulk operations on
-  queues possible.
-
-- [Queues] Add search bar with filtering functionality to query queues.
-
-- [Queues] Add multi-select mode to allow operating on multiple queues at once.
-
-- [Queues] Expose a "Stop Queues" operation along with corresponding access controls to prevent
-  unintended shutdown.
-
-- [Resolver] Add `resolve_instances/1` callback to restrict selectable Oban instances.
-
-  Not all instances should be available to all users. This adds the `resolve_instances/1` callback
-  to allow scoping instances by user:
-
-  ```elixir
-  def resolve_instances(%{admin?: true}), do: :all
-  def resolve_instances(_user), do: [Oban]
-  ```
-
-- [Resolver] Add `bulk_action_limit/1` to restrict the number of jobs operated on at once.
-
-  Bulk operations now effect all filtered jobs, not just those visible on the current page. As
-  there may be millions of jobs that match a filter, some limiting factor is necessary. The
-  default of 1000 may be overridden:
-
-  ```elixir
-  def bulk_action_limit(:completed), do: 10_000
-  def bulk_action_limit(_state), do: :infinity
-  ```
-
-### Bug Fixes
-
-- [Page] Address deprecations from recent upgrades to Elixir 1.17+, Phoenix 1.5+, and Phoenix
-  LiveView 1.0+
-
-- [Jobs] Always treat args wrapped in quotes as a string when filtering.
-
-  Manually wrapping values in quotes enforces searching by string, rather than as a parsed
-  integer. As values are cast to JSON the type matters, and `123 != "123"`.

@@ -2,7 +2,7 @@ defmodule Oban.Web.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/oban-bg/oban_web"
-  @version "2.11.8"
+  @version "2.12.0"
 
   def project do
     [
@@ -17,7 +17,7 @@ defmodule Oban.Web.MixProject do
       listeners: [Phoenix.CodeReloader],
       package: package(),
       name: "Oban Web",
-      description: "Dashboard for the Oban job processing framework"
+      description: "Dashboard for the Oban job orchestration framework"
     ]
   end
 
@@ -99,8 +99,8 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "~> 1.0"},
 
       # Oban
-      {:oban, "~> 2.19", github: "oban-bg/oban", override: true},
-      {:oban_met, "~> 1.0", github: "oban-bg/oban_met"},
+      {:oban, "~> 2.21"},
+      {:oban_met, "~> 1.1"},
 
       # Databases
       {:ecto_sqlite3, "~> 0.18", only: [:dev, :test]},
@@ -128,7 +128,7 @@ defmodule Oban.Web.MixProject do
 
   defp oban_pro_dep do
     if oban_repo_configured?() do
-      [{:oban_pro, "~> 1.6", path: "../oban_pro", only: [:test, :dev]}]
+      [{:oban_pro, "~> 1.7.0-rc.0", repo: :oban, only: [:test, :dev]}]
     else
       []
     end
