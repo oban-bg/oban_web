@@ -28,7 +28,7 @@ defmodule ObanDash.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.19"},
       {:oban, "~> 2.20"},
-      {:oban_web, "~> 2.11"},
+      {:oban_web, "~> 2.12.1"},
       {:oban_met, "~> 1.0"}
     ] ++ oban_pro_dep()
   end
