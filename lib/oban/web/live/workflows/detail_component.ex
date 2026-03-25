@@ -112,7 +112,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           color="yellow"
           tooltip={cancel_tooltip(@pro_available?)}
           disabled={
-            not @pro_available? or not can?(:cancel_jobs, @access) or
+            not @pro_available? or not can?(:cancel_workflows, @access) or
               @workflow.state in ~w(completed cancelled)
           }
           phx-target={@myself}
@@ -126,7 +126,8 @@ defmodule Oban.Web.Workflows.DetailComponent do
           color="blue"
           tooltip={retry_tooltip(@pro_available?)}
           disabled={
-            not @pro_available? or not can?(:retry_jobs, @access) or not has_retryable?(@workflow)
+            not @pro_available? or not can?(:retry_workflows, @access) or
+              not has_retryable?(@workflow)
           }
           phx-target={@myself}
           phx-click="retry-workflow"

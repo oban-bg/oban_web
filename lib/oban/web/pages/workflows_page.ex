@@ -293,7 +293,7 @@ defmodule Oban.Web.WorkflowsPage do
   end
 
   def handle_info({:cancel_workflow, workflow_id}, socket) do
-    enforce_access!(:cancel_jobs, socket.assigns.access)
+    enforce_access!(:cancel_workflows, socket.assigns.access)
 
     socket =
       if Utils.has_pro?() do
@@ -312,7 +312,7 @@ defmodule Oban.Web.WorkflowsPage do
   end
 
   def handle_info({:retry_workflow, workflow_id}, socket) do
-    enforce_access!(:retry_jobs, socket.assigns.access)
+    enforce_access!(:retry_workflows, socket.assigns.access)
 
     socket =
       if Utils.has_pro?() do

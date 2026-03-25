@@ -58,16 +58,16 @@ defmodule Oban.Web.CronsPage do
 
               <.link
                 :if={Utils.has_crons?(@conf)}
-                patch={can?(:insert_jobs, @access) && oban_path([:crons, :new])}
+                patch={can?(:insert_crons, @access) && oban_path([:crons, :new])}
                 id="new-cron-button"
                 data-title="Create a new dynamic cron"
                 phx-hook="Tippy"
-                aria-disabled={not can?(:insert_jobs, @access)}
+                aria-disabled={not can?(:insert_crons, @access)}
                 class={[
                   "ml-3 h-10 flex items-center text-sm bg-white dark:bg-gray-800 px-3 py-2 border rounded-md",
-                  can?(:insert_jobs, @access) &&
+                  can?(:insert_crons, @access) &&
                     "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
-                  not can?(:insert_jobs, @access) &&
+                  not can?(:insert_crons, @access) &&
                     "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
                 ]}
               >

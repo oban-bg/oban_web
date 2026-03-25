@@ -345,7 +345,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   def handle_event("toggle-pause", _params, socket) do
-    enforce_access!(:pause_queues, socket.assigns.access)
+    enforce_access!(:pause_crons, socket.assigns.access)
 
     %{cron: cron, conf: conf} = socket.assigns
 
@@ -357,7 +357,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   def handle_event("delete-cron", _params, socket) do
-    enforce_access!(:delete_jobs, socket.assigns.access)
+    enforce_access!(:delete_crons, socket.assigns.access)
 
     %{cron: cron, conf: conf, params: params} = socket.assigns
 
@@ -390,7 +390,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   def handle_event("save-cron", params, socket) do
-    enforce_access!(:pause_queues, socket.assigns.access)
+    enforce_access!(:update_crons, socket.assigns.access)
 
     %{cron: cron, conf: conf} = socket.assigns
 

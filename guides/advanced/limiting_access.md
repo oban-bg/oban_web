@@ -86,14 +86,21 @@ end
 
 The available fine-grained actions are:
 
-| Action          | Description                            |
-| --------------- | -------------------------------------- |
-| `:pause_queues` | Pause and resume queues                |
-| `:scale_queues` | Change queue concurrency               |
-| `:stop_queues`  | Stop queues entirely                   |
-| `:cancel_jobs`  | Cancel running or scheduled jobs       |
-| `:delete_jobs`  | Permanently delete jobs                |
-| `:retry_jobs`   | Retry failed or discarded jobs         |
+| Action              | Description                            |
+| ------------------- | -------------------------------------- |
+| `:cancel_jobs`      | Cancel running or scheduled jobs       |
+| `:cancel_workflows` | Cancel all jobs in a workflow          |
+| `:delete_crons`     | Delete dynamic crons                   |
+| `:delete_jobs`      | Permanently delete jobs                |
+| `:insert_crons`     | Create new dynamic crons               |
+| `:insert_jobs`      | Insert new jobs                        |
+| `:pause_crons`      | Pause and resume crons                 |
+| `:pause_queues`     | Pause and resume queues                |
+| `:retry_jobs`       | Retry failed or discarded jobs         |
+| `:retry_workflows`  | Retry failed jobs in a workflow        |
+| `:scale_queues`     | Change queue concurrency               |
+| `:stop_queues`      | Stop queues entirely                   |
+| `:update_crons`     | Edit cron configuration                |
 
 Actions not listed in the keyword list are considered disabled. For example, this configuration
 allows job management but prevents any queue operations:

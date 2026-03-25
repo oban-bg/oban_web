@@ -125,7 +125,19 @@ defmodule Oban.Web.Resolver do
   @type access :: :all | :read_only | [{access_option(), boolean()}] | {:forbidden, Path.t()}
 
   @type access_option ::
-          :pause_queues | :scale_queues | :stop_queues | :cancel_jobs | :delete_jobs | :retry_jobs
+          :cancel_jobs
+          | :cancel_workflows
+          | :delete_crons
+          | :delete_jobs
+          | :insert_crons
+          | :insert_jobs
+          | :pause_crons
+          | :pause_queues
+          | :retry_jobs
+          | :retry_workflows
+          | :scale_queues
+          | :stop_queues
+          | :update_crons
 
   @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
@@ -258,12 +270,19 @@ defmodule Oban.Web.Resolver do
 
   The available fine grained access controls are:
 
+  * `:cancel_jobs`
+  * `:cancel_workflows`
+  * `:delete_crons`
+  * `:delete_jobs`
+  * `:insert_crons`
+  * `:insert_jobs`
+  * `:pause_crons`
   * `:pause_queues`
+  * `:retry_jobs`
+  * `:retry_workflows`
   * `:scale_queues`
   * `:stop_queues`
-  * `:cancel_jobs`
-  * `:delete_jobs`
-  * `:retry_jobs`
+  * `:update_crons`
 
   Actions which aren't listed are considered disabled.
 

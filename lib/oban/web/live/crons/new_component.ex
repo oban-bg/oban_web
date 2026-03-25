@@ -190,7 +190,7 @@ defmodule Oban.Web.Crons.NewComponent do
   end
 
   def handle_event("create-cron", params, socket) do
-    enforce_access!(:insert_jobs, socket.assigns.access)
+    enforce_access!(:insert_crons, socket.assigns.access)
 
     %{conf: conf} = socket.assigns
 
