@@ -73,7 +73,16 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
-## v2.12.0 - 2026-03-23
+## v2.12.1 - 2026-03-25
+
+### Bug Fixes
+
+- [Dashboard] Include `priv/timezones.txt` in hex package
+
+  The timezones file wasn't included in the package files list, which broke compilation for
+  downloaded packages.
+
+## v2.12.0 - 2026-03-25
 
 While all bug fixes are listed below, the enhancements section only covers a portion of the new
 features. For enhancements, a video is worth many thousands of words.
