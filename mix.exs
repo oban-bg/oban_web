@@ -47,7 +47,9 @@ defmodule Oban.Web.MixProject do
     [
       maintainers: ["Parker Selbert"],
       licenses: ["Apache-2.0"],
-      files: ~w(lib priv/static* .formatter.exs mix.exs README* CHANGELOG* LICENSE*),
+      files: ~w(
+        lib priv/static* priv/timezones.txt .formatter.exs mix.exs README* CHANGELOG* LICENSE*
+      ),
       links: %{
         Website: "https://oban.pro",
         Changelog: "#{@source_url}/blob/main/CHANGELOG.md",
