@@ -18,6 +18,31 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
     @moduletag myxql: repo == Oban.Web.MyXQLRepo
     @moduletag sqlite: repo == Oban.Web.SQLiteRepo
 
+    describe "all_crons/2" do
+      defmodule FakeWorker do
+        use Oban.Worker
+
+        @impl true
+        def perform(_job), do: :ok
+      end
+
+      @tag capture_log: true
+      test "returning crons with history" do
+        name =
+          start_supervised_oban!(
+            engine: @engine,
+            name: make_ref(),
+            repo: @repo,
+            plugins: [{Oban.Plugins.Cron, crontab: [{"0 * * * *", FakeWorker}]}]
+          )
+
+        assert [cron] = CronQuery.all_crons(%{}, Oban.config(name))
+        assert cron.expression == "0 * * * *"
+
+        stop_supervised(name)
+      end
+    end
+
     describe "cron_history/2" do
       test "fetching job history for a single cron" do
         insert!(%{}, meta: %{cron_name: "cron-a"}, state: "completed")

@@ -228,6 +228,8 @@ defmodule Oban.Web.CronQuery do
       query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true, c.paused})
 
       Repo.all(conf, query)
+    else
+      []
     end
   end
 

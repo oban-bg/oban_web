@@ -5,9 +5,9 @@ defmodule Oban.Web.Utils do
 
   alias Oban.Repo
 
-  def has_crons?(conf), do: has_table?(conf, "oban_crons")
+  def has_crons?(conf), do: has_table?("oban_crons", conf)
 
-  def has_workflows?(conf), do: has_table?(conf, "oban_workflows")
+  def has_workflows?(conf), do: has_table?("oban_workflows", conf)
 
   def has_pro? do
     persistent_cache(:pro?, fn -> Code.ensure_loaded?(Oban.Pro) end)
@@ -20,10 +20,13 @@ defmodule Oban.Web.Utils do
     end
   end
 
-  defp has_table?(conf, table_name) do
-    %{name: name, prefix: prefix} = conf
+  defp has_table?(_table_name, %{engine: Oban.Engines.Dolphin}), do: false
+  defp has_table?(_table_name, %{engine: Oban.Engines.Lite}), do: false
 
-    persistent_cache({:table?, name, table_name}, fn ->
+  defp has_table?(table_name, conf) do
+    %{name: oban_name, prefix: prefix} = conf
+
+    persistent_cache({:table?, oban_name, table_name}, fn ->
       query =
         from("tables")
         |> put_query_prefix("information_schema")
