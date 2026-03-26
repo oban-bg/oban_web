@@ -47,10 +47,13 @@ WORKDIR /app
 
 COPY --from=builder /app/_build/prod/rel/oban_dash ./
 
+RUN echo '{lookup, [native]}.' > /app/inetrc
+
 RUN adduser -D -h /app oban && chown -R oban:oban /app
 USER oban
 
 ENV PORT=4000
+ENV ERL_INETRC=/app/inetrc
 EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

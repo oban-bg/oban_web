@@ -121,6 +121,21 @@ docker run -d \
 
 [pro]: https://oban.pro
 
+## DNS Resolution
+
+The Docker image ships with a built-in [inetrc](https://www.erlang.org/doc/apps/erts/inet_config.html) file that configures the BEAM VM to use the system's native DNS resolver. This ensures compatibility with platforms that use custom internal DNS, such as Fly.io and Kubernetes with CoreDNS.
+
+No additional configuration is required. To provide your own inetrc file, mount it and override `ERL_INETRC`:
+
+```diff
+ docker run -d \
+   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp" \
++  -e ERL_INETRC="/app/custom_inetrc" \
++  -v ./my_inetrc:/app/custom_inetrc \
+   -p 4000:4000 \
+   ghcr.io/oban-bg/oban-dash
+```
+
 ## Health Checks
 
 The container exposes a health check endpoint at `/health` that returns `{"status":"ok"}`.
