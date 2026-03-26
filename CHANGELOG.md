@@ -15,7 +15,8 @@ workflow progress, activity counts, duration, and nested sub-workflows. Workflow
 by properties like name, workers, or status.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-workflows-av1.mp4" type="video/mp4">
+  <source src="https://media.oban.pro/web-2-12-workflows-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://media.oban.pro/web-2-12-workflows.mp4" type="video/mp4">
 </video>
 
 Clicking into a workflow brings you to a detail view with an interactive graph showing jobs as
@@ -34,7 +35,8 @@ There's also a new page for viewing and managing cron entries. The table display
 dynamic entries with history sparklines and activity details.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-crons-av1.mp4" type="video/mp4">
+  <source src="https://media.oban.pro/web-2-12-crons-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://media.oban.pro/web-2-12-crons.mp4" type="video/mp4">
 </video>
 
 The cron detail view includes natural language expressions like "Daily at 8:00 and 9:00" or
@@ -49,7 +51,8 @@ The job detail page is rebuilt with a full-width layout and a new timeline compo
 the job state machine as a branching diagram rather than a linear progression.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-jobs-details-av1.mp4" type="video/mp4">
+  <source src="https://media.oban.pro/web-2-12-jobs-details-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://media.oban.pro/web-2-12-jobs-details.mp4" type="video/mp4">
 </video>
 
 A scoped chart displays execution history for that worker's previous jobs and jobs in an
@@ -66,7 +69,8 @@ throughput for each queue. The queue sidebar provided minimal value, and it was 
 room for the additional data displayed per-row.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-queues-av1.mp4" type="video/mp4">
+  <source src="https://media.oban.pro/web-2-12-queues-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://media.oban.pro/web-2-12-queues.mp4" type="video/mp4">
 </video>
 
 The queue detail page adds status badges for paused, partial, and terminating states, with
