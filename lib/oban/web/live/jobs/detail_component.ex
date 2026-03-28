@@ -109,7 +109,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Edit"
             color="violet"
             tooltip="Edit this job"
-            disabled={not editable?(@job)}
+            disabled={executing?(@job)}
             phx-click={scroll_to_edit()}
           />
         </div>
@@ -484,22 +484,22 @@ defmodule Oban.Web.Jobs.DetailComponent do
         >
           <Icons.chevron_right
             id="edit-chevron"
-            class={["w-5 h-5 transition-transform", if(editable?(@job), do: "rotate-90")]}
+            class={["w-5 h-5 transition-transform", if(not executing?(@job), do: "rotate-90")]}
           />
           <span class="font-semibold">Edit Job</span>
           <span
-            :if={not editable?(@job)}
+            :if={executing?(@job)}
             id="edit-hint"
             class="flex items-center"
-            data-title="Only available, scheduled, and retryable jobs can be edited"
+            data-title="Executing jobs can't be edited"
             phx-hook="Tippy"
           >
             <Icons.info_circle class="w-4 h-4 text-gray-400" />
           </span>
         </button>
 
-        <div id="edit-content" class={["mt-3", unless(editable?(@job), do: "hidden")]}>
-          <fieldset disabled={not editable?(@job)}>
+        <div id="edit-content" class={["mt-3", if(executing?(@job), do: "hidden")]}>
+          <fieldset disabled={executing?(@job)}>
             <form
               id="job-edit-form"
               class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
@@ -917,10 +917,6 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp copy_to_clipboard(text) do
     JS.dispatch("phx:copy-to-clipboard", detail: %{text: text})
-  end
-
-  defp editable?(%{state: state}) do
-    state in ~w(scheduled retryable available)
   end
 
   defp executing?(%{state: state}), do: state == "executing"
