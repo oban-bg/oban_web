@@ -77,6 +77,27 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
+## v2.12.2 - 2026-03-31
+
+### Enhancements
+
+- [Jobs] Allow editing jobs in any state except `executing`
+
+  `Oban.update_job/3` allows editing any non-executing job, so the detail component's edit form
+  should as well.
+
+- [Standalone] Ship inetrc in standalone Docker image for native DNS resolution (#173)
+
+  The BEAM VM's built-in DNS resolver ignores `/etc/resolv.conf`, which prevents the standalone
+  image from resolving internal hostnames on platforms like Fly.io and Kubernetes with CoreDNS.
+
+### Bug Fixes
+
+- [Query] Prevent table check with non-PostgreSQL engines
+
+  The crons and workflows table checks only apply to Pro, and only Postgres engines should check
+  whether the tables exist.
+
 ## v2.12.1 - 2026-03-25
 
 ### Bug Fixes
