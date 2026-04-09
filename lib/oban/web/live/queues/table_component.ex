@@ -23,7 +23,7 @@ defmodule Oban.Web.Queues.TableComponent do
       </ul>
 
       <div :if={Enum.empty?(@queues) and Enum.empty?(@checks)} class="py-16 px-6 text-center">
-        <Icons.queue_list class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+        <Icons.icon name="icon-queue-list" class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
         <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No queues</h3>
         <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
           Queues process jobs concurrently. They'll appear here once your Oban instance starts with queues configured.
@@ -44,7 +44,7 @@ defmodule Oban.Web.Queues.TableComponent do
         :if={Enum.empty?(@queues) and not Enum.empty?(@checks)}
         class="flex items-center justify-center py-12 space-x-2 text-lg text-gray-600 dark:text-gray-300"
       >
-        <Icons.no_symbol /> <span>No queues match the current filters.</span>
+        <Icons.icon name="icon-no-symbol" /> <span>No queues match the current filters.</span>
       </div>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -115,22 +115,25 @@ defmodule Oban.Web.Queues.TableComponent do
               <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
             </span>
             <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
-              <Icons.globe
+              <Icons.icon
                 :if={Queue.global_limit?(@queue)}
+                name="icon-globe"
                 class="w-4 h-4"
                 data-title="Global limit"
                 id={"#{@queue.name}-has-global"}
                 phx-hook="Tippy"
               />
-              <Icons.arrow_trending_down
+              <Icons.icon
                 :if={Queue.rate_limit?(@queue)}
+                name="icon-arrow-trending-down"
                 class="w-4 h-4"
                 data-title="Rate limit"
                 id={"#{@queue.name}-has-rate"}
                 phx-hook="Tippy"
               />
-              <Icons.view_columns
+              <Icons.icon
                 :if={Queue.partitioned?(@queue)}
+                name="icon-view-columns"
                 class="w-4 h-4"
                 data-title="Partitioned"
                 id={"#{@queue.name}-has-partition"}
@@ -203,24 +206,27 @@ defmodule Oban.Web.Queues.TableComponent do
           </span>
 
           <div class="w-20 pr-3 flex justify-center items-center space-x-1">
-            <Icons.pause_circle
+            <Icons.icon
               :if={Queue.all_paused?(@queue)}
+              name="icon-pause-circle"
               class="w-5 h-5"
               data-title="All paused"
               id={"#{@queue.name}-is-paused"}
               phx-hook="Tippy"
               rel="is-paused"
             />
-            <Icons.play_pause_circle
+            <Icons.icon
               :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
+              name="icon-play-pause-circle"
               class="w-5 h-5"
               data-title="Some paused"
               id={"#{@queue.name}-is-some-paused"}
               phx-hook="Tippy"
               rel="has-some-paused"
             />
-            <Icons.power
+            <Icons.icon
               :if={Queue.terminating?(@queue)}
+              name="icon-power"
               class="w-5 h-5"
               data-title="Terminating"
               id={"#{@queue.name}-is-terminating"}

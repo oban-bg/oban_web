@@ -56,7 +56,7 @@ defmodule Oban.Web.QueuesPage do
                   click="pause-queues"
                   target={@myself}
                 >
-                  <:icon><Icons.pause_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-pause-circle" class="w-5 h-5" /></:icon>
                   <:title>Pause Queues</:title>
                 </Core.action_button>
 
@@ -66,7 +66,7 @@ defmodule Oban.Web.QueuesPage do
                   click="resume-queues"
                   target={@myself}
                 >
-                  <:icon><Icons.play_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-play-circle" class="w-5 h-5" /></:icon>
                   <:title>Resume Queues</:title>
                 </Core.action_button>
 
@@ -77,7 +77,7 @@ defmodule Oban.Web.QueuesPage do
                   target={@myself}
                   danger={true}
                 >
-                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
                   <:title>Stop Queues</:title>
                 </Core.action_button>
               </div>

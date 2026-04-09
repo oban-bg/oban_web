@@ -54,7 +54,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           phx-hook="HistoryBack"
           type="button"
         >
-          <Icons.arrow_left class="w-5 h-5" />
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
           <span class="text-lg font-bold ml-2">{job_title(@job)}</span>
         </button>
 
@@ -223,7 +223,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 Workflow
               </span>
               <span class="text-base text-gray-800 dark:text-gray-200 flex items-center">
-                <Icons.rectangle_group class="w-4 h-4 mr-1.5 text-violet-500" />
+                <Icons.icon name="icon-rectangle-group" class="w-4 h-4 mr-1.5 text-violet-500" />
                 <span class="truncate">{workflow_display_name(@job)}</span>
               </span>
             </.link>
@@ -241,7 +241,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
           phx-click="toggle-diagnostics"
           phx-target={@myself}
         >
-          <Icons.chevron_right
+          <Icons.icon
+            name="icon-chevron-right"
             id="diagnostics-chevron"
             class={["w-5 h-5 transition-transform", if(@diagnostics_open?, do: "rotate-90")]}
           />
@@ -324,7 +325,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     phx-hook="Tippy"
                     phx-click={copy_to_clipboard(@diagnostics["info"]["current_stacktrace"])}
                   >
-                    <Icons.clipboard class="w-4 h-4" />
+                    <Icons.icon name="icon-clipboard" class="w-4 h-4" />
                   </button>
                 </div>
                 <%= if @diagnostics["info"]["current_stacktrace"] do %>
@@ -345,7 +346,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             </div>
           <% else %>
             <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
-              <Icons.clock class="w-5 h-5" />
+              <Icons.icon name="icon-clock" class="w-5 h-5" />
               <span class="text-sm">
                 <%= if executing?(@job) do %>
                   Waiting for diagnostics...
@@ -374,7 +375,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
           phx-click={toggle_errors()}
         >
-          <Icons.chevron_right
+          <Icons.icon
+            name="icon-chevron-right"
             id="errors-chevron"
             class={["w-5 h-5 transition-transform", if(Enum.any?(@job.errors), do: "rotate-90")]}
           />
@@ -440,7 +442,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     )
                   ]}
                 >
-                  <Icons.chevron_left class="w-5 h-5" />
+                  <Icons.icon name="icon-chevron-left" class="w-5 h-5" />
                 </button>
                 <span class="text-sm text-gray-500 dark:text-gray-400 tabular min-w-[4rem] text-center">
                   {@error_index + 1} of {length(@job.errors)}
@@ -460,7 +462,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                     )
                   ]}
                 >
-                  <Icons.chevron_right class="w-5 h-5" />
+                  <Icons.icon name="icon-chevron-right" class="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -468,7 +470,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <.error_entry errors={@job.errors} index={@error_index} sort={@error_sort} />
           <% else %>
             <div class="flex items-center space-x-2 px-2 text-gray-400 dark:text-gray-500">
-              <Icons.check_circle class="w-5 h-5" />
+              <Icons.icon name="icon-check-circle" class="w-5 h-5" />
               <span class="text-sm">No errors recorded</span>
             </div>
           <% end %>
@@ -482,7 +484,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
           phx-click={toggle_edit()}
         >
-          <Icons.chevron_right
+          <Icons.icon
+            name="icon-chevron-right"
             id="edit-chevron"
             class={["w-5 h-5 transition-transform", if(not executing?(@job), do: "rotate-90")]}
           />
@@ -494,7 +497,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             data-title="Executing jobs can't be edited"
             phx-hook="Tippy"
           >
-            <Icons.info_circle class="w-4 h-4 text-gray-400" />
+            <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400" />
           </span>
         </button>
 
@@ -626,7 +629,11 @@ defmodule Oban.Web.Jobs.DetailComponent do
         class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         phx-click={toggle_job_data()}
       >
-        <Icons.chevron_right id="job-data-chevron" class="w-5 h-5 transition-transform rotate-90" />
+        <Icons.icon
+          name="icon-chevron-right"
+          id="job-data-chevron"
+          class="w-5 h-5 transition-transform rotate-90"
+        />
         <span class="font-semibold">Job Data</span>
       </button>
 
@@ -645,7 +652,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 phx-hook="Tippy"
                 phx-click={copy_to_clipboard(format_args(@job, @resolver))}
               >
-                <Icons.clipboard class="w-4 h-4" />
+                <Icons.icon name="icon-clipboard" class="w-4 h-4" />
               </button>
             </div>
             <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_args(@job, @resolver)}</pre>
@@ -664,7 +671,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 phx-hook="Tippy"
                 phx-click={copy_to_clipboard(format_meta(@job, @resolver))}
               >
-                <Icons.clipboard class="w-4 h-4" />
+                <Icons.icon name="icon-clipboard" class="w-4 h-4" />
               </button>
             </div>
             <pre class="font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-all">{format_meta(@job, @resolver)}</pre>
@@ -688,7 +695,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 phx-hook="Tippy"
                 phx-click={copy_to_clipboard(format_recorded(@job, @resolver))}
               >
-                <Icons.clipboard class="w-4 h-4" />
+                <Icons.icon name="icon-clipboard" class="w-4 h-4" />
               </button>
             </div>
             <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_recorded(@job, @resolver)}</pre>

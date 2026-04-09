@@ -89,7 +89,7 @@ defmodule Oban.Web.JobsPage do
                   click="cancel-jobs"
                   target={@myself}
                 >
-                  <:icon><Icons.x_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
                   <:title>Cancel Jobs</:title>
                 </Core.action_button>
 
@@ -99,7 +99,7 @@ defmodule Oban.Web.JobsPage do
                   click="retry-jobs"
                   target={@myself}
                 >
-                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
                   <:title>Retry Jobs</:title>
                 </Core.action_button>
 
@@ -109,7 +109,7 @@ defmodule Oban.Web.JobsPage do
                   click="retry-jobs"
                   target={@myself}
                 >
-                  <:icon><Icons.arrow_right_circle class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
                   <:title>Run Jobs Now</:title>
                 </Core.action_button>
 
@@ -120,7 +120,7 @@ defmodule Oban.Web.JobsPage do
                   target={@myself}
                   danger={true}
                 >
-                  <:icon><Icons.trash class="w-5 h-5" /></:icon>
+                  <:icon><Icons.icon name="icon-trash" class="w-5 h-5" /></:icon>
                   <:title>Delete Jobs</:title>
                 </Core.action_button>
               </div>
@@ -162,7 +162,7 @@ defmodule Oban.Web.JobsPage do
                       "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
                   ]}
                 >
-                  <Icons.plus_circle class="mr-1 h-4 w-4" /> New
+                  <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> New
                 </.link>
               </div>
             </div>

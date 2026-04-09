@@ -20,6 +20,7 @@ defmodule Oban.Web.DashboardLive do
     page = resolve_page(params)
 
     Process.put(:routing, {socket, prefix})
+    Process.put(:csp_nonce_style, csp_nonces.style)
 
     socket =
       socket

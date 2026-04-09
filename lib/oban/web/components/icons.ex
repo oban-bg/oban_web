@@ -3,60 +3,17 @@ defmodule Oban.Web.Components.Icons do
 
   use Phoenix.Component
 
-  @icons_path Application.app_dir(:oban_web, ["priv", "static", "icons"])
+  attr :name, :string, required: true
+  attr :class, :any, default: nil
+  attr :rest, :global
 
-  @outline_path Path.join(@icons_path, "outline")
-  @solid_path Path.join(@icons_path, "solid")
-
-  @outline_icons @outline_path
-                 |> File.ls!()
-                 |> Enum.filter(&String.ends_with?(&1, ".svg"))
-                 |> Enum.map(&String.trim_trailing(&1, ".svg"))
-
-  @solid_icons @solid_path
-               |> File.ls!()
-               |> Enum.filter(&String.ends_with?(&1, ".svg"))
-               |> Enum.map(&String.trim_trailing(&1, ".svg"))
-
-  for icon <- @outline_icons do
-    @external_resource Path.join(@outline_path, "#{icon}.svg")
-
-    func_name = icon |> String.replace("-", "_") |> String.to_atom()
-
-    @doc false
-    attr :class, :any, default: "w-6 h-6"
-    attr :rest, :global
-
-    def unquote(func_name)(assigns) do
-      assigns = assign(assigns, :icon_path, "outline/#{unquote(icon)}.svg")
-
-      render_icon(assigns)
-    end
+  def icon(assigns) do
+    ~H"""
+    <span class={[@name, @class]} aria-hidden="true" {@rest} />
+    """
   end
 
-  for icon <- @solid_icons do
-    @external_resource Path.join(@solid_path, "#{icon}.svg")
-
-    func_name =
-      icon
-      |> String.replace("-", "_")
-      |> Kernel.<>("_solid")
-      |> String.to_atom()
-
-    @doc false
-    attr :class, :any, default: "w-6 h-6"
-    attr :rest, :global
-
-    def unquote(func_name)(assigns) do
-      assigns = assign(assigns, :icon_path, "solid/#{unquote(icon)}.svg")
-
-      render_icon(assigns)
-    end
-  end
-
-  # Inline Icons
-
-  attr :rest, :global, default: %{class: "w-6 h-6"}
+  attr :rest, :global, default: %{class: "size-6"}
 
   def oban_pro_logo(assigns) do
     ~H"""
@@ -116,7 +73,7 @@ defmodule Oban.Web.Components.Icons do
     """
   end
 
-  attr :rest, :global, default: %{class: "w-6 h-6"}
+  attr :rest, :global, default: %{class: "size-6"}
 
   def spinner(assigns) do
     ~H"""
@@ -126,37 +83,4 @@ defmodule Oban.Web.Components.Icons do
     </svg>
     """
   end
-
-  defp render_icon(assigns) do
-    icon_url = icon_url(assigns.icon_path)
-    class = normalize_class(assigns.class)
-    assigns = assigns |> assign(:icon_url, icon_url) |> assign(:normalized_class, class)
-
-    ~H"""
-    <span
-      class={["block bg-current", @normalized_class]}
-      style={"mask-image: url(#{@icon_url}); -webkit-mask-image: url(#{@icon_url}); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"}
-      aria-hidden="true"
-      {@rest}
-    />
-    """
-  end
-
-  defp icon_url(path) do
-    case Process.get(:routing) do
-      {socket, prefix} ->
-        Phoenix.VerifiedRoutes.unverified_path(
-          socket,
-          socket.router,
-          "#{prefix}/icons/#{path}"
-        )
-
-      _ ->
-        "/icons/#{path}"
-    end
-  end
-
-  defp normalize_class(class) when is_binary(class), do: class
-  defp normalize_class(class) when is_list(class), do: class
-  defp normalize_class(nil), do: "w-6 h-6"
 end

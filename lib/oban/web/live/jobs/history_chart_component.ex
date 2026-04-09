@@ -11,7 +11,11 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
         class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
         phx-click={toggle_section()}
       >
-        <Icons.chevron_right id="history-chevron" class="w-5 h-5 transition-transform rotate-90" />
+        <Icons.icon
+          name="icon-chevron-right"
+          id="history-chevron"
+          class="w-5 h-5 transition-transform rotate-90"
+        />
         <span class="font-semibold">Recent Executions</span>
       </button>
 
@@ -28,7 +32,7 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
           navigate={all_jobs_path(@job)}
           class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          View all jobs <Icons.arrow_right class="w-3 h-3" />
+          View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
         </.link>
       </div>
     </div>

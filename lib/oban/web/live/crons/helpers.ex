@@ -11,7 +11,7 @@ defmodule Oban.Web.Crons.Helpers do
 
   def state_icon(%{paused: true} = assigns) do
     ~H"""
-    <Icons.pause_circle class="w-5 h-5 text-gray-400" />
+    <Icons.icon name="icon-pause-circle" class="w-5 h-5 text-gray-400" />
     """
   end
 
@@ -21,21 +21,21 @@ defmodule Oban.Web.Crons.Helpers do
     ~H"""
     <%= case @state do %>
       <% "available" -> %>
-        <Icons.ellipsis_horizontal_circle class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-ellipsis-horizontal-circle" class={["w-5 h-5", @color_class]} />
       <% "cancelled" -> %>
-        <Icons.x_circle class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-x-circle" class={["w-5 h-5", @color_class]} />
       <% "completed" -> %>
-        <Icons.check_circle class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-check-circle" class={["w-5 h-5", @color_class]} />
       <% "discarded" -> %>
-        <Icons.exclamation_circle class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-exclamation-circle" class={["w-5 h-5", @color_class]} />
       <% "executing" -> %>
-        <Icons.play_circle class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-play-circle" class={["w-5 h-5", @color_class]} />
       <% "retryable" -> %>
-        <Icons.arrow_path class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-arrow-path" class={["w-5 h-5", @color_class]} />
       <% "scheduled" -> %>
-        <Icons.clock class={["w-5 h-5", @color_class]} />
+        <Icons.icon name="icon-clock" class={["w-5 h-5", @color_class]} />
       <% _ -> %>
-        <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+        <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400" />
     <% end %>
     """
   end

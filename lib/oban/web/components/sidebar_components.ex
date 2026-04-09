@@ -41,7 +41,10 @@ defmodule Oban.Web.SidebarComponents do
           phx-click={toggle(@name)}
           phx-hook="Tippy"
         >
-          <Icons.chevron_right class="w-4 h-4 mt-1 mr-1 transition-transform rotate-90" />
+          <Icons.icon
+            name="icon-chevron-right"
+            class="w-4 h-4 mt-1 mr-1 transition-transform rotate-90"
+          />
         </button>
 
         <h3 class="dark:text-gray-200 font-bold">{String.capitalize(@name)}</h3>

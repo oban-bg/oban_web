@@ -43,7 +43,7 @@ defmodule Oban.Web.Jobs.NewComponent do
                     phx-target={@myself}
                     aria-label="Close"
                   >
-                    <Icons.x_mark class="h-6 w-6" />
+                    <Icons.icon name="icon-x-mark" class="h-6 w-6" />
                   </button>
                 </div>
 

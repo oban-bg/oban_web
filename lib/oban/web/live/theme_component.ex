@@ -71,11 +71,11 @@ defmodule Oban.Web.ThemeComponent do
     ~H"""
     <%= case @theme do %>
       <% "light" -> %>
-        <Icons.sun />
+        <Icons.icon name="icon-sun" />
       <% "dark" -> %>
-        <Icons.moon />
+        <Icons.icon name="icon-moon" />
       <% "system" -> %>
-        <Icons.computer_desktop />
+        <Icons.icon name="icon-computer-desktop" />
     <% end %>
     """
   end

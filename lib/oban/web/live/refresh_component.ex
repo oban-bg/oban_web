@@ -36,7 +36,7 @@ defmodule Oban.Web.RefreshComponent do
         phx-click={JS.toggle(to: "#refresh-menu")}
         type="button"
       >
-        <Icons.arrow_path_rounded />
+        <Icons.icon name="icon-arrow-path-rounded" />
         <span class="ml-1 leading-6 text-sm">{:proplists.get_value(@refresh, @options)}</span>
       </button>
 
@@ -78,7 +78,7 @@ defmodule Oban.Web.RefreshComponent do
       phx-value-interval={@value}
     >
       <%= if @value == @refresh do %>
-        <Icons.check class="w-5 h-5" />
+        <Icons.icon name="icon-check" class="w-5 h-5" />
       <% else %>
         <span class="block w-5 h-5"></span>
       <% end %>

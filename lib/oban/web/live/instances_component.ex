@@ -66,7 +66,7 @@ defmodule Oban.Web.InstancesComponent do
           phx-value-name={name}
         >
           <%= if name == @active do %>
-            <Icons.check class="w-4 h-4 text-blue-500" />
+            <Icons.icon name="icon-check" class="w-4 h-4 text-blue-500" />
           <% else %>
             <span class="block w-4 h-4"></span>
           <% end %>

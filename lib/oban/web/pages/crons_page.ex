@@ -71,7 +71,7 @@ defmodule Oban.Web.CronsPage do
                     "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
                 ]}
               >
-                <Icons.plus_circle class="mr-1 h-4 w-4" /> New
+                <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> New
               </.link>
             </div>
           </div>

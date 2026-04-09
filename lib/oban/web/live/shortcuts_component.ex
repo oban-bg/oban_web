@@ -33,7 +33,7 @@ defmodule Oban.Web.ShortcutsComponent do
               class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
               aria-label="close"
             >
-              <Icons.x_mark />
+              <Icons.icon name="icon-x-mark" />
             </button>
 
             <div>

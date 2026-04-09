@@ -22,7 +22,7 @@ defmodule Oban.Web.Crons.DetailComponent do
           data-title="Back to crons"
           phx-hook="Tippy"
         >
-          <Icons.arrow_left class="w-5 h-5" />
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
           <span class="text-lg font-bold ml-2">
             {@cron.worker}
             <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
@@ -140,7 +140,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <h3 class="flex font-semibold mb-3 space-x-2 text-gray-400">
-          <Icons.pencil_square />
+          <Icons.icon name="icon-pencil-square" />
           <span>Edit Configuration</span>
         </h3>
 
@@ -230,7 +230,7 @@ defmodule Oban.Web.Crons.DetailComponent do
                 class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
               >
                 Editing requires DynamicCron
-                <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
               </a>
               <.save_button disabled={not @changed?} />
             </div>
@@ -257,7 +257,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: "completed"})}
         class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
-        View all jobs <Icons.arrow_right class="w-3 h-3" />
+        View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
       </.link>
     </div>
     """

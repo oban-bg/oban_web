@@ -47,10 +47,15 @@ defmodule Oban.Web.ConnectivityComponent do
   def render(assigns) do
     ~H"""
     <div id="connectivity" data-title={@title} phx-hook="Tippy">
-      <Icons.bolt_circle :if={@status == :solitary} class="w-6 h-6 text-yellow-500" />
-      <Icons.bolt_slash :if={@status == :isolated} class="w-6 h-6 animate-pulse text-red-500" />
-      <Icons.exclamation_circle
+      <Icons.icon :if={@status == :solitary} name="icon-bolt-circle" class="w-6 h-6 text-yellow-500" />
+      <Icons.icon
+        :if={@status == :isolated}
+        name="icon-bolt-slash"
+        class="w-6 h-6 animate-pulse text-red-500"
+      />
+      <Icons.icon
         :if={@status == :disconnected}
+        name="icon-exclamation-circle"
         class="w-6 h-6 animate-pulse text-red-500"
       />
     </div>

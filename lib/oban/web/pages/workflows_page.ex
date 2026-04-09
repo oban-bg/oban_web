@@ -121,7 +121,7 @@ defmodule Oban.Web.WorkflowsPage do
     ~H"""
     <div class="flex flex-col items-center justify-center py-16 px-6">
       <div class="flex items-center justify-center w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 mb-6">
-        <Icons.rectangle_group class="w-8 h-8 text-violet-500 dark:text-violet-400" />
+        <Icons.icon name="icon-rectangle-group" class="w-8 h-8 text-violet-500 dark:text-violet-400" />
       </div>
 
       <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
@@ -136,21 +136,21 @@ defmodule Oban.Web.WorkflowsPage do
 
       <ul class="text-left text-gray-600 dark:text-gray-400 space-y-3 mb-8">
         <li class="flex items-start">
-          <Icons.check class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
+          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
           <span>
             <span class="font-medium text-gray-700 dark:text-gray-300">Fully Distributed</span>
             — high availability and scalability across your infrastructure
           </span>
         </li>
         <li class="flex items-start">
-          <Icons.check class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
+          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
           <span>
             <span class="font-medium text-gray-700 dark:text-gray-300">Cascading Context</span>
             — pass cumulative context between jobs for seamless data flow
           </span>
         </li>
         <li class="flex items-start">
-          <Icons.check class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
+          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
           <span>
             <span class="font-medium text-gray-700 dark:text-gray-300">Nested Sub-Workflows</span>
             — compose hierarchically for better organization and reusability
@@ -163,7 +163,7 @@ defmodule Oban.Web.WorkflowsPage do
         target="_blank"
         class="inline-flex items-center px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-medium transition-colors"
       >
-        Learn about Oban Pro <Icons.arrow_top_right_on_square class="w-4 h-4 ml-2" />
+        Learn about Oban Pro <Icons.icon name="icon-arrow-top-right-on-square" class="w-4 h-4 ml-2" />
       </.link>
     </div>
     """

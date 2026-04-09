@@ -102,7 +102,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   defp state_icon(%{icon: :pending} = assigns) do
     ~H"""
-    <Icons.ellipsis_horizontal_circle class="w-5 h-5" />
+    <Icons.icon name="icon-ellipsis-horizontal-circle" class="w-5 h-5" />
     """
   end
 
@@ -114,7 +114,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
   defp state_icon(%{icon: :done} = assigns) do
     ~H"""
-    <Icons.check_circle class="w-5 h-5" />
+    <Icons.icon name="icon-check-circle" class="w-5 h-5" />
     """
   end
 

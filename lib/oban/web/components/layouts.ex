@@ -121,7 +121,7 @@ defmodule Oban.Web.Layouts do
           <div class="p-4">
             <div class="flex items-center">
               <div class="flex-shrink-0 text-green-400">
-                <Icons.check_circle />
+                <Icons.icon name="icon-check-circle" />
               </div>
               <div class="ml-3 w-0 flex-1">
                 <p class="text-sm leading-5 font-medium text-gray-900 dark:text-gray-100">
@@ -133,7 +133,7 @@ defmodule Oban.Web.Layouts do
                   phx-click="lv:clear-flash"
                   class="inline-flex text-gray-400 dark:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 focus:text-gray-500 transition ease-in-out duration-150"
                 >
-                  <Icons.x_mark class="w-5 h-5" />
+                  <Icons.icon name="icon-x-mark" class="w-5 h-5" />
                 </button>
               </div>
             </div>

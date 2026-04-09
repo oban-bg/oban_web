@@ -133,7 +133,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         phx-hook="HistoryBack"
         type="button"
       >
-        <Icons.arrow_left class="w-5 h-5" />
+        <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
         <span class="text-lg capitalize font-bold ml-2">{@queue} Queue</span>
       </button>
 
@@ -210,7 +210,7 @@ defmodule Oban.Web.Queues.DetailComponent do
         navigate={oban_path(:jobs, %{queues: @queue, state: "completed"})}
         class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
-        View all jobs <Icons.arrow_right class="w-3 h-3" />
+        View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
       </.link>
     </div>
     """
@@ -339,7 +339,8 @@ defmodule Oban.Web.Queues.DetailComponent do
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
           phx-click={toggle_instances(@myself)}
         >
-          <Icons.chevron_right
+          <Icons.icon
+            name="icon-chevron-right"
             id="instances-chevron"
             class={["w-5 h-5 transition-transform", if(@instances_open?, do: "rotate-90")]}
           />
@@ -421,7 +422,8 @@ defmodule Oban.Web.Queues.DetailComponent do
           class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
           phx-click={toggle_config(@myself)}
         >
-          <Icons.chevron_right
+          <Icons.icon
+            name="icon-chevron-right"
             id="config-chevron"
             class={["w-5 h-5 transition-transform", if(@config_open?, do: "rotate-90")]}
           />
@@ -437,7 +439,7 @@ defmodule Oban.Web.Queues.DetailComponent do
               phx-submit="local-submit"
             >
               <h3 class="flex items-center mb-4">
-                <Icons.map_pin class="w-5 h-5 mr-1 text-gray-500" />
+                <Icons.icon name="icon-map-pin" class="w-5 h-5 mr-1 text-gray-500" />
                 <span class="text-base font-medium">Local Limit</span>
               </h3>
 
@@ -467,7 +469,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             >
               <div class="flex items-center justify-between mb-4">
                 <h3 class="flex items-center">
-                  <Icons.globe class="w-5 h-5 mr-1 text-gray-500" />
+                  <Icons.icon name="icon-globe" class="w-5 h-5 mr-1 text-gray-500" />
                   <span class="text-base font-medium">Global Limit</span>
                   <span
                     id="global-limit-info"
@@ -475,7 +477,10 @@ defmodule Oban.Web.Queues.DetailComponent do
                     phx-hook="Tippy"
                     class="ml-1"
                   >
-                    <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <Icons.icon
+                      name="icon-info-circle"
+                      class="w-4 h-4 text-gray-400 dark:text-gray-500"
+                    />
                   </span>
                 </h3>
 
@@ -565,7 +570,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
                 >
                   Requires Smart Engine
-                  <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                  <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
                 </a>
               </div>
             </form>
@@ -579,7 +584,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             >
               <div class="flex items-center justify-between mb-4">
                 <h3 class="flex items-center">
-                  <Icons.arrow_trending_down class="w-5 h-5 mr-1 text-gray-500" />
+                  <Icons.icon name="icon-arrow-trending-down" class="w-5 h-5 mr-1 text-gray-500" />
                   <span class="text-base font-medium">Rate Limit</span>
                   <span
                     id="rate-limit-info"
@@ -587,7 +592,10 @@ defmodule Oban.Web.Queues.DetailComponent do
                     phx-hook="Tippy"
                     class="ml-1"
                   >
-                    <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    <Icons.icon
+                      name="icon-info-circle"
+                      class="w-4 h-4 text-gray-400 dark:text-gray-500"
+                    />
                   </span>
                 </h3>
 
@@ -677,7 +685,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                   class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
                 >
                   Requires Smart Engine
-                  <Icons.arrow_top_right_on_square class="w-3 h-3 inline-block" />
+                  <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
                 </a>
               </div>
             </form>
@@ -913,13 +921,13 @@ defmodule Oban.Web.Queues.DetailComponent do
           class={"#{if @enabled, do: "opacity-0 ease-out duration-100", else: "opacity-100 ease-in duration-200"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"}
           aria-hidden="true"
         >
-          <Icons.x_mark class="h-3 w-3 text-gray-400" />
+          <Icons.icon name="icon-x-mark" class="h-3 w-3 text-gray-400" />
         </span>
         <span
           class={"#{if @enabled, do: "opacity-100 ease-in duration-200", else: "opacity-0 ease-out duration-100"} absolute inset-0 h-full w-full flex items-center justify-center transition-opacity"}
           aria-hidden="true"
         >
-          <Icons.check class="h-3 w-3 text-blue-500" />
+          <Icons.icon name="icon-check" class="h-3 w-3 text-blue-500" />
         </span>
       </span>
     </button>
@@ -930,7 +938,7 @@ defmodule Oban.Web.Queues.DetailComponent do
     ~H"""
     <div class="flex items-center justify-end mt-4 space-x-2">
       <%= if @locked do %>
-        <Icons.lock_closed class="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <Icons.icon name="icon-lock-closed" class="w-5 h-5 text-gray-600 dark:text-gray-400" />
       <% end %>
 
       <button

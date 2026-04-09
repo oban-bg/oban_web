@@ -21,7 +21,10 @@ defmodule Oban.Web.Workflows.TableComponent do
       </ul>
 
       <div :if={Enum.empty?(@workflows)} class="py-16 px-6 text-center">
-        <Icons.rectangle_group class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+        <Icons.icon
+          name="icon-rectangle-group"
+          class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+        />
         <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No workflows</h3>
         <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
           Workflows coordinate jobs with dependencies. They'll appear here once jobs with workflow metadata are enqueued.
@@ -249,15 +252,15 @@ defmodule Oban.Web.Workflows.TableComponent do
     <span data-title={status_title(@state)} id={"workflow-state-#{@id}"} phx-hook="Tippy">
       <%= case @state do %>
         <% :executing -> %>
-          <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+          <Icons.icon name="icon-play-circle" class="w-5 h-5 text-emerald-400" />
         <% :completed -> %>
-          <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+          <Icons.icon name="icon-check-circle" class="w-5 h-5 text-cyan-400" />
         <% :cancelled -> %>
-          <Icons.x_circle class="w-5 h-5 text-violet-400" />
+          <Icons.icon name="icon-x-circle" class="w-5 h-5 text-violet-400" />
         <% :discarded -> %>
-          <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+          <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-rose-400" />
         <% _ -> %>
-          <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+          <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400" />
       <% end %>
     </span>
     """

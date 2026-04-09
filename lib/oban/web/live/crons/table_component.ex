@@ -26,7 +26,7 @@ defmodule Oban.Web.Crons.TableComponent do
       </ul>
 
       <div :if={Enum.empty?(@crontab)} class="py-16 px-6 text-center">
-        <Icons.clock class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+        <Icons.icon name="icon-clock" class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
         <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No crons</h3>
         <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
           Crons run jobs on a schedule. Configure them in your Oban supervisor or create them dynamically.

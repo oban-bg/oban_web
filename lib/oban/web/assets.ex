@@ -7,20 +7,6 @@ defmodule Oban.Web.Assets do
 
   @static_path Application.app_dir(:oban_web, ["priv", "static"])
 
-  # Icons
-
-  icon_files =
-    for dir <- ["outline", "solid", "special"],
-        base = Path.join([@static_path, "icons", dir]),
-        file <- File.ls!(base),
-        String.ends_with?(file, ".svg") do
-      path = Path.join(base, file)
-      Module.put_attribute(__MODULE__, :external_resource, path)
-      {Path.join(dir, file), File.read!(path)}
-    end
-
-  @icons Map.new(icon_files)
-
   # Font
 
   @external_resource font_path = Path.join(@static_path, "fonts/Inter.woff2")
@@ -63,21 +49,6 @@ defmodule Oban.Web.Assets do
 
   def call(conn, :font) do
     serve_asset(conn, @font, "font/woff2")
-  end
-
-  def call(conn, :icon) do
-    icon_path = Enum.join(conn.path_params["path"], "/")
-
-    case Map.get(@icons, icon_path) do
-      nil ->
-        conn
-        |> put_resp_header("content-type", "text/plain")
-        |> send_resp(404, "Icon not found")
-        |> halt()
-
-      contents ->
-        serve_asset(conn, contents, "image/svg+xml")
-    end
   end
 
   defp serve_asset(conn, contents, content_type) do

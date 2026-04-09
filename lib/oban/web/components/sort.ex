@@ -22,9 +22,9 @@ defmodule Oban.Web.SortComponent do
         type="button"
       >
         <%= if @params.sort_dir == "asc" do %>
-          <Icons.bars_arrow_down class="w-4 h-4" />
+          <Icons.icon name="icon-bars-arrow-down" class="w-4 h-4" />
         <% else %>
-          <Icons.bars_arrow_up class="w-4 h-4" />
+          <Icons.icon name="icon-bars-arrow-up" class="w-4 h-4" />
         <% end %>
         <span class="ml-1 block capitalize">
           {String.replace(@params.sort_by, "_", " ")}
@@ -71,7 +71,7 @@ defmodule Oban.Web.SortComponent do
       role="option"
     >
       <%= if @value == @selected do %>
-        <Icons.check class="w-4 h-4 text-blue-500" />
+        <Icons.icon name="icon-check" class="w-4 h-4 text-blue-500" />
       <% else %>
         <span class="block w-4 h-4"></span>
       <% end %>

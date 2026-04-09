@@ -115,13 +115,13 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
       :if={@terminating?}
       class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
     >
-      <Icons.power class="w-3 h-3 mr-0.5" /> Stopping
+      <Icons.icon name="icon-power" class="w-3 h-3 mr-0.5" /> Stopping
     </span>
     <span
       :if={@paused and not @terminating?}
       class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300"
     >
-      <Icons.pause_circle class="w-3 h-3 mr-0.5" /> Paused
+      <Icons.icon name="icon-pause-circle" class="w-3 h-3 mr-0.5" /> Paused
     </span>
     """
   end
@@ -147,9 +147,9 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
       type="button"
     >
       <%= if @paused do %>
-        <Icons.play_circle class="w-5 h-5" />
+        <Icons.icon name="icon-play-circle" class="w-5 h-5" />
       <% else %>
-        <Icons.pause_circle class="w-5 h-5" />
+        <Icons.icon name="icon-pause-circle" class="w-5 h-5" />
       <% end %>
     </button>
     """
@@ -168,7 +168,7 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
       phx-target={@target}
       type="button"
     >
-      <Icons.pencil_square class="w-5 h-5" />
+      <Icons.icon name="icon-pencil-square" class="w-5 h-5" />
     </button>
     """
   end

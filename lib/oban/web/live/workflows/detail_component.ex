@@ -64,7 +64,10 @@ defmodule Oban.Web.Workflows.DetailComponent do
       <% else %>
         <div class="flex items-center justify-center py-16">
           <div class="text-center">
-            <Icons.rectangle_group class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <Icons.icon
+              name="icon-rectangle-group"
+              class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+            />
             <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
               Workflow not found
             </h3>
@@ -97,7 +100,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           phx-hook="HistoryBack"
           type="button"
         >
-          <Icons.arrow_left class="w-5 h-5" />
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
           <span class="text-lg font-bold ml-2">{@workflow.name || @workflow.id}</span>
         </button>
 
@@ -142,7 +145,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
   defp parent_breadcrumb(assigns) do
     ~H"""
     <div class="flex items-center ml-3 text-sm text-gray-500 dark:text-gray-400">
-      <Icons.arrow_turn_down_right class="w-4 h-4 mr-1" />
+      <Icons.icon name="icon-arrow-turn-down-right" class="w-4 h-4 mr-1" />
       <span>sub-workflow of</span>
       <.link
         navigate={oban_path([:workflows, @parent.id])}
@@ -233,10 +236,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
           phx-click="toggle-graph"
           phx-target={@myself}
         >
-          <Icons.chevron_right class={[
-            "w-5 h-5 transition-transform",
-            @graph_open? && "rotate-90"
-          ]} />
+          <Icons.icon
+            name="icon-chevron-right"
+            class={[
+              "w-5 h-5 transition-transform",
+              @graph_open? && "rotate-90"
+            ]}
+          />
           <span class="font-semibold">Workflow Graph</span>
         </button>
 
@@ -419,10 +425,13 @@ defmodule Oban.Web.Workflows.DetailComponent do
           phx-click="toggle-subs"
           phx-target={@myself}
         >
-          <Icons.chevron_right class={[
-            "w-5 h-5 transition-transform",
-            @subs_open? && "rotate-90"
-          ]} />
+          <Icons.icon
+            name="icon-chevron-right"
+            class={[
+              "w-5 h-5 transition-transform",
+              @subs_open? && "rotate-90"
+            ]}
+          />
           <span class="font-semibold">
             Sub-workflows
             <span class="text-gray-400 font-normal">
@@ -522,17 +531,17 @@ defmodule Oban.Web.Workflows.DetailComponent do
     <span class="inline-flex">
       <%= case @state do %>
         <% "executing" -> %>
-          <Icons.play_circle class="w-5 h-5 text-emerald-400" />
+          <Icons.icon name="icon-play-circle" class="w-5 h-5 text-emerald-400" />
         <% "completed" -> %>
-          <Icons.check_circle class="w-5 h-5 text-cyan-400" />
+          <Icons.icon name="icon-check-circle" class="w-5 h-5 text-cyan-400" />
         <% "retryable" -> %>
-          <Icons.arrow_path class="w-5 h-5 text-yellow-400" />
+          <Icons.icon name="icon-arrow-path" class="w-5 h-5 text-yellow-400" />
         <% "cancelled" -> %>
-          <Icons.x_circle class="w-5 h-5 text-violet-400" />
+          <Icons.icon name="icon-x-circle" class="w-5 h-5 text-violet-400" />
         <% "discarded" -> %>
-          <Icons.exclamation_circle class="w-5 h-5 text-rose-400" />
+          <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-rose-400" />
         <% _ -> %>
-          <Icons.minus_circle class="w-5 h-5 text-gray-400" />
+          <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400" />
       <% end %>
     </span>
     """

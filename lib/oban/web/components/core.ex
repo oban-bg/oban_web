@@ -106,7 +106,7 @@ defmodule Oban.Web.Components.Core do
       phx-value-choice={@value}
     >
       <%= if to_string(@value) == to_string(@selected) do %>
-        <Icons.check class="w-5 h-5" />
+        <Icons.icon name="icon-check" class="w-5 h-5" />
       <% else %>
         <span class="block w-5 h-5"></span>
       <% end %>
@@ -142,7 +142,7 @@ defmodule Oban.Web.Components.Core do
       rel="check"
     >
       <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
-        <Icons.check class="w-3 h-3 text-white dark:text-gray-900" />
+        <Icons.icon name="icon-check" class="w-3 h-3 text-white dark:text-gray-900" />
       </div>
     </button>
     """
@@ -174,9 +174,9 @@ defmodule Oban.Web.Components.Core do
     >
       <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
         <%= if @checked == :some do %>
-          <Icons.indeterminate class="w-3 h-3 text-white dark:text-gray-900" />
+          <Icons.icon name="icon-indeterminate" class="w-3 h-3 text-white dark:text-gray-900" />
         <% else %>
-          <Icons.check class="w-3 h-3 text-white dark:text-gray-900" />
+          <Icons.icon name="icon-check" class="w-3 h-3 text-white dark:text-gray-900" />
         <% end %>
       </div>
     </button>
@@ -203,40 +203,41 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
-  defp badge_icon(%{name: "camera"} = assigns), do: ~H[<Icons.camera class="h-4 w-4 shrink-0" />]
+  defp badge_icon(%{name: "camera"} = assigns),
+    do: ~H[<Icons.icon name="icon-camera" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "life_buoy"} = assigns),
-    do: ~H[<Icons.life_buoy class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-life-buoy" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "lock_closed"} = assigns),
-    do: ~H[<Icons.lock_closed class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-lock-closed" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "sparkles"} = assigns),
-    do: ~H[<Icons.sparkles class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-sparkles" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "table_cells"} = assigns),
-    do: ~H[<Icons.table_cells class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-table-cells" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "square_2x2"} = assigns),
-    do: ~H[<Icons.square_2x2 class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-square-2x2" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "rectangle_group"} = assigns),
-    do: ~H[<Icons.rectangle_group class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-rectangle-group" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "user_group"} = assigns),
-    do: ~H[<Icons.user_group class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-user-group" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "link"} = assigns),
-    do: ~H[<Icons.link class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-link" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "power"} = assigns),
-    do: ~H[<Icons.power class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-power" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "pause_circle"} = assigns),
-    do: ~H[<Icons.pause_circle class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-pause-circle" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "play_pause_circle"} = assigns),
-    do: ~H[<Icons.play_pause_circle class="h-4 w-4 shrink-0" />]
+    do: ~H[<Icons.icon name="icon-play-pause-circle" class="h-4 w-4 shrink-0" />]
 
   @doc """
   An icon-only button that expands to show label on hover. Supports disabled state.
@@ -309,17 +310,23 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
-  defp button_icon(%{name: "arrow_path"} = assigns), do: ~H[<Icons.arrow_path class={@class} />]
+  defp button_icon(%{name: "arrow_path"} = assigns),
+    do: ~H[<Icons.icon name="icon-arrow-path" class={@class} />]
 
   defp button_icon(%{name: "pause_circle"} = assigns),
-    do: ~H[<Icons.pause_circle class={@class} />]
+    do: ~H[<Icons.icon name="icon-pause-circle" class={@class} />]
 
   defp button_icon(%{name: "pencil_square"} = assigns),
-    do: ~H[<Icons.pencil_square class={@class} />]
+    do: ~H[<Icons.icon name="icon-pencil-square" class={@class} />]
 
-  defp button_icon(%{name: "play_circle"} = assigns), do: ~H[<Icons.play_circle class={@class} />]
-  defp button_icon(%{name: "trash"} = assigns), do: ~H[<Icons.trash class={@class} />]
-  defp button_icon(%{name: "x_circle"} = assigns), do: ~H[<Icons.x_circle class={@class} />]
+  defp button_icon(%{name: "play_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-play-circle" class={@class} />]
+
+  defp button_icon(%{name: "trash"} = assigns),
+    do: ~H[<Icons.icon name="icon-trash" class={@class} />]
+
+  defp button_icon(%{name: "x_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-x-circle" class={@class} />]
 
   # Sparkline
 

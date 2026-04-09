@@ -15,7 +15,7 @@ defmodule Oban.Web.HelpComponent do
         phx-click={JS.toggle(to: "#help-menu")}
         type="button"
       >
-        <Icons.question_mark_circle />
+        <Icons.icon name="icon-question-mark-circle" />
       </button>
 
       <ul
@@ -35,7 +35,7 @@ defmodule Oban.Web.HelpComponent do
             rel="noopener noreferrer"
             class="flex items-center space-x-2 w-full"
           >
-            <Icons.arrow_top_right_on_square class="w-5 h-5" />
+            <Icons.icon name="icon-arrow-top-right-on-square" class="w-5 h-5" />
             <span class="text-gray-800 dark:text-gray-200">Documentation</span>
           </a>
         </li>
@@ -45,7 +45,7 @@ defmodule Oban.Web.HelpComponent do
           phx-click={JS.hide(to: "#help-menu") |> JS.exec("data-shortcut", to: "#shortcuts")}
           role="option"
         >
-          <Icons.command_line class="w-5 h-5" />
+          <Icons.icon name="icon-command-line" class="w-5 h-5" />
           <span class="text-gray-800 dark:text-gray-200">Keyboard shortcuts</span>
         </li>
       </ul>

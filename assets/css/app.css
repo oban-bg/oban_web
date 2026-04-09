@@ -92,6 +92,7 @@ select:-moz-focusring {
 
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
+@plugin "../icons.plugin.js";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

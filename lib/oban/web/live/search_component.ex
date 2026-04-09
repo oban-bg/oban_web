@@ -43,7 +43,7 @@ defmodule Oban.Web.SearchComponent do
           <%= if @loading do %>
             <Icons.spinner class="w-5 h-5 text-gray-200 animate-spin dark:text-gray-600 fill-violet-500" />
           <% else %>
-            <Icons.magnifying_glass class="w-5 h-5 text-gray-500" />
+            <Icons.icon name="icon-magnifying-glass" class="w-5 h-5 text-gray-500" />
           <% end %>
         </div>
 
@@ -84,7 +84,7 @@ defmodule Oban.Web.SearchComponent do
         phx-click="clear"
         type="reset"
       >
-        <Icons.x_circle class="w-5 h-5" />
+        <Icons.icon name="icon-x-circle" class="w-5 h-5" />
       </button>
 
       <nav
@@ -102,7 +102,7 @@ defmodule Oban.Web.SearchComponent do
           />
 
           <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
-            <Icons.exclamation_circle class="w-5 h-5 text-gray-400" />
+            <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-gray-400" />
             <span class="text-gray-700">No suggestions matching <b>"{@buffer}"</b></span>
           </div>
         </div>
@@ -113,7 +113,7 @@ defmodule Oban.Web.SearchComponent do
           title="Read the filtering and searching guide"
           target="_blank"
         >
-          <Icons.info_circle class="w-4 h-4" />
+          <Icons.icon name="icon-info-circle" class="w-4 h-4" />
           <span class="text-xs">Filtering Tips</span>
         </a>
       </nav>
@@ -139,7 +139,7 @@ defmodule Oban.Web.SearchComponent do
         phx-value-terms={@terms}
         phx-target="#search"
       >
-        <Icons.x_mark class="w-5 h-5" />
+        <Icons.icon name="icon-x-mark" class="w-5 h-5" />
       </button>
     </div>
     """

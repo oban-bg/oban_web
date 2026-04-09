@@ -49,7 +49,7 @@ defmodule Oban.Web.Jobs.TableComponent do
 
       <div :if={Enum.empty?(@jobs)} class="text-lg text-center py-12">
         <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
-          <Icons.no_symbol /> <span>No jobs match the current set of filters.</span>
+          <Icons.icon name="icon-no-symbol" /> <span>No jobs match the current set of filters.</span>
         </div>
         <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Filtering limited to latest {integer_to_delimited(@query_limit)} jobs. See <a
@@ -111,16 +111,18 @@ defmodule Oban.Web.Jobs.TableComponent do
         </div>
 
         <div class="ml-auto flex items-center space-x-1">
-          <Icons.life_buoy
+          <Icons.icon
             :if={Map.has_key?(@job.meta, "rescued")}
+            name="icon-life-buoy"
             class="h-5 w-5 text-gray-500 dark:text-gray-300"
             id={"job-rescued-#{assigns.job.id}"}
             phx-hook="Tippy"
             data-title="Rescued by lifeline"
           />
 
-          <Icons.crossbones_circle_solid
+          <Icons.icon
             :if={orphaned?(@job, @producers)}
+            name="icon-crossbones-circle-solid"
             class="h-5 w-5 text-gray-500 dark:text-gray-300"
             id={"job-orphaned-#{assigns.job.id}"}
             phx-hook="Tippy"

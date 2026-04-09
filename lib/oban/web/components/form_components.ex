@@ -30,7 +30,7 @@ defmodule Oban.Web.FormComponents do
           phx-hook="Tippy"
           class="translate-y-px"
         >
-          <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </span>
       </label>
       <%= if @type == "textarea" do %>
@@ -110,7 +110,10 @@ defmodule Oban.Web.FormComponents do
             class="sr-only peer"
           />
           <span class="block w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:border-blue-500 peer-checked:bg-blue-500" />
-          <Icons.check class="w-3 h-3 text-white absolute top-0.5 left-0.5 hidden peer-checked:block" />
+          <Icons.icon
+            name="icon-check"
+            class="w-3 h-3 text-white absolute top-0.5 left-0.5 hidden peer-checked:block"
+          />
         </div>
         {@label}
         <span
@@ -120,7 +123,7 @@ defmodule Oban.Web.FormComponents do
           phx-hook="Tippy"
           class="ml-1 translate-y-px"
         >
-          <Icons.info_circle class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </span>
       </label>
     </div>

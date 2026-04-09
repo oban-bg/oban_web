@@ -56,10 +56,13 @@ defmodule Oban.Web.Jobs.ChartComponent do
             phx-click={toggle_chart(@myself)}
             phx-hook="Tippy"
           >
-            <Icons.chevron_right class={[
-              "w-5 h-5 mr-2 transition-transform",
-              if(@visible, do: "rotate-90")
-            ]} />
+            <Icons.icon
+              name="icon-chevron-right"
+              class={[
+                "w-5 h-5 mr-2 transition-transform",
+                if(@visible, do: "rotate-90")
+              ]}
+            />
           </button>
 
           <h3 class="text-base font-semibold">
@@ -89,7 +92,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             target={@myself}
             title="Change metric series"
           >
-            <Icons.chart_bar_square />
+            <Icons.icon name="icon-chart-bar-square" />
           </Core.dropdown_button>
 
           <Core.dropdown_button
@@ -100,7 +103,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             target={@myself}
             title="Change slice period"
           >
-            <Icons.clock />
+            <Icons.icon name="icon-clock" />
           </Core.dropdown_button>
 
           <Core.dropdown_button
@@ -111,7 +114,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             target={@myself}
             title="Change metric grouping"
           >
-            <Icons.rectangle_group />
+            <Icons.icon name="icon-rectangle-group" />
           </Core.dropdown_button>
 
           <Core.dropdown_button
@@ -122,7 +125,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             target={@myself}
             title="Change percentile"
           >
-            <Icons.percent_square />
+            <Icons.icon name="icon-percent-square" />
           </Core.dropdown_button>
         </div>
       </div>
