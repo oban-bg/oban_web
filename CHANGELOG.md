@@ -77,6 +77,16 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
+## v2.12.3 - 2026-04-15
+
+### Bug Fixes
+
+- [Dashboard] Switch icons from inline SVG to CSS masks
+
+  CSP doesn't allow inline styles, which includes the url-masks that our app was using for icons.
+  This removes the icons/asset pipeline in favor of the standard Tailwind plugin approach used by
+  modern Phoenix apps
+
 ## v2.12.2 - 2026-03-31
 
 ### Enhancements
