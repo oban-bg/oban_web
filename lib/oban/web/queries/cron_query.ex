@@ -195,7 +195,11 @@ defmodule Oban.Web.CronQuery do
         state: j.state,
         scheduled_at: j.scheduled_at,
         attempted_at: j.attempted_at,
-        finished_at: fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at)
+        finished_at:
+          type(
+            fragment("COALESCE(?, ?, ?)", j.completed_at, j.cancelled_at, j.discarded_at),
+            :utc_datetime_usec
+          )
       })
 
     conf
@@ -280,7 +284,10 @@ defmodule Oban.Web.CronQuery do
           attempted_at: o.attempted_at,
           scheduled_at: o.scheduled_at,
           finished_at:
-            fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at)
+            type(
+              fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at),
+              :utc_datetime_usec
+            )
         },
         select_merge: %{
           rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
