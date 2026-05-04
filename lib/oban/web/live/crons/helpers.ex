@@ -43,13 +43,13 @@ defmodule Oban.Web.Crons.Helpers do
   @doc """
   Converts a NaiveDateTime to unix milliseconds, returning empty string for nil.
   """
-  def maybe_to_unix(nil), do: ""
-
-  def maybe_to_unix(timestamp) do
+  def maybe_to_unix(timestamp) when is_struct(timestamp) do
     timestamp
     |> DateTime.from_naive!("Etc/UTC")
     |> DateTime.to_unix(:millisecond)
   end
+
+  def maybe_to_unix(_timestamp), do: ""
 
   def show_name?(%{dynamic?: true, name: name, worker: worker}), do: name != worker
   def show_name?(_cron), do: false
