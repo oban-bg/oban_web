@@ -130,7 +130,7 @@ defmodule Oban.Web.MixProject do
 
   defp oban_pro_dep do
     if oban_repo_configured?() do
-      [{:oban_pro, "~> 1.7.0-rc.0", repo: :oban, only: [:test, :dev]}]
+      [{:oban_pro, "~> 1.7.0", repo: :oban, only: [:test, :dev]}]
     else
       []
     end
