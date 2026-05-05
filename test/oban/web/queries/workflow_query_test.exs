@@ -5,8 +5,9 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
 
   @moduletag :pro
 
-  setup do
-    name = start_supervised_oban!()
+  setup context do
+    opts = Map.get(context, :oban_opts, [])
+    name = start_supervised_oban!(opts)
     conf = Oban.config(name)
 
     {:ok, conf: conf}
@@ -63,6 +64,40 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
     end
   end
 
+  describe "custom prefix" do
+    @tag oban_opts: [name: ObanPrivate, prefix: "private"]
+    test "all_workflows aggregates with the configured prefix", %{conf: conf} do
+      insert_workflow!(conf, "parent-private", worker: "ParentWorker")
+      insert_sub_workflow!(conf, "sub-priv-1", "parent-private", worker: "ChildWorker1")
+      insert_sub_workflow!(conf, "sub-priv-2", "parent-private", worker: "ChildWorker2")
+
+      [workflow] = WorkflowQuery.all_workflows(conf, %{})
+
+      assert workflow.id == "parent-private"
+      assert workflow.total == 3
+    end
+
+    @tag oban_opts: [name: ObanPrivate, prefix: "private"]
+    test "get_workflow_graph resolves dependencies with the configured prefix", %{conf: conf} do
+      insert_job!(%{},
+        conf: conf,
+        worker: "SubWorker",
+        meta: %{
+          workflow_id: "graph-sub",
+          sup_workflow_id: "graph-parent",
+          name: "sub-step",
+          deps: [["graph-parent", "parent-step"]]
+        }
+      )
+
+      %{sub_workflows: subs} = WorkflowQuery.get_workflow_graph(conf, "graph-parent")
+
+      assert [sub] = subs
+      assert sub.workflow_id == "graph-sub"
+      assert sub.parent_dep == "parent-step"
+    end
+  end
+
   describe "get_sub_workflows/3" do
     test "returns sub-workflows for a parent workflow", %{conf: conf} do
       insert_workflow!(conf, "parent-wf", name: "parent", worker: "ParentWorker")
@@ -94,9 +129,8 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
   end
 
   defp workflow_ids(conf, params) do
-    params
-    |> Map.new()
-    |> WorkflowQuery.all_workflows(conf)
+    conf
+    |> WorkflowQuery.all_workflows(Map.new(params))
     |> Enum.map(& &1.id)
     |> sort()
   end
@@ -134,7 +168,7 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       :cancelled,
       :discarded
     ])
-    |> conf.repo.insert!()
+    |> conf.repo.insert!(prefix: conf.prefix)
 
     meta =
       %{workflow_id: workflow_id}
@@ -197,7 +231,7 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       :cancelled,
       :discarded
     ])
-    |> conf.repo.insert!()
+    |> conf.repo.insert!(prefix: conf.prefix)
 
     meta =
       maybe_put(

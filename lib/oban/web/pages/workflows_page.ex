@@ -211,7 +211,7 @@ defmodule Oban.Web.WorkflowsPage do
         )
 
       true ->
-        workflows = WorkflowQuery.all_workflows(params, conf)
+        workflows = WorkflowQuery.all_workflows(conf, params)
         limit = params.limit
 
         assign(socket,

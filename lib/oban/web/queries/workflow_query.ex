@@ -126,30 +126,32 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
-  defmacrop sub_workflow_parent_dep(sub_workflow_id, sup_workflow_id) do
+  defmacrop sub_workflow_parent_dep(prefix, sub_workflow_id, sup_workflow_id) do
     quote do
       fragment(
         """
         (SELECT dep->>1
-         FROM oban_jobs j2,
+         FROM ?.oban_jobs j2,
               LATERAL jsonb_array_elements(j2.meta->'deps') AS dep
          WHERE j2.meta->>'workflow_id' = ?
            AND jsonb_typeof(dep) = 'array'
            AND dep->>0 = ?
          LIMIT 1)
         """,
+        identifier(^unquote(prefix)),
         unquote(sub_workflow_id),
         unquote(sup_workflow_id)
       )
     end
   end
 
-  defmacrop sub_workflow_states(parent_id) do
+  defmacrop sub_workflow_states(prefix, parent_id) do
     quote do
       fragment(
         """
-        (SELECT COALESCE(array_agg(state), '{}') FROM oban_workflows WHERE parent_id = ?)
+        (SELECT COALESCE(array_agg(state), '{}') FROM ?.oban_workflows WHERE parent_id = ?)
         """,
+        identifier(^unquote(prefix)),
         unquote(parent_id)
       )
     end
@@ -279,18 +281,19 @@ defmodule Oban.Web.WorkflowQuery do
 
   # Querying
 
-  def all_workflows(params, conf) do
+  def all_workflows(conf, params) do
     limit = Map.get(params, :limit, 10)
     sort_by = Map.get(params, :sort_by, "inserted")
     sort_dir = Map.get(params, :sort_dir, "desc")
     dir = String.to_existing_atom(sort_dir)
+    prefix = conf.prefix
 
     Workflow
     |> where([wf], is_nil(wf.parent_id))
     |> apply_filters(params)
     |> apply_sort(sort_by, dir)
     |> limit(^limit)
-    |> select([wf], {wf, sub_workflow_states(wf.id)})
+    |> select([wf], {wf, sub_workflow_states(prefix, wf.id)})
     |> then(&Repo.all(conf, &1))
     |> Enum.map(&build_workflow/1)
   end
@@ -446,6 +449,8 @@ defmodule Oban.Web.WorkflowQuery do
   end
 
   defp workflow_graph_subs(conf, workflow_id) do
+    prefix = conf.prefix
+
     base_query =
       Job
       |> where([j], has_sup_workflow_id(j.meta, ^workflow_id))
@@ -464,7 +469,7 @@ defmodule Oban.Web.WorkflowQuery do
           workflow_name: s.workflow_name,
           sub_name: s.sub_name,
           state: s.state,
-          parent_dep: sub_workflow_parent_dep(s.workflow_id, ^workflow_id)
+          parent_dep: sub_workflow_parent_dep(prefix, s.workflow_id, ^workflow_id)
         }
       )
 

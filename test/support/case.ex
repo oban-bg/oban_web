@@ -135,10 +135,16 @@ defmodule Oban.Web.Case do
       |> Keyword.put_new(:queue, :default)
       |> Keyword.put_new(:worker, FakeWorker)
 
+    insert_opts =
+      case Map.get(conf, :prefix) do
+        prefix when is_binary(prefix) -> [prefix: prefix]
+        _ -> []
+      end
+
     args
     |> Map.new()
     |> Job.new(opts)
-    |> conf.repo.insert!()
+    |> conf.repo.insert!(insert_opts)
   end
 
   # Timing Helpers
