@@ -28,7 +28,7 @@ defmodule Oban.Web.Helpers do
 
   def oban_path(route, params) when is_list(route) do
     route
-    |> Enum.join("/")
+    |> Enum.map_join("/", &encode_segment/1)
     |> oban_path(params)
   end
 
@@ -48,6 +48,10 @@ defmodule Oban.Web.Helpers do
       nil ->
         raise RuntimeError, "nothing stored in the :routing key"
     end
+  end
+
+  defp encode_segment(segment) do
+    segment |> to_string() |> URI.encode(&URI.char_unreserved?/1)
   end
 
   @doc """

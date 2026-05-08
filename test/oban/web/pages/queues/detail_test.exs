@@ -3,10 +3,18 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
   import Phoenix.LiveViewTest
 
-  setup [:start_supervised_oban!, :attach_signals]
+  setup [:start_supervised_oban!, :attach_signals, :stub_routing]
 
   test "viewing details for an inoperative queue" do
     {:error, {:live_redirect, %{to: "/oban/queues"}}} = live(build_conn(), "/oban/queues/omicron")
+  end
+
+  test "viewing details for a queue with a slash in the name" do
+    gossip(local_limit: 5, queue: "foo/bar.baz")
+
+    live = render_details("foo/bar.baz")
+
+    assert has_element?(live, "[name=local_limit][value=\"5\"]")
   end
 
   test "scaling the local limit across all nodes" do
@@ -268,8 +276,15 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     send(pid, {:action, meta})
   end
 
+  defp stub_routing(_context) do
+    socket = %Phoenix.LiveView.Socket{endpoint: Oban.Web.Endpoint, router: Oban.Web.Test.Router}
+    Process.put(:routing, {socket, "/oban"})
+
+    :ok
+  end
+
   defp render_details(queue) do
-    {:ok, live, _html} = live(build_conn(), "/oban/queues/#{queue}")
+    {:ok, live, _html} = live(build_conn(), Oban.Web.Helpers.oban_path([:queues, queue]))
 
     live
   end
