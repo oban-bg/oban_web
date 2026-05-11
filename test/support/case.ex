@@ -169,6 +169,14 @@ defmodule Oban.Web.Case do
       end
   end
 
+  # Encoding Helpers
+
+  def encode_term(term) do
+    term
+    |> :erlang.term_to_binary()
+    |> Base.encode64(padding: false)
+  end
+
   # HTML Helpers
 
   def has_fragment?(html, selector) do

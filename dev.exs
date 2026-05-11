@@ -21,6 +21,7 @@ defmodule WebDev.Generator do
     Oban.Workers.DigestMailer,
     Oban.Workers.ExportGenerator,
     Oban.Workers.MailingListSyncer,
+    Oban.Workers.PaymentAuthorizer,
     Oban.Workers.PricingAnalyzer,
     Oban.Workers.PushNotifier,
     Oban.Workers.ReadabilityAnalyzer,
@@ -375,6 +376,36 @@ defmodule Oban.Workers.VideoProcessor do
   def process(%Job{args: %__MODULE__{}}), do: Generator.random_perform(1_000, 20_000)
 end
 
+defmodule Oban.Workers.PaymentAuthorizer do
+  @moduledoc false
+
+  use Oban.Pro.Worker, queue: :default, max_attempts: 10, tags: ["payments"]
+
+  alias Faker.{Internet, UUID}
+
+  def gen(opts \\ []) do
+    new(%{order_id: UUID.v4(), email: Internet.email()}, opts)
+  end
+
+  @impl Oban.Pro.Worker
+  def process(%Job{id: id, meta: meta}) do
+    unless Map.has_key?(meta, "wait_until"), do: schedule_callback(id)
+
+    case Oban.Pro.Worker.await_signal(wait_for: {30, :minutes}, wait_timeout: 15_000) do
+      {:ok, _payload} -> :ok
+      {:error, :timeout} -> {:cancel, "no gateway response"}
+    end
+  end
+
+  defp schedule_callback(job_id) do
+    Task.start(fn ->
+      Process.sleep(:timer.seconds(60))
+
+      Oban.Pro.Worker.signal(job_id, %{status: "approved", confirmed_at: DateTime.utc_now()})
+    end)
+  end
+end
+
 defmodule Oban.Workers.ArticleSummarizer do
   @moduledoc false
 
@@ -664,15 +695,21 @@ defmodule WebDev.Workflows do
       Workflow.new()
       |> Workflow.add(:pick_items, OrderProcessor.new(%{step: "pick_items"}))
       |> Workflow.add(:generate_label, OrderProcessor.new(%{step: "generate_label"}))
-      |> Workflow.add(:ship_order, OrderProcessor.new(%{step: "ship_order"}), deps: [:pick_items, :generate_label])
+      |> Workflow.add(:ship_order, OrderProcessor.new(%{step: "ship_order"}),
+        deps: [:pick_items, :generate_label]
+      )
 
     [workflow_name: "order-fulfillment"]
     |> Workflow.new()
     |> Workflow.add(:receive_order, OrderProcessor.new(%{step: "receive_order"}))
     |> Workflow.add_workflow(:validation, validation, deps: [:receive_order])
-    |> Workflow.add(:confirm_order, OrderProcessor.new(%{step: "confirm_order"}), deps: [:validation])
+    |> Workflow.add(:confirm_order, OrderProcessor.new(%{step: "confirm_order"}),
+      deps: [:validation]
+    )
     |> Workflow.add_workflow(:shipping, shipping, deps: [:confirm_order])
-    |> Workflow.add(:notify, Notifier.new(%{step: "notify", type: "order_shipped"}), deps: [:shipping])
+    |> Workflow.add(:notify, Notifier.new(%{step: "notify", type: "order_shipped"}),
+      deps: [:shipping]
+    )
   end
 
   def data_migration do
@@ -694,7 +731,10 @@ defmodule WebDev.Workflows do
 
     [workflow_name: "tenant-onboarding"]
     |> Workflow.new()
-    |> Workflow.add(:initialize, TenantProvisioner.new(%{step: "initialize", tenant_count: tenant_count}))
+    |> Workflow.add(
+      :initialize,
+      TenantProvisioner.new(%{step: "initialize", tenant_count: tenant_count})
+    )
     |> Workflow.add_cascade(:tenants, {tenant_ids, &provision_tenant/2}, deps: [:initialize])
     |> Workflow.add(:aggregate, TenantProvisioner.new(%{step: "aggregate"}), deps: [:tenants])
     |> Workflow.add(:report, TenantProvisioner.new(%{step: "report"}), deps: [:aggregate])
@@ -726,7 +766,9 @@ defmodule WebDev.Workflows do
     |> Workflow.add(:thumbnail, DocumentProcessor.new(%{step: "thumbnail"}), deps: [:upload])
     |> Workflow.add(:transcode, DocumentProcessor.new(%{step: "transcode"}), deps: [:upload])
     |> Workflow.add(:metadata, DocumentProcessor.new(%{step: "metadata"}), deps: [:upload])
-    |> Workflow.add(:publish, DocumentProcessor.new(%{step: "publish"}), deps: [:thumbnail, :transcode, :metadata])
+    |> Workflow.add(:publish, DocumentProcessor.new(%{step: "publish"}),
+      deps: [:thumbnail, :transcode, :metadata]
+    )
     |> Workflow.add(:notify, Notifier.new(%{type: "media_ready"}), deps: [:publish])
   end
 end
@@ -872,12 +914,14 @@ oban_opts = [
   plugins: [
     {Oban.Pro.Plugins.DynamicLifeline, []},
     {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}},
-    {Oban.Pro.Plugins.DynamicCron, crontab: [
+    {Oban.Pro.Plugins.DynamicCron,
+     crontab: [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
        {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
        {"*/15 * * * *", Oban.Workers.DormantLocker},
-       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
-    ], sync_mode: :automatic},
+       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]}
+     ],
+     sync_mode: :automatic},
     {Oban.Plugins.Cron,
      crontab: [
        {"* * * * *", Oban.Workers.HealthChecker, tags: ~w(health monitoring)},

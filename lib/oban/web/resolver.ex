@@ -42,6 +42,13 @@ defmodule Oban.Web.Resolver do
     end
 
     @impl true
+    def format_signal(signal, _job) do
+      signal
+      |> Oban.Web.Resolver.decode_signal()
+      |> inspect(charlists: :as_lists, pretty: true)
+    end
+
+    @impl true
     def jobs_query_limit(_state), do: 100_000
 
     @impl true
@@ -235,6 +242,35 @@ defmodule Oban.Web.Resolver do
   @callback format_recorded(recorded :: term(), job :: Job.t()) :: iodata()
 
   @doc """
+  Customize the formatting of awaitable signal payloads wherever they are displayed.
+
+  This callback is similar to `c:format_recorded/2`, but it accepts both the signal binary and
+  the job to help augment the output.
+
+  Note that you **must decode the signal binary** prior to inspecting it.
+
+  ## Examples
+
+  Disable pretty printing and change the output width to 98 characters:
+
+      def format_signal(signal, _job) do
+        signal
+        |> Oban.Web.Resolver.decode_signal()
+        |> inspect(pretty: false, width: 98)
+      end
+
+  Decode the signal value without the `:safe` flag set, to allow decoding terms with unknown
+  atoms:
+
+      def format_signal(signal, _job) do
+        signal
+        |> Oban.Web.Resolver.decode_signal([])
+        |> inspect(pretty: false, width: 98)
+      end
+  """
+  @callback format_signal(signal :: term(), job :: Job.t()) :: iodata()
+
+  @doc """
   Extract the current user from a `Plug.Conn` when the dashboard mounts.
 
   The extracted user is passed to all of the other callback functions, allowing you to customize the
@@ -411,6 +447,7 @@ defmodule Oban.Web.Resolver do
   @optional_callbacks format_job_args: 1,
                       format_job_meta: 1,
                       format_recorded: 2,
+                      format_signal: 2,
                       bulk_action_limit: 1,
                       hint_query_limit: 1,
                       jobs_query_limit: 1,
@@ -451,6 +488,15 @@ defmodule Oban.Web.Resolver do
     end
   end
 
+  @doc """
+  Decode an awaitable signal payload from a compressed, base64 binary into proper terms.
+
+  Signals share the same wire format as recorded output, so this is a thin alias around
+  `decode_recorded/2` provided for documentation symmetry.
+  """
+  @spec decode_signal(binary(), [:safe]) :: term()
+  def decode_signal(bin, opts \\ [:safe]), do: decode_recorded(bin, opts)
+
   @doc false
   def call_with_fallback(resolver, fun, args) when is_atom(fun) and is_list(args) do
     resolver =
@@ -479,6 +525,13 @@ defmodule Oban.Web.Resolver do
   def format_recorded(recorded, _job) do
     recorded
     |> decode_recorded()
+    |> inspect(@inspect_opts)
+  end
+
+  @doc false
+  def format_signal(signal, _job) do
+    signal
+    |> decode_signal()
     |> inspect(@inspect_opts)
   end
 

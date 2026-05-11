@@ -64,6 +64,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           <Core.status_badge :if={@job.meta["chunk"]} icon="user_group" label="Chunk" />
           <Core.status_badge :if={@job.meta["chain"]} icon="link" label="Chain" />
           <Core.status_badge :if={@job.meta["recorded"]} icon="camera" label="Recorded" />
+          <Core.status_badge :if={signal_status(@job) != :none} icon="signal" label="Signal" />
           <Core.status_badge :if={@job.meta["encrypted"]} icon="lock_closed" label="Encrypted" />
           <Core.status_badge :if={@job.meta["structured"]} icon="table_cells" label="Structured" />
           <Core.status_badge :if={@job.meta["decorated"]} icon="sparkles" label="Decorated" />
@@ -701,6 +702,31 @@ defmodule Oban.Web.Jobs.DetailComponent do
             <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_recorded(@job, @resolver)}</pre>
           </div>
         </div>
+
+        <div :if={signal_status(@job) != :none} class="mt-4">
+          <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex items-center space-x-2">
+                <h4 class="font-medium text-xs uppercase text-gray-500 dark:text-gray-400">
+                  {signal_heading(@job)}
+                </h4>
+                <.pro_badge id="signal-pro-badge" tooltip="Awaitable signal from Oban.Pro.Worker" />
+              </div>
+              <button
+                :if={signal_status(@job) == :received}
+                type="button"
+                id="copy-signal"
+                class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                data-title="Copy to clipboard"
+                phx-hook="Tippy"
+                phx-click={copy_to_clipboard(format_signal(@job, @resolver))}
+              >
+                <Icons.icon name="icon-clipboard" class="w-4 h-4" />
+              </button>
+            </div>
+            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_signal(@job, @resolver)}</pre>
+          </div>
+        </div>
       </div>
     </div>
     """
@@ -805,12 +831,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   end
 
   defp format_meta(%{meta: meta} = job, resolver) do
-    job =
-      if meta["recorded"] do
-        %{job | meta: Map.delete(meta, "return")}
-      else
-        job
-      end
+    job = %{job | meta: Map.drop(meta, ["return", "signal"])}
 
     Resolver.call_with_fallback(resolver, :format_job_meta, [job])
   end
@@ -827,6 +848,46 @@ defmodule Oban.Web.Jobs.DetailComponent do
         "Recording Not Enabled"
     end
   end
+
+  defp format_signal(%{meta: %{"signal" => value}} = job, resolver) do
+    Resolver.call_with_fallback(resolver, :format_signal, [value, job])
+  end
+
+  defp format_signal(%{meta: %{"wait_until" => wait_until}}, _resolver) do
+    case wait_until_to_datetime(wait_until) do
+      {:ok, datetime} ->
+        "Awaiting signal · deadline #{Timing.datetime_to_words(datetime)} (#{datetime})"
+
+      :infinity ->
+        "Awaiting signal · no deadline"
+
+      :error ->
+        "Awaiting signal"
+    end
+  end
+
+  defp signal_status(%{meta: %{"signal" => _}}), do: :received
+  defp signal_status(%{meta: %{"wait_until" => _}}), do: :awaiting
+  defp signal_status(_), do: :none
+
+  defp signal_heading(job) do
+    case signal_status(job) do
+      :received -> "Received Signal"
+      :awaiting -> "Awaiting Signal"
+      :none -> "Signal"
+    end
+  end
+
+  defp wait_until_to_datetime("infinity"), do: :infinity
+
+  defp wait_until_to_datetime(ms) when is_integer(ms) do
+    case DateTime.from_unix(ms, :millisecond) do
+      {:ok, datetime} -> {:ok, datetime |> DateTime.to_naive() |> NaiveDateTime.truncate(:second)}
+      _ -> :error
+    end
+  end
+
+  defp wait_until_to_datetime(_), do: :error
 
   defp error_entry(assigns) do
     error =

@@ -1,5 +1,5 @@
 defmodule Oban.Web.ResolverTest do
-  use ExUnit.Case, async: true
+  use Oban.Web.Case, async: true
 
   alias Ecto.Changeset
   alias Oban.Web.Resolver
@@ -38,7 +38,7 @@ defmodule Oban.Web.ResolverTest do
     test "guarding against executable terms in safe mode" do
       assert_raise ArgumentError, fn ->
         %{fun: fn -> :no end}
-        |> encode_recorded()
+        |> encode_term()
         |> Resolver.decode_recorded()
       end
     end
@@ -48,15 +48,31 @@ defmodule Oban.Web.ResolverTest do
 
       assert term ==
                term
-               |> encode_recorded()
+               |> encode_term()
                |> Resolver.decode_recorded([])
     end
   end
 
-  defp encode_recorded(data) do
-    data
-    |> :erlang.term_to_binary()
-    |> Base.encode64(padding: false)
+  describe "decode_signal/2" do
+    test "round-tripping a payload through the same wire format as recorded" do
+      payload = %{decision: "approved", amount: 42}
+
+      assert payload ==
+               payload
+               |> encode_term()
+               |> Resolver.decode_signal()
+    end
+  end
+
+  describe "format_signal/2" do
+    test "inspecting the decoded signal payload" do
+      job = %Oban.Job{id: 1, args: %{}}
+      encoded = encode_term(%{decision: "approved"})
+
+      formatted = Resolver.format_signal(encoded, job)
+
+      assert formatted =~ ~s|decision: "approved"|
+    end
   end
 
   defp json_recode(map) do
