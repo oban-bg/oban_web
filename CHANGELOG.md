@@ -77,6 +77,39 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
+## v2.12.4 - 2026-05-11
+
+### Changes
+
+- [Dashboard] Upgrade oban_pro dependency to full v1.7 release
+
+  Require the full v1.7 release rather than a release candidate.
+
+### Bug Fixes
+
+- [Dashboard] Escape names with reserved URL characters in paths
+
+  Safely handle queues or crons with names like `foo/bar.baz` when linking from the queues and
+  crons tables.
+
+- [Workflow] Fix workflow queries ignoring custom prefix
+
+  Two raw SQL fragments in WorkflowQuery referenced tables without a schema qualifier, causing a
+  mismatch with the configured Oban prefix. Both fragments now inject the prefix as a quoted
+  identifier so they honor the configured prefix like any other Oban.Repo queries.
+
+- [Cron] Fix crash on cron page when an entry uses @reboot
+
+  The `next_at/2` function returns `:unknown` for `@reboot` crons, which fell through to
+  `maybe_to_unix/1` and crashed. Guard the helper on a `DateTime` struct and return an empty
+  string for anything else, safely convering `nil` or `:unknown`.
+
+- [Cron] Fix crash loading cron history on SQLite
+
+  The `COALESCE` fragment used to compute the `finished_at` time was untyped, so Ecto couldn't
+  apply the `:utc_datetime_usec` load callback. Postgrex would cast the value automatically, but
+  exqlite returned a string and crashed downstream locations expecting a DateTime.
+
 ## v2.12.3 - 2026-04-15
 
 ### Bug Fixes
