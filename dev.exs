@@ -399,7 +399,9 @@ defmodule Oban.Workers.PaymentAuthorizer do
 
   defp schedule_callback(job_id) do
     Task.start(fn ->
-      Process.sleep(:timer.seconds(60))
+      [minute: 1]
+      |> to_timeout()
+      |> Process.sleep()
 
       Oban.Pro.Worker.signal(job_id, %{status: "approved", confirmed_at: DateTime.utc_now()})
     end)

@@ -99,8 +99,9 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
 
       assert html =~ "icon-signal"
       assert html =~ "Awaiting Signal"
-      assert html =~ "deadline"
-      refute html =~ ~s(id="copy-signal")
+      assert html =~ "Deadline"
+      assert html =~ ~s(id="copy-signal" class)
+      assert html =~ "invisible"
     end
 
     test "rendering the awaiting state with no deadline" do
@@ -114,7 +115,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
       html = render_component(Component, assigns(job), router: Router)
 
       assert html =~ "Awaiting Signal"
-      assert html =~ "no deadline"
+      assert html =~ "No deadline"
     end
 
     test "hiding the encoded signal from the raw meta dump" do

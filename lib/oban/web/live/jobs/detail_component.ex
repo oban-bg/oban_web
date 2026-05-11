@@ -713,10 +713,12 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 <.pro_badge id="signal-pro-badge" tooltip="Awaitable signal from Oban.Pro.Worker" />
               </div>
               <button
-                :if={signal_status(@job) == :received}
                 type="button"
                 id="copy-signal"
-                class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
+                class={[
+                  "w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer",
+                  signal_status(@job) != :received && "invisible"
+                ]}
                 data-title="Copy to clipboard"
                 phx-hook="Tippy"
                 phx-click={copy_to_clipboard(format_signal(@job, @resolver))}
@@ -855,14 +857,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp format_signal(%{meta: %{"wait_until" => wait_until}}, _resolver) do
     case wait_until_to_datetime(wait_until) do
-      {:ok, datetime} ->
-        "Awaiting signal · deadline #{Timing.datetime_to_words(datetime)} (#{datetime})"
-
-      :infinity ->
-        "Awaiting signal · no deadline"
-
-      :error ->
-        "Awaiting signal"
+      {:ok, datetime} -> "Deadline #{Timing.datetime_to_words(datetime)}"
+      :infinity -> "No deadline"
+      :error -> ""
     end
   end
 
