@@ -77,6 +77,40 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
+## v2.12.5 - 2026-05-26
+
+### Enhancements
+
+- [Jobs] Display awaitable signals in the job details page
+
+  Add a section that decodes and displays signal payloads sent via
+  `Oban.Pro.Worker.signal/2`. While a job is parked waiting, the section
+  shows "Awaiting Signal" with the deadline. Once a signal arrives, it
+  switches to "Received Signal".
+
+- [Resolver] Add `format_signal/2` resolver callback
+
+  This allows customizing the decoded output,mirroring what's available
+  with `format_recorded/2`.
+
+### Bug Fixes
+
+- [Jobs] Restrict unauthorized job editing and updates with new permission
+
+  The save-job event handler previously dispatched changes from any client
+  without checking access controls, allowing a read-only user to rewrite a
+  job's worker module and potentially trigger code execution on the next
+  attempt. Editing now requires `:update_jobs` permission, which is
+  enabled by default for `:all` and disabled for `:read_only`.
+
+- [Cron] Prevent malicious cron expressions from unrestricted memory allocation
+
+  A maliciously crafted cron expression like "0 0 1--100000000 \* \*" could
+  trigger multi-gigabyte allocations when `describe/1` eagerly expanded
+  the range during formatting. Range, value, and step parsing now validate
+  against per-field bounds and require ranges to be non-decreasing, so
+  out-of-domain inputs are rejected before any expansion occurs.
+
 ## v2.12.4 - 2026-05-11
 
 ### Changes
@@ -232,7 +266,6 @@ features. For enhancements, a video is worth many thousands of words.
 - [Crons] Add cron parser for complex expressions
 
   Parse cron fields into structured data before describing them, enabling support for:
-
   - Combined DOM/DOW patterns like "The 1st, only on Mondays"
   - Complement detection, "Daily except the 1st" or "except Tuesdays"
   - Multiple hour values, "Daily at 8:00, 9:00, and 10:00"
@@ -240,7 +273,7 @@ features. For enhancements, a video is worth many thousands of words.
 
   It's also switched to a 24-hour time format for international consistency.
 
-- [Queues] Remove sidebar from queues page                                                                                                                                       The sidebar filters (paused, terminating, modes, nodes) added little
+- [Queues] Remove sidebar from queues page The sidebar filters (paused, terminating, modes, nodes) added little
 
   The sidebar filters (paused, terminating, modes, nodes) added little value for a typically small
   dataset while consuming significant screen space. Filtering remains available via the search
@@ -302,4 +335,3 @@ features. For enhancements, a video is worth many thousands of words.
 
   The PG notifier can't (easily) connect to an external cluster for notifications. Connection is
   possible through the Postgres notifier.
-
