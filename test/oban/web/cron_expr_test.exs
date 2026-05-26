@@ -101,18 +101,39 @@ defmodule Oban.Web.CronExprTest do
     end
 
     test "returns nil for expressions with specific month" do
-      assert CronExpr.describe("0 0 1 1 *") == nil
-      assert CronExpr.describe("0 0 * 6 *") == nil
+      refute CronExpr.describe("0 0 1 1 *")
+      refute CronExpr.describe("0 0 * 6 *")
     end
 
     test "returns nil for invalid expressions" do
-      assert CronExpr.describe("invalid") == nil
-      assert CronExpr.describe("") == nil
+      refute CronExpr.describe("invalid")
+      refute CronExpr.describe("")
+    end
+
+    test "returns nil for out of bound ranges" do
+      refute CronExpr.describe("0-60 * * * *")
+      refute CronExpr.describe("* 0-24 * * *")
+      refute CronExpr.describe("* * 1-32 * *")
+      refute CronExpr.describe("* * * 1-13 *")
+      refute CronExpr.describe("* * * * 1-8")
+    end
+
+    test "returns nil for reversed or negative ranges" do
+      refute CronExpr.describe("5-1 * * * *")
+      refute CronExpr.describe("* * 1--100000000 * *")
+      refute CronExpr.describe("* * * * 5-1")
+      refute CronExpr.describe("0 0 1-9999999 * *")
+    end
+
+    test "returns nil for out of bound steps" do
+      refute CronExpr.describe("*/100 * * * *")
+      refute CronExpr.describe("* */100 * * *")
+      refute CronExpr.describe("* * */100 * *")
     end
 
     test "returns nil for non-string input" do
-      assert CronExpr.describe(nil) == nil
-      assert CronExpr.describe(123) == nil
+      refute CronExpr.describe(nil)
+      refute CronExpr.describe(123)
     end
 
     test "weekdays and weekends" do

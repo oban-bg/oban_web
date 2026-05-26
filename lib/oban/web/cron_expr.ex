@@ -45,10 +45,10 @@ defmodule Oban.Web.CronExpr do
 
   defp describe_parsed(expression) do
     with [min, hrs, dom, "*", dow] <- String.split(expression, " ", parts: 5),
-         {:ok, parsed_min} <- parse_field(min),
-         {:ok, parsed_hrs} <- parse_field(hrs),
-         {:ok, parsed_dom} <- parse_field(dom),
-         {:ok, parsed_dow} <- parse_field(dow, @days_of_week_translations) do
+         {:ok, parsed_min} <- parse_field(min, 0..59),
+         {:ok, parsed_hrs} <- parse_field(hrs, 0..23),
+         {:ok, parsed_dom} <- parse_field(dom, 1..31),
+         {:ok, parsed_dow} <- parse_field(dow, 0..7, @days_of_week_translations) do
       combine_description(parsed_min, parsed_hrs, parsed_dom, parsed_dow)
     else
       _ -> nil
@@ -57,11 +57,11 @@ defmodule Oban.Web.CronExpr do
 
   # Field Parsing
 
-  defp parse_field(field, translations \\ %{}) do
+  defp parse_field(field, bounds, translations \\ %{}) do
     parts =
       field
       |> String.split(",")
-      |> Enum.map(&parse_part(&1, translations))
+      |> Enum.map(&parse_part(&1, bounds, translations))
 
     if Enum.any?(parts, &(&1 == :error)) do
       :error
@@ -70,37 +70,40 @@ defmodule Oban.Web.CronExpr do
     end
   end
 
-  defp parse_part("*", _translations), do: :wildcard
+  defp parse_part("*", _bounds, _translations), do: :wildcard
 
-  defp parse_part("*/" <> step, _translations) do
+  defp parse_part("*/" <> step, bounds, _translations) do
     case Integer.parse(step) do
-      {num, ""} when num > 0 -> {:step, num}
+      {num, ""} when num > bounds.first and num <= bounds.last -> {:step, num}
       _ -> :error
     end
   end
 
-  defp parse_part(part, translations) do
+  defp parse_part(part, bounds, translations) do
     if String.contains?(part, "-") do
-      parse_range(part, translations)
+      parse_range(part, bounds, translations)
     else
-      parse_value(part, translations)
+      parse_value(part, bounds, translations)
     end
   end
 
-  defp parse_range(part, translations) do
+  defp parse_range(part, bounds, translations) do
     with [start_str, end_str] <- String.split(part, "-", parts: 2),
          {:ok, start_val} <- translate_or_parse(start_str, translations),
-         {:ok, end_val} <- translate_or_parse(end_str, translations) do
+         {:ok, end_val} <- translate_or_parse(end_str, translations),
+         true <- start_val in bounds and end_val in bounds and end_val >= start_val do
       {:range, start_val, end_val}
     else
       _ -> :error
     end
   end
 
-  defp parse_value(part, translations) do
-    case translate_or_parse(part, translations) do
-      {:ok, val} -> {:value, val}
-      :error -> :error
+  defp parse_value(part, bounds, translations) do
+    with {:ok, val} <- translate_or_parse(part, translations),
+         true <- val in bounds do
+      {:value, val}
+    else
+      _ -> :error
     end
   end
 
