@@ -101,6 +101,7 @@ The available fine-grained actions are:
 | `:scale_queues`     | Change queue concurrency               |
 | `:stop_queues`      | Stop queues entirely                   |
 | `:update_crons`     | Edit cron configuration                |
+| `:update_jobs`      | Edit job fields like worker or args    |
 
 Actions not listed in the keyword list are considered disabled. For example, this configuration
 allows job management but prevents any queue operations:

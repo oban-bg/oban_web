@@ -145,6 +145,7 @@ defmodule Oban.Web.Resolver do
           | :scale_queues
           | :stop_queues
           | :update_crons
+          | :update_jobs
 
   @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
@@ -319,6 +320,7 @@ defmodule Oban.Web.Resolver do
   * `:scale_queues`
   * `:stop_queues`
   * `:update_crons`
+  * `:update_jobs`
 
   Actions which aren't listed are considered disabled.
 

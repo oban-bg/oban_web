@@ -503,7 +503,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </button>
 
         <div id="edit-content" class={["mt-3", if(executing?(@job), do: "hidden")]}>
-          <fieldset disabled={executing?(@job)}>
+          <fieldset disabled={executing?(@job) or not can?(:update_jobs, @access)}>
             <form
               id="job-edit-form"
               class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
@@ -571,7 +571,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 </button>
                 <button
                   type="submit"
-                  disabled={not @edit_changed?}
+                  disabled={not @edit_changed? or not can?(:update_jobs, @access)}
                   class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Save Changes
@@ -813,14 +813,16 @@ defmodule Oban.Web.Jobs.DetailComponent do
   def handle_event("save-job", params, socket) do
     job = socket.assigns.job
 
-    changes =
-      params
-      |> parse_edit_params(job)
-      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
-      |> Map.new()
+    if can?(:update_jobs, socket.assigns.access) do
+      changes =
+        params
+        |> parse_edit_params(job)
+        |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+        |> Map.new()
 
-    if map_size(changes) > 0 do
-      send(self(), {:update_job, job, changes})
+      if map_size(changes) > 0 do
+        send(self(), {:update_job, job, changes})
+      end
     end
 
     {:noreply, assign(socket, edit_changed?: false)}

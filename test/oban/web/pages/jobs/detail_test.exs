@@ -115,6 +115,25 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
       assert render(live) =~ "Job updated successfully"
     end
 
+    test "read-only users cannot submit edits or rewrite the worker" do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+      {:ok, live, _html} = live(build_conn(), "/oban-readonly")
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      assert has_element?(live, "fieldset[disabled] #job-edit-form")
+
+      live
+      |> form("#job-edit-form", %{"worker" => "Attacker.Worker", "args" => "{}"})
+      |> render_submit()
+
+      reloaded = Repo.reload!(job)
+      assert reloaded.worker == job.worker
+      refute render(live) =~ "Job updated successfully"
+    end
+
     test "updating unrelated fields does not change scheduled_at", %{live: live} do
       scheduled_at = DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second)
 
