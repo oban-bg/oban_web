@@ -335,7 +335,7 @@ defmodule Oban.Web.JobsPage do
       send(self(), :cancel_selected)
     end
 
-    {:noreply, assign(socket, expanded?: false)}
+    {:noreply, socket}
   end
 
   def handle_event("retry-jobs", _params, socket) do
@@ -343,7 +343,7 @@ defmodule Oban.Web.JobsPage do
       send(self(), :retry_selected)
     end
 
-    {:noreply, assign(socket, expanded?: false)}
+    {:noreply, socket}
   end
 
   def handle_event("delete-jobs", _params, socket) do
@@ -351,10 +351,10 @@ defmodule Oban.Web.JobsPage do
       send(self(), :delete_selected)
     end
 
-    {:noreply, assign(socket, expanded?: false)}
+    {:noreply, socket}
   end
 
-  # Queues
+  # System
 
   @impl Page
   def handle_info({ref, _val}, socket) when is_reference(ref) do
@@ -362,14 +362,6 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, :normal}, socket) do
-    {:noreply, socket}
-  end
-
-  def handle_info({:scale_queue, queue, limit}, socket) do
-    Telemetry.action(:scale_queue, socket, [queue: queue, limit: limit], fn ->
-      Oban.scale_queue(socket.assigns.conf.name, queue: queue, limit: limit)
-    end)
-
     {:noreply, socket}
   end
 
@@ -410,14 +402,6 @@ defmodule Oban.Web.JobsPage do
     {:noreply, assign(socket, detailed: job)}
   end
 
-  def handle_info({:delete_job, job}, socket) do
-    Telemetry.action(:delete_jobs, socket, [job_ids: [job.id]], fn ->
-      JobQuery.delete_jobs(socket.assigns.conf, [job.id])
-    end)
-
-    {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
-  end
-
   def handle_info({:retry_job, job}, socket) do
     Telemetry.action(:retry_jobs, socket, [job_ids: [job.id]], fn ->
       JobQuery.retry_jobs(socket.assigns.conf, [job.id])
@@ -426,6 +410,14 @@ defmodule Oban.Web.JobsPage do
     job = %{job | state: "available", completed_at: nil, discarded_at: nil}
 
     {:noreply, assign(socket, detailed: job)}
+  end
+
+  def handle_info({:delete_job, job}, socket) do
+    Telemetry.action(:delete_jobs, socket, [job_ids: [job.id]], fn ->
+      JobQuery.delete_jobs(socket.assigns.conf, [job.id])
+    end)
+
+    {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
   end
 
   def handle_info({:update_job, job, changes}, socket) do
@@ -445,38 +437,7 @@ defmodule Oban.Web.JobsPage do
     end
   end
 
-  # Selection
-
-  def handle_info({:toggle_select, job_id}, socket) do
-    selected = socket.assigns.selected
-
-    selected =
-      if MapSet.member?(selected, job_id) do
-        MapSet.delete(selected, job_id)
-      else
-        MapSet.put(selected, job_id)
-      end
-
-    {:noreply, assign(socket, selected: selected)}
-  end
-
-  def handle_info(:toggle_select_all, socket) do
-    selected =
-      if Enum.any?(socket.assigns.selected) do
-        MapSet.new()
-      else
-        # Always include the jobs we can see currently to compensate for slower refresh rates.
-        # Without this, visible jobs may not be selected and the interface looks broken.
-        local_set = MapSet.new(socket.assigns.jobs, & &1.id)
-
-        socket.assigns.params
-        |> JobQuery.all_job_ids(socket.assigns.conf)
-        |> MapSet.new()
-        |> MapSet.union(local_set)
-      end
-
-    {:noreply, assign(socket, selected: selected)}
-  end
+  # Bulk Actions
 
   def handle_info(:cancel_selected, socket) do
     job_ids = MapSet.to_list(socket.assigns.selected)
@@ -521,6 +482,39 @@ defmodule Oban.Web.JobsPage do
       |> put_flash_with_clear(:info, "Selected jobs deleted")
 
     {:noreply, handle_refresh(socket)}
+  end
+
+  # Selection
+
+  def handle_info({:toggle_select, job_id}, socket) do
+    selected = socket.assigns.selected
+
+    selected =
+      if MapSet.member?(selected, job_id) do
+        MapSet.delete(selected, job_id)
+      else
+        MapSet.put(selected, job_id)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
+  end
+
+  def handle_info(:toggle_select_all, socket) do
+    selected =
+      if Enum.any?(socket.assigns.selected) do
+        MapSet.new()
+      else
+        # Always include the jobs we can see currently to compensate for slower refresh rates.
+        # Without this, visible jobs may not be selected and the interface looks broken.
+        local_set = MapSet.new(socket.assigns.jobs, & &1.id)
+
+        socket.assigns.params
+        |> JobQuery.all_job_ids(socket.assigns.conf)
+        |> MapSet.new()
+        |> MapSet.union(local_set)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
   end
 
   # Param Helpers
