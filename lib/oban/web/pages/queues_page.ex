@@ -325,6 +325,8 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
+  # Single Actions
+
   @impl Page
   def handle_info({:pause_queue, queue}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
@@ -357,6 +359,18 @@ defmodule Oban.Web.QueuesPage do
 
     {:noreply, socket}
   end
+
+  def handle_info({:stop_queue, queue}, socket) do
+    enforce_access!(:stop_queues, socket.assigns.access)
+
+    Telemetry.action(:stop_queue, socket, [queue: queue], fn ->
+      Oban.stop_queue(socket.assigns.conf.name, queue: queue)
+    end)
+
+    {:noreply, put_flash_with_clear(socket, :info, "Queue #{queue} stopped")}
+  end
+
+  # Bulk Actions
 
   def handle_info(:pause_queues, socket) do
     enforce_access!(:pause_queues, socket.assigns.access)
@@ -409,41 +423,7 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, socket}
   end
 
-  def handle_info({:stop_queue, queue}, socket) do
-    enforce_access!(:stop_queues, socket.assigns.access)
-
-    Telemetry.action(:stop_queue, socket, [queue: queue], fn ->
-      Oban.stop_queue(socket.assigns.conf.name, queue: queue)
-    end)
-
-    {:noreply, put_flash_with_clear(socket, :info, "Queue #{queue} stopped")}
-  end
-
-  def handle_info({:toggle_select, queue}, socket) do
-    selected = socket.assigns.selected
-
-    selected =
-      if MapSet.member?(selected, queue) do
-        MapSet.delete(selected, queue)
-      else
-        MapSet.put(selected, queue)
-      end
-
-    {:noreply, assign(socket, selected: selected)}
-  end
-
-  def handle_info(:toggle_select_all, socket) do
-    selected =
-      if Enum.any?(socket.assigns.selected) do
-        MapSet.new()
-      else
-        socket.assigns.params
-        |> QueueQuery.all_queues(socket.assigns.conf)
-        |> MapSet.new(& &1.name)
-      end
-
-    {:noreply, assign(socket, selected: selected)}
-  end
+  # Scaling
 
   def handle_info({:scale_queue, queue, name, node, limit}, socket) do
     meta = [queue: queue, name: name, node: node, limit: limit]
@@ -474,6 +454,36 @@ defmodule Oban.Web.QueuesPage do
     {:noreply, put_flash_with_clear(socket, :info, scale_message(queue, opts))}
   end
 
+  # Selection
+
+  def handle_info({:toggle_select, queue}, socket) do
+    selected = socket.assigns.selected
+
+    selected =
+      if MapSet.member?(selected, queue) do
+        MapSet.delete(selected, queue)
+      else
+        MapSet.put(selected, queue)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
+  end
+
+  def handle_info(:toggle_select_all, socket) do
+    selected =
+      if Enum.any?(socket.assigns.selected) do
+        MapSet.new()
+      else
+        socket.assigns.params
+        |> QueueQuery.all_queues(socket.assigns.conf)
+        |> MapSet.new(& &1.name)
+      end
+
+    {:noreply, assign(socket, selected: selected)}
+  end
+
+  # Filtering
+
   def handle_info({:params, :limit, inc}, socket) when is_integer(inc) do
     params =
       socket.assigns.params
@@ -482,6 +492,8 @@ defmodule Oban.Web.QueuesPage do
 
     {:noreply, push_patch(socket, to: oban_path(:queues, params), replace: true)}
   end
+
+  # Fallback
 
   def handle_info(_, socket) do
     {:noreply, socket}
