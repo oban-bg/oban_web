@@ -1,3 +1,10 @@
+defmodule Oban.Workers.NewJobWorker do
+  use Oban.Worker, max_attempts: 7, tags: ["from-worker"]
+
+  @impl true
+  def perform(_job), do: :ok
+end
+
 defmodule Oban.Web.Pages.Jobs.IndexTest do
   use Oban.Web.Case
 
@@ -349,6 +356,28 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert job.priority == 3
       assert job.max_attempts == 5
       assert job.tags == ["tag1", "tag2"]
+
+      assert_patch(live, "/oban/jobs/#{job.id}")
+    end
+
+    test "uses the worker's new/2 when the module is available", %{live: live} do
+      live
+      |> element("#new-job-button")
+      |> render_click()
+
+      live
+      |> form("#new-job-form", %{
+        "worker" => "Oban.Workers.NewJobWorker",
+        "args" => ~s({"key": "value"})
+      })
+      |> render_submit()
+
+      job = Repo.get_by!(Job, worker: "Oban.Workers.NewJobWorker")
+
+      # These defaults come from the worker's `use Oban.Worker` opts, so they are
+      # only applied when the job is built through the worker's `new/2`.
+      assert job.max_attempts == 7
+      assert job.tags == ["from-worker"]
 
       assert_patch(live, "/oban/jobs/#{job.id}")
     end

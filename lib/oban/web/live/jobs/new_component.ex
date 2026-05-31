@@ -151,7 +151,7 @@ defmodule Oban.Web.Jobs.NewComponent do
     with {:ok, worker} <- parse_worker(params["worker"]),
          {:ok, args} <- parse_args(params["args"]),
          {:ok, opts} <- build_opts(params) do
-      changeset = Oban.Job.new(args, [{:worker, worker} | opts])
+      changeset = build_changeset(worker, args, opts)
 
       case Oban.insert(conf.name, changeset) do
         {:ok, job} ->
@@ -226,6 +226,13 @@ defmodule Oban.Web.Jobs.NewComponent do
   end
 
   defp parse_worker(_), do: {:error, "Worker is required"}
+
+  defp build_changeset(worker, args, opts) do
+    case Oban.Worker.from_string(worker) do
+      {:ok, module} -> module.new(args, opts)
+      {:error, _reason} -> Oban.Job.new(args, [{:worker, worker} | opts])
+    end
+  end
 
   defp parse_args(args) when is_binary(args) do
     case parse_json(args) do
