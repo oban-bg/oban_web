@@ -73,7 +73,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
 
     ~H"""
     <div
-      class={"flex flex-col sm:flex-row items-center sm:justify-between h-12 sm:h-12 rounded-lg border-2 px-2 sm:px-3 #{@border_class} #{@bg_class} #{@dim_class}"}
+      class={"flex flex-col xl:flex-row items-center justify-center xl:justify-between h-12 rounded-lg border-2 px-2 sm:px-3 #{@border_class} #{@bg_class} #{@dim_class}"}
       data-title={@tooltip}
       phx-hook="Tippy"
       id={"timeline-#{@state}"}
@@ -86,7 +86,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
           {@state}
         </span>
       </div>
-      <span class={"hidden sm:inline text-xs tabular-nums #{@text_color}"}>
+      <span class={"hidden sm:inline text-xs tabular-nums whitespace-nowrap #{@text_color}"}>
         {@timestamp || "—"}
       </span>
     </div>
