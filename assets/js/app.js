@@ -69,8 +69,25 @@ window.addEventListener("phx:scroll-top", () => {
 window.addEventListener("phx:copy-to-clipboard", (event) => {
   const text = event.detail.text;
 
-  if (text) {
+  // The navigator.clipboard API is only available in secure contexts and will be undefined
+  // otherwise. Provide a fallback when serving over plain HTTP so copying still works in dev
+  // environments.
+  if (navigator.clipboard) {
     navigator.clipboard.writeText(text);
+  } else {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(textarea);
+    }
   }
 });
 
