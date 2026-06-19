@@ -115,6 +115,32 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
       assert render(live) =~ "Job updated successfully"
     end
 
+    test "removing all job tags", %{live: live} do
+      job =
+        insert_job!([ref: 1],
+          state: "available",
+          worker: WorkerA,
+          tags: ["alpha", "beta"]
+        )
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"tags" => ""})
+      |> render_change()
+
+      assert has_element?(live, ~s|#job-edit-form button[type="submit"]:not([disabled])|)
+
+      live
+      |> form("#job-edit-form", %{"tags" => ""})
+      |> render_submit()
+
+      with_backoff(fn ->
+        assert %{tags: []} = Repo.reload!(job)
+      end)
+    end
+
     test "read-only users cannot submit edits or rewrite the worker" do
       job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 

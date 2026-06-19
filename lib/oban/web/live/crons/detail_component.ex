@@ -423,7 +423,7 @@ defmodule Oban.Web.Crons.DetailComponent do
       priority: new_val?(parse_int(params["priority"]), get_opt(cron, "priority")),
       max_attempts: new_val?(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
       guaranteed: new_val?(params["guaranteed"] == "true", get_opt(cron, "guaranteed") == true),
-      tags: new_val?(parse_tags(params["tags"]), get_opt(cron, "tags")),
+      tags: new_val?(parse_form_tags(params), get_opt(cron, "tags")),
       args: new_val?(parse_json(params["args"]), get_opt(cron, "args"))
     ]
   end
@@ -434,6 +434,9 @@ defmodule Oban.Web.Crons.DetailComponent do
   defp new_val?(val, val, _default), do: nil
   defp new_val?(val, nil, val), do: nil
   defp new_val?(val, _current, _default), do: val
+
+  defp parse_form_tags(%{"tags" => tags}), do: parse_tags(tags) || []
+  defp parse_form_tags(_params), do: nil
 
   defp get_opt(%{opts: opts}, key) do
     Map.get(opts, key)
