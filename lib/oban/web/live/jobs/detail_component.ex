@@ -1021,7 +1021,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       priority: new_val?(parse_int(params["priority"]), job.priority),
       max_attempts: new_val?(parse_int(params["max_attempts"]), job.max_attempts),
       scheduled_at: new_val?(parse_datetime(params["scheduled_at"]), job.scheduled_at),
-      tags: new_val?(parse_tags(params["tags"]), job.tags),
+      tags: new_val?(parse_edit_tags(params), job.tags),
       args: new_val?(parse_json(params["args"]), job.args)
     ]
   end
@@ -1030,6 +1030,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp new_val?("", _current), do: nil
   defp new_val?(val, val), do: nil
   defp new_val?(val, _current), do: val
+
+  defp parse_edit_tags(%{"tags" => tags}), do: parse_tags(tags) || []
+  defp parse_edit_tags(_params), do: nil
 
   defp parse_datetime(nil), do: nil
   defp parse_datetime(""), do: nil

@@ -235,6 +235,27 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert entry.opts["args"] == %{"mode" => "full", "limit" => 100}
       assert entry.opts["guaranteed"] == true
     end
+
+    test "removing all dynamic cron tags" do
+      DynamicCron.insert([
+        {"0 * * * *", DetailCronWorker, name: "clear-tags-cron", tags: ["important", "nightly"]}
+      ])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/clear-tags-cron")
+
+      live
+      |> form("#cron-form", %{"tags" => ""})
+      |> render_change()
+
+      assert has_element?(live, ~s|#cron-form button[type="submit"]:not([disabled])|)
+
+      live
+      |> form("#cron-form", %{"tags" => ""})
+      |> render_submit()
+
+      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "clear-tags-cron"))
+      assert entry.opts["tags"] == []
+    end
   end
 
   defp refresh(live) do
