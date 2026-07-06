@@ -7,6 +7,8 @@ defmodule Oban.Web do
     quote do
       @moduledoc false
 
+      use Phoenix.Component
+
       import Phoenix.Controller, only: [get_csrf_token: 0, view_module: 1, view_template: 1]
 
       unquote(html_helpers())
@@ -35,8 +37,6 @@ defmodule Oban.Web do
 
   defp html_helpers do
     quote do
-      use Phoenix.Component
-
       import Oban.Web.Helpers
       import Phoenix.HTML
       import Phoenix.LiveView.Helpers

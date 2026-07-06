@@ -79,8 +79,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             class="w-3 h-3 ml-1 bg-violet-300 rounded-full"
             data-title={"Filtered by #{params_to_filters_list(@params)}"}
             phx-hook="Tippy"
-          >
-          </span>
+          ></span>
         </div>
 
         <div id="chart-c" class="flex space-x-2">

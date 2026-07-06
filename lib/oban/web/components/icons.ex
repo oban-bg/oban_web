@@ -5,7 +5,7 @@ defmodule Oban.Web.Components.Icons do
 
   attr :name, :string, required: true
   attr :class, :any, default: nil
-  attr :rest, :global
+  attr :rest, :global, include: ~w(rel)
 
   def icon(assigns) do
     ~H"""
