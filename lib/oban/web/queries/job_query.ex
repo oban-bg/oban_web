@@ -56,7 +56,12 @@ defmodule Oban.Web.JobQuery do
 
   defmacrop json_unnest(field) do
     quote do
-      fragment("json_array_elements_text(array_to_json(?))", unquote(field))
+      fragment(
+        """
+        (SELECT value FROM json_array_elements_text(array_to_json(?)) AS t(value))
+        """,
+        unquote(field)
+      )
     end
   end
 
@@ -324,7 +329,7 @@ defmodule Oban.Web.JobQuery do
           join(query, :inner, [j], x in json_table(j.tags), on: true)
 
         true ->
-          join(query, :inner, [j], x in json_unnest(j.tags), on: true)
+          join(query, :inner_lateral, [j], x in json_unnest(j.tags), on: true)
       end
 
     query =

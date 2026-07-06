@@ -296,7 +296,7 @@ defmodule Oban.Web.CronQuery do
     ranked = from t in subquery(inside), where: t.rn <= @history_limit
 
     query =
-      from f in fragment("json_array_elements_text(?)", ^names),
+      from f in fragment("(SELECT value FROM json_array_elements_text(?) AS t(value))", ^names),
         as: :list,
         left_lateral_join: j in subquery(ranked),
         on: true,
