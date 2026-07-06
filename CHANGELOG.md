@@ -111,6 +111,91 @@ options and burst mode configuration.
   against per-field bounds and require ranges to be non-decreasing, so
   out-of-domain inputs are rejected before any expansion occurs.
 
+## v2.12.5 - 2026-07-06
+
+### Enhancements
+
+- [Jobs] Build jobs through worker `new/2` when available
+
+  The new job drawer always built changesets with `Job.new/2`, bypassing worker-level defaults,
+  validation, and Pro stages (recorded, chain, etc). Now we resolve the worker module and use its
+  `new/2` when it's loaded on the Web instance, falling back to `Job.new/2` when the module isn't
+  available.
+
+### Bug Fixes
+
+- [Dashboard] Resolve Elixir 1.20 compilation warnings
+
+  Fix all of the warnings surfaced by the Elixir v1.20 type checker and upgrade any packages with
+  errors or secutity warnings.
+
+- [Job Details] Fix clearing tags when editing jobs
+
+  Treat blank tag input as an empty list when editing jobs, while leaving it as `nil` during job
+  creation.
+
+- [Job Details] Add clipboard fallback for insecure contexts
+
+  The navigator.clipboard API is only available in secure contexts (HTTPS or localhost), so
+  copying job args, meta, and stacktraces failed with "navigator.clipboard is undefined" when Oban
+  Web was served over plain HTTP. Fall back to execCommand so copy actions work in those
+  environments.
+
+- [Job Details] Fix new job form ignoring the scheduled at time
+
+  `DateTime.from_iso8601/1` returns a three-element tuple, but we only matched on `{:ok,
+  datetime}`. That clause never matched, so parsing always returned `nil` and jobs created with a
+  scheduled time ran immediately instead. Match the full tuple so the selected time is applied.
+
+- [Job Details]  Stack timeline labels on narrow screens
+
+  State boxes in the job timeline placed the state label and timestamp in a row that was too
+  narrow until the xl breakpoint, causing the timestamp to wrap awkwardly and the content to
+  bleed. Now the label and timestamp are stacked below xl, switching to side-by-side where there's
+  room to fit them.
+
+- [Cron] Fix cron and tag history queries for CockroachDB
+
+  The cron history and tag suggestion queries relied on the Postgres-only implicit `value` column
+  name. CRDB names it after the function instead, which caused an `undefined_column` error.
+
+  Now the set-returning function is wrapped in a derived table with an explicit column alias for
+  all engines.
+
+## v2.12.5 - 2026-05-26
+
+### Enhancements
+
+- [Jobs] Display awaitable signals in the job details page
+
+  Add a section that decodes and displays signal payloads sent via
+  `Oban.Pro.Worker.signal/2`. While a job is parked waiting, the section
+  shows "Awaiting Signal" with the deadline. Once a signal arrives, it
+  switches to "Received Signal".
+
+- [Resolver] Add `format_signal/2` resolver callback
+
+  This allows customizing the decoded output,mirroring what's available
+  with `format_recorded/2`.
+
+### Bug Fixes
+
+- [Jobs] Restrict unauthorized job editing and updates with new permission
+
+  The save-job event handler previously dispatched changes from any client
+  without checking access controls, allowing a read-only user to rewrite a
+  job's worker module and potentially trigger code execution on the next
+  attempt. Editing now requires `:update_jobs` permission, which is
+  enabled by default for `:all` and disabled for `:read_only`.
+
+- [Cron] Prevent malicious cron expressions from unrestricted memory allocation
+
+  A maliciously crafted cron expression like "0 0 1--100000000 \* \*" could
+  trigger multi-gigabyte allocations when `describe/1` eagerly expanded
+  the range during formatting. Range, value, and step parsing now validate
+  against per-field bounds and require ranges to be non-decreasing, so
+  out-of-domain inputs are rejected before any expansion occurs.
+
 ## v2.12.4 - 2026-05-11
 
 ### Changes
