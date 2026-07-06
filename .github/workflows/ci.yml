@@ -19,7 +19,7 @@ jobs:
         include:
           - pair:
               elixir: '1.15'
-              otp: '24.3'
+              otp: '25.3'
               mysql: '8.4'
               postgres: '14.22-alpine'
           - pair:
