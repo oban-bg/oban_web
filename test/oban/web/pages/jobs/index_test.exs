@@ -398,6 +398,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       job = Repo.get_by!(Job, worker: "ScheduledWorker")
 
+      assert job.state == "scheduled"
+      assert Calendar.strftime(job.scheduled_at, "%Y-%m-%dT%H:%M") == future_time
+
       assert_patch(live, "/oban/jobs/#{job.id}")
     end
 

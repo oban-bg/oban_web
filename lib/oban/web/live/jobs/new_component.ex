@@ -280,7 +280,7 @@ defmodule Oban.Web.Jobs.NewComponent do
 
   defp parse_scheduled_at(str) when is_binary(str) do
     case DateTime.from_iso8601(str <> ":00Z") do
-      {:ok, datetime} -> datetime
+      {:ok, datetime, _offset} -> datetime
       _ -> nil
     end
   end
