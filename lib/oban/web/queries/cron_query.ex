@@ -278,6 +278,8 @@ defmodule Oban.Web.CronQuery do
       from o in Job,
         where:
           fragment("? @> jsonb_build_object('cron_name', ?)", o.meta, parent_as(:list).value),
+        order_by: [desc: o.id],
+        limit: @history_limit,
         select: %{
           cron_name: o.meta["cron_name"],
           state: o.state,
@@ -288,19 +290,13 @@ defmodule Oban.Web.CronQuery do
               fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at),
               :utc_datetime_usec
             )
-        },
-        select_merge: %{
-          rn: over(row_number(), partition_by: o.meta["cron_name"], order_by: [desc: o.id])
         }
-
-    ranked = from t in subquery(inside), where: t.rn <= @history_limit
 
     query =
       from f in fragment("(SELECT value FROM json_array_elements_text(?) AS t(value))", ^names),
         as: :list,
-        left_lateral_join: j in subquery(ranked),
+        left_lateral_join: j in subquery(inside),
         on: true,
-        order_by: [asc: j.rn],
         select: {f.value, j}
 
     conf
