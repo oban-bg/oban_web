@@ -227,13 +227,6 @@ defmodule Oban.Web.Jobs.NewComponent do
 
   defp parse_worker(_), do: {:error, "Worker is required"}
 
-  defp build_changeset(worker, args, opts) do
-    case Oban.Worker.from_string(worker) do
-      {:ok, module} -> module.new(args, opts)
-      {:error, _reason} -> Oban.Job.new(args, [{:worker, worker} | opts])
-    end
-  end
-
   defp parse_args(args) when is_binary(args) do
     case parse_json(args) do
       nil -> {:error, "Args must be a valid JSON object"}

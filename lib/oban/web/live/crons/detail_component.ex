@@ -4,7 +4,6 @@ defmodule Oban.Web.Crons.DetailComponent do
   import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1, show_name?: 1]
   import Oban.Web.FormComponents
 
-  alias Oban.Job
   alias Oban.Pro.Plugins.DynamicCron
   alias Oban.Web.{CronExpr, Timezones}
 
@@ -327,10 +326,9 @@ defmodule Oban.Web.Crons.DetailComponent do
       cron.opts
       |> Map.take(~w(max_attempts priority queue tags))
       |> Keyword.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
-      |> Keyword.put(:worker, cron.worker)
       |> Keyword.put(:meta, %{cron: true, cron_expr: cron.expression, cron_name: cron.name})
 
-    changeset = Job.new(args, opts)
+    changeset = build_changeset(cron.worker, args, opts)
 
     case Oban.insert(conf.name, changeset) do
       {:ok, _job} ->

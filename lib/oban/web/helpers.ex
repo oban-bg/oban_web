@@ -153,6 +153,21 @@ defmodule Oban.Web.Helpers do
     |> Map.new()
   end
 
+  # Job Helpers
+
+  @doc """
+  Build a job changeset, resolving the worker module when available.
+
+  Using `new/2` applies defaults defined on the worker module, and provided options are overlaid
+  on top. Falls back to a plain `Oban.Job.new/2` when the worker module can't be loaded.
+  """
+  def build_changeset(worker, args, opts) do
+    case Oban.Worker.from_string(worker) do
+      {:ok, module} -> module.new(args, opts)
+      {:error, _reason} -> Job.new(args, [{:worker, worker} | opts])
+    end
+  end
+
   # Title Helpers
 
   def page_title(%Job{id: id, worker: worker}), do: page_title("#{worker} (#{id})")

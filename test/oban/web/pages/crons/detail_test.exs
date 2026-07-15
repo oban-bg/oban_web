@@ -5,11 +5,18 @@ defmodule Oban.Workers.DetailCronWorker do
   def perform(_job), do: :ok
 end
 
+defmodule Oban.Workers.DefaultsCronWorker do
+  use Oban.Worker, max_attempts: 7, tags: ["from-worker"]
+
+  @impl true
+  def perform(_job), do: :ok
+end
+
 defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
   alias Oban.Pro.Plugins.DynamicCron
-  alias Oban.Workers.DetailCronWorker
+  alias Oban.Workers.{DefaultsCronWorker, DetailCronWorker}
 
   @moduletag :pro
 
@@ -178,6 +185,23 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       assert "Oban.Workers.DetailCronWorker" == job.worker
       assert %{"cron_expr" => "0 * * * *", "cron_name" => "run-now-test"} = job.meta
+    end
+
+    test "run now builds the job through the worker's new/2 when available" do
+      DynamicCron.insert([{"0 * * * *", DefaultsCronWorker, name: "run-now-defaults"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-defaults")
+
+      refresh(live)
+
+      live
+      |> element("button", "Run Now")
+      |> render_click()
+
+      assert [job] = Repo.all(Job)
+
+      assert job.max_attempts == 7
+      assert job.tags == ["from-worker"]
     end
 
     test "delete button removes dynamic cron and redirects to list" do
