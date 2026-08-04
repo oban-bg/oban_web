@@ -266,6 +266,18 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Node</span>
+                    <span class="text-sm text-gray-800 dark:text-gray-200">
+                      {@diagnostics["node"]}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-xs font-medium text-gray-600 dark:text-gray-300">PID</span>
+                    <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
+                      {@diagnostics["pid"]}
+                    </span>
+                  </div>
+                  <div class="flex flex-col">
                     <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Status</span>
                     <span class="text-sm tabular-nums text-gray-800 dark:text-gray-200">
                       {format_status(@diagnostics["info"]["status"])}

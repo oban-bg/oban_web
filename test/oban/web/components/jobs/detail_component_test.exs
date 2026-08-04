@@ -65,6 +65,33 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     assert html =~ "ARGS REDACTED"
   end
 
+  test "displaying the diagnostic PID" do
+    job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "executing"}
+
+    diagnostics = %{
+      "node" => "worker@host",
+      "pid" => "#PID<0.1.0>",
+      "info" => %{
+        "status" => "waiting",
+        "memory" => 1_024,
+        "message_queue_len" => 0,
+        "reductions" => 10,
+        "heap_size" => 20,
+        "stack_size" => 30,
+        "current_stacktrace" => nil
+      }
+    }
+
+    html =
+      render_component(Component, assigns(job, diagnostics: diagnostics, diagnostics_at: 0),
+        router: Router
+      )
+
+    assert html =~ "worker@host"
+    assert html =~ "#PID&lt;0.1.0&gt;"
+    refute html =~ ~s(id="copy-pid")
+  end
+
   describe "awaitable signals" do
     test "rendering the received signal section with a decoded payload" do
       encoded = encode_term(%{decision: "approved"})
