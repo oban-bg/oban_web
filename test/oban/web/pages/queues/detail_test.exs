@@ -138,8 +138,12 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("alpha")
 
     live
+    |> element("#toggle-burst")
+    |> render_click()
+
+    live
     |> form("#global-form")
-    |> render_submit(%{global_partition_fields: "worker", global_burst: "true"})
+    |> render_submit(%{global_partition_fields: "worker"})
 
     assert_signal(%{
       "action" => "scale",
@@ -148,6 +152,91 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
         "burst" => true,
         "partition" => [["fields", ["worker"]]]
       },
+      "queue" => "alpha"
+    })
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  test "scaling global limits by node count" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    assert render(live) =~ "10 cluster-wide"
+    assert has_element?(live, "#toggle-per-node[aria-checked=false]")
+
+    live
+    |> element("#toggle-per-node")
+    |> render_click()
+
+    assert has_element?(live, "#toggle-per-node[aria-checked=true]")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "args", global_partition_keys: "tenant_id"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 10,
+        "per_node" => true,
+        "partition" => [["fields", ["args"]], ["keys", ["tenant_id"]]]
+      },
+      "queue" => "alpha"
+    })
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  test "preserving per node scaling while changing other global limit options" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    assert render(live) =~ "10 per node"
+    assert has_element?(live, "#toggle-per-node[aria-checked=true]")
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_allowed: 3})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{"allowed" => 3, "per_node" => true},
+      "queue" => "alpha"
+    })
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_partition_fields: "worker"})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{
+        "allowed" => 3,
+        "per_node" => true,
+        "partition" => [["fields", ["worker"]]]
+      },
+      "queue" => "alpha"
+    })
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  test "disabling per node scaling for a global limit" do
+    gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> element("#toggle-per-node")
+    |> render_click()
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{})
+
+    assert_signal(%{
+      "action" => "scale",
+      "global_limit" => %{"allowed" => 10},
       "queue" => "alpha"
     })
   end

@@ -55,6 +55,7 @@ defmodule Oban.Web.Queues.DetailComponent do
           local_limit: local_limit(checks),
           global_allowed: global_allowed(checks),
           global_burst: global_burst(checks),
+          global_per_node: global_per_node(checks),
           global_partition_fields: partition_value(checks, "global_limit", "fields"),
           global_partition_keys: partition_value(checks, "global_limit", "keys"),
           rate_allowed: rate_allowed(checks),
@@ -541,16 +542,29 @@ defmodule Oban.Web.Queues.DetailComponent do
                 </div>
               </div>
 
-              <div class="mb-4">
-                <.checkbox_field
-                  label="Burst"
-                  name="global_burst"
-                  checked={@inputs.global_burst}
+              <div class="flex w-full space-x-3 mb-4">
+                <.toggle_field
                   disabled={
                     not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
                       is_nil(@inputs.global_partition_fields) or missing_pro?(@conf)
                   }
+                  enabled={@inputs.global_burst}
+                  feature="burst"
                   hint="Allow partitions to exceed limit when capacity available"
+                  label="Burst"
+                  myself={@myself}
+                />
+
+                <.toggle_field
+                  disabled={
+                    not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
+                      missing_pro?(@conf)
+                  }
+                  enabled={@inputs.global_per_node}
+                  feature="per-node"
+                  hint="Scale the allowed limit by the number of nodes running the queue, best combined with a partition"
+                  label="Per Node"
+                  myself={@myself}
                 />
               </div>
 
@@ -716,13 +730,6 @@ defmodule Oban.Web.Queues.DetailComponent do
     {:noreply, assign(socket, inputs: inputs)}
   end
 
-  def handle_event("form-change", %{"_target" => ["global_burst"]} = params, socket) do
-    burst = params["global_burst"] == "true"
-    inputs = %{socket.assigns.inputs | global_burst: burst}
-
-    {:noreply, assign(socket, inputs: inputs)}
-  end
-
   def handle_event("form-change", params, socket) do
     inputs =
       for {key, val} <- params, key in @integer_inputs, reduce: socket.assigns.inputs do
@@ -761,13 +768,15 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.replace!(:global_allowed, nil)
         |> Map.replace!(:global_burst, false)
+        |> Map.replace!(:global_per_node, false)
         |> Map.replace!(:global_partition_fields, "")
         |> Map.replace!(:global_partition_keys, "")
       else
         allowed = String.to_integer(params["global_allowed"])
         fields = maybe_split(params["global_partition_fields"])
         keys = maybe_split(params["global_partition_keys"])
-        burst = params["global_burst"] == "true"
+        burst = fields != [] and socket.assigns.inputs.global_burst
+        per_node = socket.assigns.inputs.global_per_node
 
         global_limit =
           case fields do
@@ -776,18 +785,19 @@ defmodule Oban.Web.Queues.DetailComponent do
 
             ["worker"] ->
               %{allowed: allowed, partition: [fields: fields]}
-              |> maybe_add_burst(burst)
 
             _ ->
               %{allowed: allowed, partition: [fields: fields, keys: keys]}
-              |> maybe_add_burst(burst)
           end
+          |> maybe_add_burst(burst)
+          |> maybe_add_per_node(per_node)
 
         send(self(), {:scale_queue, socket.assigns.queue, global_limit: global_limit})
 
         socket.assigns.inputs
         |> Map.replace!(:global_allowed, allowed)
         |> Map.replace!(:global_burst, burst)
+        |> Map.replace!(:global_per_node, per_node)
         |> Map.replace!(:global_partition_fields, Enum.join(fields, ","))
         |> Map.replace!(:global_partition_keys, Enum.join(keys, ","))
       end
@@ -846,9 +856,22 @@ defmodule Oban.Web.Queues.DetailComponent do
         socket.assigns.inputs
         |> Map.put(:global_allowed, nil)
         |> Map.put(:global_burst, false)
+        |> Map.put(:global_per_node, false)
         |> Map.put(:global_partition_fields, "")
         |> Map.put(:global_partition_keys, "")
       end
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("toggle-feature", %{"feature" => "burst"}, socket) do
+    inputs = Map.update!(socket.assigns.inputs, :global_burst, &(not &1))
+
+    {:noreply, assign(socket, inputs: inputs)}
+  end
+
+  def handle_event("toggle-feature", %{"feature" => "per-node"}, socket) do
+    inputs = Map.update!(socket.assigns.inputs, :global_per_node, &(not &1))
 
     {:noreply, assign(socket, inputs: inputs)}
   end
@@ -904,12 +927,32 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Components
 
+  defp toggle_field(assigns) do
+    ~H"""
+    <div class={["w-1/2 flex items-center", if(@disabled, do: "opacity-50")]}>
+      <.toggle_button disabled={@disabled} enabled={@enabled} feature={@feature} myself={@myself} />
+
+      <span class="ml-2 font-medium text-sm text-gray-700 dark:text-gray-300">{@label}</span>
+
+      <span
+        :if={@hint}
+        id={"#{@feature}-hint"}
+        data-title={@hint}
+        phx-hook="Tippy"
+        class="ml-1 flex items-center"
+      >
+        <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+      </span>
+    </div>
+    """
+  end
+
   defp toggle_button(assigns) do
     ~H"""
     <button
       class="bg-gray-200 dark:bg-gray-800 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
       role="switch"
-      aria-checked="false"
+      aria-checked={to_string(@enabled)}
       disabled={@disabled}
       id={"toggle-#{@feature}"}
       phx-target={@myself}
@@ -1003,6 +1046,14 @@ defmodule Oban.Web.Queues.DetailComponent do
     |> Kernel.==(true)
   end
 
+  defp global_per_node(checks) do
+    checks
+    |> Enum.map(& &1["global_limit"])
+    |> Enum.filter(&is_map/1)
+    |> Enum.find_value(& &1["per_node"])
+    |> Kernel.==(true)
+  end
+
   defp rate_allowed(checks) do
     checks
     |> Enum.map(& &1["rate_limit"])
@@ -1031,6 +1082,7 @@ defmodule Oban.Web.Queues.DetailComponent do
   defp global_unchanged?(checks, inputs) do
     inputs.global_allowed == global_allowed(checks) and
       inputs.global_burst == global_burst(checks) and
+      inputs.global_per_node == global_per_node(checks) and
       inputs.global_partition_fields == partition_value(checks, "global_limit", "fields") and
       inputs.global_partition_keys == partition_value(checks, "global_limit", "keys")
   end
@@ -1048,6 +1100,9 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp maybe_add_burst(global_limit, true), do: Map.put(global_limit, :burst, true)
   defp maybe_add_burst(global_limit, false), do: global_limit
+
+  defp maybe_add_per_node(global_limit, true), do: Map.put(global_limit, :per_node, true)
+  defp maybe_add_per_node(global_limit, false), do: global_limit
 
   defp partition_options do
     [
@@ -1074,7 +1129,12 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   defp global_limit_display(%{global_allowed: nil}), do: "—"
-  defp global_limit_display(%{global_allowed: allowed}), do: allowed
+
+  defp global_limit_display(%{global_allowed: allowed, global_per_node: true}) do
+    "#{allowed} per node"
+  end
+
+  defp global_limit_display(%{global_allowed: allowed}), do: "#{allowed} cluster-wide"
 
   defp rate_limit_display(%{rate_allowed: nil}), do: "—"
 

@@ -19,6 +19,10 @@ defmodule Oban.Web.Queue do
     Enum.reduce(checks, 0, &total_limit/2)
   end
 
+  defp total_limit(%{"global_limit" => %{"allowed" => limit, "per_node" => true}}, total) do
+    total + limit
+  end
+
   defp total_limit(%{"global_limit" => %{"allowed" => limit}}, _total), do: limit
   defp total_limit(%{"local_limit" => limit}, total) when is_integer(limit), do: total + limit
   defp total_limit(%{"limit" => limit}, total) when is_integer(limit), do: total + limit
