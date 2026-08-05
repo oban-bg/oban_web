@@ -76,19 +76,22 @@ defmodule Oban.Web.Resolver do
   summary of each callback and its purpose:
 
   * [Current User](#c:resolve_user/1)—Extract the current user for access controls when the
-  dashboard mounts.
+    dashboard mounts.
 
   * [Action Controls](#c:resolve_access/1)—Restrict which operations users may perform or forbid
-  access to the dashboard.
+    access to the dashboard.
 
   * [Jobs Query Limit](#c:jobs_query_limit/1)—Control the maximum number of jobs to query when
-  filtering, searching, and otherwise listing jobs.
+    filtering, searching, and otherwise listing jobs.
 
   * [Hint Query Limit](#c:hint_query_limit/1)—Control the maximum number of jobs to search for
-  auto-complete hints.
+    auto-complete hints.
 
   * [Bulk Action Limit](#c:bulk_action_limit/1)—Control the maximum number of jobs that can be
-  acted on at once, e.g. cancelled.
+    acted on at once, e.g. cancelled.
+
+  * [Recorded Size Limit](#c:recorded_size_limit/0)—Control the maximum size of recorded output
+    the dashboard will fetch and render.
 
   * [Format Job Args](#c:format_job_args/1)—Override the default verbose args formatting.
 
@@ -212,6 +215,10 @@ defmodule Oban.Web.Resolver do
 
   Note that you **must decode the recorded binary** prior to inspecting it.
 
+  The default implementation matches Pro's decoding, where jobs recorded with `safe_decode: true`
+  are decoded with the `:safe` flag, everything else without it. Override the callback to force
+  one or the other.
+
   ## Examples
 
   Disable pretty printing and change the output width to 98 characters:
@@ -222,12 +229,12 @@ defmodule Oban.Web.Resolver do
         |> inspect(pretty: false, width: 98)
       end
 
-  Decode the recorded value without the `:safe` flag set, to allow decoding terms with unknown
-  atoms:
+  Always decode with the `:safe` flag set, regardless of how the job was recorded, to prevent
+  decoding unknown atoms or executable terms in the dashboard:
 
       def format_recorded(recorded, _job) do
         recorded
-        |> Oban.Web.Resolver.decode_recorded([])
+        |> Oban.Web.Resolver.decode_recorded([:safe])
         |> inspect(pretty: false, width: 98)
       end
 
@@ -446,11 +453,35 @@ defmodule Oban.Web.Resolver do
   """
   @callback bulk_action_limit(Job.unique_state()) :: :infinity | pos_integer()
 
+  @doc """
+  The maximum size, in bytes, of recorded output the dashboard will render.
+
+  Recorded output stored in an external `Oban.Pro.Storage` backend isn't fetched at all when it
+  exceeds this limit, and inline output is truncated. Without a limit a large recording is pushed
+  through the LiveView diff and into the browser.
+
+  Limiting may be disabled with `:infinity`, though that's only advisable when you know recorded
+  output stays small.
+
+  ## Examples
+
+  Raise the limit to 1mb:
+
+      def recorded_size_limit, do: 1_000_000
+
+  Disable the limit entirely:
+
+      def recorded_size_limit, do: :infinity
+  """
+  @doc since: "2.13.0"
+  @callback recorded_size_limit() :: :infinity | pos_integer()
+
   @optional_callbacks format_job_args: 1,
                       format_job_meta: 1,
                       format_recorded: 2,
                       format_signal: 2,
                       bulk_action_limit: 1,
+                      recorded_size_limit: 0,
                       hint_query_limit: 1,
                       jobs_query_limit: 1,
                       resolve_user: 1,
@@ -524,11 +555,16 @@ defmodule Oban.Web.Resolver do
   def format_job_meta(%Job{meta: meta}), do: inspect(meta, @inspect_opts)
 
   @doc false
-  def format_recorded(recorded, _job) do
+  def format_recorded(recorded, %{meta: meta}) do
     recorded
-    |> decode_recorded()
+    |> decode_recorded(decode_opts(meta))
     |> inspect(@inspect_opts)
   end
+
+  # Pro records with `safe_decode: false` by default and decodes accordingly, so matching it keeps
+  # the dashboard from raising on terms the application itself reads back without issue.
+  defp decode_opts(%{"safe_decode" => true}), do: [:safe]
+  defp decode_opts(_meta), do: []
 
   @doc false
   def format_signal(signal, _job) do
@@ -558,4 +594,7 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def bulk_action_limit(_state), do: 1_000
+
+  @doc false
+  def recorded_size_limit, do: 256_000
 end

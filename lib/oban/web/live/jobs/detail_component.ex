@@ -3,8 +3,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   import Oban.Web.FormComponents
 
-  alias Oban.Web.Jobs.{HistoryChartComponent, TimelineComponent}
+  alias Oban.Web.Jobs.{HistoryChartComponent, Recorded, TimelineComponent}
   alias Oban.Web.{Resolver, Timing}
+
+  @hidden_meta ~w(return signal storage size safe_decode)
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
@@ -22,11 +24,55 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:queues, fn -> [] end)
       |> assign_new(:diagnostics_open?, fn -> false end)
       |> assign_new(:form, fn -> form_from_job(assigns.job) end)
+      |> assign_recorded()
       |> then(fn socket ->
         if auto_open_diagnostics?, do: assign(socket, :diagnostics_open?, true), else: socket
       end)
 
     {:ok, socket}
+  end
+
+  defp assign_recorded(socket) do
+    %{job: job, resolver: resolver} = socket.assigns
+
+    key = {job.id, job.meta["return"]}
+
+    # The job is re-assigned on every refresh, so fetched output is only recomputed when the
+    # recording itself changes, otherwise the panel would flicker back to a load button each
+    # second.
+    if Map.has_key?(socket.assigns, :recorded_key) and socket.assigns.recorded_key == key do
+      socket
+    else
+      assign(socket,
+        recorded_key: key,
+        recorded_size: Recorded.size(job),
+        recorded_state: initial_recorded_state(job, resolver)
+      )
+    end
+  end
+
+  defp initial_recorded_state(job, resolver) do
+    case Recorded.status(job) do
+      :disabled ->
+        {:error, :disabled}
+
+      :none ->
+        {:error, :none}
+
+      :inline ->
+        if oversized?(Recorded.size(job), size_limit(resolver)) do
+          {:error, :too_large}
+        else
+          format_recorded(job.meta["return"], job, resolver)
+        end
+
+      :external ->
+        if oversized?(Recorded.size(job), size_limit(resolver)) do
+          {:error, :too_large}
+        else
+          :idle
+        end
+    end
   end
 
   defp form_from_job(job) do
@@ -232,7 +278,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <.job_data_section job={@job} resolver={@resolver} />
+      <.job_data_section
+        job={@job}
+        resolver={@resolver}
+        myself={@myself}
+        recorded_size={@recorded_size}
+        recorded_state={@recorded_state}
+      />
 
       <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <button
@@ -632,6 +684,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   attr :job, :map, required: true
   attr :resolver, :any, required: true
+  attr :myself, :any, required: true
+  attr :recorded_size, :integer, default: nil
+  attr :recorded_state, :any, required: true
 
   defp job_data_section(assigns) do
     ~H"""
@@ -691,7 +746,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           </div>
         </div>
 
-        <div :if={@job.meta["recorded"]} class="mt-4">
+        <div :if={@job.meta["recorded"]} id="job-recorded" class="mt-4">
           <div class="relative bg-gray-50 dark:bg-gray-800 rounded-md p-4">
             <div class="flex justify-between items-start mb-2">
               <div class="flex items-center space-x-2">
@@ -699,19 +754,53 @@ defmodule Oban.Web.Jobs.DetailComponent do
                   Recorded Output
                 </h4>
                 <.pro_badge id="recorded-pro-badge" tooltip="Recording from Oban.Pro.Worker" />
+                <span
+                  :if={@recorded_size}
+                  id="recorded-size"
+                  class="text-xs text-gray-400 dark:text-gray-500"
+                >
+                  {format_bytes(@recorded_size)}
+                </span>
               </div>
               <button
+                :if={recorded_output(@recorded_state)}
                 type="button"
                 id="copy-recorded"
                 class="w-9 h-9 -mr-2 -mt-2 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-700 cursor-pointer"
                 data-title="Copy to clipboard"
                 phx-hook="Tippy"
-                phx-click={copy_to_clipboard(format_recorded(@job, @resolver))}
+                phx-click={copy_to_clipboard(recorded_output(@recorded_state))}
               >
                 <Icons.icon name="icon-clipboard" class="w-4 h-4" />
               </button>
             </div>
-            <pre class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{format_recorded(@job, @resolver)}</pre>
+
+            <pre
+              :if={recorded_output(@recorded_state)}
+              class="font-mono text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all"
+            >{recorded_output(@recorded_state)}</pre>
+
+            <div :if={@recorded_state == :loading} class="flex items-center space-x-2">
+              <Icons.icon name="icon-arrow-path" class="w-4 h-4 text-gray-400 animate-spin" />
+              <span class="text-sm text-gray-500 dark:text-gray-400">Fetching output…</span>
+            </div>
+
+            <div :if={recorded_message(@recorded_state)} class="flex items-center space-x-3">
+              <button
+                :if={loadable?(@job, @recorded_state)}
+                type="button"
+                id="load-recorded"
+                class="flex items-center space-x-1.5 px-3 py-1.5 font-medium text-sm text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:border-blue-500 hover:text-blue-500 cursor-pointer"
+                phx-click="load-recorded"
+                phx-target={@myself}
+              >
+                <Icons.icon name="icon-arrow-down-tray" class="w-4 h-4" />
+                <span>{if @recorded_state == :idle, do: "Load Output", else: "Try Again"}</span>
+              </button>
+              <span class="text-sm text-gray-500 dark:text-gray-400">
+                {recorded_message(@recorded_state)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -749,6 +838,39 @@ defmodule Oban.Web.Jobs.DetailComponent do
   # Handlers
 
   @impl Phoenix.LiveComponent
+  def handle_async(:fetch_recorded, {:ok, {:ok, payload}}, socket) do
+    %{job: job, resolver: resolver} = socket.assigns
+
+    state =
+      if oversized?(byte_size(payload), size_limit(resolver)) do
+        {:error, :too_large}
+      else
+        format_recorded(payload, job, resolver)
+      end
+
+    {:noreply, assign(socket, recorded_size: byte_size(payload), recorded_state: state)}
+  end
+
+  def handle_async(:fetch_recorded, {:ok, {:error, reason}}, socket) do
+    {:noreply, assign(socket, recorded_state: {:error, recorded_error(reason)})}
+  end
+
+  def handle_async(:fetch_recorded, {:exit, reason}, socket) do
+    {:noreply, assign(socket, recorded_state: {:error, recorded_error(reason)})}
+  end
+
+  @impl Phoenix.LiveComponent
+  def handle_event("load-recorded", _params, socket) do
+    job = socket.assigns.job
+
+    socket =
+      socket
+      |> assign(recorded_state: :loading)
+      |> start_async(:fetch_recorded, fn -> Recorded.fetch(job) end)
+
+    {:noreply, socket}
+  end
+
   def handle_event("cancel", _params, socket) do
     if can?(:cancel_jobs, socket.assigns.access) do
       send(self(), {:cancel_job, socket.assigns.job})
@@ -847,23 +969,42 @@ defmodule Oban.Web.Jobs.DetailComponent do
   end
 
   defp format_meta(%{meta: meta} = job, resolver) do
-    job = %{job | meta: Map.drop(meta, ["return", "signal"])}
+    job = %{job | meta: Map.drop(meta, @hidden_meta)}
 
     Resolver.call_with_fallback(resolver, :format_job_meta, [job])
   end
 
-  defp format_recorded(%{meta: meta} = job, resolver) do
-    case meta do
-      %{"recorded" => true, "return" => value} ->
-        Resolver.call_with_fallback(resolver, :format_recorded, [value, job])
-
-      %{"recorded" => true} ->
-        "No Recording Yet"
-
-      _ ->
-        "Recording Not Enabled"
-    end
+  defp format_recorded(payload, job, resolver) do
+    {:ok, Resolver.call_with_fallback(resolver, :format_recorded, [payload, job])}
   end
+
+  defp recorded_output({:ok, output}), do: output
+  defp recorded_output(_state), do: nil
+
+  defp recorded_message({:error, :disabled}), do: "Recording Not Enabled"
+  defp recorded_message({:error, :none}), do: "No Recording Yet"
+  defp recorded_message({:error, :missing}), do: "Stored output is no longer available"
+  defp recorded_message({:error, :timeout}), do: "Timed out fetching output"
+  defp recorded_message({:error, :backend}), do: "Unable to reach the storage backend"
+  defp recorded_message({:error, :too_large}), do: "Output is too large to display"
+  defp recorded_message(:idle), do: "Stored externally"
+  defp recorded_message(_state), do: nil
+
+  # Backend failures may carry signed URLs or credentials, so the reason is never rendered.
+  defp recorded_error(reason) when reason in ~w(none missing timeout)a, do: reason
+  defp recorded_error(_reason), do: :backend
+
+  defp loadable?(job, state) do
+    Recorded.status(job) == :external and
+      state in [:idle, {:error, :missing}, {:error, :timeout}, {:error, :backend}]
+  end
+
+  defp size_limit(resolver) do
+    Resolver.call_with_fallback(resolver, :recorded_size_limit, [])
+  end
+
+  defp oversized?(_size, :infinity), do: false
+  defp oversized?(size, limit), do: is_integer(size) and size > limit
 
   defp format_signal(%{meta: %{"signal" => value}} = job, resolver) do
     Resolver.call_with_fallback(resolver, :format_signal, [value, job])

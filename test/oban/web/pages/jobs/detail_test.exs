@@ -186,6 +186,90 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     end
   end
 
+  describe "external recorded output" do
+    @describetag :pro
+
+    test "loading output from a storage backend on demand", %{live: live} do
+      payload = encode_term(%{total: 42})
+      job = insert_recorded_job(live, payload, [])
+
+      open_details(live, job)
+
+      refute render(live) =~ "total: 42"
+      assert has_element?(live, "#load-recorded")
+
+      live
+      |> element("#load-recorded")
+      |> render_click()
+
+      assert render_async(live) =~ "total: 42"
+      assert has_element?(live, "#copy-recorded")
+    end
+
+    test "reporting output the backend no longer has", %{live: live} do
+      job = insert_recorded_job(live, nil, [])
+
+      open_details(live, job)
+
+      live
+      |> element("#load-recorded")
+      |> render_click()
+
+      assert render_async(live) =~ "Stored output is no longer available"
+      assert has_element?(live, "#load-recorded", "Try Again")
+    end
+
+    test "reporting an unreachable backend without leaking the reason", %{live: live} do
+      job = insert_recorded_job(live, encode_term(%{}), error: "s3://bucket?X-Amz-Signature=sec")
+
+      open_details(live, job)
+
+      live
+      |> element("#load-recorded")
+      |> render_click()
+
+      html = render_async(live)
+
+      assert html =~ "Unable to reach the storage backend"
+      refute html =~ "X-Amz-Signature"
+    end
+
+    test "keeping loaded output across refresh ticks", %{live: live} do
+      job = insert_recorded_job(live, encode_term(%{total: 42}), [])
+
+      open_details(live, job)
+
+      live
+      |> element("#load-recorded")
+      |> render_click()
+
+      assert render_async(live) =~ "total: 42"
+
+      send(live.pid, :refresh)
+
+      assert render(live) =~ "total: 42"
+      refute has_element?(live, "#load-recorded")
+    end
+  end
+
+  defp insert_recorded_job(live, payload, storage_opts) do
+    key = Ecto.UUID.generate()
+
+    if payload, do: Oban.Web.StorageMock.store(key, payload)
+
+    meta = %{
+      "recorded" => true,
+      "return" => key,
+      "storage" => Oban.Pro.Storage.encode(Oban.Web.StorageMock, storage_opts)
+    }
+
+    job = insert_job!([ref: 1], state: "completed", worker: WorkerA, meta: meta)
+
+    open_state(live, "completed")
+
+    job
+  end
+
   defp open_state(live, state) do
     live
     |> element("#sidebar #states #filter-#{state}")

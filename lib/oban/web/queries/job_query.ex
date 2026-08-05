@@ -245,7 +245,7 @@ defmodule Oban.Web.JobQuery do
 
     {field, :keys, path}
     |> cache_query(query, conf)
-    |> Kernel.--(["return:"])
+    |> Kernel.--(~w(return: storage: size: safe_decode:))
     |> Search.restrict_suggestions(frag)
   end
 

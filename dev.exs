@@ -26,6 +26,7 @@ defmodule WebDev.Generator do
     Oban.Workers.PushNotifier,
     Oban.Workers.ReadabilityAnalyzer,
     Oban.Workers.ReceiptMailer,
+    Oban.Workers.ReportExporter,
     Oban.Workers.SyntaxAnalyzer,
     Oban.Workers.TranscriptionAnalyzer,
     Oban.Workers.VideoProcessor
@@ -108,6 +109,37 @@ defmodule WebDev.Generator do
   defp tracing_meta(opts) do
     Keyword.put(opts, :meta, %{trace: Faker.UUID.v4(), vsn: Faker.App.semver()})
   end
+end
+
+defmodule WebDev.FileStorage do
+  @moduledoc false
+
+  @behaviour Oban.Pro.Storage
+
+  @impl Oban.Pro.Storage
+  def init(opts), do: Keyword.put_new(opts, :dir, Path.join(System.tmp_dir!(), "oban-web-dev"))
+
+  @impl Oban.Pro.Storage
+  def put(key, payload, conf) do
+    File.mkdir_p!(conf[:dir])
+
+    File.write(path(conf, key), payload)
+  end
+
+  @impl Oban.Pro.Storage
+  def fetch_all(keys, conf) do
+    payloads =
+      for key <- keys, {:ok, payload} <- [File.read(path(conf, key))], into: %{} do
+        {key, payload}
+      end
+
+    {:ok, payloads}
+  end
+
+  @impl Oban.Pro.Storage
+  def delete_all(keys, conf), do: Enum.each(keys, &File.rm(path(conf, &1)))
+
+  defp path(conf, key), do: Path.join(conf[:dir], key)
 end
 
 defmodule Oban.Workers.AvatarProcessor do
@@ -245,6 +277,24 @@ defmodule Oban.Workers.PricingAnalyzer do
        ticker: Faker.Finance.Stock.ticker(),
        analyzed_at: DateTime.utc_now()
      }}
+  end
+end
+
+defmodule Oban.Workers.ReportExporter do
+  @moduledoc false
+
+  use Oban.Pro.Worker, queue: :analysis, recorded: [storage: WebDev.FileStorage]
+
+  alias Faker.{Commerce, UUID}
+  alias WebDev.Generator
+
+  def gen(opts \\ []), do: new(%{id: UUID.v4()}, opts)
+
+  @impl Oban.Pro.Worker
+  def process(_job) do
+    Generator.random_perform(500, 10_000)
+
+    {:ok, %{report: Commerce.product_name(), exported_at: DateTime.utc_now()}}
   end
 end
 
