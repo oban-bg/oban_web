@@ -63,7 +63,7 @@ const QueueDetailChart = {
             ticks: {
               maxRotation: 0,
               autoSkip: true,
-              maxTicksLimit: 8,
+              maxTicksLimit: 6,
               callback: function (value) {
                 const timestamp = parseInt(this.getLabelForValue(value), 10)
                 const date = new Date(timestamp)

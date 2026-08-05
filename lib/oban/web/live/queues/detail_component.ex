@@ -13,6 +13,9 @@ defmodule Oban.Web.Queues.DetailComponent do
   alias Oban.Web.Timing
   alias Oban.Web.Utils
 
+  @history_by 5
+  @history_lookback 300
+
   @impl Phoenix.LiveComponent
   def update(%{local_limit: new_limit}, socket) do
     %{checks: checks, inputs: inputs} = socket.assigns
@@ -1143,22 +1146,26 @@ defmodule Oban.Web.Queues.DetailComponent do
   end
 
   defp queue_history(conf, queue) do
-    by = 5
-    since = Timing.snap(System.system_time(:second), by)
+    since = Timing.snap(System.system_time(:second), @history_by)
+
+    opts = [
+      by: @history_by,
+      lookback: @history_lookback,
+      filters: [queue: queue],
+      since: since
+    ]
 
     conf.name
-    |> Met.timeslice(:exec_count, by: by, lookback: 600, filters: [queue: queue], since: since)
-    |> transform_history(since, by)
+    |> Met.timeslice(:exec_count, opts)
+    |> transform_history(since)
   end
 
-  defp transform_history(timeslice_data, since, by) do
-    timeslice_data
-    |> Enum.map(fn {index, count, _group} ->
-      timestamp = (since - index * by) * 1000
+  defp transform_history(timeslice_data, since) do
+    counts = Map.new(timeslice_data, fn {index, count, _group} -> {index, count} end)
 
-      %{count: count, timestamp: timestamp}
-    end)
-    |> Enum.sort_by(& &1.timestamp)
+    for index <- (div(@history_lookback, @history_by) - 1)..0//-1 do
+      %{count: Map.get(counts, index, 0), timestamp: (since - index * @history_by) * 1000}
+    end
   end
 
   # Pro Helpers
