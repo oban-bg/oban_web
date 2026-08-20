@@ -4,11 +4,22 @@ defmodule Oban.Web.WorkflowQuery do
   import Ecto.Query
 
   alias Oban.{Job, Repo}
-  alias Oban.Web.{Search, Workflow}
+  alias Oban.Web.{Search, Utils, Workflow}
+  alias Oban.Web.Workflows.Helpers
 
   @default_sup_graph_limit 500
   @default_sub_graph_limit 100
   @default_suggest_limit 100
+  @max_ancestor_depth 10
+
+  # Fields are selected explicitly because the compensation columns may not exist.
+  @base_fields ~w(
+    id name parent_id state meta
+    suspended available scheduled executing retryable completed cancelled discarded
+    started_at completed_at inserted_at
+  )a
+
+  @compensation_fields ~w(compensation_id resolved_at)a
 
   defmacrop has_workflow_id(meta, workflow_id) do
     quote do
@@ -90,9 +101,17 @@ defmodule Oban.Web.WorkflowQuery do
               'workflow_name', ?->>'workflow_name',
               'decorated_name', ?->>'decorated_name',
               'handler', ?->>'handler',
-              'context', (?->>'context')::boolean
+              'context', (?->>'context')::boolean,
+              'compensate', ?->'compensate',
+              'origin_job_id', ?->'origin_job_id',
+              'origin_name', ?->>'origin_name',
+              'origin_workflow_id', ?->>'origin_workflow_id'
             )
             """,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta,
+            unquote(job).meta,
             unquote(job).meta,
             unquote(job).meta,
             unquote(job).meta,
@@ -160,10 +179,16 @@ defmodule Oban.Web.WorkflowQuery do
 
   @suggest_qualifier [
     {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
+    {"kinds:", "workflow kind", "kinds:compensation"},
     {"names:", "workflow name", "names:order-fulfillment"},
     {"queues:", "queue name", "queues:default"},
     {"workers:", "worker module", "workers:MyApp.Worker"},
     {"states:", "workflow state", "states:executing"}
+  ]
+
+  @suggest_kind [
+    {"compensation", "rolls back a failed workflow", "kinds:compensation"},
+    {"standard", "non compensation workflows", "kinds:standard"}
   ]
 
   @suggest_state [
@@ -177,7 +202,7 @@ defmodule Oban.Web.WorkflowQuery do
 
   # Searching
 
-  def filterable, do: ~w(ids names queues workers states)a
+  def filterable, do: ~w(ids kinds names queues workers states)a
 
   def parse(terms) when is_binary(terms) do
     Search.parse(terms, &parse_term/1)
@@ -195,6 +220,7 @@ defmodule Oban.Web.WorkflowQuery do
       last ->
         case String.split(last, ":", parts: 2) do
           ["ids", _frag] -> []
+          ["kinds", frag] -> suggest_static(frag, @suggest_kind)
           ["names", frag] -> suggest_names(frag, conf)
           ["queues", frag] -> suggest_queues(frag, conf)
           ["workers", frag] -> suggest_workers(frag, conf)
@@ -215,6 +241,7 @@ defmodule Oban.Web.WorkflowQuery do
     query =
       Workflow
       |> select([wf], wf.name)
+      |> where([wf], wf.name != ^Helpers.compensation_worker())
       |> distinct(true)
       |> limit(@default_suggest_limit)
 
@@ -244,6 +271,7 @@ defmodule Oban.Web.WorkflowQuery do
 
     conf
     |> Repo.all(query)
+    |> Enum.reject(&(&1 == Helpers.compensation_worker()))
     |> Search.restrict_suggestions(fragment)
   end
 
@@ -260,6 +288,10 @@ defmodule Oban.Web.WorkflowQuery do
 
   defp parse_term("ids:" <> ids) do
     {:ids, String.split(ids, ",")}
+  end
+
+  defp parse_term("kinds:" <> kinds) do
+    {:kinds, String.split(kinds, ",")}
   end
 
   defp parse_term("names:" <> names) do
@@ -289,12 +321,20 @@ defmodule Oban.Web.WorkflowQuery do
     dir = String.to_existing_atom(sort_dir)
     prefix = conf.prefix
 
+    fields = workflow_fields(conf)
+
     Workflow
     |> where([wf], is_nil(wf.parent_id))
     |> apply_filters(params)
     |> apply_sort(sort_by, dir)
     |> limit(^limit)
-    |> select([wf], {wf, sub_workflow_states(prefix, wf.id)})
+    |> join(:left, [wf], origin in Workflow,
+      on: fragment("?->>'origin_id'", wf.meta) == origin.id
+    )
+    |> select(
+      [wf, origin],
+      {struct(wf, ^fields), sub_workflow_states(prefix, wf.id), origin.name}
+    )
     |> then(&Repo.all(conf, &1))
     |> Enum.map(&build_workflow/1)
   end
@@ -302,6 +342,7 @@ defmodule Oban.Web.WorkflowQuery do
   defp apply_filters(query, params) do
     query
     |> filter_by_ids(Map.get(params, :ids))
+    |> filter_by_kinds(Map.get(params, :kinds))
     |> filter_by_names(Map.get(params, :names))
     |> filter_by_states(Map.get(params, :states))
     |> filter_by_queues(Map.get(params, :queues))
@@ -310,6 +351,16 @@ defmodule Oban.Web.WorkflowQuery do
 
   defp filter_by_ids(query, nil), do: query
   defp filter_by_ids(query, ids), do: where(query, [wf], wf.id in ^ids)
+
+  defp filter_by_kinds(query, nil), do: query
+
+  defp filter_by_kinds(query, kinds) do
+    case {"compensation" in kinds, "standard" in kinds} do
+      {true, false} -> where(query, [wf], fragment("? \\? 'origin_id'", wf.meta))
+      {false, true} -> where(query, [wf], fragment("NOT (? \\? 'origin_id')", wf.meta))
+      _both_or_neither -> query
+    end
+  end
 
   defp filter_by_names(query, nil), do: query
   defp filter_by_names(query, names), do: where(query, [wf], wf.name in ^names)
@@ -353,15 +404,17 @@ defmodule Oban.Web.WorkflowQuery do
     apply_sort(query, "inserted", dir)
   end
 
-  defp build_workflow({%Workflow{} = wf, sub_states}) do
+  defp build_workflow({%Workflow{} = wf, sub_states, origin_name}) do
     pending = wf.available + wf.scheduled + wf.retryable
     finished = wf.completed + wf.cancelled + wf.discarded
     sub_activity = count_sub_activity(sub_states)
+    origin_label = origin_name || Helpers.origin_id(wf)
 
     %{
       id: wf.id,
       name: wf.name,
       state: String.to_existing_atom(wf.state),
+      compensation?: Helpers.compensation?(wf),
       total: wf.suspended + pending + wf.executing + finished + length(sub_states),
       activity: %{
         suspended: wf.suspended + sub_activity.suspended,
@@ -372,7 +425,7 @@ defmodule Oban.Web.WorkflowQuery do
       started_at: wf.started_at,
       completed_at: wf.completed_at,
       queues: Map.get(wf.meta, "queues", []),
-      display_name: wf.name || wf.id
+      display_name: Helpers.display_name(wf, origin_label)
     }
   end
 
@@ -395,24 +448,61 @@ defmodule Oban.Web.WorkflowQuery do
   end
 
   def get_workflow(conf, workflow_id) do
-    query = where(Workflow, [wf], wf.id == ^workflow_id)
+    fields = workflow_fields(conf)
+
+    query =
+      Workflow
+      |> where([wf], wf.id == ^workflow_id)
+      |> select([wf], struct(wf, ^fields))
 
     Repo.one(conf, query)
   end
 
   def get_sup_workflow(conf, workflow_id) do
+    fields = workflow_fields(conf)
+
     Workflow
     |> join(:inner, [child], parent in Workflow, on: child.parent_id == parent.id)
     |> where([child, _parent], child.id == ^workflow_id)
-    |> select([_child, parent], parent)
+    |> select([_child, parent], struct(parent, ^fields))
     |> then(&Repo.one(conf, &1))
   end
 
   def get_sub_workflows(conf, workflow_id, limit \\ 10) do
+    fields = workflow_fields(conf)
+
     Workflow
     |> where([wf], wf.parent_id == ^workflow_id)
     |> limit(^limit)
+    |> select([wf], struct(wf, ^fields))
     |> then(&Repo.all(conf, &1))
+  end
+
+  def get_compensation(conf, %Workflow{compensation_id: compensation_id})
+      when is_binary(compensation_id) do
+    get_workflow(conf, compensation_id)
+  end
+
+  def get_compensation(_conf, _workflow), do: nil
+
+  def get_origin(conf, %Workflow{meta: %{"origin_id" => origin_id}}) when is_binary(origin_id) do
+    get_workflow(conf, origin_id)
+  end
+
+  def get_origin(_conf, _workflow), do: nil
+
+  # Only the root of a family records a compensation_id, so status must resolve through the root.
+  def get_root_workflow(conf, workflow, depth \\ @max_ancestor_depth)
+
+  def get_root_workflow(_conf, %Workflow{parent_id: nil} = workflow, _depth), do: workflow
+
+  def get_root_workflow(_conf, %Workflow{} = workflow, 0), do: workflow
+
+  def get_root_workflow(conf, %Workflow{parent_id: parent_id} = workflow, depth) do
+    case get_workflow(conf, parent_id) do
+      %Workflow{} = parent -> get_root_workflow(conf, parent, depth - 1)
+      nil -> workflow
+    end
   end
 
   def get_sub_workflow_jobs(conf, sub_workflow_id, opts \\ []) do
@@ -446,7 +536,106 @@ defmodule Oban.Web.WorkflowQuery do
       |> order_by([j], asc: j.id)
       |> limit(^limit)
 
-    Repo.all(conf, query)
+    conf
+    |> Repo.all(query)
+    |> put_origin_workers(conf)
+  end
+
+  # Compensating jobs all share the same worker, so nodes are labelled with the worker of the job
+  # they roll back instead.
+  defp put_origin_workers(jobs, conf) do
+    case origin_job_ids(jobs) do
+      [] -> jobs
+      origin_ids -> merge_origin_workers(jobs, origin_workers(conf, origin_ids))
+    end
+  end
+
+  defp merge_origin_workers(jobs, workers) do
+    Enum.map(jobs, fn job ->
+      case Map.fetch(workers, job.meta["origin_job_id"]) do
+        {:ok, worker} -> put_in(job.meta["origin_worker"], worker)
+        :error -> job
+      end
+    end)
+  end
+
+  defp origin_job_ids(jobs) do
+    for %{meta: %{"origin_job_id" => origin_id}} <- jobs, is_integer(origin_id), do: origin_id
+  end
+
+  defp origin_workers(conf, origin_ids) do
+    query =
+      Job
+      |> where([j], j.id in ^origin_ids)
+      |> select(
+        [j],
+        {j.id,
+         fragment(
+           "COALESCE(?->>'decorated_name', ?->>'handler', ?)",
+           j.meta,
+           j.meta,
+           j.worker
+         )}
+      )
+
+    conf
+    |> Repo.all(query)
+    |> Map.new()
+  end
+
+  # Compensating steps are named after the job they roll back, which makes the lookup a hit on the
+  # workflow index rather than a scan for a nested origin_job_id.
+  def get_compensating_job(conf, %Job{meta: %{"compensate" => compensate}} = job)
+      when is_map(compensate) do
+    with %{"workflow_id" => workflow_id} <- job.meta,
+         %Workflow{} = workflow <- get_workflow(conf, workflow_id),
+         %Workflow{compensation_id: comp_id} <- get_root_workflow(conf, workflow),
+         true <- is_binary(comp_id) do
+      query =
+        Job
+        |> where([j], has_workflow_id(j.meta, ^comp_id))
+        |> where([j], fragment("?->>'name'", j.meta) == ^"compensate_#{job.id}")
+        |> limit(1)
+
+      Repo.one(conf, query)
+    else
+      _other -> nil
+    end
+  end
+
+  def get_compensating_job(_conf, _job), do: nil
+
+  def get_compensation_steps(conf, compensation_id, opts \\ []) do
+    limit = Keyword.get(opts, :limit, @default_sub_graph_limit)
+
+    query =
+      Job
+      |> where([j], has_workflow_id(j.meta, ^compensation_id))
+      |> order_by([j], asc: j.id)
+      |> limit(^limit)
+      |> select([j], %{
+        id: j.id,
+        state: j.state,
+        attempt: j.attempt,
+        max_attempts: j.max_attempts,
+        meta:
+          fragment(
+            """
+            jsonb_build_object(
+              'origin_job_id', ?->'origin_job_id',
+              'origin_name', ?->>'origin_name',
+              'origin_workflow_id', ?->>'origin_workflow_id'
+            )
+            """,
+            j.meta,
+            j.meta,
+            j.meta
+          )
+      })
+
+    conf
+    |> Repo.all(query)
+    |> put_origin_workers(conf)
   end
 
   defp workflow_graph_subs(conf, workflow_id) do
@@ -475,5 +664,13 @@ defmodule Oban.Web.WorkflowQuery do
       )
 
     Repo.all(conf, query)
+  end
+
+  defp workflow_fields(conf) do
+    if Utils.has_compensations?(conf) do
+      @base_fields ++ @compensation_fields
+    else
+      @base_fields
+    end
   end
 end

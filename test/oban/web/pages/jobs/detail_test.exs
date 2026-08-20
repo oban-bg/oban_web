@@ -3,12 +3,16 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
 
   import Phoenix.LiveViewTest
 
-  setup do
-    start_supervised_oban!()
+  alias Oban.Web.CompensationFixture
+
+  @compile {:no_warn_undefined, Oban.Web.CompensationFixture}
+
+  setup context do
+    name = start_supervised_oban!(Map.get(context, :oban_opts, []))
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, live: live}
+    {:ok, conf: Oban.config(name), live: live}
   end
 
   test "viewing job details", %{live: live} do
@@ -268,6 +272,43 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     open_state(live, "completed")
 
     job
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
+  test "linking a compensating job to the job it rolls back", %{conf: conf, live: live} do
+    saga = CompensationFixture.insert_compensated_saga!(conf)
+
+    [comp] = CompensationFixture.compensation_steps(conf, saga)
+
+    open_state(live, "available")
+    open_details(live, comp)
+
+    assert has_element?(live, "#origin-job-link", "Rolls Back")
+    assert has_element?(live, "#origin-job-link", "charge")
+    refute has_element?(live, "#compensating-job-link")
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
+  test "linking a compensated job to the job rolling it back", %{conf: conf, live: live} do
+    saga = CompensationFixture.insert_compensated_saga!(conf)
+
+    CompensationFixture.finish_compensation!(conf, saga, "completed")
+
+    open_state(live, "completed")
+    open_details(live, saga.jobs["charge"])
+
+    assert has_element?(live, "#compensating-job-link", "Rollback")
+    assert has_element?(live, "#compensating-job-link", "completed")
+  end
+
+  test "omitting compensation links for ordinary jobs", %{live: live} do
+    job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+    open_state(live, "available")
+    open_details(live, job)
+
+    refute has_element?(live, "#origin-job-link")
+    refute has_element?(live, "#compensating-job-link")
   end
 
   defp open_state(live, state) do

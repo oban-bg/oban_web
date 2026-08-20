@@ -22,6 +22,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:error_sort, fn -> :desc end)
       |> assign_new(:edit_changed?, fn -> false end)
       |> assign_new(:queues, fn -> [] end)
+      |> assign_new(:compensating_job, fn -> nil end)
       |> assign_new(:diagnostics_open?, fn -> false end)
       |> assign_new(:form, fn -> form_from_job(assigns.job) end)
       |> assign_recorded()
@@ -272,6 +273,46 @@ defmodule Oban.Web.Jobs.DetailComponent do
               <span class="text-base text-gray-800 dark:text-gray-200 flex items-center">
                 <Icons.icon name="icon-rectangle-group" class="w-4 h-4 mr-1.5 text-violet-500" />
                 <span class="truncate">{workflow_display_name(@job)}</span>
+              </span>
+            </.link>
+
+            <.link
+              :if={@job.meta["origin_job_id"]}
+              id="origin-job-link"
+              navigate={oban_path([:jobs, @job.meta["origin_job_id"]])}
+              class="flex flex-col col-span-3 -m-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              data-title="View the job this rolls back"
+              phx-hook="Tippy"
+            >
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Rolls Back
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200 flex items-center">
+                <Icons.icon
+                  name="icon-arrow-path-rounded"
+                  class="w-4 h-4 mr-1.5 text-violet-500"
+                />
+                <span class="truncate">{@job.meta["origin_name"]}</span>
+              </span>
+            </.link>
+
+            <.link
+              :if={@compensating_job}
+              id="compensating-job-link"
+              navigate={oban_path([:jobs, @compensating_job.id])}
+              class="flex flex-col col-span-3 -m-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              data-title="View the job rolling this back"
+              phx-hook="Tippy"
+            >
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Rollback
+              </span>
+              <span class="text-base text-gray-800 dark:text-gray-200 flex items-center">
+                <Icons.icon
+                  name="icon-arrow-path-rounded"
+                  class="w-4 h-4 mr-1.5 text-violet-500"
+                />
+                <span class="truncate">{@compensating_job.state}</span>
               </span>
             </.link>
           </div>

@@ -4,7 +4,7 @@ defmodule Oban.Web.Workflow do
   use Ecto.Schema
 
   @fields ~w(
-    id name parent_id inserted_at meta
+    id name parent_id compensation_id inserted_at resolved_at meta
     suspended available scheduled executing retryable completed cancelled discarded
   )a
 
@@ -12,6 +12,7 @@ defmodule Oban.Web.Workflow do
   schema "oban_workflows" do
     field :name, :string
     field :parent_id, :string
+    field :compensation_id, :string
     field :state, :string
     field :meta, :map
 
@@ -25,6 +26,7 @@ defmodule Oban.Web.Workflow do
     field :discarded, :integer, default: 0
 
     field :started_at, :utc_datetime_usec
+    field :resolved_at, :utc_datetime_usec
     field :completed_at, :utc_datetime_usec
     field :inserted_at, :utc_datetime_usec
   end

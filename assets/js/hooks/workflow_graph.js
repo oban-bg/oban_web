@@ -281,8 +281,13 @@ const WorkflowGraph = {
   },
 
   getDisplayName(job) {
-    const name = job.meta?.name;
-    const worker = job.meta?.decorated_name || job.meta?.handler || job.worker || "Unknown";
+    // Compensating jobs all share one name and worker, so they're labelled with the step they
+    // roll back instead.
+    const originName = job.meta?.origin_name;
+    const name = originName || job.meta?.name;
+    const worker = originName
+      ? job.meta?.origin_worker || job.worker
+      : job.meta?.decorated_name || job.meta?.handler || job.worker || "Unknown";
 
     const maxNameLen = 28;
     const truncatedName = name.length > maxNameLen
@@ -402,6 +407,10 @@ const WorkflowGraph = {
           <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                 d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
         </symbol>
+        <symbol id="icon-arrow-uturn-left" viewBox="0 0 24 24">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 0 1 0 12h-3"/>
+        </symbol>
         <symbol id="icon-minus-circle" viewBox="0 0 24 24">
           <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                 d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
@@ -489,6 +498,7 @@ const WorkflowGraph = {
       <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button">
         <rect x="${nodeX}" y="${nodeY}" width="${node.width}" height="${node.height}"
               rx="8" fill="${colors.bg}" stroke="${colors.border}" stroke-width="2" />
+        ${this.renderCompensateMarker(job, nodeX + node.width - 22, nodeY + node.height / 2)}
         ${isContextJob ? this.renderContextIcon(iconX, iconY, colors.border) : this.renderStateIcon(job.state, iconX, iconY)}
         <text x="${textX}" y="${nodeY + node.height / 2 - 7}"
               dominant-baseline="middle" font-size="13" font-weight="500" fill="${textColor}">
@@ -734,6 +744,29 @@ const WorkflowGraph = {
 
     return `<use href="#${iconId}" x="${iconX}" y="${iconY}" width="${ICON_SIZE}" height="${ICON_SIZE}"
                  style="color: ${colors.border}" />`;
+  },
+
+  // Steps that declare a compensation are marked as reversible, and take on the state colour of
+  // the job that rolled them back once one exists.
+  renderCompensateMarker(job, centerX, centerY) {
+    const compensated = job.meta?.compensated;
+
+    if (!compensated && !job.meta?.compensate) return "";
+
+    const color = compensated
+      ? STATE_FG[compensated] || STATE_FG.available
+      : this.isDarkMode() ? "#6b7280" : "#9ca3af";
+
+    const label = compensated ? `Rolled back (${compensated})` : "Reversible";
+    const size = 14;
+
+    return `
+      <g>
+        <title>${this.escapeHtml(label)}</title>
+        <use href="#icon-arrow-uturn-left" x="${centerX - size / 2}" y="${centerY - size / 2}"
+             width="${size}" height="${size}" style="color: ${color}" />
+      </g>
+    `;
   },
 
   renderContextIcon(centerX, centerY, color) {

@@ -1,14 +1,16 @@
 defmodule Oban.Web.Pages.Workflows.DetailTest do
   use Oban.Web.Case
 
-  alias Oban.Web.Workflow
+  alias Oban.Web.{CompensationFixture, Workflow}
 
   @moduletag :pro
 
-  setup do
-    start_supervised_oban!()
+  @compile {:no_warn_undefined, Oban.Web.CompensationFixture}
 
-    :ok
+  setup do
+    name = start_supervised_oban!(engine: Oban.Pro.Engine)
+
+    {:ok, conf: Oban.config(name)}
   end
 
   test "displays not found for missing workflow" do
@@ -69,6 +71,105 @@ defmodule Oban.Web.Pages.Workflows.DetailTest do
     assert has_element?(live, "#detail-retry")
   end
 
+  test "displaying compensation status on a failed workflow", %{conf: conf} do
+    saga = CompensationFixture.insert_compensated_saga!(conf, name: "order-fulfillment")
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
+
+    refresh(live)
+
+    assert has_element?(live, "#comp-toggle", "Compensation")
+    assert has_element?(live, "#comp-toggle", "Executing")
+    assert has_element?(live, "#compensation-detail", "Triggers On")
+    assert has_element?(live, "#compensation-detail", "discarded")
+    assert has_element?(live, "#compensation-link")
+  end
+
+  test "distinguishing an armed workflow from a pending one", %{conf: conf} do
+    armed = CompensationFixture.insert_saga!(conf)
+    pending = CompensationFixture.insert_failed_saga!(conf)
+
+    {:ok, armed_live, _html} = live(build_conn(), "/oban/workflows/#{armed.id}")
+
+    refresh(armed_live)
+
+    assert has_element?(armed_live, "#comp-toggle", "Armed")
+    refute has_element?(armed_live, "#compensation-link")
+
+    {:ok, pending_live, _html} = live(build_conn(), "/oban/workflows/#{pending.id}")
+
+    refresh(pending_live)
+
+    assert has_element?(pending_live, "#comp-toggle", "Pending")
+  end
+
+  test "omitting the compensation section without a policy" do
+    insert_workflow!("wf-plain", completed: 1)
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/wf-plain")
+
+    refresh(live)
+
+    refute has_element?(live, "#comp-toggle")
+  end
+
+  test "linking a compensation workflow back to its origin", %{conf: conf} do
+    saga = CompensationFixture.insert_compensated_saga!(conf, name: "order-fulfillment")
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.compensation_id}")
+
+    refresh(live)
+
+    assert has_element?(live, "#back-link", "Compensation")
+    assert has_element?(live, "#origin-breadcrumb", "compensating")
+    assert has_element?(live, "#origin-breadcrumb", "order-fulfillment")
+  end
+
+  test "enabling retry only for a failed compensation", %{conf: conf} do
+    saga = CompensationFixture.insert_compensated_saga!(conf)
+
+    CompensationFixture.finish_compensation!(conf, saga, "discarded")
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
+
+    refresh(live)
+
+    assert has_element?(live, "#comp-toggle", "Failed")
+    assert has_element?(live, "#comp-retry:not([disabled])")
+    assert has_element?(live, "#comp-cancel[disabled]")
+  end
+
+  test "listing compensation steps with the workers they roll back", %{conf: conf} do
+    saga = CompensationFixture.insert_compensated_saga!(conf)
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
+
+    refresh(live)
+
+    assert has_element?(live, "#compensation-detail", "charge")
+    assert has_element?(live, "#compensation-detail", "ChargeCard")
+  end
+
+  test "marking graph nodes that were rolled back", %{conf: conf} do
+    saga = CompensationFixture.insert_compensated_saga!(conf)
+
+    CompensationFixture.finish_compensation!(conf, saga, "completed")
+
+    {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
+
+    refresh(live)
+
+    assert_push_event(live, "graph-data", %{jobs: jobs})
+
+    charge = Enum.find(jobs, &(&1.meta["name"] == "charge"))
+    ship = Enum.find(jobs, &(&1.meta["name"] == "ship"))
+
+    assert charge.meta["compensated"] == "completed"
+    assert charge.meta["compensate"]["kind"] == "worker"
+
+    refute ship.meta["compensated"]
+  end
+
   defp refresh(live) do
     send(live.pid, :refresh)
 
@@ -78,13 +179,14 @@ defmodule Oban.Web.Pages.Workflows.DetailTest do
   defp insert_workflow!(workflow_id, opts) do
     {queues, opts} = Keyword.pop(opts, :queues, ["default"])
     {workers, opts} = Keyword.pop(opts, :workers, ["TestWorker"])
+    {meta, opts} = Keyword.pop(opts, :meta, %{})
 
     others = Map.new(opts)
 
     params = %{
       id: workflow_id,
       inserted_at: DateTime.utc_now(),
-      meta: %{"queues" => queues, "workers" => workers}
+      meta: Map.merge(%{"queues" => queues, "workers" => workers}, meta)
     }
 
     params

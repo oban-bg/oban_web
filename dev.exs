@@ -726,6 +726,38 @@ defmodule WebDev.Workflows do
     {:ok, %{notified_at: DateTime.utc_now()}}
   end
 
+  # Saga Cascade Functions
+
+  def saga_reserve_stock(_ctx) do
+    WebDev.Generator.random_perform(300, 1_200)
+    {:ok, %{reserved_at: DateTime.utc_now()}}
+  end
+
+  def saga_release_stock(_ctx) do
+    WebDev.Generator.random_perform(200, 800)
+    {:ok, %{released_at: DateTime.utc_now()}}
+  end
+
+  def saga_charge_card(_ctx) do
+    WebDev.Generator.random_perform(500, 2_000)
+    {:ok, %{charged_at: DateTime.utc_now()}}
+  end
+
+  def saga_refund_card(_ctx) do
+    WebDev.Generator.random_perform(300, 1_500)
+    {:ok, %{refunded_at: DateTime.utc_now()}}
+  end
+
+  def saga_ship_order(_ctx) do
+    WebDev.Generator.random_perform(400, 1_500)
+
+    if :rand.uniform(100) <= 40 do
+      raise RuntimeError, "carrier rejected the shipment"
+    end
+
+    {:ok, %{shipped_at: DateTime.utc_now()}}
+  end
+
   # Workflow Builders
 
   def document_processing do
@@ -813,6 +845,23 @@ defmodule WebDev.Workflows do
     |> Workflow.add_cascade(:notify, &approval_notify/1, deps: [:execute], queue: :notifications)
   end
 
+  def payment_saga do
+    [workflow_name: "payment-saga", compensate_on: [:discarded]]
+    |> Workflow.new()
+    |> Workflow.put_context(%{order_id: Faker.UUID.v4()})
+    |> Workflow.add_cascade(:reserve_stock, &saga_reserve_stock/1,
+      compensate: &saga_release_stock/1
+    )
+    |> Workflow.add_cascade(:charge_card, &saga_charge_card/1,
+      deps: [:reserve_stock],
+      compensate: &saga_refund_card/1
+    )
+    |> Workflow.add_cascade(:ship_order, &saga_ship_order/1,
+      deps: [:charge_card],
+      max_attempts: 1
+    )
+  end
+
   def media_processing do
     [workflow_name: "media-processing"]
     |> Workflow.new()
@@ -834,12 +883,13 @@ defmodule WebDev.WorkflowGenerator do
   @max_delay 60_000
 
   @workflows [
-    :document_processing,
-    :order_fulfillment,
-    :data_migration,
-    :tenant_onboarding,
     :approval_chain,
-    :media_processing
+    :data_migration,
+    :document_processing,
+    :media_processing,
+    :order_fulfillment,
+    :payment_saga,
+    :tenant_onboarding
   ]
 
   def start_link(opts) do

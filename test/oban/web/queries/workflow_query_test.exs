@@ -1,12 +1,19 @@
 defmodule Oban.Web.Repo.WorkflowQueryTest do
   use Oban.Web.Case, async: false
 
-  alias Oban.Web.{Workflow, WorkflowQuery}
+  alias Oban.Web.{CompensationFixture, Workflow, WorkflowQuery}
+  alias Oban.Web.Workflows.Helpers
 
   @moduletag :pro
 
+  @compile {:no_warn_undefined, Oban.Web.CompensationFixture}
+
   setup context do
-    opts = Map.get(context, :oban_opts, [])
+    opts =
+      context
+      |> Map.get(:oban_opts, [])
+      |> Keyword.put_new(:engine, Oban.Pro.Engine)
+
     name = start_supervised_oban!(opts)
     conf = Oban.config(name)
 
@@ -53,6 +60,16 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       assert ["wf-video"] == workflow_ids(conf, workers: ~w(VideoProcessor))
       assert ["wf-audio"] == workflow_ids(conf, workers: ~w(AudioProcessor))
       assert [] == workflow_ids(conf, workers: ~w(UnknownWorker))
+    end
+
+    test "filtering by kind", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf)
+
+      assert [saga.compensation_id] == workflow_ids(conf, kinds: ["compensation"])
+      assert [saga.id] == workflow_ids(conf, kinds: ["standard"])
+
+      assert sort([saga.id, saga.compensation_id]) ==
+               workflow_ids(conf, kinds: ["compensation", "standard"])
     end
 
     test "filtering by state", %{conf: conf} do
@@ -157,6 +174,142 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
     end
   end
 
+  describe "get_workflow_graph/3 compensation metadata" do
+    test "including the compensate declaration on forward jobs", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf)
+
+      %{jobs: jobs} = WorkflowQuery.get_workflow_graph(conf, saga.id)
+
+      charge = Enum.find(jobs, &(&1.meta["name"] == "charge"))
+      ship = Enum.find(jobs, &(&1.meta["name"] == "ship"))
+
+      assert %{"kind" => "worker"} = charge.meta["compensate"]
+      refute ship.meta["compensate"]
+    end
+
+    test "including origin links on compensating jobs", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf)
+      charge = saga.jobs["charge"]
+
+      %{jobs: [job]} = WorkflowQuery.get_workflow_graph(conf, saga.compensation_id)
+
+      assert job.meta["origin_job_id"] == charge.id
+      assert job.meta["origin_name"] == "charge"
+      assert job.meta["origin_workflow_id"] == saga.id
+      assert job.meta["origin_worker"] =~ "ChargeCard"
+    end
+  end
+
+  describe "suggest/3" do
+    test "suggesting workflow kinds", %{conf: conf} do
+      assert [{"compensation", _, _}] = WorkflowQuery.suggest("kinds:comp", conf)
+
+      assert [{"compensation", _, _}, {"standard", _, _}] =
+               WorkflowQuery.suggest("kinds:", conf)
+    end
+
+    test "omitting compensation workflows from name and worker suggestions", %{conf: conf} do
+      CompensationFixture.insert_compensated_saga!(conf, name: "order-fulfillment")
+
+      names = suggestions(WorkflowQuery.suggest("names:", conf))
+      workers = suggestions(WorkflowQuery.suggest("workers:", conf))
+
+      assert "order-fulfillment" in names
+
+      refute Helpers.compensation_worker() in names
+      refute Helpers.compensation_worker() in workers
+    end
+  end
+
+  describe "get_compensation_steps/3" do
+    test "pairing compensating jobs with the workers they roll back", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf)
+      charge = saga.jobs["charge"]
+
+      assert [step] = WorkflowQuery.get_compensation_steps(conf, saga.compensation_id)
+
+      assert %{meta: %{"origin_name" => "charge"}} = step
+      assert step.meta["origin_job_id"] == charge.id
+      assert step.meta["origin_worker"] =~ "ChargeCard"
+    end
+
+    test "tolerating a compensating job whose origin was pruned", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf)
+
+      Repo.delete_all(where(Job, id: ^saga.jobs["charge"].id))
+
+      assert [step] = WorkflowQuery.get_compensation_steps(conf, saga.compensation_id)
+
+      assert step.meta["origin_name"] == "charge"
+      refute Map.has_key?(step.meta, "origin_worker")
+    end
+  end
+
+  describe "compensation linking" do
+    test "linking an origin and its compensation in both directions", %{conf: conf} do
+      saga = CompensationFixture.insert_compensated_saga!(conf, name: "order-fulfillment")
+
+      %{id: origin_id, compensation_id: comp_id} = saga
+
+      origin = WorkflowQuery.get_workflow(conf, origin_id)
+      compensation = WorkflowQuery.get_workflow(conf, comp_id)
+
+      assert %{id: ^comp_id} = WorkflowQuery.get_compensation(conf, origin)
+
+      assert %{id: ^origin_id, name: "order-fulfillment"} =
+               WorkflowQuery.get_origin(conf, compensation)
+    end
+
+    test "returning nil for a workflow without compensation links", %{conf: conf} do
+      insert_workflow!(conf, "wf-plain", worker: "PlainWorker")
+
+      workflow = WorkflowQuery.get_workflow(conf, "wf-plain")
+
+      assert nil == WorkflowQuery.get_compensation(conf, workflow)
+      assert nil == WorkflowQuery.get_origin(conf, workflow)
+    end
+  end
+
+  describe "get_root_workflow/3" do
+    test "returning a root workflow unchanged", %{conf: conf} do
+      insert_workflow!(conf, "wf-root", worker: "RootWorker")
+
+      workflow = WorkflowQuery.get_workflow(conf, "wf-root")
+
+      assert %{id: "wf-root"} = WorkflowQuery.get_root_workflow(conf, workflow)
+    end
+
+    test "walking up nested sub-workflows to the family root", %{conf: conf} do
+      insert_workflow!(conf, "wf-root", compensation_id: "wf-comp")
+      insert_workflow!(conf, "wf-mid", parent_id: "wf-root")
+      insert_workflow!(conf, "wf-leaf", parent_id: "wf-mid")
+
+      leaf = WorkflowQuery.get_workflow(conf, "wf-leaf")
+
+      assert %{id: "wf-root", compensation_id: "wf-comp"} =
+               WorkflowQuery.get_root_workflow(conf, leaf)
+    end
+
+    test "stopping at a workflow whose parent is missing", %{conf: conf} do
+      insert_workflow!(conf, "wf-orphan", parent_id: "wf-gone")
+
+      orphan = WorkflowQuery.get_workflow(conf, "wf-orphan")
+
+      assert %{id: "wf-orphan"} = WorkflowQuery.get_root_workflow(conf, orphan)
+    end
+
+    test "stopping once the ancestor depth is exhausted", %{conf: conf} do
+      insert_workflow!(conf, "wf-root")
+      insert_workflow!(conf, "wf-child", parent_id: "wf-root")
+
+      child = WorkflowQuery.get_workflow(conf, "wf-child")
+
+      assert %{id: "wf-child"} = WorkflowQuery.get_root_workflow(conf, child, 0)
+    end
+  end
+
+  defp suggestions(suggested), do: Enum.map(suggested, fn {value, _, _} -> value end)
+
   defp workflow_ids(conf, params) do
     conf
     |> WorkflowQuery.all_workflows(Map.new(params))
@@ -166,7 +319,7 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
 
   defp sort(list), do: Enum.sort(list)
 
-  defp insert_workflow!(conf, workflow_id, opts) do
+  defp insert_workflow!(conf, workflow_id, opts \\ []) do
     state = Keyword.get(opts, :state, "available")
     queue = Keyword.get(opts, :queue, "default") |> to_string()
     worker = Keyword.get(opts, :worker, "DefaultWorker")
@@ -175,7 +328,8 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       %{
         id: workflow_id,
         name: Keyword.get(opts, :name),
-        parent_id: nil,
+        parent_id: Keyword.get(opts, :parent_id),
+        compensation_id: Keyword.get(opts, :compensation_id),
         inserted_at: DateTime.utc_now(),
         meta: %{"queues" => [queue], "workers" => [worker]}
       }
@@ -186,6 +340,7 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       :id,
       :name,
       :parent_id,
+      :compensation_id,
       :inserted_at,
       :meta,
       :suspended,

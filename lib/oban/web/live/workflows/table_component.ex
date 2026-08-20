@@ -74,6 +74,13 @@ defmodule Oban.Web.Workflows.TableComponent do
               {@workflow.display_name}
             </span>
 
+            <span
+              :if={@workflow.compensation?}
+              class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+            >
+              Compensation
+            </span>
+
             <div :if={Enum.any?(@workflow.queues)} class="flex flex-wrap items-center gap-1.5 mt-1">
               <span
                 :for={queue <- @workflow.queues}

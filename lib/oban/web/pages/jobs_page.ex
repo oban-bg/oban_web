@@ -4,7 +4,18 @@ defmodule Oban.Web.JobsPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.{JobQuery, Metrics, Page, QueueQuery, SearchComponent, SortComponent, Telemetry}
+
+  alias Oban.Web.{
+    JobQuery,
+    Metrics,
+    Page,
+    QueueQuery,
+    SearchComponent,
+    SortComponent,
+    Telemetry,
+    WorkflowQuery
+  }
+
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
 
@@ -59,6 +70,7 @@ defmodule Oban.Web.JobsPage do
               diagnostics_at={@diagnostics_at}
               history={@history}
               init_state={@init_state}
+              compensating_job={@compensating_job}
               job={@detailed}
               module={DetailComponent}
               os_time={@os_time}
@@ -192,7 +204,7 @@ defmodule Oban.Web.JobsPage do
     """
   end
 
-  @keep_on_mount ~w(default_params detailed jobs nodes params queues selected states)a
+  @keep_on_mount ~w(compensating_job default_params detailed jobs nodes params queues selected states)a
 
   @impl Page
   def handle_mount(socket) do
@@ -203,6 +215,7 @@ defmodule Oban.Web.JobsPage do
     assigns = Map.drop(socket.assigns, @keep_on_mount)
 
     %{socket | assigns: assigns}
+    |> assign_new(:compensating_job, fn -> nil end)
     |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:diagnostics, fn -> nil end)
@@ -255,6 +268,7 @@ defmodule Oban.Web.JobsPage do
     diagnostics_at = socket.assigns.diagnostics_at
 
     assign(socket,
+      compensating_job: compensating_job(conf, detailed),
       detailed: detailed,
       diagnostics: diagnostics,
       diagnostics_at: diagnostics_at,
@@ -294,6 +308,7 @@ defmodule Oban.Web.JobsPage do
         {:noreply,
          socket
          |> assign(detailed: job, show_new_form: false, page_title: page_title(job))
+         |> assign(compensating_job: compensating_job(conf, job))
          |> assign(diagnostics: nil, diagnostics_at: nil)
          |> assign(history: history)
          |> assign(params: params)}
@@ -593,4 +608,10 @@ defmodule Oban.Web.JobsPage do
 
     QueueQuery.all_queues(%{}, conf, counts)
   end
+
+  defp compensating_job(conf, %Oban.Job{} = job) do
+    WorkflowQuery.get_compensating_job(conf, job)
+  end
+
+  defp compensating_job(_conf, _job), do: nil
 end

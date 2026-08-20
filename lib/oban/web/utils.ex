@@ -34,6 +34,10 @@ defmodule Oban.Web.Utils do
 
   def has_workflows?(conf), do: has_table?("oban_workflows", conf)
 
+  def has_compensations?(conf) do
+    has_workflows?(conf) and has_column?("oban_workflows", "compensation_id", conf)
+  end
+
   def has_pro? do
     persistent_cache(:pro?, fn -> Code.ensure_loaded?(Oban.Pro) end)
   end
@@ -56,6 +60,20 @@ defmodule Oban.Web.Utils do
         from("tables")
         |> put_query_prefix("information_schema")
         |> where(table_schema: ^prefix, table_name: ^table_name)
+        |> select(true)
+
+      Repo.one(conf, query) == true
+    end)
+  end
+
+  defp has_column?(table_name, column_name, conf) do
+    %{name: oban_name, prefix: prefix} = conf
+
+    persistent_cache({:column?, oban_name, table_name, column_name}, fn ->
+      query =
+        from("columns")
+        |> put_query_prefix("information_schema")
+        |> where(table_schema: ^prefix, table_name: ^table_name, column_name: ^column_name)
         |> select(true)
 
       Repo.one(conf, query) == true

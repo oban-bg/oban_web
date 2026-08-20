@@ -4,6 +4,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
   alias Oban.Web.Components.Core
   alias Oban.Web.Timing
   alias Oban.Web.WorkflowQuery
+  alias Oban.Web.Workflows.Helpers
 
   @states ~w(suspended available scheduled executing retryable completed cancelled discarded)a
 
@@ -18,6 +19,12 @@ defmodule Oban.Web.Workflows.DetailComponent do
       |> assign_new(:graph_open?, fn -> true end)
       |> assign_new(:subs_open?, fn -> match?([_ | _], sub_workflows) end)
       |> assign_new(:graph_data, fn -> %{jobs: [], sub_workflows: []} end)
+      |> assign_new(:compensation, fn -> nil end)
+      |> assign_new(:compensation_status, fn -> :none end)
+      |> assign_new(:compensation_steps, fn -> [] end)
+      |> assign_new(:compensation_policy, fn -> [] end)
+      |> assign_new(:origin_workflow, fn -> nil end)
+      |> assign_new(:comp_open?, fn -> true end)
       |> push_graph_data()
 
     {:ok, socket}
@@ -42,6 +49,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           pro_available?={@pro_available?}
           workflow={@workflow}
           parent_workflow={@parent_workflow}
+          origin_workflow={@origin_workflow}
         />
 
         <div class="grid grid-cols-6 gap-6 px-3 py-6">
@@ -55,6 +63,18 @@ defmodule Oban.Web.Workflows.DetailComponent do
         </div>
 
         <.graph_section myself={@myself} graph_open?={@graph_open?} graph_data={@graph_data} />
+
+        <.compensation_section
+          :if={@compensation_status != :none}
+          access={@access}
+          comp_open?={@comp_open?}
+          compensation={@compensation}
+          myself={@myself}
+          pro_available?={@pro_available?}
+          policy={@compensation_policy}
+          status={@compensation_status}
+          steps={@compensation_steps}
+        />
 
         <.sub_workflows_section
           myself={@myself}
@@ -88,6 +108,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
   attr :pro_available?, :boolean, required: true
   attr :workflow, :map, required: true
   attr :parent_workflow, :map, default: nil
+  attr :origin_workflow, :map, default: nil
 
   defp header(assigns) do
     ~H"""
@@ -101,10 +122,11 @@ defmodule Oban.Web.Workflows.DetailComponent do
           type="button"
         >
           <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
-          <span class="text-lg font-bold ml-2">{@workflow.name || @workflow.id}</span>
+          <span class="text-lg font-bold ml-2">{Helpers.display_name(@workflow)}</span>
         </button>
 
         <.parent_breadcrumb :if={@parent_workflow} parent={@parent_workflow} />
+        <.origin_breadcrumb :if={@origin_workflow} origin={@origin_workflow} />
       </div>
 
       <div class="flex space-x-3">
@@ -152,6 +174,26 @@ defmodule Oban.Web.Workflows.DetailComponent do
         class="ml-1 font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400"
       >
         {@parent.name || @parent.id}
+      </.link>
+    </div>
+    """
+  end
+
+  attr :origin, :map, required: true
+
+  defp origin_breadcrumb(assigns) do
+    ~H"""
+    <div
+      class="flex items-center ml-3 text-sm text-gray-500 dark:text-gray-400"
+      id="origin-breadcrumb"
+    >
+      <Icons.icon name="icon-arrow-path-rounded" class="w-4 h-4 mr-1" />
+      <span>compensating</span>
+      <.link
+        navigate={oban_path([:workflows, @origin.id])}
+        class="ml-1 font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400"
+      >
+        {Helpers.display_name(@origin)}
       </.link>
     </div>
     """
@@ -405,6 +447,188 @@ defmodule Oban.Web.Workflows.DetailComponent do
     """
   end
 
+  # Compensation Section
+
+  attr :access, :any, required: true
+  attr :comp_open?, :boolean, required: true
+  attr :compensation, :map, default: nil
+  attr :myself, :any, required: true
+  attr :policy, :list, default: []
+  attr :pro_available?, :boolean, required: true
+  attr :status, :atom, required: true
+  attr :steps, :list, default: []
+
+  defp compensation_section(assigns) do
+    ~H"""
+    <div class="border-t border-gray-200 dark:border-gray-700">
+      <div class="px-3 py-6">
+        <button
+          id="comp-toggle"
+          type="button"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          phx-click="toggle-comp"
+          phx-target={@myself}
+        >
+          <Icons.icon
+            name="icon-chevron-right"
+            class={["w-5 h-5 transition-transform", @comp_open? && "rotate-90"]}
+          />
+          <span class="font-semibold">Compensation</span>
+          <.compensation_badge status={@status} />
+        </button>
+
+        <div
+          :if={@comp_open?}
+          class="mt-3 bg-gray-50 dark:bg-gray-800 rounded-md overflow-hidden border border-gray-200 dark:border-gray-700"
+          id="compensation-detail"
+        >
+          <div class="flex items-center justify-between px-3 py-2">
+            <div class="flex items-center gap-1.5">
+              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+                Triggers On
+              </span>
+              <span
+                :for={state <- @policy}
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+              >
+                {state}
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <.link
+                :if={@compensation}
+                id="compensation-link"
+                navigate={oban_path([:workflows, @compensation.id])}
+                class="inline-flex items-center text-sm font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400"
+              >
+                View Workflow
+              </.link>
+
+              <Core.icon_button
+                :if={@compensation}
+                id="comp-cancel"
+                icon="x_circle"
+                label="Cancel"
+                color="yellow"
+                tooltip="Cancel the compensation jobs"
+                disabled={
+                  not @pro_available? or not can?(:cancel_workflows, @access) or
+                    @status != :executing
+                }
+                phx-target={@myself}
+                phx-click="cancel-compensation"
+              />
+
+              <Core.icon_button
+                :if={@compensation}
+                id="comp-retry"
+                icon="arrow_path"
+                label="Retry"
+                color="blue"
+                tooltip="Retry the failed compensation jobs"
+                disabled={
+                  not @pro_available? or not can?(:retry_workflows, @access) or
+                    @status != :failed
+                }
+                phx-target={@myself}
+                phx-click="retry-compensation"
+              />
+            </div>
+          </div>
+
+          <table :if={Enum.any?(@steps)} class="min-w-full">
+            <thead>
+              <tr class="bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-500">
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                  Step
+                </th>
+                <th class="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider">
+                  Rolls Back
+                </th>
+                <th class="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider">
+                  Attempt
+                </th>
+                <th class="px-3 py-2 text-center text-xs font-medium uppercase tracking-wider">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
+              <.compensation_step_row :for={step <- @steps} step={step} />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :step, :map, required: true
+
+  defp compensation_step_row(assigns) do
+    ~H"""
+    <tr class="hover:bg-gray-100 dark:hover:bg-gray-700/50">
+      <td class="px-3 py-3 font-medium text-sm text-gray-700 dark:text-gray-300">
+        <.link
+          navigate={oban_path([:jobs, @step.id])}
+          class="hover:text-violet-600 dark:hover:text-violet-400"
+        >
+          {@step.meta["origin_name"]}
+        </.link>
+      </td>
+      <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
+        <.link
+          :if={@step.meta["origin_job_id"]}
+          navigate={oban_path([:jobs, @step.meta["origin_job_id"]])}
+          class="hover:text-violet-600 dark:hover:text-violet-400"
+        >
+          {@step.meta["origin_worker"] || @step.meta["origin_job_id"]}
+        </.link>
+      </td>
+      <td class="px-3 py-3 text-right text-sm text-gray-500 dark:text-gray-400 tabular">
+        {@step.attempt}/{@step.max_attempts}
+      </td>
+      <td class="px-3 py-3 text-center">
+        <.status_icon state={@step.state} />
+      </td>
+    </tr>
+    """
+  end
+
+  attr :status, :atom, required: true
+
+  defp compensation_badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+      compensation_badge_class(@status)
+    ]}>
+      {Helpers.compensation_label(@status)}
+    </span>
+    """
+  end
+
+  defp compensation_badge_class(:executing) do
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+  end
+
+  defp compensation_badge_class(:completed) do
+    "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300"
+  end
+
+  defp compensation_badge_class(:failed) do
+    "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+  end
+
+  defp compensation_badge_class(:pending) do
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300"
+  end
+
+  defp compensation_badge_class(_status) do
+    "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+  end
+
   # Sub-workflows Section
 
   attr :myself, :any, required: true
@@ -567,6 +791,22 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
     socket = assign(socket, :graph_open?, graph_open?)
     socket = if graph_open?, do: push_graph_data(socket), else: socket
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle-comp", _params, socket) do
+    {:noreply, assign(socket, :comp_open?, not socket.assigns[:comp_open?])}
+  end
+
+  def handle_event("cancel-compensation", _params, socket) do
+    send(self(), {:cancel_workflow, socket.assigns.compensation.id})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("retry-compensation", _params, socket) do
+    send(self(), {:retry_workflow, socket.assigns.compensation.id})
 
     {:noreply, socket}
   end

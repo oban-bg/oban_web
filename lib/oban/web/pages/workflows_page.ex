@@ -5,17 +5,22 @@ defmodule Oban.Web.WorkflowsPage do
 
   alias Oban.Pro.Workflow
   alias Oban.Web.{Page, SearchComponent, SortComponent, Telemetry, Utils, WorkflowQuery}
-  alias Oban.Web.Workflows.{DetailComponent, TableComponent}
+  alias Oban.Web.Workflows.{DetailComponent, Helpers, TableComponent}
 
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
 
-  @known_params ~w(ids limit names queues sort_by sort_dir states workers)
+  @known_params ~w(ids kinds limit names queues sort_by sort_dir states workers)
 
   @keep_on_mount ~w(
+    compensation
+    compensation_policy
+    compensation_status
+    compensation_steps
     default_params
     detail
     sub_workflows
     graph_data
+    origin_workflow
     params
     parent_workflow
     workflow
@@ -43,6 +48,11 @@ defmodule Oban.Web.WorkflowsPage do
               pro_available?={@pro_available?}
               workflow={@workflow}
               parent_workflow={@parent_workflow}
+              origin_workflow={@origin_workflow}
+              compensation={@compensation}
+              compensation_policy={@compensation_policy}
+              compensation_status={@compensation_status}
+              compensation_steps={@compensation_steps}
               sub_workflows={@sub_workflows}
               graph_data={@graph_data}
             />
@@ -179,8 +189,13 @@ defmodule Oban.Web.WorkflowsPage do
     |> assign(:default_params, default)
     |> assign(:has_workflows?, Utils.has_workflows?(socket.assigns.conf))
     |> assign(:pro_available?, Utils.has_pro?())
+    |> assign_new(:compensation, fn -> nil end)
+    |> assign_new(:compensation_policy, fn -> [] end)
+    |> assign_new(:compensation_status, fn -> :none end)
+    |> assign_new(:compensation_steps, fn -> [] end)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:sub_workflows, fn -> [] end)
+    |> assign_new(:origin_workflow, fn -> nil end)
     |> assign_new(:params, fn -> default end)
     |> assign_new(:parent_workflow, fn -> nil end)
     |> assign_new(:show_less?, fn -> false end)
@@ -198,17 +213,7 @@ defmodule Oban.Web.WorkflowsPage do
         socket
 
       detail ->
-        workflow = WorkflowQuery.get_workflow(conf, detail)
-        sub_workflows = WorkflowQuery.get_sub_workflows(conf, detail)
-        parent_workflow = WorkflowQuery.get_sup_workflow(conf, detail)
-        graph_data = WorkflowQuery.get_workflow_graph(conf, detail)
-
-        assign(socket,
-          workflow: workflow,
-          sub_workflows: sub_workflows,
-          parent_workflow: parent_workflow,
-          graph_data: graph_data
-        )
+        assign_detail(socket, detail)
 
       true ->
         workflows = WorkflowQuery.all_workflows(conf, params)
@@ -224,26 +229,18 @@ defmodule Oban.Web.WorkflowsPage do
 
   @impl Page
   def handle_params(%{"id" => workflow_id}, _uri, socket) do
-    conf = socket.assigns.conf
-
-    workflow = WorkflowQuery.get_workflow(conf, workflow_id)
-    sub_workflows = WorkflowQuery.get_sub_workflows(conf, workflow_id)
-    parent_workflow = WorkflowQuery.get_sup_workflow(conf, workflow_id)
-    graph_data = WorkflowQuery.get_workflow_graph(conf, workflow_id)
-
-    title = if workflow, do: workflow.name || workflow_id, else: "Workflow"
-
     socket =
-      assign(socket,
-        detail: workflow_id,
-        workflow: workflow,
-        sub_workflows: sub_workflows,
-        parent_workflow: parent_workflow,
-        graph_data: graph_data,
-        page_title: page_title(title)
-      )
+      socket
+      |> assign(detail: workflow_id)
+      |> assign_detail(workflow_id)
 
-    {:noreply, socket}
+    title =
+      case socket.assigns.workflow do
+        %Oban.Web.Workflow{} = workflow -> Helpers.display_name(workflow)
+        _workflow -> "Workflow"
+      end
+
+    {:noreply, assign(socket, page_title: page_title(title))}
   end
 
   def handle_params(params, _uri, socket) do
@@ -332,5 +329,52 @@ defmodule Oban.Web.WorkflowsPage do
 
   def handle_info(_event, socket) do
     {:noreply, socket}
+  end
+
+  defp assign_detail(socket, workflow_id) do
+    conf = socket.assigns.conf
+    workflow = WorkflowQuery.get_workflow(conf, workflow_id)
+
+    socket
+    |> assign(
+      workflow: workflow,
+      sub_workflows: WorkflowQuery.get_sub_workflows(conf, workflow_id),
+      parent_workflow: WorkflowQuery.get_sup_workflow(conf, workflow_id),
+      graph_data: WorkflowQuery.get_workflow_graph(conf, workflow_id)
+    )
+    |> assign_compensation(workflow)
+  end
+
+  defp assign_compensation(socket, %Oban.Web.Workflow{} = workflow) do
+    conf = socket.assigns.conf
+
+    root = WorkflowQuery.get_root_workflow(conf, workflow)
+    compensation = WorkflowQuery.get_compensation(conf, root)
+
+    steps =
+      case compensation do
+        %Oban.Web.Workflow{id: id} -> WorkflowQuery.get_compensation_steps(conf, id)
+        _compensation -> []
+      end
+
+    socket
+    |> assign(
+      compensation: compensation,
+      compensation_policy: Helpers.compensation_policy(root),
+      compensation_status: Helpers.compensation_status(root, compensation),
+      compensation_steps: steps,
+      origin_workflow: WorkflowQuery.get_origin(conf, workflow)
+    )
+    |> update(:graph_data, &Helpers.put_compensated_states(&1, steps))
+  end
+
+  defp assign_compensation(socket, _workflow) do
+    assign(socket,
+      compensation: nil,
+      compensation_policy: [],
+      compensation_status: :none,
+      compensation_steps: [],
+      origin_workflow: nil
+    )
   end
 end
