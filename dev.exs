@@ -1015,9 +1015,23 @@ oban_opts = [
     ],
     notifications: 10
   ],
+  pruner:
+    {Oban.Pro.Pruner,
+     sync_mode: :manual,
+     schedule: "*/5 * * * *",
+     rules: [
+       [name: "audit", worker: "Oban.Workers.SecurityScanner", max_age: {1, :day}, archive: true],
+       [name: "exports", queue: "exports", state: :completed, max_age: {1, :week}],
+       [name: "analysis", queue: "analysis", max_len: 500, limit: 2_500],
+       [name: "failures", state: :discarded, max_age: {2, :weeks}, timeout: 15_000],
+       [name: "cancellations", state: :cancelled, max_age: {3, :days}],
+       [name: "retained", queue: "media", max_age: :infinity],
+       [name: "stale-events", queue: "events", max_age: {1, :hour}, paused: true],
+       [name: "mailer-receipts", worker: "Oban.Workers.ReceiptMailer", max_len: 25_000],
+       [name: "default", max_age: {1, :day}, limit: 5_000]
+     ]},
   plugins: [
     {Oban.Pro.Lifeline, []},
-    {Oban.Pro.Pruner, mode: {:max_age, {1, :days}}},
     {Oban.Pro.Cron,
      crontab: [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},

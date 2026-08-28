@@ -139,9 +139,12 @@ defmodule Oban.Web.Resolver do
           | :cancel_workflows
           | :delete_crons
           | :delete_jobs
+          | :delete_pruners
           | :insert_crons
           | :insert_jobs
+          | :insert_pruners
           | :pause_crons
+          | :pause_pruners
           | :pause_queues
           | :retry_jobs
           | :retry_workflows
@@ -149,6 +152,7 @@ defmodule Oban.Web.Resolver do
           | :stop_queues
           | :update_crons
           | :update_jobs
+          | :update_pruners
 
   @type qualifier :: :args | :meta | :nodes | :queues | :tags | :workers
 
@@ -318,9 +322,12 @@ defmodule Oban.Web.Resolver do
   * `:cancel_workflows`
   * `:delete_crons`
   * `:delete_jobs`
+  * `:delete_pruners`
   * `:insert_crons`
   * `:insert_jobs`
+  * `:insert_pruners`
   * `:pause_crons`
+  * `:pause_pruners`
   * `:pause_queues`
   * `:retry_jobs`
   * `:retry_workflows`
@@ -328,6 +335,7 @@ defmodule Oban.Web.Resolver do
   * `:stop_queues`
   * `:update_crons`
   * `:update_jobs`
+  * `:update_pruners`
 
   Actions which aren't listed are considered disabled.
 

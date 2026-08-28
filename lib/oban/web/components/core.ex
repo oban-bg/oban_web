@@ -260,6 +260,9 @@ defmodule Oban.Web.Components.Core do
   defp badge_icon(%{name: "square_2x2"} = assigns),
     do: ~H[<Icons.icon name="icon-square-2x2" class="h-4 w-4 shrink-0" />]
 
+  defp badge_icon(%{name: "square_stack"} = assigns),
+    do: ~H[<Icons.icon name="icon-square-stack" class="h-4 w-4 shrink-0" />]
+
   defp badge_icon(%{name: "rectangle_group"} = assigns),
     do: ~H[<Icons.icon name="icon-rectangle-group" class="h-4 w-4 shrink-0" />]
 

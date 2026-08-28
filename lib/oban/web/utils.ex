@@ -19,7 +19,7 @@ defmodule Oban.Web.Utils do
     Oban.Pro.Plugins.DynamicQueues => Oban.Pro.Queues
   }
 
-  def engine(%{engine: engine}) when is_atom(engine), do: Map.get(@renamed, engine, engine)
+  def engine(%{engine: engine}), do: normalize_module(engine)
 
   def pro_engine?(conf), do: engine(conf) == Oban.Pro.Engine
 
@@ -30,7 +30,22 @@ defmodule Oban.Web.Utils do
     def cron_entry_name(entry), do: Oban.Plugins.Cron.entry_name(entry)
   end
 
+  def has_service?(conf, service), do: match?({:ok, _service}, fetch_service(conf, service))
+
+  def fetch_service(%{plugins: plugins}, service) when is_list(plugins) do
+    Enum.find_value(plugins, :error, fn plugin ->
+      case normalize_plugin(plugin) do
+        {^service, opts} -> {:ok, {service, opts}}
+        _plugin -> nil
+      end
+    end)
+  end
+
+  def fetch_service(_conf, _service), do: :error
+
   def has_crons?(conf), do: has_table?("oban_crons", conf)
+
+  def has_pruners?(conf), do: has_table?("oban_pruners", conf)
 
   def has_workflows?(conf), do: has_table?("oban_workflows", conf)
 
@@ -48,6 +63,11 @@ defmodule Oban.Web.Utils do
       val -> val
     end
   end
+
+  defp normalize_module(module) when is_atom(module), do: Map.get(@renamed, module, module)
+
+  defp normalize_plugin({module, opts}), do: {normalize_module(module), opts}
+  defp normalize_plugin(module) when is_atom(module), do: {normalize_module(module), []}
 
   defp has_table?(_table_name, %{engine: Oban.Engines.Dolphin}), do: false
   defp has_table?(_table_name, %{engine: Oban.Engines.Lite}), do: false

@@ -13,6 +13,8 @@ defmodule Oban.Web.FormComponents do
   attr :disabled, :boolean, default: false
   attr :hint, :string, default: nil
   attr :rows, :integer, default: 2
+  attr :min, :integer, default: nil
+  attr :max, :integer, default: nil
 
   def form_field(assigns) do
     ~H"""
@@ -48,6 +50,8 @@ defmodule Oban.Web.FormComponents do
           id={@name}
           name={@name}
           value={@value}
+          min={@min}
+          max={@max}
           disabled={@disabled}
           placeholder={@placeholder}
           required={@required}

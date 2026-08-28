@@ -44,6 +44,12 @@ defmodule Oban.Web.Telemetry do
   | `:cancel_jobs`       | `:job_ids`         |
   | `:delete_jobs`       | `:job_ids`         |
   | `:retry_jobs`        | `:job_ids`         |
+  | `:pause_pruner`      | `:name`            |
+  | `:resume_pruner`     | `:name`            |
+  | `:delete_pruner`     | `:name`            |
+  | `:move_pruner`       | `:name`            |
+  | `:insert_pruner`     | `:name`            |
+  | `:update_pruner`     | `:name`            |
 
   ## Action Logging
 
@@ -160,7 +166,7 @@ defmodule Oban.Web.Telemetry do
 
       output =
         meta
-        |> Map.take([:queue, :limit, :job_ids, :kind])
+        |> Map.take([:queue, :limit, :job_ids, :kind, :name])
         |> Map.put(:user, inspect_user(user))
         |> Map.put(:oban_name, inspect_config(conf))
         |> Map.put(:duration, System.convert_time_unit(measure.duration, :native, :microsecond))

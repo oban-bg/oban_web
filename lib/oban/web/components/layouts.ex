@@ -172,7 +172,7 @@ defmodule Oban.Web.Layouts do
     ~H"""
     <nav aria-label="Main" class="flex space-x-2">
       <.link
-        :for={page <- [:jobs, :queues, :crons, :workflows]}
+        :for={page <- [:jobs, :queues, :crons, :pruners, :workflows]}
         class={link_class(@page, page)}
         data-shortcut={JS.patch(oban_path(page))}
         id={"nav-#{page}"}

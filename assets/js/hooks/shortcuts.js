@@ -3,6 +3,7 @@ const PAIRS = {
   "?": "#shortcuts",
   c: "#nav-crons",
   j: "#nav-jobs",
+  p: "#nav-pruners",
   q: "#nav-queues",
   w: "#nav-workflows",
   r: "#refresh-selector",

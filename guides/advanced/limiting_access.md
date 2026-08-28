@@ -92,9 +92,12 @@ The available fine-grained actions are:
 | `:cancel_workflows` | Cancel all jobs in a workflow          |
 | `:delete_crons`     | Delete dynamic crons                   |
 | `:delete_jobs`      | Permanently delete jobs                |
+| `:delete_pruners`   | Delete pruning rules                   |
 | `:insert_crons`     | Create new dynamic crons               |
 | `:insert_jobs`      | Insert new jobs                        |
+| `:insert_pruners`   | Create new pruning rules               |
 | `:pause_crons`      | Pause and resume crons                 |
+| `:pause_pruners`    | Pause and resume pruning rules         |
 | `:pause_queues`     | Pause and resume queues                |
 | `:retry_jobs`       | Retry failed or discarded jobs         |
 | `:retry_workflows`  | Retry failed jobs in a workflow        |
@@ -102,6 +105,7 @@ The available fine-grained actions are:
 | `:stop_queues`      | Stop queues entirely                   |
 | `:update_crons`     | Edit cron configuration                |
 | `:update_jobs`      | Edit job fields like worker or args    |
+| `:update_pruners`   | Edit and reorder pruning rules         |
 
 Actions not listed in the keyword list are considered disabled. For example, this configuration
 allows job management but prevents any queue operations:
