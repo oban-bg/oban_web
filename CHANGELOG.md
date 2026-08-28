@@ -77,6 +77,30 @@ The queue detail page adds status badges for paused, partial, and terminating st
 pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
 options and burst mode configuration.
 
+## v2.12.7 - 2026-08-28
+
+### Changes
+
+- [Web] Support Oban v2.24 module reorganization
+
+  Oban v2.24 flattened plugin, service, and engine modules to top-level names and dropped
+  `Oban.Plugins.Cron.entry_name/1`, which broke static cron name resolution.
+
+  Entry names now resolve through `Oban.Cron` when it's available and fall back to the legacy
+  module, so a single release supports v2.21 through v2.24.
+
+### Bug Fixes
+
+- [Cron] Build cron jobs through new/2 when available
+
+  The cron "Run Now" action now resolves the worker module and overlays the cron options on top of
+  the worker's defaults, matching the jobs page behavior.
+
+- [Cron] Remove window function from `crontab_history` function
+
+  Drop the window function and use an order/limit clause directly in the lateral subquery. This
+  caps each iteration at 60 rows instead of doing a full table scan each time in CockroachDB.
+
 ## v2.12.6 - 2026-07-06
 
 ### Enhancements
