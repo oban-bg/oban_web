@@ -6,9 +6,7 @@ defmodule Oban.Web.CronQuery do
 
   alias Oban.Cron.Expression
   alias Oban.{Job, Met, Repo}
-  alias Oban.Web.{Cron, Search, Utils}
-
-  @compile {:no_warn_undefined, Oban.Pro.Cron}
+  alias Oban.Web.{Cron, CronEntry, Search, Utils}
 
   @suggest_qualifier [
     {"names:", "cron entry name", "names:my-cron"},
@@ -78,7 +76,7 @@ defmodule Oban.Web.CronQuery do
 
     dynamic_names =
       if Utils.has_crons?(conf) do
-        query = from c in Oban.Pro.Cron, select: c.name
+        query = from c in CronEntry, select: c.name
         Repo.all(conf, query)
       else
         []
@@ -173,7 +171,7 @@ defmodule Oban.Web.CronQuery do
 
       Utils.has_crons?(conf) ->
         query =
-          from c in Oban.Pro.Cron,
+          from c in CronEntry,
             where: c.name == ^name,
             select: {c.expression, c.worker, c.opts, c.name, true, c.paused},
             limit: 1
@@ -224,12 +222,12 @@ defmodule Oban.Web.CronQuery do
   end
 
   defp entry_name({_expr, _worker, opts} = entry) do
-    Map.get_lazy(opts, "name", fn -> Oban.Plugins.Cron.entry_name(entry) end)
+    Map.get_lazy(opts, "name", fn -> Utils.cron_entry_name(entry) end)
   end
 
   defp dynamic_crontab(conf) do
     if Utils.has_crons?(conf) do
-      query = select(Oban.Pro.Cron, [c], {c.expression, c.worker, c.opts, c.name, true, c.paused})
+      query = select(CronEntry, [c], {c.expression, c.worker, c.opts, c.name, true, c.paused})
 
       Repo.all(conf, query)
     else

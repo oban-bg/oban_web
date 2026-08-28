@@ -16,6 +16,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
   alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Web.Utils
   alias Oban.Workers.{DefaultsCronWorker, DetailCronWorker}
 
   @moduletag :pro
@@ -81,7 +82,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       refresh(live)
       assert has_element?(live, "span.bg-violet-100", "Dynamic")
 
-      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
@@ -107,7 +108,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "pause button is disabled for static crons" do
-      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
@@ -126,7 +127,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
         ]
       )
 
-      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       html = refresh(live)
@@ -225,7 +226,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "delete button is disabled for static crons" do
-      static_name = Oban.Plugins.Cron.entry_name({"* * * * *", DetailCronWorker, []})
+      static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)

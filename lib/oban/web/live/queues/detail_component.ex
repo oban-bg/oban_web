@@ -11,6 +11,7 @@ defmodule Oban.Web.Queues.DetailComponent do
   alias Oban.Web.Queue
   alias Oban.Web.Queues.DetailInstanceComponent
   alias Oban.Web.Timing
+  alias Oban.Web.Utils
 
   @impl Phoenix.LiveComponent
   def update(%{local_limit: new_limit}, socket) do
@@ -1102,7 +1103,5 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Pro Helpers
 
-  defp missing_pro?(%Config{engine: engine}) do
-    engine in [Oban.Queue.BasicEngine, Oban.Engines.Basic]
-  end
+  defp missing_pro?(%Config{} = conf), do: not Utils.pro_engine?(conf)
 end

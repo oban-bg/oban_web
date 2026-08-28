@@ -135,10 +135,10 @@ defmodule ObanDash.Application do
   end
 
   defp engine do
-    if Code.ensure_loaded?(Oban.Pro.Engines.Smart) do
-      Oban.Pro.Engines.Smart
-    else
-      Oban.Engines.Basic
+    cond do
+      Code.ensure_loaded?(Oban.Pro.Engine) -> Oban.Pro.Engine
+      Code.ensure_loaded?(Oban.Pro.Engines.Smart) -> Oban.Pro.Engines.Smart
+      true -> Oban.Engines.Basic
     end
   end
 end

@@ -43,19 +43,29 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     assert html =~ "web.2/oban"
   end
 
-  test "disabling advanced features when Smart engine isn't available" do
+  test "disabling advanced features when the Pro engine isn't available" do
     conf = Config.new(engine: Basic, repo: Repo)
     html = render_component(Component, assigns(conf: conf), router: Router)
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
     assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
 
-    # Pro isn't available, we check whether the engine isn't the BasicEngine instead
+    # Engines other than the Pro engine can't apply global or rate limits
     conf = %{conf | engine: FakeEngine}
     html = render_component(Component, assigns(conf: conf), router: Router)
 
-    refute has_fragment?(html, "#global-form [rel=requires-pro]")
-    refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
+    assert has_fragment?(html, "#global-form [rel=requires-pro]")
+    assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
+  end
+
+  test "enabling advanced features for the Pro engine, new and legacy names" do
+    for engine <- [Oban.Pro.Engine, Oban.Pro.Engines.Smart] do
+      conf = %{Config.new(engine: Basic, repo: Repo) | engine: engine}
+      html = render_component(Component, assigns(conf: conf), router: Router)
+
+      refute has_fragment?(html, "#global-form [rel=requires-pro]")
+      refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
+    end
   end
 
   test "displaying status badges based on queue state" do
