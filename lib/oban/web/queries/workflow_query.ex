@@ -133,7 +133,8 @@ defmodule Oban.Web.WorkflowQuery do
         (SELECT dep->>1
          FROM ?.oban_jobs j2,
               LATERAL jsonb_array_elements(j2.meta->'deps') AS dep
-         WHERE j2.meta->>'workflow_id' = ?
+         WHERE j2.meta \\? 'workflow_id'
+           AND j2.meta->>'workflow_id' = ?
            AND jsonb_typeof(dep) = 'array'
            AND dep->>0 = ?
          LIMIT 1)

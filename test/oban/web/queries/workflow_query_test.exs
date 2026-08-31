@@ -98,6 +98,35 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
     end
   end
 
+  describe "get_workflow_graph/3 sub-workflow parent deps" do
+    test "resolves parent_dep for every sub-workflow", %{conf: conf} do
+      insert_job!(%{}, conf: conf, meta: %{workflow_id: "parent", name: "step-a"})
+      insert_job!(%{}, conf: conf, meta: %{workflow_id: "parent", name: "step-b"})
+
+      for {sub, dep} <- [{"sub-1", "step-a"}, {"sub-2", "step-b"}] do
+        insert_job!(%{},
+          conf: conf,
+          meta: %{
+            workflow_id: sub,
+            sup_workflow_id: "parent",
+            name: "#{sub}-step",
+            deps: [["parent", dep]]
+          }
+        )
+      end
+
+      insert_job!(%{},
+        conf: conf,
+        meta: %{workflow_id: "sub-3", sup_workflow_id: "parent", name: "no-dep"}
+      )
+
+      %{sub_workflows: subs} = WorkflowQuery.get_workflow_graph(conf, "parent")
+
+      assert [{"sub-1", "step-a"}, {"sub-2", "step-b"}, {"sub-3", nil}] ==
+               subs |> Enum.map(&{&1.workflow_id, &1.parent_dep}) |> Enum.sort()
+    end
+  end
+
   describe "get_sub_workflows/3" do
     test "returns sub-workflows for a parent workflow", %{conf: conf} do
       insert_workflow!(conf, "parent-wf", name: "parent", worker: "ParentWorker")
