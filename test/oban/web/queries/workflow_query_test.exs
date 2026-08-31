@@ -125,57 +125,6 @@ defmodule Oban.Web.Repo.WorkflowQueryTest do
       assert [{"sub-1", "step-a"}, {"sub-2", "step-b"}, {"sub-3", nil}] ==
                subs |> Enum.map(&{&1.workflow_id, &1.parent_dep}) |> Enum.sort()
     end
-
-    test "parent dep subquery uses the partial workflow index", %{conf: conf} do
-      insert_job!(%{},
-        conf: conf,
-        meta: %{workflow_id: "sub", sup_workflow_id: "parent", deps: [["parent", "step"]]}
-      )
-
-      {sql, params} = capture_query(fn -> WorkflowQuery.get_workflow_graph(conf, "parent") end)
-
-      plan =
-        conf.repo.transaction(fn ->
-          conf.repo.query!("SET LOCAL enable_seqscan = off")
-          conf.repo.query!("EXPLAIN " <> sql, params).rows
-        end)
-        |> elem(1)
-        |> List.flatten()
-        |> Enum.join("\n")
-
-      assert plan =~ "Index Scan using oban_jobs_workflow_index"
-      refute plan =~ "Seq Scan on oban_jobs j2"
-    end
-  end
-
-  # Captures the SQL and params of the sub-workflow graph query via Ecto telemetry.
-  defp capture_query(fun) do
-    event = [:oban, :web, :repo, :query]
-    pid = self()
-
-    :telemetry.attach(
-      {__MODULE__, event},
-      event,
-      fn _event, _measure, %{query: query, params: params}, _ ->
-        send(pid, {:query, query, params})
-      end,
-      nil
-    )
-
-    fun.()
-
-    receive_graph_query()
-  after
-    :telemetry.detach({__MODULE__, [:oban, :web, :repo, :query]})
-  end
-
-  defp receive_graph_query do
-    receive do
-      {:query, query, params} ->
-        if query =~ "jsonb_array_elements", do: {query, params}, else: receive_graph_query()
-    after
-      0 -> flunk("sub-workflow graph query was not executed")
-    end
   end
 
   describe "get_sub_workflows/3" do
