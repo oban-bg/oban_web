@@ -319,6 +319,7 @@ defmodule Oban.Web.JobsPage do
         queues: queues(conf, socket.assigns.queues),
         states: states(conf, socket.assigns.states)
       )
+      |> flash_restricted_filters(params, resolver)
 
     {:noreply, socket}
   end
@@ -509,7 +510,7 @@ defmodule Oban.Web.JobsPage do
         local_set = MapSet.new(socket.assigns.jobs, & &1.id)
 
         socket.assigns.params
-        |> JobQuery.all_job_ids(socket.assigns.conf)
+        |> JobQuery.all_job_ids(socket.assigns.conf, resolver: socket.assigns.resolver)
         |> MapSet.new()
         |> MapSet.union(local_set)
       end
@@ -518,6 +519,22 @@ defmodule Oban.Web.JobsPage do
   end
 
   # Param Helpers
+
+  defp flash_restricted_filters(socket, params, resolver) do
+    case JobQuery.restricted_filters(params, resolver: resolver) do
+      [] ->
+        socket
+
+      restricted ->
+        fields = Enum.map_join(restricted, ", ", &to_string/1)
+
+        put_flash_with_clear(
+          socket,
+          :error,
+          "Filtering by #{fields} requires a workers filter, e.g. workers:MyApp.Worker"
+        )
+    end
+  end
 
   defp params_with_defaults(params, socket) do
     params =

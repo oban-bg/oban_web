@@ -28,6 +28,15 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       def jobs_query_limit(:executing), do: 10
     end
 
+    defmodule RestrictedResolver do
+      def filter_requires_worker?(:tags), do: false
+      def filter_requires_worker?(_qualifier), do: true
+    end
+
+    defmodule FullyRestrictedResolver do
+      def filter_requires_worker?(_qualifier), do: true
+    end
+
     describe "parse/1" do
       import JobQuery, only: [parse: 1]
 
@@ -243,6 +252,45 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [_, _] = suggest("workers:", resolver: HintResolver)
         assert [_, _, _] = suggest("queues:", resolver: HintResolver)
       end
+
+      @tag skip: repo == Oban.Web.MyXQLRepo
+      test "restricting args suggestions with a resolver that implements filter_requires_worker?/1" do
+        insert!(%{id: 1, account_id: 1}, worker: MyApp.Alpha)
+        insert!(%{id: 2, name: "Gamma"}, worker: MyApp.Gamma)
+
+        # Blocked without a workers filter
+        assert [] = suggest("args.", resolver: RestrictedResolver)
+        assert [] = suggest("args.id:", resolver: RestrictedResolver)
+        assert [] = suggest("meta.", resolver: RestrictedResolver)
+
+        # Completion falls back to the original terms when suggestions are blocked
+        assert "args.i" == JobQuery.complete("args.i", @conf, resolver: RestrictedResolver)
+
+        # Scoped to the filtered workers
+        opts = [params: %{workers: ~w(MyApp.Alpha)}, resolver: RestrictedResolver]
+
+        assert ~w(account_id: id:) =
+                 "args."
+                 |> suggest(opts)
+                 |> Enum.map(&elem(&1, 0))
+                 |> Enum.sort()
+
+        assert [{"1", _, _}] = suggest("args.id:", opts)
+      end
+
+      test "restricting tags suggestions with a resolver that implements filter_requires_worker?/1" do
+        insert!(%{}, worker: MyApp.Alpha, tags: ["audio"])
+        insert!(%{}, worker: MyApp.Gamma, tags: ["video"])
+
+        assert [] = suggest("tags:", resolver: FullyRestrictedResolver)
+
+        opts = [params: %{workers: ~w(MyApp.Alpha)}, resolver: FullyRestrictedResolver]
+
+        assert [{"audio", _, _}] = suggest("tags:", opts)
+
+        # The default resolver leaves tags suggestions unrestricted
+        assert [_, _] = suggest("tags:", params: %{})
+      end
     end
 
     describe "all_jobs/2" do
@@ -383,6 +431,24 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
                  |> Enum.map(& &1.id)
       end
 
+      test "requiring a workers filter with a resolver that implements filter_requires_worker?/1" do
+        insert!(%{ref: 0, mode: "video"}, worker: Media, meta: %{batch_id: 1}, tags: ["audio"])
+
+        opts = [resolver: RestrictedResolver]
+
+        assert [] = filter_refs([args: [~w(mode), "video"]], opts)
+        assert [] = filter_refs([meta: [~w(batch_id), "1"]], opts)
+
+        assert [0] = filter_refs([args: [~w(mode), "video"], workers: ~w(Media)], opts)
+        assert [0] = filter_refs([meta: [~w(batch_id), "1"], workers: ~w(Media)], opts)
+
+        # The resolver doesn't restrict tags
+        assert [0] = filter_refs([tags: ~w(audio)], opts)
+
+        # Without the resolver nothing is restricted
+        assert [0] = filter_refs(args: [~w(mode), "video"])
+      end
+
       test "restrict the query with a resolver that implements jobs_query_limit/1" do
         insert!(%{ref: 0}, state: "executing")
         insert!(%{ref: 1}, state: "executing")
@@ -410,6 +476,42 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
         assert [job_1.id, job_2.id, job_3.id] == all_job_ids.(%{}, [])
         assert [job_2.id, job_3.id] == all_job_ids.(%{workers: ~w(MyApp.VideoB)}, [])
+
+        assert [] ==
+                 all_job_ids.(%{args: [~w(ref), "2"]}, resolver: RestrictedResolver)
+
+        assert [job_2.id] ==
+                 all_job_ids.(
+                   %{args: [~w(ref), "2"], workers: ~w(MyApp.VideoB)},
+                   resolver: RestrictedResolver
+                 )
+      end
+    end
+
+    describe "restricted_filters/2" do
+      test "listing filters that require an accompanying workers filter" do
+        args_params = %{args: [~w(mode), "video"], state: "available"}
+
+        assert [] = JobQuery.restricted_filters(args_params)
+
+        assert [] =
+                 JobQuery.restricted_filters(%{state: "available"}, resolver: RestrictedResolver)
+
+        assert [:args] = JobQuery.restricted_filters(args_params, resolver: RestrictedResolver)
+
+        assert [:args, :meta] =
+                 args_params
+                 |> Map.put(:meta, [~w(batch_id), "1"])
+                 |> JobQuery.restricted_filters(resolver: RestrictedResolver)
+
+        assert [] =
+                 args_params
+                 |> Map.put(:workers, ~w(Media))
+                 |> JobQuery.restricted_filters(resolver: RestrictedResolver)
+
+        # Tags aren't restricted by this resolver
+        assert [] =
+                 JobQuery.restricted_filters(%{tags: ~w(audio)}, resolver: RestrictedResolver)
       end
     end
 

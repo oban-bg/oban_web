@@ -202,6 +202,25 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "DeltaWorker")
       refute has_job?(live, "GammaWorker")
     end
+
+    test "requiring a workers filter for json filters with a restricted resolver" do
+      insert_job!([ref: 1, mode: "video"], worker: AlphaWorker)
+
+      without_worker = URI.encode_query(args: "mode++video", state: "available")
+
+      {:ok, live, html} = live(build_conn(), "/oban-restricted/jobs?#{without_worker}")
+
+      refute has_job?(live, "AlphaWorker")
+      assert html =~ "Filtering by args requires a workers filter"
+
+      with_worker =
+        URI.encode_query(args: "mode++video", state: "available", workers: "AlphaWorker")
+
+      {:ok, live, html} = live(build_conn(), "/oban-restricted/jobs?#{with_worker}")
+
+      assert has_job?(live, "AlphaWorker")
+      refute html =~ "Filtering by args requires a workers filter"
+    end
   end
 
   describe "sorting" do

@@ -250,8 +250,8 @@ defmodule Oban.Web.WorkflowQuery do
     Search.append(terms, choice, @known_qualifiers)
   end
 
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
+  def complete(terms, conf, opts \\ []) do
+    case suggest(terms, conf, opts) do
       [] -> terms
       [{match, _, _} | _] -> append(terms, match)
     end

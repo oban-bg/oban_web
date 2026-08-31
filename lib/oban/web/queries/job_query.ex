@@ -182,6 +182,25 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
+  # When a qualifier requires a workers filter, suggestion queries are either scoped to the
+  # workers currently filtered on, or blocked entirely when no workers filter is present.
+  defp suggest_scope(field, opts) do
+    if filter_requires_worker?(field, opts) do
+      case Keyword.get(opts, :params) do
+        %{workers: [_ | _] = workers} -> {:workers, workers}
+        _ -> :blocked
+      end
+    else
+      :unscoped
+    end
+  end
+
+  defp scope_query(query, {:workers, workers}), do: where(query, [j], j.worker in ^workers)
+  defp scope_query(query, :unscoped), do: query
+
+  defp scope_key(key, {:workers, workers}), do: {key, Enum.sort(workers)}
+  defp scope_key(key, :unscoped), do: key
+
   defp suggest_static(possibilities, fragment) do
     for {field, _, _} = suggest <- possibilities,
         String.starts_with?(field, fragment),
@@ -189,6 +208,13 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp suggest_json_path(field, term, conf, opts) do
+    case suggest_scope(field, opts) do
+      :blocked -> []
+      scope -> suggest_json_path(field, term, conf, opts, scope)
+    end
+  end
+
+  defp suggest_json_path(field, term, conf, opts, scope) do
     {frag, path} =
       term
       |> String.split(".")
@@ -196,7 +222,10 @@ defmodule Oban.Web.JobQuery do
 
     json_path = json_path(path)
 
-    query = hint_limit_query(field, opts, conf)
+    query =
+      field
+      |> hint_limit_query(opts, conf)
+      |> scope_query(scope)
 
     subquery =
       cond do
@@ -244,6 +273,7 @@ defmodule Oban.Web.JobQuery do
       end
 
     {field, :keys, path}
+    |> scope_key(scope)
     |> cache_query(query, conf)
     |> Kernel.--(["return:"])
     |> Search.restrict_suggestions(frag)
@@ -252,12 +282,20 @@ defmodule Oban.Web.JobQuery do
   defp suggest_json_vals(_field, "", _frag, _conf, _opts), do: []
 
   defp suggest_json_vals(field, path, frag, conf, opts) do
+    case suggest_scope(field, opts) do
+      :blocked -> []
+      scope -> suggest_json_vals(field, path, frag, conf, opts, scope)
+    end
+  end
+
+  defp suggest_json_vals(field, path, frag, conf, opts, scope) do
     json_path = json_path(path)
     scalars = ~w(boolean double integer number real string text)
 
     query =
       field
       |> hint_limit_query(opts, conf)
+      |> scope_query(scope)
       |> distinct(true)
 
     query =
@@ -281,6 +319,7 @@ defmodule Oban.Web.JobQuery do
       end
 
     {field, :vals, path}
+    |> scope_key(scope)
     |> cache_query(query, conf)
     |> Enum.map(&String.slice(to_string(&1), 0..90))
     |> Search.restrict_suggestions(frag)
@@ -318,7 +357,17 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp suggest_tags(frag, conf, opts) do
-    query = hint_limit_query(:tags, opts, conf)
+    case suggest_scope(:tags, opts) do
+      :blocked -> []
+      scope -> suggest_tags(frag, conf, opts, scope)
+    end
+  end
+
+  defp suggest_tags(frag, conf, opts, scope) do
+    query =
+      :tags
+      |> hint_limit_query(opts, conf)
+      |> scope_query(scope)
 
     query =
       cond do
@@ -338,6 +387,7 @@ defmodule Oban.Web.JobQuery do
       |> distinct(true)
 
     :tags
+    |> scope_key(scope)
     |> cache_query(query, conf)
     |> Search.restrict_suggestions(frag)
   end
@@ -362,8 +412,8 @@ defmodule Oban.Web.JobQuery do
     Search.append(terms, choice, @known_qualifiers)
   end
 
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
+  def complete(terms, conf, opts \\ []) do
+    case suggest(terms, conf, opts) do
       [] ->
         terms
 
@@ -374,35 +424,60 @@ defmodule Oban.Web.JobQuery do
 
   # Queries
 
+  @worker_scoped_filters ~w(args meta tags)a
+
+  def restricted_filters(params, opts \\ []) do
+    if Map.has_key?(params, :workers) do
+      []
+    else
+      for field <- @worker_scoped_filters,
+          Map.has_key?(params, field),
+          filter_requires_worker?(field, opts),
+          do: field
+    end
+  end
+
+  defp filter_requires_worker?(field, opts) do
+    Resolver.call_with_fallback(opts[:resolver], :filter_requires_worker?, [field])
+  end
+
   def all_jobs(params, conf, opts \\ []) do
-    params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
+    if Enum.empty?(restricted_filters(params, opts)) do
+      params = params_with_defaults(params)
+      conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
 
-    query =
-      params.state
-      |> jobs_limit_query(opts, conf)
-      |> select(^@list_fields)
-      |> where(^conditions)
-      |> order(params.sort_by, params.state, params.sort_dir)
-      |> limit(^params.limit)
+      query =
+        params.state
+        |> jobs_limit_query(opts, conf)
+        |> select(^@list_fields)
+        |> where(^conditions)
+        |> order(params.sort_by, params.state, params.sort_dir)
+        |> limit(^params.limit)
 
-    Repo.all(conf, query)
+      Repo.all(conf, query)
+    else
+      []
+    end
   end
 
   def all_job_ids(params, conf, opts \\ []) do
-    params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
-    limit = bulk_action_limit(params.state, opts)
+    if Enum.empty?(restricted_filters(params, opts)) do
+      params = params_with_defaults(params)
+      conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
+      limit = bulk_action_limit(params.state, opts)
 
-    query =
-      params.state
-      |> jobs_limit_query(opts, conf)
-      |> select([j], j.id)
-      |> where(^conditions)
-      |> order(params.sort_by, params.state, params.sort_dir)
-      |> limit(^limit)
+      query =
+        params.state
+        |> jobs_limit_query(opts, conf)
+        |> select([j], j.id)
+        |> where(^conditions)
+        |> order(params.sort_by, params.state, params.sort_dir)
+        |> limit(^limit)
 
-    Repo.all(conf, query)
+      Repo.all(conf, query)
+    else
+      []
+    end
   end
 
   defp params_with_defaults(params) do

@@ -42,6 +42,23 @@ and values at that path after a `:`.
 > Comma separation doesn't work for `args` or `meta` filters. That's because they use a highly
 > optimized containment query which doesn't support multiple values.
 
+## Requiring a Worker Filter
+
+Searching `args`, `meta`, or `tags` relies on GIN indexes for acceptable performance in Postgres.
+If your application doesn't maintain those indexes, unscoped json filters degrade into sequential
+scans over the entire jobs table. Use the `c:Oban.Web.Resolver.filter_requires_worker?/1`
+callback to require a `workers:` filter alongside json filters, so queries can narrow results
+with a btree index on `worker` (or a composite such as `(worker, state)`) instead:
+
+```elixir
+def filter_requires_worker?(_qualifier), do: true
+```
+
+With the callback enabled, filtering by a json qualifier without a `workers:` filter returns no
+results and displays a prompt to add a worker filter. Autocomplete suggestions for restricted
+qualifiers are also disabled until a `workers:` filter is active, and once it is, suggestion
+queries are scoped to the filtered workers.
+
 ## Quoted Searches
 
 If your search query contains whitespace or punctuation you need to surround it with quotation

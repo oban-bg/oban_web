@@ -110,6 +110,13 @@ defmodule Oban.Web.Layouts do
   end
 
   def notify(assigns) do
+    error = Phoenix.Flash.get(assigns.flash, :error)
+
+    assigns =
+      assigns
+      |> assign(:message, error || Phoenix.Flash.get(assigns.flash, :info))
+      |> assign(:error?, is_binary(error))
+
     ~H"""
     <div
       id="notice"
@@ -120,12 +127,14 @@ defmodule Oban.Web.Layouts do
         <div class="rounded-lg ring-1 ring-black/5 overflow-hidden">
           <div class="p-4">
             <div class="flex items-center">
-              <div class="flex-shrink-0 text-green-400">
-                <Icons.icon name="icon-check-circle" />
+              <div class={["flex-shrink-0", if(@error?, do: "text-red-400", else: "text-green-400")]}>
+                <Icons.icon name={
+                  if @error?, do: "icon-exclamation-circle", else: "icon-check-circle"
+                } />
               </div>
               <div class="ml-3 w-0 flex-1">
                 <p class="text-sm leading-5 font-medium text-gray-900 dark:text-gray-100">
-                  {Phoenix.Flash.get(assigns.flash, :info)}
+                  {@message}
                 </p>
               </div>
               <div class="ml-4 flex-shrink-0 flex">

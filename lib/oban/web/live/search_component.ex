@@ -12,7 +12,10 @@ defmodule Oban.Web.SearchComponent do
   def update(assigns, socket) do
     suggestions =
       Map.get_lazy(assigns, :suggestions, fn ->
-        assigns.queryable.suggest(socket.assigns.buffer, assigns.conf, resolver: assigns.resolver)
+        assigns.queryable.suggest(socket.assigns.buffer, assigns.conf,
+          params: assigns.params,
+          resolver: assigns.resolver
+        )
       end)
 
     socket =
@@ -255,7 +258,11 @@ defmodule Oban.Web.SearchComponent do
   end
 
   def handle_event("complete", _params, socket) do
-    buffer = socket.assigns.queryable.complete(socket.assigns.buffer, socket.assigns.conf)
+    buffer =
+      socket.assigns.queryable.complete(socket.assigns.buffer, socket.assigns.conf,
+        params: socket.assigns.params,
+        resolver: socket.assigns.resolver
+      )
 
     socket =
       socket
@@ -307,6 +314,7 @@ defmodule Oban.Web.SearchComponent do
     fun = fn ->
       suggestions =
         socket.assigns.queryable.suggest(buffer, socket.assigns.conf,
+          params: socket.assigns.params,
           resolver: socket.assigns.resolver
         )
 

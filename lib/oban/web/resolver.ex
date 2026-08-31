@@ -56,6 +56,9 @@ defmodule Oban.Web.Resolver do
 
     @impl true
     def bulk_action_limit(_state), do: 1_000
+
+    @impl true
+    def filter_requires_worker?(_qualifier), do: false
   end
   ```
 
@@ -89,6 +92,9 @@ defmodule Oban.Web.Resolver do
 
   * [Bulk Action Limit](#c:bulk_action_limit/1)—Control the maximum number of jobs that can be
   acted on at once, e.g. cancelled.
+
+  * [Require Worker Filter](#c:filter_requires_worker?/1)—Require a `workers` filter alongside
+  `args`, `meta`, or `tags` filters so queries can use btree indexes instead of GIN indexes.
 
   * [Format Job Args](#c:format_job_args/1)—Override the default verbose args formatting.
 
@@ -446,7 +452,37 @@ defmodule Oban.Web.Resolver do
   """
   @callback bulk_action_limit(Job.unique_state()) :: :infinity | pos_integer()
 
-  @optional_callbacks format_job_args: 1,
+  @doc """
+  Require a `workers` filter before jobs may be filtered by `args`, `meta`, or `tags`.
+
+  Filtering by the json based `args`, `meta`, or `tags` fields relies on GIN indexes for
+  acceptable performance in Postgres. When those indexes aren't available, unscoped json filters
+  degrade into sequential scans over the entire table. Requiring a `workers` filter allows the
+  database to narrow the search with a btree index on `worker`, or a composite index such as
+  `(worker, state)`, and only apply the json conditions to the matching rows.
+
+  When this callback returns `true` for a qualifier, filtering jobs by that qualifier without an
+  accompanying `workers` filter returns no results and the dashboard displays a prompt to add a
+  worker filter. Autocomplete suggestions for that qualifier are also disabled until a `workers`
+  filter is active, and once it is, suggestion queries are scoped to the filtered workers.
+
+  Without a callback implemented no filters require a worker, matching the historic behavior.
+
+  ## Examples
+
+  Require a worker filter for all json based filters:
+
+      def filter_requires_worker?(_qualifier), do: true
+
+  Only require a worker filter for `args` and `meta`, leaving `tags` unrestricted:
+
+      def filter_requires_worker?(:tags), do: false
+      def filter_requires_worker?(_qualifier), do: true
+  """
+  @callback filter_requires_worker?(qualifier :: :args | :meta | :tags) :: boolean()
+
+  @optional_callbacks filter_requires_worker?: 1,
+                      format_job_args: 1,
                       format_job_meta: 1,
                       format_recorded: 2,
                       format_signal: 2,
@@ -558,4 +594,7 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def bulk_action_limit(_state), do: 1_000
+
+  @doc false
+  def filter_requires_worker?(_qualifier), do: false
 end

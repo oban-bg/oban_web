@@ -66,8 +66,8 @@ defmodule Oban.Web.QueueQuery do
     Search.append(terms, choice, @known_qualifiers)
   end
 
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
+  def complete(terms, conf, opts \\ []) do
+    case suggest(terms, conf, opts) do
       [] ->
         terms
 

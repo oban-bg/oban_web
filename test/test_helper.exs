@@ -46,6 +46,13 @@ defmodule ReadOnlyResolver do
   def resolve_access(_user), do: :read_only
 end
 
+defmodule RestrictedFilterResolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl Oban.Web.Resolver
+  def filter_requires_worker?(_qualifier), do: true
+end
+
 defmodule Oban.Web.Test.Router do
   use Phoenix.Router
 
@@ -62,6 +69,10 @@ defmodule Oban.Web.Test.Router do
     oban_dashboard "/oban"
     oban_dashboard "/oban-limited", as: :oban_limited, resolver: LimitedResolver
     oban_dashboard "/oban-readonly", as: :oban_readonly, resolver: ReadOnlyResolver
+
+    oban_dashboard "/oban-restricted",
+      as: :oban_restricted,
+      resolver: RestrictedFilterResolver
 
     oban_dashboard "/oban-private",
       as: :oban_private,
