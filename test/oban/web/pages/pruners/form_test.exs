@@ -16,6 +16,12 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert_patch(live, "/oban/pruners/new")
 
       assert live |> element("#new-pruner-form") |> has_element?()
+
+      panel = live |> element("#new-pruner-panel") |> render()
+
+      assert panel =~ ~s(role="dialog")
+      assert panel =~ ~s(aria-modal="true")
+      assert panel =~ ~s(aria-labelledby="new-pruner-title")
     end
 
     test "creating a rule that retains by age" do
@@ -34,7 +40,7 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       |> render_submit()
 
       assert_patch(live, "/oban/pruners")
-      assert render(live) =~ "Rule exports created"
+      assert render(live) =~ "Rule &quot;exports&quot; created"
 
       rule = Pruner.get("exports")
 
@@ -43,7 +49,7 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert rule.archive
     end
 
-    test "creating a rule that retains by length" do
+    test "creating rules that retain by length or forever" do
       live = start_pruner_live!(rules: [[name: "default", max_len: 1_000]])
 
       live
@@ -66,10 +72,8 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert %{worker: "MyApp.Mailer", queue: nil} = rule.match
       assert %{kind: :max_len, value: "500"} = rule.mode
       assert 2_500 == rule.limit
-    end
 
-    test "creating a rule that retains forever" do
-      live = start_pruner_live!(rules: [[name: "default", max_len: 1_000]])
+      render_patch(live, "/oban/pruners/new")
 
       live
       |> form("#new-pruner-form", %{"kind" => "forever"})
@@ -84,7 +88,7 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert %{mode: %{value: "infinity"}} = Pruner.get("audit")
     end
 
-    test "refusing to clobber an existing rule with the same name" do
+    test "surfacing errors without saving" do
       live = start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]])
 
       live
@@ -93,10 +97,6 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
 
       assert live |> element("#new-pruner-errors") |> render() =~ "already exists"
       assert %{mode: %{kind: :max_len}} = Pruner.get("media")
-    end
-
-    test "surfacing parse errors without submitting" do
-      live = start_pruner_live!(rules: [[name: "default", max_len: 1_000]])
 
       live
       |> form("#new-pruner-form", %{"name" => "broken", "age_value" => ""})
@@ -108,7 +108,7 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
   end
 
   describe "editing" do
-    test "seeding the form from the rule being viewed" do
+    test "editing a rule seeded from the one being viewed" do
       live =
         start_pruner_live!(
           path: "/oban/pruners/media",
@@ -120,20 +120,22 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert form =~ ~s(name="queue" value="media")
       assert form =~ ~s(name="age_value" value="7")
       assert form =~ ~s(name="limit" value="2500")
-    end
 
-    test "editing a rule's retention while keeping its unit" do
-      live =
-        start_pruner_live!(
-          path: "/oban/pruners/media",
-          rules: [[name: "media", queue: "media", max_age: {7, :days}]]
-        )
+      refute live |> element("#back-link") |> render() =~ "data-confirm-back"
+
+      live
+      |> form("#pruner-form", %{"age_value" => "3"})
+      |> render_change()
+
+      assert live |> element("#back-link") |> render() =~ "data-confirm-back"
+      assert live |> element("#chain-media") |> render() =~ "data-confirm"
 
       live
       |> form("#pruner-form", %{"age_value" => "3"})
       |> render_submit()
 
-      assert render(live) =~ "Rule media updated"
+      assert render(live) =~ "Rule &quot;media&quot; updated"
+      refute live |> element("#back-link") |> render() =~ "data-confirm-back"
 
       assert %{mode: %{kind: :max_age, value: "3 days"}} = Pruner.get("media")
     end
@@ -142,7 +144,7 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       live =
         start_pruner_live!(
           path: "/oban/pruners/media",
-          rules: [[name: "media", queue: "media", max_len: 500]]
+          rules: [[name: "media", queue: "media", state: :completed, max_len: 500]]
         )
 
       live
@@ -150,27 +152,20 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       |> render_submit()
 
       live
-      |> form("#pruner-form", %{"length_value" => "300"})
-      |> render_submit()
-
-      assert %{mode: %{value: "300"}} = Pruner.get("media")
-    end
-
-    test "clearing a match field on edit" do
-      live =
-        start_pruner_live!(
-          path: "/oban/pruners/media",
-          rules: [[name: "media", queue: "media", state: :completed, max_len: 500]]
-        )
-
-      live
       |> form("#pruner-form", %{"queue" => ""})
       |> render_submit()
 
-      assert %{match: %{queue: nil, state: "completed"}} = Pruner.get("media")
+      assert %{match: %{queue: nil, state: "completed"}, mode: %{value: "400"}} =
+               Pruner.get("media")
+
+      assert {:ok, _rule} = Pruner.update("media", max_len: 250)
+
+      send(live.pid, :refresh)
+
+      assert live |> element("#pruner-form") |> render() =~ ~s(name="length_value" value="250")
     end
 
-    test "refusing to overwrite a rule that changed since the page loaded" do
+    test "recovering when the rule changed since the page loaded" do
       live =
         start_pruner_live!(
           path: "/oban/pruners/media",
@@ -185,9 +180,16 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
 
       assert live |> element("#pruner-form-errors") |> render() =~ "changed elsewhere"
       assert %{mode: %{value: "7 days"}} = Pruner.get("media")
+
+      live
+      |> form("#pruner-form", %{"age_value" => "3"})
+      |> render_submit()
+
+      assert render(live) =~ "Rule &quot;media&quot; updated"
+      assert %{mode: %{value: "3 days"}} = Pruner.get("media")
     end
 
-    test "warning when editing a rule declared in configuration" do
+    test "warning only when editing a rule declared in configuration" do
       live =
         start_pruner_live!(
           path: "/oban/pruners/media",
@@ -195,15 +197,10 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
         )
 
       assert live |> element("#pruner-form-configured") |> render() =~ "declared in your Oban"
-    end
 
-    test "staying quiet when editing a rule created at runtime" do
-      _live =
-        start_pruner_live!(path: "/oban/pruners", rules: [[name: "default", max_len: 1_000]])
+      assert {:ok, _rule} = Pruner.insert(name: "events", queue: "events", max_len: 500)
 
-      assert {:ok, _rule} = Pruner.insert(name: "media", queue: "media", max_len: 500)
-
-      {:ok, live, _html} = live(build_conn(), "/oban/pruners/media")
+      render_patch(live, "/oban/pruners/events")
 
       assert live |> element("#pruner-form") |> has_element?()
       refute live |> element("#pruner-form-configured") |> has_element?()

@@ -17,17 +17,14 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
     html = refresh(live)
 
     assert html =~ "No pruning rules"
+
+    live |> element("#empty-new-rule") |> render_click()
+
+    assert_patch(live, "/oban/pruners/new")
   end
 
-  test "displaying rules in evaluation order" do
-    live =
-      start_pruner_live!(
-        rules: [
-          [name: "media", queue: "media", max_len: 500],
-          [name: "audit", worker: "MyApp.Audit", max_age: {90, :days}],
-          [name: "default", max_age: {1, :day}]
-        ]
-      )
+  test "displaying rules in evaluation order with their chain positions" do
+    live = start_pruner_live!(rules: standard_rules())
 
     refresh(live)
 
@@ -35,15 +32,22 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
     assert row_at(table, "media") < row_at(table, "audit")
     assert row_at(table, "audit") < row_at(table, "default")
+
+    assert live |> element(~s(#pruner-media [rel="position"])) |> render() =~ "1"
+    assert live |> element(~s(#pruner-default [rel="position"])) |> render() =~ "4"
+
+    render_patch(live, pruners_path(sort_by: "name"))
+
+    assert live |> element(~s(#pruner-audit [rel="position"])) |> render() =~ "2"
   end
 
   test "displaying a rule's match, mode, and limits" do
     live =
-      start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500, limit: 5_000]])
+      start_pruner_live!(rules: [[name: "app.media", queue: "media", max_len: 500, limit: 5_000]])
 
     refresh(live)
 
-    media = live |> element("#pruner-media") |> render()
+    media = live |> element("#pruner-app-media") |> render()
 
     assert media =~ "queue"
     assert media =~ "media"
@@ -77,6 +81,34 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
     assert default =~ ~s(rel="is-default")
   end
 
+  test "flagging rules that are shadowed by earlier rules" do
+    live =
+      start_pruner_live!(
+        rules: [
+          [name: "broad", max_age: {1, :day}],
+          [name: "media", queue: "media", max_len: 500]
+        ]
+      )
+
+    refresh(live)
+
+    assert has_element?(live, "#pruner-shadowed-media")
+    refute has_element?(live, "#pruner-shadowed-broad")
+  end
+
+  test "showing rules as stored when no pruner is configured" do
+    assert {:ok, _rule} = Pruner.insert(name: "media", queue: "media", max_len: 500)
+
+    {:ok, live, _html} = live(build_conn(), "/oban/pruners")
+
+    refresh(live)
+
+    media = live |> element("#pruner-media") |> render()
+
+    assert media =~ ~s(rel="is-stored")
+    refute media =~ ~s(rel="is-active")
+  end
+
   test "describing rules that match every job" do
     live = start_pruner_live!(rules: [[name: "default", max_age: :infinity]])
 
@@ -97,6 +129,8 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
     assert live |> element("#warning-unconfigured") |> render() =~ "never applied"
     assert live |> element("#warning-no-default") |> render() =~ "retained forever"
+
+    assert live |> element("#pruner-media") |> render() =~ ~s(rel="is-stored")
   end
 
   test "warning when configuration deletes rules on restart" do
@@ -188,13 +222,8 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
       assert ~w(media) = listed(live, modes: "length")
       assert ~w(failures) = listed(live, stats: "paused")
       assert ~w(media audit) = listed(live, names: "media,audit")
-    end
-
-    test "reporting when no rules match the filters" do
-      live = start_pruner_live!(rules: standard_rules())
 
       assert [] = listed(live, queues: "missing")
-
       assert live |> element("#pruners-no-matches") |> render() =~ "No matching rules"
     end
 
@@ -222,10 +251,6 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
         assert_patch(live, pruners_path(sort_by: mode, sort_dir: "asc"))
       end
-    end
-
-    test "listing rules in the sorted order" do
-      live = start_pruner_live!(rules: standard_rules())
 
       assert ~w(audit default failures media) = listed(live, sort_by: "name")
     end
@@ -242,7 +267,7 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
   end
 
   describe "reordering" do
-    test "disabling reorder controls while filtered" do
+    test "disabling reorder controls while filtered or sorted" do
       live = start_pruner_live!([rules: standard_rules()], modes: "age")
 
       refresh(live)
@@ -251,15 +276,10 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
       assert live |> element("#pruner-move-down-audit") |> render() =~
                "Clear filters and sort by order"
-    end
 
-    test "disabling reorder controls while sorted" do
-      live = start_pruner_live!([rules: standard_rules()], sort_by: "name")
-
-      refresh(live)
+      render_patch(live, pruners_path(sort_by: "name"))
 
       assert live |> element("#pruner-move-up-media") |> render() =~ "disabled"
-      assert live |> element("#pruner-move-down-media") |> render() =~ "disabled"
     end
   end
 

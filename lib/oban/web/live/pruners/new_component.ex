@@ -30,10 +30,19 @@ defmodule Oban.Web.Pruners.NewComponent do
             <div
               id="new-pruner-panel"
               class="pointer-events-auto w-screen max-w-md hidden transition-transform translate-x-full"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="new-pruner-title"
             >
-              <div class="flex h-full flex-col overflow-y-scroll bg-white dark:bg-gray-900 shadow-xl">
+              <.focus_wrap
+                id="new-pruner-focus"
+                class="flex h-full flex-col overflow-y-scroll bg-white dark:bg-gray-900 shadow-xl"
+              >
                 <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h2
+                    id="new-pruner-title"
+                    class="text-lg font-semibold text-gray-900 dark:text-gray-100"
+                  >
                     New Pruning Rule
                   </h2>
                   <button
@@ -173,7 +182,7 @@ defmodule Oban.Web.Pruners.NewComponent do
                     </button>
                   </div>
                 </form>
-              </div>
+              </.focus_wrap>
             </div>
           </div>
         </div>
@@ -251,6 +260,8 @@ defmodule Oban.Web.Pruners.NewComponent do
       transition: {"ease-out duration-300", "translate-x-full", "translate-x-0"}
     )
     |> JS.add_class("overflow-hidden", to: "body")
+    |> JS.push_focus()
+    |> JS.focus_first(to: "#new-pruner-form")
   end
 
   defp hide_drawer do
@@ -266,5 +277,6 @@ defmodule Oban.Web.Pruners.NewComponent do
     )
     |> JS.hide(to: "#new-pruner", transition: {"block", "block", "hidden"})
     |> JS.remove_class("overflow-hidden", to: "body")
+    |> JS.pop_focus()
   end
 end

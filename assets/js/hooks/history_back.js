@@ -3,13 +3,13 @@ const HistoryBack = {
     this.el.addEventListener("click", (event) => {
       event.preventDefault();
 
-      window.history.back();
+      this.goBack();
     });
 
     if (this.el.dataset.escapeBack !== undefined) {
       this.handleKeydown = (event) => {
-        if (event.key === "Escape") {
-          window.history.back();
+        if (event.key === "Escape" && !this.withinField(event.target)) {
+          this.goBack();
         }
       };
 
@@ -21,6 +21,18 @@ const HistoryBack = {
     if (this.handleKeydown) {
       window.removeEventListener("keydown", this.handleKeydown);
     }
+  },
+
+  goBack() {
+    const message = this.el.dataset.confirmBack;
+
+    if (!message || window.confirm(message)) {
+      window.history.back();
+    }
+  },
+
+  withinField(target) {
+    return target instanceof Element && target.closest("input, select, textarea") !== null;
   },
 };
 

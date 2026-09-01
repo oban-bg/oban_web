@@ -24,15 +24,6 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert html =~ "1 of 2"
   end
 
-  test "describing a rule that matches every job" do
-    live = start_pruner_live!(rules: [[name: "default", max_age: :infinity]], rule: "default")
-
-    html = render(live)
-
-    assert html =~ "Every completed, cancelled, and discarded job"
-    assert html =~ "Forever"
-  end
-
   test "listing the whole evaluation chain" do
     live =
       start_pruner_live!(
@@ -59,7 +50,7 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
       start_pruner_live!(
         rules: [
           [name: "media", queue: "media", max_len: 500],
-          [name: "default", max_age: {1, :day}]
+          [name: "default", max_age: :infinity]
         ],
         rule: "media"
       )
@@ -71,6 +62,13 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert_patch(live, "/oban/pruners/default")
 
     assert has_element?(live, ~s(#chain-default[aria-current="true"]))
+
+    html = render(live)
+
+    assert html =~ "Every completed, cancelled, and discarded job"
+    assert html =~ "Forever"
+
+    assert live |> element("#detail-delete") |> render() =~ "disabled"
   end
 
   test "warning about a rule that earlier rules already claim" do
@@ -87,37 +85,12 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert live |> element("#chain-retained") |> render() =~ ~s(rel="is-shadowing")
   end
 
-  test "leaving unshadowed rules unmarked" do
-    live =
-      start_pruner_live!(
-        rules: [
-          [name: "retained", queue: "media", max_age: :infinity],
-          [name: "trimmed", queue: "events", state: :completed, max_len: 100]
-        ],
-        rule: "trimmed"
-      )
-
-    refute live |> element("#pruner-shadowed-note") |> has_element?()
-  end
-
-  test "leaving rules that earlier rules only partly overlap unmarked" do
-    live =
-      start_pruner_live!(
-        rules: [
-          [name: "completions", queue: "media", state: :completed, max_len: 100],
-          [name: "cancellations", queue: "media", state: :cancelled, max_len: 100]
-        ],
-        rule: "cancellations"
-      )
-
-    refute live |> element("#pruner-shadowed-note") |> has_element?()
-  end
-
-  test "ignoring paused rules when tracing precedence" do
+  test "leaving rules unmarked when earlier rules are paused or only partly overlap" do
     live =
       start_pruner_live!(
         rules: [
           [name: "retained", queue: "media", max_age: :infinity, paused: true],
+          [name: "cancellations", queue: "media", state: :cancelled, max_len: 100],
           [name: "trimmed", queue: "media", state: :completed, max_len: 100]
         ],
         rule: "trimmed"
@@ -143,13 +116,13 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     live |> element("#detail-pause-resume") |> render_click()
 
     assert live |> element("#status-paused") |> has_element?()
-    assert render(live) =~ "Rule media paused"
+    assert render(live) =~ "Rule &quot;media&quot; paused"
     assert %{paused: true} = Pruner.get("media")
 
     live |> element("#detail-pause-resume") |> render_click()
 
     refute live |> element("#status-paused") |> has_element?()
-    assert render(live) =~ "Rule media resumed"
+    assert render(live) =~ "Rule &quot;media&quot; resumed"
     assert %{paused: false} = Pruner.get("media")
   end
 
@@ -160,14 +133,8 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     live |> element("#detail-delete") |> render_click()
 
     assert_patch(live, "/oban/pruners")
-    assert render(live) =~ "Rule media deleted"
+    assert render(live) =~ "Rule &quot;media&quot; deleted"
     assert is_nil(Pruner.get("media"))
-  end
-
-  test "refusing to delete the default rule" do
-    live = start_pruner_live!(rules: [[name: "default", max_age: {1, :day}]], rule: "default")
-
-    assert live |> element("#detail-delete") |> render() =~ "disabled"
   end
 
   test "refusing to act on a stale copy of a rule" do

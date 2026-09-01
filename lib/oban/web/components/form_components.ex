@@ -33,6 +33,7 @@ defmodule Oban.Web.FormComponents do
           class="translate-y-px"
         >
           <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <span class="sr-only">{@hint}</span>
         </span>
       </label>
       <%= if @type == "textarea" do %>
@@ -42,6 +43,7 @@ defmodule Oban.Web.FormComponents do
           rows={@rows}
           disabled={@disabled}
           placeholder={@placeholder}
+          aria-describedby={@hint && "#{@name}-hint"}
           class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         >{@value}</textarea>
       <% else %>
@@ -55,6 +57,7 @@ defmodule Oban.Web.FormComponents do
           disabled={@disabled}
           placeholder={@placeholder}
           required={@required}
+          aria-describedby={@hint && "#{@name}-hint"}
           class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
         />
       <% end %>
@@ -111,6 +114,7 @@ defmodule Oban.Web.FormComponents do
             value="true"
             checked={@checked}
             disabled={@disabled}
+            aria-describedby={@hint && "#{@name}-hint"}
             class="sr-only peer"
           />
           <span class="block w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:border-blue-500 peer-checked:bg-blue-500" />
@@ -128,6 +132,7 @@ defmodule Oban.Web.FormComponents do
           class="ml-1 translate-y-px"
         >
           <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <span class="sr-only">{@hint}</span>
         </span>
       </label>
     </div>

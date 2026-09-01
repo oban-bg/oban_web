@@ -145,7 +145,7 @@ defmodule Oban.Web.Pruners.Form do
 
   def format_failure(%Ecto.Changeset{} = changeset) do
     if stale?(changeset) do
-      ["Rule was changed elsewhere, reload the page and try again"]
+      ["Rule was changed elsewhere — review the current values, then save again"]
     else
       changeset
       |> Ecto.Changeset.traverse_errors(&interpolate_error/1)
@@ -153,9 +153,11 @@ defmodule Oban.Web.Pruners.Form do
     end
   end
 
-  defp stale?(changeset) do
+  def stale?(%Ecto.Changeset{} = changeset) do
     Enum.any?(changeset.errors, fn {_field, {_message, opts}} -> opts[:stale] end)
   end
+
+  def stale?(_failure), do: false
 
   defp interpolate_error({message, opts}) do
     Regex.replace(~r"%{(\w+)}", message, fn _full, key ->

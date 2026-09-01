@@ -7,16 +7,18 @@ defmodule Oban.Web.Pruners.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="pruners-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
+      <div class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
         <span class="w-7 shrink-0"></span>
-        <.header label="rule" class="w-1/3 text-left" />
-        <div class="ml-auto flex items-center space-x-6">
-          <.header label="match" class="w-96 text-left" />
-          <.header label="retention" class="w-32 text-right" />
-          <.header label="limit" class="w-24 text-right" />
-          <.header label="status" class="w-20 pr-4 text-right" />
+        <div class="flex flex-grow items-center">
+          <.header label="rule" class="w-1/3 text-left" />
+          <div class="ml-auto flex items-center space-x-6">
+            <.header label="match" class="w-96 text-left" />
+            <.header label="retention" class="w-32 text-right" />
+            <.header label="limit" class="w-24 text-right" />
+            <.header label="status" class="w-20 pr-4 text-right" />
+          </div>
         </div>
-      </ul>
+      </div>
 
       <div
         :if={Enum.empty?(@rules) and @filtered?}
@@ -42,7 +44,16 @@ defmodule Oban.Web.Pruners.TableComponent do
           Nothing is being pruned. Rules are created from configuration when the pruner starts, or
           added here at runtime.
         </p>
-        <div class="mt-4">
+        <div class="mt-6 flex items-center justify-center gap-5">
+          <.link
+            :if={can?(:insert_pruners, @access)}
+            id="empty-new-rule"
+            patch={oban_path([:pruners, :new])}
+            class="h-10 flex items-center text-sm bg-white dark:bg-gray-800 px-3 py-2 border rounded-md text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:text-blue-500 hover:border-blue-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 cursor-pointer"
+          >
+            <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> Create a rule
+          </.link>
+
           <a
             href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html"
             target="_blank"
@@ -62,7 +73,10 @@ defmodule Oban.Web.Pruners.TableComponent do
           last_movable={last_movable(@rules)}
           myself={@myself}
           orderable?={@orderable?}
+          position={position_of(rule, @chain)}
           rule={rule}
+          shadowed?={not rule.paused and shadowed_by(rule, @chain) != []}
+          status={@status}
         />
       </ul>
     </div>
@@ -85,23 +99,37 @@ defmodule Oban.Web.Pruners.TableComponent do
   attr :last_movable, :integer, required: true
   attr :myself, :any, required: true
   attr :orderable?, :boolean, required: true
+  attr :position, :integer, required: true
   attr :rule, :map, required: true
+  attr :shadowed?, :boolean, required: true
+  attr :status, :map, required: true
 
   defp rule_row(assigns) do
     ~H"""
     <li
-      id={"pruner-#{@rule.name}"}
+      id={"pruner-#{dom_name(@rule)}"}
       class={[
         "group flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30",
-        @rule.paused && "opacity-60"
+        @rule.paused && "opacity-75"
       ]}
     >
-      <div class="w-7 shrink-0 flex flex-col items-center">
+      <div class="relative w-7 shrink-0 flex flex-col items-center justify-center">
+        <span
+          class={[
+            "text-xs tabular text-gray-400 dark:text-gray-500",
+            not default?(@rule) &&
+              "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
+          ]}
+          rel="position"
+        >
+          {@position}
+        </span>
+
         <.move_button
           :if={not default?(@rule)}
           disabled={not @orderable? or @index == 0 or not can?(:update_pruners, @access)}
           icon="icon-chevron-up"
-          id={"pruner-move-up-#{@rule.name}"}
+          id={"pruner-move-up-#{dom_name(@rule)}"}
           myself={@myself}
           name={@rule.name}
           offset={-1}
@@ -111,7 +139,7 @@ defmodule Oban.Web.Pruners.TableComponent do
           :if={not default?(@rule)}
           disabled={not @orderable? or @index == @last_movable or not can?(:update_pruners, @access)}
           icon="icon-chevron-down"
-          id={"pruner-move-down-#{@rule.name}"}
+          id={"pruner-move-down-#{dom_name(@rule)}"}
           myself={@myself}
           name={@rule.name}
           offset={1}
@@ -119,7 +147,10 @@ defmodule Oban.Web.Pruners.TableComponent do
         />
       </div>
 
-      <.link patch={oban_path([:pruners, @rule.name])} class="flex flex-grow items-center py-3.5">
+      <.link
+        patch={oban_path([:pruners, @rule.name])}
+        class="flex flex-grow items-center py-3.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
+      >
         <div class="w-1/3 min-w-0">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
             {@rule.name}
@@ -139,7 +170,7 @@ defmodule Oban.Web.Pruners.TableComponent do
               :if={@rule.archive}
               label="archive"
               rel="is-archive"
-              class="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+              class="bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
             />
           </div>
         </div>
@@ -148,7 +179,7 @@ defmodule Oban.Web.Pruners.TableComponent do
           <div class="w-96 flex flex-wrap items-center gap-1.5">
             <span
               :if={match_pairs(@rule) == []}
-              class="text-sm italic text-gray-400 dark:text-gray-500"
+              class="text-sm italic text-gray-500 dark:text-gray-400"
             >
               all jobs
             </span>
@@ -168,24 +199,45 @@ defmodule Oban.Web.Pruners.TableComponent do
 
           <span class="w-24 text-right text-sm">{estimate_limit(@rule)}</span>
 
-          <div class="w-20 pr-4 flex justify-end">
+          <div class="w-20 pr-4 flex items-center justify-end gap-1.5">
             <span
-              id={"pruner-status-#{@rule.name}"}
-              data-title={if @rule.paused, do: "Paused", else: "Active"}
+              :if={@shadowed?}
+              id={"pruner-shadowed-#{dom_name(@rule)}"}
+              data-title="Shadowed — earlier rules claim every job it matches"
+              phx-hook="Tippy"
+            >
+              <Icons.icon
+                name="icon-exclamation-circle"
+                class="w-5 h-5 text-amber-500"
+                rel="is-shadowed"
+              />
+              <span class="sr-only">Shadowed by earlier rules</span>
+            </span>
+
+            <span
+              id={"pruner-status-#{dom_name(@rule)}"}
+              data-title={status_title(@rule, @status)}
               phx-hook="Tippy"
             >
               <Icons.icon
                 :if={@rule.paused}
                 name="icon-pause-circle"
-                class="w-5 h-5 text-gray-400"
+                class="w-5 h-5 text-gray-400 dark:text-gray-500"
                 rel="is-paused"
               />
               <Icons.icon
-                :if={not @rule.paused}
+                :if={not @rule.paused and @status.configured?}
                 name="icon-check-circle"
-                class="w-5 h-5 text-green-500"
+                class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
                 rel="is-active"
               />
+              <Icons.icon
+                :if={not @rule.paused and not @status.configured?}
+                name="icon-minus-circle"
+                class="w-5 h-5 text-gray-400 dark:text-gray-500"
+                rel="is-stored"
+              />
+              <span class="sr-only">{status_title(@rule, @status)}</span>
             </span>
           </div>
         </div>
@@ -214,7 +266,8 @@ defmodule Oban.Web.Pruners.TableComponent do
       phx-value-offset={@offset}
       phx-target={@myself}
       class={[
-        "opacity-0 group-hover:opacity-100 transition-opacity",
+        "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity",
+        "rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
         if(@disabled,
           do: "text-gray-300 dark:text-gray-600 cursor-not-allowed",
           else: "text-gray-400 dark:text-gray-500 hover:text-blue-500 cursor-pointer"
@@ -260,4 +313,8 @@ defmodule Oban.Web.Pruners.TableComponent do
   defp move_title(_orderable?, _title) do
     "Clear filters and sort by order to change evaluation order"
   end
+
+  defp status_title(%{paused: true}, _status), do: "Paused"
+  defp status_title(_rule, %{configured?: true}), do: "Active"
+  defp status_title(_rule, _status), do: "Stored — no pruner is running"
 end

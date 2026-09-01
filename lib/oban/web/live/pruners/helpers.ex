@@ -75,6 +75,19 @@ defmodule Oban.Web.Pruners.Helpers do
 
   def to_unix(_datetime), do: ""
 
+  def to_iso8601(datetime) when is_struct(datetime, DateTime) do
+    DateTime.to_iso8601(datetime)
+  end
+
+  def to_iso8601(_datetime), do: nil
+
+  @doc """
+  Rule names are user input, so ids built from them must drop characters that aren't valid in DOM
+  ids or query selectors.
+  """
+  def dom_name(%{name: name}), do: dom_name(name)
+  def dom_name(name) when is_binary(name), do: String.replace(name, ~r/[^\w-]/, "-")
+
   @doc """
   Earlier rules that claim every job this rule matches, leaving it nothing to prune.
 

@@ -12,7 +12,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
     assigns =
       assign(assigns,
-        changed?: assigns.form != Form.seed(assigns.rule),
+        changed?: assigns.form != assigns.baseline,
         position: position_of(assigns.rule, assigns.rules),
         shadows: shadows,
         shadowed: MapSet.new(shadows, & &1.name),
@@ -21,11 +21,12 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
     ~H"""
     <div id="pruner-details">
-      <.header access={@access} myself={@myself} rule={@rule} />
+      <.header access={@access} changed?={@changed?} myself={@myself} rule={@rule} />
 
       <div class="grid grid-cols-3 gap-6 px-3 py-6">
         <div class="col-span-2">
           <.chain
+            changed?={@changed?}
             position={@position}
             rule={@rule}
             rules={@rules}
@@ -73,6 +74,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
   end
 
   attr :access, :any, required: true
+  attr :changed?, :boolean, required: true
   attr :myself, :any, required: true
   attr :rule, :map, required: true
 
@@ -81,13 +83,14 @@ defmodule Oban.Web.Pruners.DetailComponent do
     <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
       <button
         id="back-link"
-        class="flex items-center hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0"
+        class="flex items-center min-w-0 hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+        data-confirm-back={@changed? && "Discard unsaved changes?"}
         data-escape-back={true}
         phx-hook="HistoryBack"
         type="button"
       >
-        <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
-        <span class="text-lg font-bold ml-2">{@rule.name}</span>
+        <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
+        <span class="text-lg font-bold ml-2 truncate">{@rule.name}</span>
       </button>
 
       <div class="flex items-center space-x-3">
@@ -132,7 +135,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
               else: "Delete this rule"
           }
           disabled={default?(@rule) or not can?(:delete_pruners, @access)}
-          confirm="Are you sure you want to delete this rule?"
+          confirm={"Delete the #{@rule.name} rule? Its jobs will fall through to later rules instead."}
           phx-target={@myself}
           phx-click="delete-rule"
         />
@@ -141,6 +144,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
     """
   end
 
+  attr :changed?, :boolean, required: true
   attr :position, :integer, required: true
   attr :rule, :map, required: true
   attr :rules, :list, required: true
@@ -167,15 +171,17 @@ defmodule Oban.Web.Pruners.DetailComponent do
         <li :for={{other, index} <- Enum.with_index(@rules, 1)}>
           <.link
             aria-current={other.name == @rule.name && "true"}
+            data-confirm={@changed? && "Discard unsaved changes?"}
             class={[
               "flex items-center gap-3 px-2 py-1.5 rounded",
-              other.paused && "opacity-60",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+              other.paused && "opacity-75",
               if(other.name == @rule.name,
                 do: "bg-white dark:bg-gray-900 ring-1 ring-blue-500 dark:ring-blue-400",
                 else: "hover:bg-gray-100 dark:hover:bg-gray-700"
               )
             ]}
-            id={"chain-#{other.name}"}
+            id={"chain-#{dom_name(other)}"}
             patch={oban_path([:pruners, other.name])}
           >
             <span class="w-4 shrink-0 text-right text-xs tabular text-gray-400 dark:text-gray-500">
@@ -189,7 +195,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
             <div class="flex-1 min-w-0 flex flex-wrap items-center gap-1">
               <span
                 :if={match_pairs(other) == []}
-                class="text-xs italic text-gray-400 dark:text-gray-500"
+                class="text-xs italic text-gray-500 dark:text-gray-400"
               >
                 all jobs
               </span>
@@ -216,12 +222,16 @@ defmodule Oban.Web.Pruners.DetailComponent do
                 class="w-4 h-4 text-gray-400 dark:text-gray-500"
                 rel="is-paused"
               />
+              <span :if={other.paused} class="sr-only">Paused</span>
               <Icons.icon
                 :if={MapSet.member?(@shadowed, other.name)}
                 name="icon-exclamation-circle"
                 class="w-4 h-4 text-amber-500"
                 rel="is-shadowing"
               />
+              <span :if={MapSet.member?(@shadowed, other.name)} class="sr-only">
+                Shadows this rule
+              </span>
             </span>
           </.link>
         </li>
@@ -270,19 +280,19 @@ defmodule Oban.Web.Pruners.DetailComponent do
       <dl class="mt-2 space-y-2">
         <div class="flex items-baseline text-sm">
           <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">{mode_label(@rule)}</dt>
-          <dd class="font-medium text-gray-700 dark:text-gray-300">{format_mode(@rule)}</dd>
+          <dd class="font-medium tabular text-gray-700 dark:text-gray-300">{format_mode(@rule)}</dd>
         </div>
 
         <div class="flex items-baseline text-sm">
           <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">limit</dt>
-          <dd class="text-gray-700 dark:text-gray-300">
+          <dd class="tabular text-gray-700 dark:text-gray-300">
             {format_limit(@rule)} <span class="text-gray-500 dark:text-gray-400">per pass</span>
           </dd>
         </div>
 
         <div class="flex items-baseline text-sm">
           <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">timeout</dt>
-          <dd class="text-gray-700 dark:text-gray-300">{format_timeout(@rule)}</dd>
+          <dd class="tabular text-gray-700 dark:text-gray-300">{format_timeout(@rule)}</dd>
         </div>
       </dl>
     </div>
@@ -301,6 +311,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
         Created
         <time
           id="pruner-inserted-at"
+          datetime={to_iso8601(@rule.inserted_at)}
           data-timestamp={to_unix(@rule.inserted_at)}
           phx-hook="Relativize"
           phx-update="ignore"
@@ -313,6 +324,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
         Updated
         <time
           id="pruner-updated-at"
+          datetime={to_iso8601(@rule.updated_at)}
           data-timestamp={to_unix(@rule.updated_at)}
           phx-hook="Relativize"
           phx-update="ignore"
@@ -334,7 +346,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
   defp editor(assigns) do
     ~H"""
     <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-      <h3 class="flex items-center font-semibold mb-3 space-x-2 text-gray-400">
+      <h3 class="flex items-center font-semibold mb-3 space-x-2 text-gray-500 dark:text-gray-400">
         <Icons.icon name="icon-pencil-square" />
         <span>Edit Configuration</span>
       </h3>
@@ -480,13 +492,27 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(%{failure: failure}, socket) do
-    {:ok, assign(socket, errors: Form.format_failure(failure))}
+    socket = assign(socket, errors: Form.format_failure(failure))
+
+    # A stale save arrives after the page reloads the rule, so adopting the current lock version
+    # lets the next save succeed instead of repeating the same conflict.
+    if Form.stale?(failure) do
+      %{baseline: baseline, form: form, rule: rule} = socket.assigns
+
+      {:ok,
+       assign(socket,
+         baseline: %{baseline | lock_version: rule.lock_version},
+         form: %{form | lock_version: rule.lock_version}
+       )}
+    else
+      {:ok, socket}
+    end
   end
 
   # Saving advances the rule's lock version, so the form reseeds to keep editing from the values
   # that are now stored.
   def update(%{reseed: true}, socket) do
-    {:ok, assign(socket, errors: [], form: Form.seed(socket.assigns.rule))}
+    {:ok, assign_seed(socket, socket.assigns.rule)}
   end
 
   def update(assigns, socket) do
@@ -496,11 +522,17 @@ defmodule Oban.Web.Pruners.DetailComponent do
       |> assign_new(:errors, fn -> [] end)
 
     # Refreshes replace the rule every second, and patching along the chain swaps it entirely.
-    # Only a different rule reseeds, otherwise a refresh would erase whatever is half typed.
-    if Map.get(socket.assigns, :seeded) == assigns.rule.name do
-      {:ok, socket}
-    else
-      {:ok, assign(socket, errors: [], form: Form.seed(assigns.rule), seeded: assigns.rule.name)}
+    # An untouched form follows those replacements so it never displays outdated values, while a
+    # form with edits in progress is left alone.
+    cond do
+      Map.get(socket.assigns, :seeded) != assigns.rule.name ->
+        {:ok, assign_seed(socket, assigns.rule)}
+
+      socket.assigns.form == socket.assigns.baseline ->
+        {:ok, assign_seed(socket, assigns.rule)}
+
+      true ->
+        {:ok, socket}
     end
   end
 
@@ -555,6 +587,12 @@ defmodule Oban.Web.Pruners.DetailComponent do
   end
 
   # Helpers
+
+  defp assign_seed(socket, rule) do
+    form = Form.seed(rule)
+
+    assign(socket, baseline: form, errors: [], form: form, seeded: rule.name)
+  end
 
   defp shadow_names(shadows), do: Enum.map_join(shadows, ", ", & &1.name)
 

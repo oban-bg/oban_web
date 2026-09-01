@@ -17,7 +17,7 @@ defmodule Oban.Web.PrunersPage do
           <% not @pro_available? -> %>
             <.pro_promo />
           <% not @has_pruners? -> %>
-            <.migration_prompt />
+            <.migration_prompt conf={@conf} />
           <% @rule -> %>
             <.live_component
               id="detail"
@@ -78,10 +78,12 @@ defmodule Oban.Web.PrunersPage do
             <.live_component
               id="pruners-table"
               access={@access}
+              chain={@rules}
               filtered?={filtered?(@params)}
               module={TableComponent}
               orderable?={orderable?(@params)}
               rules={@listed}
+              status={@status}
             />
         <% end %>
       </div>
@@ -198,22 +200,48 @@ defmodule Oban.Web.PrunersPage do
     """
   end
 
+  attr :conf, :any, required: true
+
   defp migration_prompt(assigns) do
+    postgres? = assigns.conf.repo.__adapter__() == Ecto.Adapters.Postgres
+
+    assigns = assign(assigns, :postgres?, postgres?)
+
     ~H"""
     <div id="pruners-migration-prompt" class="flex flex-col items-center justify-center py-16 px-6">
       <div class="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
         <Icons.icon name="icon-table-cells" class="w-8 h-8 text-gray-500 dark:text-gray-400" />
       </div>
 
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-        Migration Required
-      </h2>
+      <%= if @postgres? do %>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+          Migration Required
+        </h2>
 
-      <p class="text-center text-gray-600 dark:text-gray-400 max-w-xl">
-        There isn't an <code class="font-mono">oban_pruners</code>
-        table in this database. Pruners are PostgreSQL only, and they require the Oban Pro v1.8
-        migration.
-      </p>
+        <p class="text-center text-gray-600 dark:text-gray-400 max-w-xl">
+          There isn't an <code class="font-mono">oban_pruners</code>
+          table in this database yet. Run the Oban Pro v1.8 migration to add it.
+        </p>
+
+        <div class="mt-4">
+          <a
+            href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html"
+            target="_blank"
+            rel="noopener"
+            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+          >
+            See migration instructions <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      <% else %>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+          PostgreSQL Required
+        </h2>
+
+        <p class="text-center text-gray-600 dark:text-gray-400 max-w-xl">
+          Pruners require PostgreSQL and aren't available for this database.
+        </p>
+      <% end %>
     </div>
     """
   end
@@ -340,7 +368,7 @@ defmodule Oban.Web.PrunersPage do
         PrunerQuery.toggle_rule(socket.assigns.conf, rule, true)
       end)
 
-    {:noreply, apply_result(socket, result, "Rule #{rule.name} paused")}
+    {:noreply, apply_result(socket, result, "Rule \"#{rule.name}\" paused")}
   end
 
   def handle_info({:resume_rule, rule}, socket) do
@@ -351,7 +379,7 @@ defmodule Oban.Web.PrunersPage do
         PrunerQuery.toggle_rule(socket.assigns.conf, rule, false)
       end)
 
-    {:noreply, apply_result(socket, result, "Rule #{rule.name} resumed")}
+    {:noreply, apply_result(socket, result, "Rule \"#{rule.name}\" resumed")}
   end
 
   def handle_info({:delete_rule, rule}, socket) do
@@ -362,7 +390,7 @@ defmodule Oban.Web.PrunersPage do
         PrunerQuery.delete_rule(socket.assigns.conf, rule)
       end)
 
-    {:noreply, apply_result(socket, result, "Rule #{rule.name} deleted")}
+    {:noreply, apply_result(socket, result, "Rule \"#{rule.name}\" deleted")}
   end
 
   def handle_info({:move_rule, name, offset}, socket) do
@@ -393,9 +421,16 @@ defmodule Oban.Web.PrunersPage do
 
     case result do
       {:ok, rule} ->
+        message =
+          if socket.assigns.status.configured? do
+            "Rule \"#{rule.name}\" created"
+          else
+            "Rule \"#{rule.name}\" created — no pruner is running"
+          end
+
         socket =
           socket
-          |> put_flash_with_clear(:info, "Rule #{rule.name} created")
+          |> put_flash_with_clear(:info, message)
           |> push_patch(to: oban_path(:pruners))
 
         {:noreply, socket}
@@ -419,7 +454,7 @@ defmodule Oban.Web.PrunersPage do
       {:ok, _rule} ->
         socket =
           socket
-          |> put_flash_with_clear(:info, "Rule #{name} updated")
+          |> put_flash_with_clear(:info, "Rule \"#{name}\" updated")
           |> handle_refresh()
 
         send_update(DetailComponent, id: "detail", reseed: true)
@@ -429,7 +464,7 @@ defmodule Oban.Web.PrunersPage do
       {:error, reason} ->
         send_update(DetailComponent, id: "detail", failure: reason)
 
-        {:noreply, socket}
+        {:noreply, handle_refresh(socket)}
     end
   end
 
