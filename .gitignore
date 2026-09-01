@@ -39,3 +39,6 @@ priv/static/app.*
 __pycache__/
 *.py[oc]
 .venv
+
+# Design artifacts
+.impeccable/
