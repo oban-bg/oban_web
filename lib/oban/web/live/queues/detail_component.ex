@@ -583,11 +583,11 @@ defmodule Oban.Web.Queues.DetailComponent do
                 <a
                   :if={missing_pro?(@conf)}
                   rel="requires-pro"
-                  href="https://oban.pro/docs/pro/Oban.Pro.Engines.Smart.html"
+                  href="https://oban.pro/docs/pro/Oban.Pro.Engine.html"
                   target="_blank"
                   class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
                 >
-                  Requires Smart Engine
+                  Requires Pro Engine
                   <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
                 </a>
               </div>
@@ -698,11 +698,11 @@ defmodule Oban.Web.Queues.DetailComponent do
                 <a
                   :if={missing_pro?(@conf)}
                   rel="requires-pro"
-                  href="https://oban.pro/docs/pro/Oban.Pro.Engines.Smart.html"
+                  href="https://oban.pro/docs/pro/Oban.Pro.Engine.html"
                   target="_blank"
                   class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
                 >
-                  Requires Smart Engine
+                  Requires Pro Engine
                   <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
                 </a>
               </div>

@@ -995,7 +995,7 @@ Application.put_env(:phoenix, :serve_endpoints, true)
 Application.put_env(:phoenix, :persistent, true)
 
 oban_opts = [
-  engine: Oban.Pro.Engines.Smart,
+  engine: Oban.Pro.Engine,
   node: "web-dev-ex",
   notifier: Oban.Notifiers.Postgres,
   peer: Oban.Peers.Global,
@@ -1016,9 +1016,9 @@ oban_opts = [
     notifications: 10
   ],
   plugins: [
-    {Oban.Pro.Plugins.DynamicLifeline, []},
-    {Oban.Pro.Plugins.DynamicPruner, mode: {:max_age, {1, :days}}},
-    {Oban.Pro.Plugins.DynamicCron,
+    {Oban.Pro.Lifeline, []},
+    {Oban.Pro.Pruner, mode: {:max_age, {1, :days}}},
+    {Oban.Pro.Cron,
      crontab: [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
        {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
@@ -1026,7 +1026,7 @@ oban_opts = [
        {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]}
      ],
      sync_mode: :automatic},
-    {Oban.Plugins.Cron,
+    {Oban.Cron,
      crontab: [
        {"* * * * *", Oban.Workers.HealthChecker, tags: ~w(health monitoring)},
        {"*/5 * * * *", Oban.Workers.CustomerSegmenter, args: %{batch_size: 1000}},

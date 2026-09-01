@@ -15,7 +15,7 @@ end
 defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
-  alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Pro.Cron
   alias Oban.Web.Utils
   alias Oban.Workers.{DefaultsCronWorker, DetailCronWorker}
 
@@ -24,8 +24,8 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
   setup do
     start_supervised_oban!(
       plugins: [
-        {Oban.Plugins.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-        {DynamicCron, crontab: []}
+        {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+        {Cron, crontab: []}
       ]
     )
 
@@ -34,7 +34,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
   describe "cron detail view" do
     test "displays timezone from opts or defaults to Etc/UTC" do
-      DynamicCron.insert([
+      Cron.insert([
         {"0 * * * *", DetailCronWorker, name: "with-tz", timezone: "America/Chicago"},
         {"0 * * * *", DetailCronWorker, name: "without-tz"}
       ])
@@ -49,7 +49,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "displays last status with correct state" do
-      DynamicCron.insert([{"*/5 * * * *", DetailCronWorker, name: "status-test"}])
+      Cron.insert([{"*/5 * * * *", DetailCronWorker, name: "status-test"}])
 
       insert_job!(
         [ref: 1],
@@ -64,7 +64,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "displays schedule with human-readable description" do
-      DynamicCron.insert([{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
+      Cron.insert([{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/schedule-test")
 
@@ -75,7 +75,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "shows dynamic badge only for dynamic crons" do
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "dynamic-cron"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "dynamic-cron"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/dynamic-cron")
 
@@ -90,7 +90,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "pause button toggles cron pause state" do
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "pause-test"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "pause-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/pause-test")
 
@@ -120,10 +120,10 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       stop_supervised!(Oban)
 
       start_supervised_oban!(
-        engine: Oban.Pro.Engines.Smart,
+        engine: Oban.Pro.Engine,
         plugins: [
-          {Oban.Plugins.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-          {DynamicCron, crontab: []}
+          {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+          {Cron, crontab: []}
         ]
       )
 
@@ -132,7 +132,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       html = refresh(live)
 
-      assert html =~ "Editing requires DynamicCron"
+      assert html =~ "Editing requires Pro Cron"
       assert has_element?(live, "[rel=static-blocker]")
       assert has_element?(live, "fieldset[disabled]")
       assert has_element?(live, "button[disabled]", "Update Entry")
@@ -142,14 +142,14 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       stop_supervised!(Oban)
 
       start_supervised_oban!(
-        engine: Oban.Pro.Engines.Smart,
+        engine: Oban.Pro.Engine,
         plugins: [
-          {Oban.Plugins.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-          {DynamicCron, crontab: []}
+          {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+          {Cron, crontab: []}
         ]
       )
 
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "editable-cron"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "editable-cron"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/editable-cron")
 
@@ -170,7 +170,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "run now button inserts a job for the cron" do
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "run-now-test"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "run-now-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-test")
 
@@ -189,7 +189,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "run now builds the job through the worker's new/2 when available" do
-      DynamicCron.insert([{"0 * * * *", DefaultsCronWorker, name: "run-now-defaults"}])
+      Cron.insert([{"0 * * * *", DefaultsCronWorker, name: "run-now-defaults"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-defaults")
 
@@ -206,7 +206,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "delete button removes dynamic cron and redirects to list" do
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "delete-test"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "delete-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/delete-test")
 
@@ -222,7 +222,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert_patch(live, "/oban/crons")
 
       # Cron should be deleted
-      assert [] = DynamicCron.all(Oban)
+      assert [] = Cron.all(Oban)
     end
 
     test "delete button is disabled for static crons" do
@@ -235,7 +235,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "editing and saving a dynamic cron" do
-      DynamicCron.insert([{"0 * * * *", DetailCronWorker, name: "edit-cron"}])
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "edit-cron"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/edit-cron")
 
@@ -251,7 +251,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       })
       |> render_submit()
 
-      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "edit-cron"))
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "edit-cron"))
       assert entry.expression == "*/30 * * * *"
       assert entry.opts["timezone"] == "America/New_York"
       assert entry.opts["priority"] == 3
@@ -262,7 +262,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
     end
 
     test "removing all dynamic cron tags" do
-      DynamicCron.insert([
+      Cron.insert([
         {"0 * * * *", DetailCronWorker, name: "clear-tags-cron", tags: ["important", "nightly"]}
       ])
 
@@ -278,7 +278,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       |> form("#cron-form", %{"tags" => ""})
       |> render_submit()
 
-      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "clear-tags-cron"))
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "clear-tags-cron"))
       assert entry.opts["tags"] == []
     end
   end

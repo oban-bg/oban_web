@@ -4,10 +4,10 @@ defmodule Oban.Web.Crons.DetailComponent do
   import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1, show_name?: 1]
   import Oban.Web.FormComponents
 
-  alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Pro.Cron
   alias Oban.Web.{CronExpr, Timezones}
 
-  @compile {:no_warn_undefined, DynamicCron}
+  @compile {:no_warn_undefined, Cron}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -224,11 +224,11 @@ defmodule Oban.Web.Crons.DetailComponent do
               <a
                 :if={not @cron.dynamic?}
                 rel="static-blocker"
-                href="https://oban.pro/docs/pro/Oban.Pro.Plugins.DynamicCron.html"
+                href="https://oban.pro/docs/pro/Oban.Pro.Cron.html"
                 target="_blank"
                 class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
               >
-                Editing requires DynamicCron
+                Editing requires Pro Cron
                 <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
               </a>
               <.save_button disabled={not @changed?} />
@@ -349,7 +349,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     paused? = not cron.paused?
 
-    DynamicCron.update(conf.name, cron.name, paused: paused?)
+    Cron.update(conf.name, cron.name, paused: paused?)
 
     {:noreply, assign(socket, cron: %{cron | paused?: paused?})}
   end
@@ -359,7 +359,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     %{cron: cron, conf: conf, params: params} = socket.assigns
 
-    case DynamicCron.delete(conf.name, cron.name) do
+    case Cron.delete(conf.name, cron.name) do
       {:ok, _deleted} ->
         send(self(), {:flash, :info, "Deleted cron #{cron.name}"})
         {:noreply, push_patch(socket, to: oban_path(:crons, params))}
@@ -397,7 +397,7 @@ defmodule Oban.Web.Crons.DetailComponent do
       |> parse_form_params(cron)
       |> Enum.reject(fn {_key, val} -> is_nil(val) end)
 
-    case DynamicCron.update(conf.name, cron.name, opts) do
+    case Cron.update(conf.name, cron.name, opts) do
       {:ok, _entry} ->
         send(self(), :refresh)
         send(self(), {:flash, :info, "Cron configuration updated"})

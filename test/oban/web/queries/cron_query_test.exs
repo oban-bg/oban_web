@@ -33,7 +33,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
             engine: @engine,
             name: make_ref(),
             repo: @repo,
-            plugins: [{Oban.Plugins.Cron, crontab: [{"0 * * * *", FakeWorker}]}]
+            plugins: [{Oban.Cron, crontab: [{"0 * * * *", FakeWorker}]}]
           )
 
         assert [cron] = CronQuery.all_crons(%{}, Oban.config(name))

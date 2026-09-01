@@ -3,10 +3,10 @@ defmodule Oban.Web.Crons.NewComponent do
 
   import Oban.Web.FormComponents
 
-  alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Pro.Cron
   alias Oban.Web.Timezones
 
-  @compile {:no_warn_undefined, DynamicCron}
+  @compile {:no_warn_undefined, Cron}
 
   @fields ~w(args expression max_attempts name priority queue tags timezone worker)a
 
@@ -196,7 +196,7 @@ defmodule Oban.Web.Crons.NewComponent do
 
     with {:ok, worker} <- parse_worker(params["worker"]),
          {:ok, opts} <- build_opts(params) do
-      case DynamicCron.insert(conf.name, [{params["expression"], worker, opts}]) do
+      case Cron.insert(conf.name, [{params["expression"], worker, opts}]) do
         {:ok, _entries} ->
           send(self(), {:flash, :info, "Cron '#{params["name"]}' created successfully"})
           {:noreply, push_patch(socket, to: oban_path(:crons))}

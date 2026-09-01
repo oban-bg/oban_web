@@ -94,7 +94,7 @@ Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 # Automatically exclude :pro tagged tests if Oban Pro is not available
 exclude_tags =
   if Code.ensure_loaded?(Oban.Pro) do
-    Oban.Web.StorageMock.setup()
+    if Code.ensure_loaded?(Oban.Web.StorageMock), do: Oban.Web.StorageMock.setup()
 
     [:skip]
   else

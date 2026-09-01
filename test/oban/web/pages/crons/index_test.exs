@@ -22,7 +22,7 @@ end
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case
 
-  alias Oban.Pro.Plugins.DynamicCron
+  alias Oban.Pro.Cron
 
   @moduletag :pro
 
@@ -35,8 +35,8 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
 
     start_supervised_oban!(
       plugins: [
-        {Oban.Plugins.Cron, crontab: static_crontab},
-        {DynamicCron, crontab: []}
+        {Oban.Cron, crontab: static_crontab},
+        {Cron, crontab: []}
       ]
     )
 
@@ -58,7 +58,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
   end
 
   test "viewing dynamically configured crons", %{live: live} do
-    DynamicCron.insert([
+    Cron.insert([
       {"* 1 * * *", Oban.Workers.CronB},
       {"0 0 * * *", Oban.Workers.CronC}
     ])
@@ -110,7 +110,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
       assert_patch(live, "/oban/crons")
 
       # Verify cron was created
-      assert [entry] = DynamicCron.all(Oban) |> Enum.filter(&(&1.name == "my-new-cron"))
+      assert [entry] = Cron.all(Oban) |> Enum.filter(&(&1.name == "my-new-cron"))
       assert entry.expression == "*/5 * * * *"
       assert entry.worker == "Oban.Workers.CronA"
     end
@@ -140,7 +140,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
 
       assert_patch(live, "/oban/crons")
 
-      assert [entry] = Enum.filter(DynamicCron.all(), &(&1.name == "full-options-cron"))
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "full-options-cron"))
       assert entry.expression == "0 0 * * *"
       assert entry.worker == "Oban.Workers.CronB"
       assert entry.opts["timezone"] == "America/Chicago"
@@ -187,7 +187,7 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     test "clicking Show More increases the limit", %{live: live} do
       crons = Enum.map(1..25, &{"#{&1} * * * *", Oban.Workers.CronA, name: "cron-#{&1}"})
 
-      DynamicCron.insert(crons)
+      Cron.insert(crons)
 
       refresh(live)
 

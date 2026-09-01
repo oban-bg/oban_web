@@ -33,7 +33,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "setting the global limit across all nodes" do
     gossip(local_limit: 5, global_limit: nil, queue: "alpha")
 
@@ -63,7 +63,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "configuring global partitioning" do
     gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
@@ -95,7 +95,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "configuring global partitioning with meta fields" do
     gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
@@ -131,7 +131,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "enabling burst mode for partitioned global limits" do
     gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
@@ -156,7 +156,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "scaling global limits by node count" do
     gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
@@ -186,7 +186,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "preserving per node scaling while changing other global limit options" do
     gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
 
@@ -220,7 +220,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "disabling per node scaling for a global limit" do
     gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
 
@@ -241,7 +241,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "setting the rate limit across all nodes" do
     gossip(local_limit: 5, queue: "alpha")
 
@@ -271,7 +271,7 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     })
   end
 
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engines.Smart]
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
   test "configuring rate limit partitioning" do
     gossip(local_limit: 5, rate_limit: %{allowed: 10, period: 1}, queue: "alpha")
 
