@@ -6,232 +6,80 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   alias Oban.Pro.Cron
   alias Oban.Web.{CronExpr, Timezones}
+  alias Oban.Web.Crons.Form
 
   @compile {:no_warn_undefined, Cron}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
+    assigns =
+      assign(assigns,
+        changed?: assigns.form != assigns.baseline,
+        editable?: assigns.cron.dynamic? and can?(:update_crons, assigns.access)
+      )
+
     ~H"""
-    <div id="cron-details" phx-window-keydown="keydown" phx-target={@myself}>
-      <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
-        <.link
-          patch={oban_path(:crons, @params)}
-          id="back-link"
-          class="flex items-center hover:text-blue-500"
-          data-title="Back to crons"
-          phx-hook="Tippy"
-        >
-          <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
-          <span class="text-lg font-bold ml-2">
-            {@cron.worker}
-            <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
-              ({@cron.name})
-            </span>
-          </span>
-        </.link>
+    <div id="cron-details">
+      <.header access={@access} changed?={@changed?} cron={@cron} myself={@myself} />
 
-        <div class="flex space-x-3">
-          <Core.status_badge :if={@cron.dynamic?} icon="sparkles" label="Dynamic" />
-
-          <Core.icon_button
-            id="run-now-button"
-            icon="play_circle"
-            label="Run Now"
-            color="blue"
-            tooltip="Insert a job for this cron immediately"
-            phx-click="run-now"
-            phx-target={@myself}
-          />
-
-          <Core.icon_button
-            id="toggle-pause-button"
-            icon={if @cron.paused?, do: "play_circle", else: "pause_circle"}
-            label={if @cron.paused?, do: "Resume", else: "Pause"}
-            color="yellow"
-            tooltip={if @cron.paused?, do: "Resume scheduling jobs", else: "Pause scheduling jobs"}
-            disabled={not @cron.dynamic?}
-            phx-click="toggle-pause"
-            phx-target={@myself}
-          />
-
-          <Core.icon_button
-            id="delete-cron-button"
-            icon="trash"
-            label="Delete"
-            color="red"
-            tooltip="Delete this cron"
-            disabled={not @cron.dynamic?}
-            confirm="Are you sure you want to delete this cron?"
-            phx-click="delete-cron"
-            phx-target={@myself}
-          />
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-6 px-3 py-6">
-        <div class="col-span-2">
+      <div class="px-3 py-6">
+        <div class="grid grid-cols-3 gap-6">
           <.history_chart cron={@cron} />
+          <.stats cron={@cron} />
         </div>
 
-        <div class="col-span-1">
-          <div class="flex justify-between mb-6 pr-6">
-            <div class="flex flex-col">
-              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Last Run
-              </span>
-              <span class="text-base text-gray-800 dark:text-gray-200">
-                <span
-                  id="cron-last-time"
-                  data-timestamp={maybe_to_unix(@cron.last_at)}
-                  phx-hook="Relativize"
-                  phx-update="ignore"
-                >
-                  -
-                </span>
-              </span>
+        <fieldset id="cron-form-fields" class="mt-6" disabled={not @editable?}>
+          <form id="cron-form" phx-change="form-change" phx-submit="save-cron" phx-target={@myself}>
+            <div class="grid grid-cols-2 gap-x-10 gap-y-6">
+              <.schedule_panel form={@form} />
+              <.job_panel form={@form} queues={@queues} />
             </div>
 
-            <div class="flex flex-col">
-              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Next Run
-              </span>
-              <span class="text-base text-gray-800 dark:text-gray-200">
-                <span
-                  id="cron-next-time"
-                  data-timestamp={maybe_to_unix(@cron.next_at)}
-                  phx-hook="Relativize"
-                  phx-update="ignore"
-                >
-                  -
-                </span>
-              </span>
+            <div
+              :if={@errors != []}
+              id="cron-form-errors"
+              role="alert"
+              class="mt-4 px-3 py-2 rounded-md bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300 space-y-1"
+            >
+              <p :for={error <- @errors}>{error}</p>
             </div>
 
-            <div class="flex flex-col">
-              <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Last Status
-              </span>
-              <div class="flex items-center space-x-1">
-                <.state_icon state={@cron.last_state} paused={@cron.paused?} />
-                <span class="text-base text-gray-800 dark:text-gray-200">
-                  {if @cron.paused?, do: "Paused", else: state_label(@cron.last_state)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-col">
-            <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-              Schedule
-            </span>
-            <span class="text-base text-gray-800 dark:text-gray-200">
-              <code class="font-mono">{@cron.expression}</code>
-              <span
-                :if={CronExpr.describe(@cron.expression)}
-                class="ml-2 text-gray-500 dark:text-gray-400"
-              >
-                ({CronExpr.describe(@cron.expression)})
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-        <h3 class="flex font-semibold mb-3 space-x-2 text-gray-400">
-          <Icons.icon name="icon-pencil-square" />
-          <span>Edit Configuration</span>
-        </h3>
-
-        <fieldset disabled={not @cron.dynamic?}>
-          <form
-            id="cron-form"
-            class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-            phx-change="form-change"
-            phx-submit="save-cron"
-            phx-target={@myself}
-          >
-            <.form_field label="Schedule" name="expression" value={@cron.expression} />
-
-            <.form_field label="Worker" name="worker" value={@cron.worker} />
-
-            <.select_field
-              label="Queue"
-              name="queue"
-              value={get_opt(@cron, "queue") || "default"}
-              options={queue_options(@queues)}
-            />
-
-            <.select_field
-              label="Timezone"
-              name="timezone"
-              value={get_opt(@cron, "timezone") || "Etc/UTC"}
-              options={Timezones.options_with_blank()}
-            />
-
-            <div class="grid grid-cols-2 gap-2">
-              <.form_field
-                label="Priority"
-                name="priority"
-                value={get_opt(@cron, "priority")}
-                type="number"
-                placeholder="0"
-              />
-
-              <.form_field
-                label="Max Attempts"
-                name="max_attempts"
-                value={get_opt(@cron, "max_attempts")}
-                type="number"
-                placeholder="20"
-              />
-            </div>
-
-            <.form_field label="Tags" name="tags" value={format_tags(@cron)} placeholder="tag1, tag2" />
-
-            <.form_field
-              label="Args"
-              name="args"
-              value={format_args(@cron)}
-              colspan="col-span-2"
-              type="textarea"
-              placeholder="{}"
-              rows={1}
-            />
-
-            <div class="col-span-2 flex items-end gap-4 p-3 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800">
-              <.form_field
-                label="Name"
-                name="name"
-                value={@cron.name}
-                disabled={not @cron.dynamic?}
-                hint="Changing the name will reset cron history"
-                colspan="flex-1"
-              />
-
-              <div class="pb-2 pr-6">
-                <.checkbox_field
-                  label="Guaranteed"
-                  name="guaranteed"
-                  checked={get_opt(@cron, "guaranteed") == true}
-                  disabled={not @cron.dynamic?}
-                  hint="Ensures a job is inserted even if the scheduled time passed"
-                />
-              </div>
-            </div>
-
-            <div class="col-span-2 flex justify-end items-center gap-3 pt-6">
+            <p
+              :if={not @cron.dynamic?}
+              id="cron-static-note"
+              class="mt-6 text-sm text-gray-500 dark:text-gray-400"
+            >
+              This cron is declared in your Oban configuration, so it can't be edited here.
               <a
-                :if={not @cron.dynamic?}
                 rel="static-blocker"
                 href="https://oban.pro/docs/pro/Oban.Pro.Cron.html"
                 target="_blank"
-                class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
+                class="inline-flex items-center gap-1 text-blue-500 hover:underline rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
               >
                 Editing requires Pro Cron
-                <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
+                <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3" />
               </a>
-              <.save_button disabled={not @changed?} />
+            </p>
+
+            <div :if={@editable?} class="mt-6 flex justify-end items-center gap-4">
+              <button
+                type="button"
+                id="detail-discard"
+                disabled={not @changed?}
+                phx-click="discard-changes"
+                phx-target={@myself}
+                class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                id="detail-save"
+                disabled={not @changed?}
+                class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Changes
+              </button>
             </div>
           </form>
         </fieldset>
@@ -240,40 +88,314 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
+  attr :access, :any, required: true
+  attr :changed?, :boolean, required: true
   attr :cron, :any, required: true
+  attr :myself, :any, required: true
 
-  defp history_chart(assigns) do
+  defp header(assigns) do
     ~H"""
-    <div class="group relative">
-      <div
-        id="cron-chart"
-        class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-        phx-hook="CronChart"
-        phx-update="ignore"
-      >
+    <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="min-w-0">
+        <button
+          id="back-link"
+          class="flex items-center min-w-0 max-w-full hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          data-confirm-back={@changed? && "Discard unsaved changes?"}
+          data-escape-back={true}
+          phx-hook="HistoryBack"
+          type="button"
+        >
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
+          <span class="text-lg font-bold ml-2 truncate">
+            {@cron.worker}
+            <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
+              ({@cron.name})
+            </span>
+          </span>
+        </button>
+      </h2>
+
+      <div class="flex items-center space-x-3">
+        <Core.status_badge
+          :if={@cron.dynamic?}
+          id="status-dynamic"
+          icon="sparkles"
+          label="Dynamic"
+        />
+        <Core.status_badge
+          :if={@cron.paused?}
+          id="status-paused"
+          icon="pause_circle"
+          label="Paused"
+        />
+
+        <Core.icon_button
+          id="run-now-button"
+          icon="play_circle"
+          label="Run Now"
+          color="blue"
+          tooltip="Insert a job for this cron immediately"
+          disabled={not can?(:insert_jobs, @access)}
+          phx-click="run-now"
+          phx-target={@myself}
+        />
+
+        <Core.icon_button
+          id="toggle-pause-button"
+          icon={if @cron.paused?, do: "play_circle", else: "pause_circle"}
+          label={if @cron.paused?, do: "Resume", else: "Pause"}
+          color="yellow"
+          tooltip={pause_tooltip(@cron)}
+          disabled={not @cron.dynamic? or not can?(:pause_crons, @access)}
+          phx-click="toggle-pause"
+          phx-target={@myself}
+        />
+
+        <Core.icon_button
+          id="delete-cron-button"
+          icon="trash"
+          label="Delete"
+          color="red"
+          tooltip={
+            if @cron.dynamic?,
+              do: "Delete this cron",
+              else: "Only dynamic crons can be deleted"
+          }
+          disabled={not @cron.dynamic? or not can?(:delete_crons, @access)}
+          confirm="Are you sure you want to delete this cron?"
+          phx-click="delete-cron"
+          phx-target={@myself}
+        />
       </div>
-      <.link
-        navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: "completed"})}
-        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
-      </.link>
     </div>
     """
   end
 
-  attr :disabled, :boolean, default: false
+  defp pause_tooltip(%{dynamic?: false}), do: "Only dynamic crons can be paused"
+  defp pause_tooltip(%{paused?: true}), do: "Resume scheduling jobs"
+  defp pause_tooltip(_cron), do: "Pause scheduling jobs"
 
-  defp save_button(assigns) do
+  attr :cron, :any, required: true
+
+  defp history_chart(assigns) do
     ~H"""
-    <button
-      type="submit"
-      disabled={@disabled}
-      class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      Update Entry
-    </button>
+    <div id="cron-history" class="col-span-2">
+      <div class="flex items-baseline">
+        <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+          History
+        </h3>
+
+        <.link
+          id="cron-view-jobs"
+          navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: "completed"})}
+          class="ml-auto flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+        >
+          View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
+        </.link>
+      </div>
+
+      <div
+        id="cron-chart"
+        class="mt-2 h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+        phx-hook="CronChart"
+        phx-update="ignore"
+      >
+      </div>
+    </div>
     """
+  end
+
+  attr :cron, :any, required: true
+
+  defp stats(assigns) do
+    ~H"""
+    <dl class="col-span-1 space-y-4">
+      <div class="flex flex-col">
+        <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Last Run
+        </dt>
+        <dd class="text-base text-gray-800 dark:text-gray-200">
+          <span
+            id="cron-last-time"
+            data-timestamp={maybe_to_unix(@cron.last_at)}
+            phx-hook="Relativize"
+            phx-update="ignore"
+          >
+            -
+          </span>
+        </dd>
+      </div>
+
+      <div class="flex flex-col">
+        <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Next Run
+        </dt>
+        <dd class="text-base text-gray-800 dark:text-gray-200">
+          <span
+            id="cron-next-time"
+            data-timestamp={maybe_to_unix(@cron.next_at)}
+            phx-hook="Relativize"
+            phx-update="ignore"
+          >
+            -
+          </span>
+        </dd>
+      </div>
+
+      <div class="flex flex-col">
+        <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Last Status
+        </dt>
+        <dd class="flex items-center space-x-1">
+          <.state_icon state={@cron.last_state} paused={@cron.paused?} />
+          <span class="text-base text-gray-800 dark:text-gray-200">
+            {if @cron.paused?, do: "Paused", else: state_label(@cron.last_state)}
+          </span>
+        </dd>
+      </div>
+    </dl>
+    """
+  end
+
+  attr :form, :map, required: true
+
+  defp schedule_panel(assigns) do
+    ~H"""
+    <div id="cron-schedule">
+      <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+        Schedule
+      </h3>
+
+      <div class="mt-3 space-y-4">
+        <.form_field
+          label="Name"
+          name="name"
+          value={@form.name}
+          required={true}
+          hint="Changing the name resets this cron's history"
+        />
+
+        <div>
+          <.form_field
+            label="Expression"
+            name="expression"
+            value={@form.expression}
+            placeholder="* * * * *"
+            required={true}
+          />
+
+          <p
+            :if={CronExpr.describe(@form.expression)}
+            id="cron-expression-description"
+            class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"
+          >
+            {CronExpr.describe(@form.expression)}
+          </p>
+        </div>
+
+        <.select_field
+          label="Timezone"
+          name="timezone"
+          value={@form.timezone}
+          options={timezone_options()}
+        />
+
+        <.checkbox_field
+          label="Guaranteed"
+          name="guaranteed"
+          checked={@form.guaranteed}
+          hint="Insert a job even when the scheduled time was missed"
+        />
+      </div>
+    </div>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :queues, :list, required: true
+
+  defp job_panel(assigns) do
+    ~H"""
+    <div id="cron-job">
+      <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+        Job
+      </h3>
+
+      <div class="mt-3 space-y-4">
+        <.form_field
+          label="Worker"
+          name="worker"
+          value={@form.worker}
+          placeholder="MyApp.Workers.SomeWorker"
+          required={true}
+        />
+
+        <.select_field
+          label="Queue"
+          name="queue"
+          value={@form.queue}
+          options={queue_options(@queues, @form.queue)}
+        />
+
+        <div class="grid grid-cols-2 gap-4">
+          <.form_field
+            label="Priority"
+            name="priority"
+            value={@form.priority}
+            type="number"
+            min={0}
+            max={9}
+            placeholder="0"
+          />
+
+          <.form_field
+            label="Max Attempts"
+            name="max_attempts"
+            value={@form.max_attempts}
+            type="number"
+            min={1}
+            placeholder="20"
+          />
+        </div>
+
+        <.form_field
+          label="Tags"
+          name="tags"
+          value={@form.tags}
+          placeholder="tag1, tag2"
+          hint="Comma separated"
+        />
+
+        <.form_field
+          label="Args"
+          name="args"
+          value={@form.args}
+          type="textarea"
+          placeholder="{}"
+          rows={2}
+          hint="A JSON object passed to every job"
+        />
+      </div>
+    </div>
+    """
+  end
+
+  # A blank timezone defers to the plugin's timezone, and a blank queue to the worker's queue. A
+  # queue that isn't running still has to appear as an option, otherwise the browser selects the
+  # first option and a save would silently change it.
+  defp timezone_options, do: [{"plugin default", ""} | Timezones.options()]
+
+  defp queue_options(queues, current) do
+    options = queue_options(queues)
+
+    options =
+      if current == "" or Enum.any?(options, &(elem(&1, 1) == current)) do
+        options
+      else
+        [{current, current} | options]
+      end
+
+    [{"worker default", ""} | options]
   end
 
   # Callbacks
@@ -285,10 +407,19 @@ defmodule Oban.Web.Crons.DetailComponent do
     socket =
       socket
       |> assign(assigns)
-      |> assign_new(:changed?, fn -> false end)
+      |> assign_new(:errors, fn -> [] end)
       |> push_event("cron-history", %{history: chart_data})
 
-    {:ok, socket}
+    # Refreshes replace the cron every second. Freshness is per field: an untouched field tracks
+    # the live cron, while a field with edits in progress keeps them.
+    if Map.get(socket.assigns, :seeded) == assigns.cron.name do
+      fresh = Form.seed(assigns.cron)
+      %{baseline: baseline, form: form} = socket.assigns
+
+      {:ok, assign(socket, baseline: fresh, form: merge_fresh(form, baseline, fresh))}
+    else
+      {:ok, assign_seed(socket, assigns.cron)}
+    end
   end
 
   defp chart_point(job) do
@@ -371,80 +502,61 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   def handle_event("form-change", params, socket) do
-    changed? =
-      params
-      |> parse_form_params(socket.assigns.cron)
-      |> Enum.any?(fn {_key, val} -> not is_nil(val) end)
+    form = Map.merge(socket.assigns.form, Form.cast_params(params))
 
-    {:noreply, assign(socket, changed?: changed?)}
+    {:noreply, assign(socket, form: form)}
   end
 
-  def handle_event("keydown", %{"key" => "Escape"}, socket) do
-    {:noreply, push_patch(socket, to: oban_path(:crons, socket.assigns.params))}
-  end
-
-  def handle_event("keydown", _params, socket) do
-    {:noreply, socket}
+  def handle_event("discard-changes", _params, socket) do
+    {:noreply, assign_seed(socket, socket.assigns.cron)}
   end
 
   def handle_event("save-cron", params, socket) do
     enforce_access!(:update_crons, socket.assigns.access)
 
-    %{cron: cron, conf: conf} = socket.assigns
+    %{baseline: baseline, conf: conf, cron: cron, params: page_params} = socket.assigns
 
-    opts =
-      params
-      |> parse_form_params(cron)
-      |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+    form = Map.merge(socket.assigns.form, Form.cast_params(params))
+    socket = assign(socket, form: form)
 
-    case Cron.update(conf.name, cron.name, opts) do
-      {:ok, _entry} ->
+    with {:ok, opts} <- Form.build_opts(form, baseline, cron.opts),
+         {:ok, entry} <- Cron.update(conf.name, cron.name, opts) do
+      send(self(), {:flash, :info, "Cron \"#{entry.name}\" updated"})
+
+      # The page reloads the cron by name, so a renamed entry has to be reopened at its new
+      # address. Either way the form reseeds from what was stored.
+      if entry.name == cron.name do
         send(self(), :refresh)
-        send(self(), {:flash, :info, "Cron configuration updated"})
-        {:noreply, assign(socket, changed?: false)}
 
-      {:error, _reason} ->
-        send(self(), {:flash, :error, "Failed to update cron configuration"})
-        {:noreply, socket}
+        {:noreply, assign(socket, baseline: form, errors: [], seeded: nil)}
+      else
+        {:noreply, push_patch(socket, to: oban_path([:crons, entry.name], page_params))}
+      end
+    else
+      {:error, reason} ->
+        {:noreply, assign(socket, errors: Form.format_failure(reason))}
     end
   end
 
   # Helpers
 
-  defp parse_form_params(params, cron) do
-    [
-      name: new_val?(parse_string(params["name"]), cron.name),
-      worker: new_val?(parse_string(params["worker"]), cron.worker),
-      expression: new_val?(params["expression"], cron.expression),
-      queue: new_val?(parse_string(params["queue"]), get_opt(cron, "queue"), "default"),
-      timezone: new_val?(parse_string(params["timezone"]), get_opt(cron, "timezone"), "Etc/UTC"),
-      priority: new_val?(parse_int(params["priority"]), get_opt(cron, "priority")),
-      max_attempts: new_val?(parse_int(params["max_attempts"]), get_opt(cron, "max_attempts")),
-      guaranteed: new_val?(params["guaranteed"] == "true", get_opt(cron, "guaranteed") == true),
-      tags: new_val?(parse_form_tags(params), get_opt(cron, "tags")),
-      args: new_val?(parse_json(params["args"]), get_opt(cron, "args"))
-    ]
+  defp assign_seed(socket, cron) do
+    form = Form.seed(cron)
+
+    assign(socket, baseline: form, errors: [], form: form, seeded: cron.name)
   end
 
-  defp new_val?(new_val, current_val, default \\ nil)
-  defp new_val?(nil, _current, _default), do: nil
-  defp new_val?("", _current, _default), do: nil
-  defp new_val?(val, val, _default), do: nil
-  defp new_val?(val, nil, val), do: nil
-  defp new_val?(val, _current, _default), do: val
+  defp merge_fresh(form, baseline, fresh) do
+    Map.new(fresh, fn {key, fresh_value} ->
+      form_value = Map.fetch!(form, key)
 
-  defp parse_form_tags(%{"tags" => tags}), do: parse_tags(tags) || []
-  defp parse_form_tags(_params), do: nil
-
-  defp get_opt(%{opts: opts}, key) do
-    Map.get(opts, key)
+      if form_value == Map.fetch!(baseline, key) do
+        {key, fresh_value}
+      else
+        {key, form_value}
+      end
+    end)
   end
-
-  defp format_tags(%{opts: %{"tags" => tags}}) when is_list(tags), do: Enum.join(tags, ", ")
-  defp format_tags(_), do: nil
-
-  defp format_args(%{opts: %{"args" => args}}) when is_map(args), do: Oban.JSON.encode!(args)
-  defp format_args(_), do: nil
 
   defp state_label(nil), do: "Unknown"
   defp state_label(state), do: String.capitalize(state)

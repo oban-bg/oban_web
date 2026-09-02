@@ -194,6 +194,33 @@ defmodule Oban.Web.FormComponents do
   end
 
   @doc """
+  Flattens changeset errors into a list of readable messages, prefixing nested keys with their
+  parent.
+  """
+  def changeset_errors(%Ecto.Changeset{} = changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(&interpolate_error/1)
+    |> flatten_errors()
+  end
+
+  defp interpolate_error({message, opts}) do
+    Regex.replace(~r"%{(\w+)}", message, fn _full, key ->
+      opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+    end)
+  end
+
+  defp flatten_errors(errors, prefix \\ nil) do
+    Enum.flat_map(errors, fn {key, value} ->
+      label = if prefix, do: "#{prefix} #{key}", else: to_string(key)
+
+      case value do
+        %{} = nested -> flatten_errors(nested, label)
+        messages when is_list(messages) -> Enum.map(messages, &"#{label} #{&1}")
+      end
+    end)
+  end
+
+  @doc """
   Builds queue options from a list of queue structs.
   """
   def queue_options(queues) do

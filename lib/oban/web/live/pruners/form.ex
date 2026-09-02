@@ -1,7 +1,7 @@
 defmodule Oban.Web.Pruners.Form do
   @moduledoc false
 
-  import Oban.Web.FormComponents, only: [parse_int: 1, parse_string: 1]
+  import Oban.Web.FormComponents, only: [changeset_errors: 1, parse_int: 1, parse_string: 1]
 
   alias Oban.Period
 
@@ -158,9 +158,7 @@ defmodule Oban.Web.Pruners.Form do
     if stale?(changeset) do
       ["Rule was changed elsewhere — save again to apply your edits"]
     else
-      changeset
-      |> Ecto.Changeset.traverse_errors(&interpolate_error/1)
-      |> flatten_errors()
+      changeset_errors(changeset)
     end
   end
 
@@ -169,21 +167,4 @@ defmodule Oban.Web.Pruners.Form do
   end
 
   def stale?(_failure), do: false
-
-  defp interpolate_error({message, opts}) do
-    Regex.replace(~r"%{(\w+)}", message, fn _full, key ->
-      opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
-    end)
-  end
-
-  defp flatten_errors(errors, prefix \\ nil) do
-    Enum.flat_map(errors, fn {key, value} ->
-      label = if prefix, do: "#{prefix} #{key}", else: to_string(key)
-
-      case value do
-        %{} = nested -> flatten_errors(nested, label)
-        messages when is_list(messages) -> Enum.map(messages, &"#{label} #{&1}")
-      end
-    end)
-  end
 end

@@ -41,11 +41,14 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/with-tz")
 
-      assert refresh(live) =~ "America/Chicago"
+      assert refresh(live) =~ ~s(value="America/Chicago" selected)
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/without-tz")
 
-      assert refresh(live) =~ "Etc/UTC"
+      html = refresh(live)
+
+      assert html =~ ~s(value="" selected)
+      refute html =~ ~s(value="Etc/UTC" selected)
     end
 
     test "displays last status with correct state" do
@@ -72,6 +75,20 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       assert html =~ "Every 15 minutes"
       assert html =~ "*/15 * * * *"
+
+      assert has_element?(live, "h2 #back-link")
+    end
+
+    test "describing the expression as it is edited" do
+      Cron.insert([{"*/15 * * * *", DetailCronWorker, name: "describe-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/describe-test")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"expression" => "0 9 * * 1"})
+
+      assert live |> element("#cron-expression-description") |> render() =~ "Monday"
     end
 
     test "shows dynamic badge only for dynamic crons" do
@@ -80,13 +97,13 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       {:ok, live, _html} = live(build_conn(), "/oban/crons/dynamic-cron")
 
       refresh(live)
-      assert has_element?(live, "span.bg-violet-100", "Dynamic")
+      assert has_element?(live, "#status-dynamic")
 
       static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
-      refute has_element?(live, "span.bg-violet-100", "Dynamic")
+      refute has_element?(live, "#status-dynamic")
     end
 
     test "pause button toggles cron pause state" do
@@ -105,6 +122,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       assert has_element?(live, "button", "Resume")
       refute has_element?(live, "button", "Pause")
+      assert has_element?(live, "#status-paused")
     end
 
     test "pause button is disabled for static crons" do
@@ -134,8 +152,8 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       assert html =~ "Editing requires Pro Cron"
       assert has_element?(live, "[rel=static-blocker]")
-      assert has_element?(live, "fieldset[disabled]")
-      assert has_element?(live, "button[disabled]", "Update Entry")
+      assert has_element?(live, "#cron-form-fields[disabled]")
+      refute has_element?(live, "#detail-save")
     end
 
     test "edit form is enabled for dynamic crons" do
@@ -156,17 +174,56 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       refresh(live)
 
       refute has_element?(live, "[rel=static-blocker]")
-      refute has_element?(live, "fieldset[disabled]")
+      refute has_element?(live, "#cron-form-fields[disabled]")
 
-      # Button is disabled until changes are made
-      assert has_element?(live, "button[disabled]", "Update Entry")
+      assert has_element?(live, "#detail-save[disabled]")
+      assert has_element?(live, "#detail-discard[disabled]")
 
-      # Make a change to enable the button
       live
       |> element("#cron-form")
       |> render_change(%{"priority" => "2"})
 
-      assert has_element?(live, "button:not([disabled])", "Update Entry")
+      assert has_element?(live, "#detail-save:not([disabled])")
+      assert has_element?(live, "#detail-discard:not([disabled])")
+    end
+
+    test "discarding edits restores the stored values" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "discard-cron", priority: 1}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/discard-cron")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"priority" => "2", "tags" => "urgent"})
+
+      assert render(live) =~ ~s(name="priority" value="2")
+
+      live
+      |> element("#detail-discard")
+      |> render_click()
+
+      html = render(live)
+
+      assert html =~ ~s(name="priority" value="1")
+      refute html =~ "urgent"
+      assert has_element?(live, "#detail-save[disabled]")
+    end
+
+    test "keeping edits in progress while refreshes replace the cron" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "fresh-cron", priority: 1}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/fresh-cron")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"tags" => "urgent"})
+
+      assert {:ok, _entry} = Cron.update("fresh-cron", priority: 3)
+
+      html = refresh(live)
+
+      assert html =~ ~s(name="priority" value="3")
+      assert html =~ ~s(name="tags" value="urgent")
     end
 
     test "run now button inserts a job for the cron" do
@@ -279,7 +336,91 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       |> render_submit()
 
       assert [entry] = Enum.filter(Cron.all(), &(&1.name == "clear-tags-cron"))
-      assert entry.opts["tags"] == []
+      refute Map.has_key?(entry.opts, "tags")
+    end
+
+    test "clearing the queue and timezone falls back to the defaults" do
+      Cron.insert([
+        {"0 * * * *", DetailCronWorker,
+         name: "clear-opts-cron", queue: "media", timezone: "America/Chicago", meta: %{"x" => 1}}
+      ])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/clear-opts-cron")
+
+      assert refresh(live) =~ ~s(value="media" selected)
+
+      live
+      |> form("#cron-form", %{"queue" => "", "timezone" => ""})
+      |> render_submit()
+
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "clear-opts-cron"))
+      assert entry.opts == %{"meta" => %{"x" => 1}}
+    end
+
+    test "rejecting args that aren't a JSON object" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "bad-args-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/bad-args-cron")
+
+      live
+      |> form("#cron-form", %{"args" => "[1, 2]"})
+      |> render_submit()
+
+      assert live |> element("#cron-form-errors") |> render() =~ "Args must be a JSON object"
+
+      live
+      |> form("#cron-form", %{"args" => "{not json"})
+      |> render_submit()
+
+      assert live |> element("#cron-form-errors") |> render() =~ "Args must be a JSON object"
+    end
+
+    test "rejecting an expression that can't be parsed" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "bad-expr-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/bad-expr-cron")
+
+      live
+      |> form("#cron-form", %{"expression" => "99 * * * *"})
+      |> render_submit()
+
+      assert live |> element("#cron-form-errors") |> render() =~ "valid cron expression"
+
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "bad-expr-cron"))
+      assert entry.expression == "0 * * * *"
+    end
+
+    test "renaming a cron reopens it at the new address" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "old-name"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/old-name")
+
+      live
+      |> form("#cron-form", %{"name" => "new-name"})
+      |> render_submit()
+
+      assert_patch(live, "/oban/crons/new-name")
+
+      assert render(live) =~ ~s(name="name" value="new-name")
+      assert has_element?(live, "#detail-save[disabled]")
+      assert [%{name: "new-name"}] = Cron.all()
+    end
+  end
+
+  describe "read only access" do
+    test "disabling every mutating control" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "readonly-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban-readonly/crons/readonly-cron")
+
+      refresh(live)
+
+      assert live |> element("#run-now-button") |> render() =~ "disabled"
+      assert live |> element("#toggle-pause-button") |> render() =~ "disabled"
+      assert live |> element("#delete-cron-button") |> render() =~ "disabled"
+
+      assert has_element?(live, "#cron-form-fields[disabled]")
+      refute has_element?(live, "#detail-save")
     end
   end
 
