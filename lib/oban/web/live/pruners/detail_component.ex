@@ -21,7 +21,14 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
     ~H"""
     <div id="pruner-details">
-      <.header access={@access} changed?={@changed?} myself={@myself} rule={@rule} />
+      <.header
+        access={@access}
+        changed?={@changed?}
+        configured?={@configured?}
+        myself={@myself}
+        rule={@rule}
+        shadows={@shadows}
+      />
 
       <div class="px-3 py-6">
         <.chain
@@ -32,34 +39,6 @@ defmodule Oban.Web.Pruners.DetailComponent do
           shadowed={@shadowed}
           total={@total}
         />
-
-        <p
-          :if={@rule.paused}
-          id="pruner-paused-note"
-          class="mt-3 text-sm text-gray-600 dark:text-gray-400"
-        >
-          While paused this rule drops out of the chain entirely, so its jobs fall through to
-          whichever later rule matches them next, rather than being retained.
-        </p>
-
-        <p
-          :if={@shadows != []}
-          id="pruner-shadowed-note"
-          class="mt-3 text-sm text-amber-700 dark:text-amber-400"
-        >
-          Nothing reaches this rule. Every job it matches is already claimed by {shadow_names(
-            @shadows
-          )}, which {shadow_verb(@shadows)} earlier in the chain.
-        </p>
-
-        <div
-          :if={@configured?}
-          id="pruner-form-configured"
-          class="mt-6 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-300"
-        >
-          This rule is declared in your Oban configuration. Changes made here, apart from pausing
-          and reordering, are replaced from that configuration whenever the pruner restarts.
-        </div>
 
         <fieldset
           id="pruner-form-fields"
@@ -118,8 +97,10 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
   attr :access, :any, required: true
   attr :changed?, :boolean, required: true
+  attr :configured?, :boolean, required: true
   attr :myself, :any, required: true
   attr :rule, :map, required: true
+  attr :shadows, :list, required: true
 
   defp header(assigns) do
     ~H"""
@@ -140,6 +121,14 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
       <div class="flex items-center space-x-3">
         <Core.status_badge
+          :if={@shadows != []}
+          id="status-shadowed"
+          color="amber"
+          icon="exclamation_circle"
+          label="Shadowed"
+          tooltip={shadow_title(@shadows)}
+        />
+        <Core.status_badge
           :if={@rule.paused}
           id="status-paused"
           icon="pause_circle"
@@ -156,6 +145,12 @@ defmodule Oban.Web.Pruners.DetailComponent do
           id="status-default"
           icon="square_2x2"
           label="Default"
+        />
+        <Core.status_badge
+          :if={@configured?}
+          id="status-configured"
+          icon="command_line"
+          label="Configured"
         />
 
         <Core.icon_button
@@ -222,7 +217,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
               other.paused && "opacity-75",
               if(other.name == @rule.name,
-                do: "bg-white dark:bg-gray-900 ring-1 ring-blue-500 dark:ring-blue-400",
+                do: "bg-blue-100 dark:bg-blue-900/30",
                 else: "hover:bg-gray-100 dark:hover:bg-gray-700"
               )
             ]}
@@ -281,11 +276,6 @@ defmodule Oban.Web.Pruners.DetailComponent do
           </.link>
         </li>
       </ol>
-
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-        Rules match in order, so each one prunes only the jobs that the rules above it didn't
-        already claim.
-      </p>
     </div>
     """
   end
@@ -512,6 +502,6 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
   defp shadow_names(shadows), do: Enum.map_join(shadows, ", ", & &1.name)
 
-  defp shadow_verb([_shadow]), do: "runs"
-  defp shadow_verb(_shadows), do: "run"
+  defp shadow_title([shadow]), do: "#{shadow.name} claims every job this rule matches"
+  defp shadow_title(shadows), do: "#{shadow_names(shadows)} claim every job this rule matches"
 end

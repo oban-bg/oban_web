@@ -189,21 +189,21 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert %{mode: %{value: "3 days"}} = Pruner.get("media")
     end
 
-    test "warning only when editing a rule declared in configuration" do
+    test "badge only when editing a rule declared in configuration" do
       live =
         start_pruner_live!(
           path: "/oban/pruners/media",
           rules: [[name: "media", queue: "media", max_len: 500]]
         )
 
-      assert live |> element("#pruner-form-configured") |> render() =~ "declared in your Oban"
+      assert live |> element("#status-configured") |> render() =~ "Configured"
 
       assert {:ok, _rule} = Pruner.insert(name: "events", queue: "events", max_len: 500)
 
       render_patch(live, "/oban/pruners/events")
 
       assert live |> element("#pruner-form") |> has_element?()
-      refute live |> element("#pruner-form-configured") |> has_element?()
+      refute live |> element("#status-configured") |> has_element?()
     end
   end
 

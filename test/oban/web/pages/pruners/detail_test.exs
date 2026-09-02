@@ -74,7 +74,7 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert live |> element("#detail-delete-tip") |> render() =~ "default rule can"
   end
 
-  test "warning about a rule that earlier rules already claim" do
+  test "badging a rule that earlier rules already claim" do
     live =
       start_pruner_live!(
         rules: [
@@ -84,7 +84,7 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
         rule: "trimmed"
       )
 
-    assert live |> element("#pruner-shadowed-note") |> render() =~ "retained"
+    assert live |> element("#status-shadowed") |> render() =~ "retained claims"
     assert live |> element("#chain-retained") |> render() =~ ~s(rel="is-shadowing")
   end
 
@@ -99,17 +99,7 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
         rule: "trimmed"
       )
 
-    refute live |> element("#pruner-shadowed-note") |> has_element?()
-  end
-
-  test "explaining that a paused rule falls through to later rules" do
-    live =
-      start_pruner_live!(
-        rules: [[name: "media", queue: "media", max_len: 500, paused: true]],
-        rule: "media"
-      )
-
-    assert live |> element("#pruner-paused-note") |> render() =~ "fall through"
+    refute live |> element("#status-shadowed") |> has_element?()
   end
 
   test "pausing and resuming a rule from the drawer" do

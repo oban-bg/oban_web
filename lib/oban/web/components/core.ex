@@ -222,14 +222,32 @@ defmodule Oban.Web.Components.Core do
   @doc """
   A status badge with icon that expands to show label on hover.
   """
+  attr :color, :string, default: "violet"
   attr :icon, :string, required: true
   attr :id, :string, default: nil
   attr :label, :string, required: true
+  attr :tooltip, :string, default: nil
 
   def status_badge(assigns) do
+    color_classes =
+      case assigns.color do
+        "violet" -> "bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200"
+        "amber" -> "bg-amber-100 text-amber-700 dark:bg-amber-700/70 dark:text-amber-200"
+      end
+
+    assigns = assign(assigns, :color_classes, color_classes)
+
     ~H"""
-    <div id={@id} class="group flex items-center cursor-default select-none">
-      <span class="inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200 transition-all duration-200">
+    <div
+      id={@id}
+      data-title={@tooltip}
+      phx-hook={if @tooltip, do: "Tippy"}
+      class="group flex items-center cursor-default select-none"
+    >
+      <span class={[
+        "inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 group-hover:pr-4 rounded-full text-sm font-medium transition-all duration-200",
+        @color_classes
+      ]}>
         <.badge_icon name={@icon} />
         <span class="max-w-0 overflow-hidden group-hover:max-w-24 group-hover:ml-1.5 transition-all duration-200 whitespace-nowrap">
           {@label}
@@ -241,6 +259,12 @@ defmodule Oban.Web.Components.Core do
 
   defp badge_icon(%{name: "camera"} = assigns),
     do: ~H[<Icons.icon name="icon-camera" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "command_line"} = assigns),
+    do: ~H[<Icons.icon name="icon-command-line" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "exclamation_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-exclamation-circle" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "life_buoy"} = assigns),
     do: ~H[<Icons.icon name="icon-life-buoy" class="h-4 w-4 shrink-0" />]
