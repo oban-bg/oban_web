@@ -134,10 +134,14 @@ defmodule Oban.Web.Helpers do
   end
 
   @doc """
-  Put a flash message that will clear automatically after a timeout.
+  Put a flash message, clearing `:info` messages automatically after a timeout.
+
+  Error messages persist until they're dismissed.
   """
   def put_flash_with_clear(socket, mode, message, timing \\ 5_000) do
-    Process.send_after(self(), :clear_flash, timing)
+    if mode == :info do
+      Process.send_after(self(), :clear_flash, timing)
+    end
 
     LiveView.put_flash(socket, mode, message)
   end

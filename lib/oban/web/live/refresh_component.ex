@@ -20,38 +20,35 @@ defmodule Oban.Web.RefreshComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="relative"
       id="refresh-selector"
       data-shortcut={JS.push("toggle-refresh", target: "#refresh-selector")}
       phx-hook="Refresher"
     >
-      <button
-        aria-haspopup="listbox"
-        aria-expanded="true"
-        aria-labelledby="listbox-label"
-        class="cursor-pointer text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-700 dark:hover:text-gray-200 hidden md:flex"
-        data-title="Change refresh rate"
-        id="refresh-menu-toggle"
-        phx-hook="Tippy"
-        phx-click={JS.toggle(to: "#refresh-menu")}
-        type="button"
+      <Core.dropdown_menu
+        id="refresh"
+        title="Change refresh rate"
+        aria_label="Change refresh rate"
+        menu_class="w-18 overflow-hidden"
+        toggle_class="hidden sm:flex h-9 px-2.5 items-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <Icons.icon name="icon-arrow-path-rounded" />
-        <span class="ml-1 leading-6 text-sm">{:proplists.get_value(@refresh, @options)}</span>
-      </button>
+        <:toggle>
+          <Icons.icon name="icon-arrow-path-rounded" />
+          <span class="ml-1 leading-6 text-sm">{interval_label(@refresh, @options)}</span>
+        </:toggle>
 
-      <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 py-2 w-18 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
-        id="refresh-menu"
-        role="listbox"
-        tabindex="-1"
-      >
         <%= for {value, display} <- @options do %>
           <.option value={value} display={display} refresh={@refresh} />
         <% end %>
-      </ul>
+      </Core.dropdown_menu>
     </div>
     """
+  end
+
+  defp interval_label(refresh, options) do
+    case List.keyfind(options, refresh, 0) do
+      {_interval, display} -> display
+      nil -> "#{refresh}s"
+    end
   end
 
   attr :refresh, :integer, required: true
@@ -59,22 +56,25 @@ defmodule Oban.Web.RefreshComponent do
   attr :display, :string, required: true
 
   defp option(assigns) do
-    class =
+    {class, label_class} =
       if assigns.refresh == assigns.value do
-        "text-blue-500 dark:text-blue-400"
+        {"text-blue-500 dark:text-blue-400", "text-blue-500 dark:text-blue-400"}
       else
-        "text-gray-500 dark:text-gray-400 "
+        {"text-gray-500 dark:text-gray-400", "text-gray-800 dark:text-gray-200"}
       end
 
-    assigns = assign(assigns, :class, class)
+    assigns = assign(assigns, class: class, label_class: label_class)
 
     ~H"""
-    <li
-      class={"block w-full py-1 px-2 flex items-center cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
-      role="option"
-      phx-click="select-refresh"
-      phx-click-away={JS.hide(to: "#refresh-menu")}
-      phx-target="#refresh-selector"
+    <Core.menu_option
+      class={["select-none", @class]}
+      selected={@value == @refresh}
+      phx-click={
+        "select-refresh"
+        |> JS.push(target: "#refresh-selector")
+        |> Core.close_menu("refresh")
+        |> JS.focus(to: "#refresh-menu-toggle")
+      }
       phx-value-interval={@value}
     >
       <%= if @value == @refresh do %>
@@ -83,8 +83,8 @@ defmodule Oban.Web.RefreshComponent do
         <span class="block w-5 h-5"></span>
       <% end %>
 
-      <span class="text-gray-800 dark:text-gray-200">{@display}</span>
-    </li>
+      <span class={@label_class}>{@display}</span>
+    </Core.menu_option>
     """
   end
 

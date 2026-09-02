@@ -14,36 +14,43 @@ defmodule Oban.Web.ShortcutsComponent do
     >
       <div
         id="shortcuts-bg"
-        class="bg-zinc-50/80 dark:bg-zinc-950/80 fixed inset-0 transition-opacity"
+        class="bg-gray-50/80 dark:bg-gray-950/80 fixed inset-0 transition-opacity"
         aria-hidden="true"
       />
 
-      <div class="fixed inset-0 overflow-y-auto" role="dialog" aria-modal="true">
+      <div
+        class="fixed inset-0 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shortcuts-title"
+      >
         <div class="flex min-h-full items-center justify-center">
-          <div
-            class="hidden w-full max-w-lg p-2 sm:p-4 relative rounded-md bg-white dark:bg-gray-950 shadow-lg ring-1 ring-zinc-700/10 transition"
+          <.focus_wrap
+            class="hidden w-full max-w-lg p-4 relative rounded-md bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black/5 transition"
             id="shortcuts-container"
             phx-click-away={hide_modal()}
             phx-key="escape"
-            phx-window-keydown={hide_modal()}
+            phx-keydown={hide_modal()}
           >
             <button
               phx-click={hide_modal()}
               type="button"
-              class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-              aria-label="close"
+              class="absolute top-4 right-4 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Close"
             >
               <Icons.icon name="icon-x-mark" />
             </button>
 
             <div>
-              <h3 class="font-semibold dark:text-gray-200 mb-4">Keyboard Shortcuts</h3>
+              <h3 id="shortcuts-title" class="font-semibold dark:text-gray-200 mb-4">
+                Keyboard Shortcuts
+              </h3>
 
-              <dl class="divide-y divide-gray-100 dark:divide-gray-900 text-sm">
-                <.list_item description="Go to jobs" shortcut="J" />
-                <.list_item description="Go to queues" shortcut="Q" />
-                <.list_item description="Go to crons" shortcut="C" />
-                <.list_item description="Go to workflows" shortcut="W" />
+              <dl class="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                <.list_item description="Go to jobs" shortcut="j" />
+                <.list_item description="Go to queues" shortcut="q" />
+                <.list_item description="Go to crons" shortcut="c" />
+                <.list_item description="Go to workflows" shortcut="w" />
 
                 <.list_item description="Focus search" shortcut="/" />
                 <.list_item description="Toggle refresh" shortcut="r" />
@@ -51,7 +58,7 @@ defmodule Oban.Web.ShortcutsComponent do
                 <.list_item description="Open this modal" shortcut="?" />
               </dl>
             </div>
-          </div>
+          </.focus_wrap>
         </div>
       </div>
     </div>
@@ -66,7 +73,7 @@ defmodule Oban.Web.ShortcutsComponent do
     <div class="py-4 flex justify-between">
       <dt class="text-gray-700 dark:text-gray-300 font-medium">{@description}</dt>
       <dd class="text-gray-700 dark:text-gray-300">
-        <kbd class="px-2 py-1 bg-gray-50 dark:bg-gray-900 ring-1 ring-zinc-300 rounded-md">
+        <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-950 ring-1 ring-gray-300 dark:ring-gray-700 rounded-md">
           {@shortcut}
         </kbd>
       </dd>
@@ -91,6 +98,7 @@ defmodule Oban.Web.ShortcutsComponent do
          "opacity-100 translate-y-0 sm:scale-100"}
     )
     |> JS.add_class("overflow-hidden", to: "body")
+    |> JS.focus_first(to: "#shortcuts-container")
   end
 
   defp hide_modal do

@@ -16,10 +16,6 @@ const SidebarResizer = {
     this.handleMouseUp = this.handleMouseUp.bind(this);
 
     this.attachHandle();
-
-    // The property is set in root.html.heex on mount to prevent a flash during
-    // the initial mount. Clearing it here allows the assigned width to be used.
-    document.documentElement.style.removeProperty("--sidebar-width");
   },
 
   updated() {
@@ -100,9 +96,7 @@ const SidebarResizer = {
   setWidth(width) {
     const clampedWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));
 
-    // Only set width directly during resize for immediate visual feedback
-    // LiveView will manage the actual width via assigns
-    this.sidebar.style.width = `${clampedWidth}px`;
+    document.documentElement.style.setProperty("--sidebar-width", `${clampedWidth}px`);
   },
 };
 

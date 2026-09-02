@@ -64,12 +64,12 @@ defmodule Oban.Web.DashboardTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban")
 
-      assert has_element?(live, "#instance-select li[phx-value-name=Oban]")
-      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+      assert has_element?(live, "#instance-select button[phx-value-name=Oban]")
+      assert has_element?(live, "#instance-select button[phx-value-name=ObanPrivate]")
 
       change_instance(live, "ObanPrivate")
 
-      assert has_element?(live, "#instance-select-button", "ObanPrivate")
+      assert has_element?(live, "#instance-select-menu-toggle", "ObanPrivate")
     end
 
     test "disallowing switching to unresolved instances" do
@@ -78,8 +78,9 @@ defmodule Oban.Web.DashboardTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban-private")
 
-      refute has_element?(live, "#instance-select li[phx-value-name=Oban]")
-      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+      refute has_element?(live, "#instance-select button[phx-value-name=Oban]")
+      refute has_element?(live, "#instance-select-menu-toggle")
+      assert has_element?(live, "#instance-select", "ObanPrivate")
     end
 
     test "defaulting to the first found running instance" do
@@ -87,8 +88,9 @@ defmodule Oban.Web.DashboardTest do
 
       {:ok, live, _html} = live(build_conn(), "/oban")
 
-      refute has_element?(live, "#instance-select li[phx-value-name=Oban]")
-      assert has_element?(live, "#instance-select li[phx-value-name=ObanPrivate]")
+      refute has_element?(live, "#instance-select button[phx-value-name=Oban]")
+      refute has_element?(live, "#instance-select-menu-toggle")
+      assert has_element?(live, "#instance-select", "ObanPrivate")
     end
   end
 
@@ -102,7 +104,7 @@ defmodule Oban.Web.DashboardTest do
 
   defp change_instance(live, name) do
     live
-    |> element("#instance-select li[role=option]", name)
+    |> element("#instance-select button[role=menuitemradio]", name)
     |> render_click()
   end
 end

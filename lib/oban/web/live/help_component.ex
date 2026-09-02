@@ -4,51 +4,37 @@ defmodule Oban.Web.HelpComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="relative" id="help-selector">
-      <button
-        aria-expanded="true"
-        aria-haspopup="listbox"
-        class="cursor-pointer text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-700 dark:hover:text-gray-200 hidden md:block"
-        data-title="Help"
-        id="help-menu-toggle"
-        phx-hook="Tippy"
-        phx-click={JS.toggle(to: "#help-menu")}
-        type="button"
+    <div id="help-selector">
+      <Core.dropdown_menu
+        id="help"
+        title="Help"
+        aria_label="Help"
+        menu_class="w-48 overflow-hidden"
+        toggle_class="hidden sm:flex h-9 w-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <Icons.icon name="icon-question-mark-circle" />
-      </button>
+        <:toggle>
+          <Icons.icon name="icon-question-mark-circle" />
+        </:toggle>
 
-      <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 py-2 w-48 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
-        id="help-menu"
-        role="listbox"
-        tabindex="-1"
-      >
-        <li
-          class="block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 hover:dark:bg-gray-600/30"
-          phx-click-away={JS.hide(to: "#help-menu")}
-          role="option"
+        <Core.menu_option
+          class="text-gray-500 dark:text-gray-400"
+          href="https://hexdocs.pm/oban_web"
+          target="_blank"
+          rel="noopener noreferrer"
+          phx-click={Core.close_menu("help")}
         >
-          <a
-            href="https://hexdocs.pm/oban_web"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center space-x-2 w-full"
-          >
-            <Icons.icon name="icon-arrow-top-right-on-square" class="w-5 h-5" />
-            <span class="text-gray-800 dark:text-gray-200">Documentation</span>
-          </a>
-        </li>
-        <li
-          class="block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 text-gray-500 dark:text-gray-400 hover:bg-gray-50 hover:dark:bg-gray-600/30"
-          phx-click-away={JS.hide(to: "#help-menu")}
-          phx-click={JS.hide(to: "#help-menu") |> JS.exec("data-shortcut", to: "#shortcuts")}
-          role="option"
+          <Icons.icon name="icon-arrow-top-right-on-square" class="w-5 h-5" />
+          <span class="text-gray-800 dark:text-gray-200">Documentation</span>
+        </Core.menu_option>
+
+        <Core.menu_option
+          class="text-gray-500 dark:text-gray-400"
+          phx-click={Core.close_menu("help") |> JS.exec("data-shortcut", to: "#shortcuts")}
         >
           <Icons.icon name="icon-command-line" class="w-5 h-5" />
           <span class="text-gray-800 dark:text-gray-200">Keyboard shortcuts</span>
-        </li>
-      </ul>
+        </Core.menu_option>
+      </Core.dropdown_menu>
     </div>
     """
   end

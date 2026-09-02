@@ -1,24 +1,40 @@
 <meta name="live-transport" content={@live_transport} />
 <meta name="live-path" content={@live_path} />
 
-<main class="p-4 min-h-screen flex flex-col">
-  <%= if Phoenix.Flash.get(@flash, :info) do %>
-    <.notify flash={@flash} />
-  <% end %>
+<div class="p-4 min-h-screen flex flex-col">
+  <a
+    href="#main-content"
+    class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:px-3 focus:py-2 focus:rounded-md focus:bg-white dark:focus:bg-gray-800 focus:shadow-lg focus:ring-2 focus:ring-blue-500 focus:text-sm focus:font-semibold"
+  >
+    Skip to content
+  </a>
+
+  <.notify
+    :if={Phoenix.Flash.get(@flash, :info) || Phoenix.Flash.get(@flash, :error)}
+    flash={@flash}
+  />
 
   <header class="flex items-center">
-    <div class="md:w-84 mr-3">
+    <div class="mr-2 md:w-[var(--sidebar-width,320px)]">
       <.logo path={@logo_path} />
     </div>
 
     <.nav socket={@socket} page={@page.name} />
 
-    <div class="ml-auto flex items-center space-x-3">
+    <div class="ml-auto flex items-center gap-3">
       <.live_component module={Oban.Web.ShortcutsComponent} id="shortcuts" />
       <.live_component module={Oban.Web.ConnectivityComponent} id="connectivity" conf={@conf} />
-      <.live_component module={Oban.Web.ThemeComponent} id="theme" theme={@theme} />
-      <.live_component module={Oban.Web.RefreshComponent} id="refresh" refresh={@refresh} />
-      <.live_component module={Oban.Web.HelpComponent} id="help" />
+
+      <span class="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-700" aria-hidden="true"></span>
+
+      <div class="flex items-center gap-1">
+        <.live_component module={Oban.Web.ThemeComponent} id="theme" theme={@theme} />
+        <.live_component module={Oban.Web.RefreshComponent} id="refresh" refresh={@refresh} />
+        <.live_component module={Oban.Web.HelpComponent} id="help" />
+      </div>
+
+      <span class="hidden sm:block w-px h-5 bg-gray-300 dark:bg-gray-700" aria-hidden="true"></span>
+
       <.live_component
         module={Oban.Web.InstancesComponent}
         id="instances"
@@ -28,5 +44,10 @@
       />
     </div>
   </header>
-  {@inner_content} <.footer />
-</main>
+
+  <main id="main-content" tabindex="-1" class="flex-1 flex flex-col focus:outline-none">
+    {@inner_content}
+  </main>
+
+  <.footer />
+</div>

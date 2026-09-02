@@ -9,6 +9,7 @@ import JobHistoryChart from "./hooks/job_history_chart";
 import JobsChart from "./hooks/jobs_chart";
 import HistoryBack from "./hooks/history_back";
 import Instantiator from "./hooks/instantiator";
+import Menu from "./hooks/menu";
 import QueueDetailChart from "./hooks/queue_detail_chart";
 import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
@@ -29,6 +30,7 @@ const hooks = {
   JobsChart,
   HistoryBack,
   Instantiator,
+  Menu,
   QueueDetailChart,
   QueueSparkline,
   Refresher,

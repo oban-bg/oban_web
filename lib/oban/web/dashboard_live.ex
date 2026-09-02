@@ -97,7 +97,7 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_info(:clear_flash, socket) do
-    {:noreply, clear_flash(socket)}
+    {:noreply, clear_flash(socket, :info)}
   end
 
   def handle_info(:pause_refresh, socket) do

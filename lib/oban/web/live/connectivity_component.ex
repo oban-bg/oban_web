@@ -19,7 +19,7 @@ defmodule Oban.Web.ConnectivityComponent do
         :isolated -> "Node is isolated: Updates are disabled"
         :solitary -> "Node is solitary: Not connected to any cluster"
         :disconnected -> "Node is disconnected: No metrics, queues, or nodes detected"
-        _ -> ""
+        _ -> "Connected to cluster"
       end
 
     socket =
@@ -46,19 +46,49 @@ defmodule Oban.Web.ConnectivityComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div id="connectivity" data-title={@title} phx-hook="Tippy">
-      <Icons.icon :if={@status == :solitary} name="icon-bolt-circle" class="w-6 h-6 text-yellow-500" />
-      <Icons.icon
-        :if={@status == :isolated}
-        name="icon-bolt-slash"
-        class="w-6 h-6 animate-pulse text-red-500"
-      />
-      <Icons.icon
-        :if={@status == :disconnected}
-        name="icon-exclamation-circle"
-        class="w-6 h-6 animate-pulse text-red-500"
-      />
+    <div
+      id="connectivity"
+      aria-live="polite"
+      role="status"
+      class="flex h-9 items-center"
+      data-title={@title}
+      phx-hook="Tippy"
+    >
+      <span class="sr-only">{@title}</span>
+
+      <%= case @status do %>
+        <% :solitary -> %>
+          <.degraded icon="icon-bolt-circle" label="Solitary" color="yellow" />
+        <% :isolated -> %>
+          <.degraded icon="icon-bolt-slash" label="Isolated" color="red" pulse />
+        <% :disconnected -> %>
+          <.degraded icon="icon-exclamation-circle" label="Disconnected" color="red" pulse />
+        <% _connected -> %>
+          <span class="block w-2 h-2 rounded-full bg-emerald-400" aria-hidden="true"></span>
+      <% end %>
     </div>
+    """
+  end
+
+  attr :color, :string, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :pulse, :boolean, default: false
+
+  defp degraded(assigns) do
+    class =
+      case assigns.color do
+        "yellow" -> "text-yellow-600 dark:text-yellow-400"
+        "red" -> "text-red-600 dark:text-red-400"
+      end
+
+    assigns = assign(assigns, :class, class)
+
+    ~H"""
+    <span class={["flex items-center gap-1.5", @class]} aria-hidden="true">
+      <Icons.icon name={@icon} class={["w-5 h-5", if(@pulse, do: "animate-pulse")]} />
+      <span class="text-sm font-medium">{@label}</span>
+    </span>
     """
   end
 end

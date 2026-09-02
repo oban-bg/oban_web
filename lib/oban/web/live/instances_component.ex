@@ -34,48 +34,72 @@ defmodule Oban.Web.InstancesComponent do
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
-    <div class="relative" id="instance-select" phx-hook="Instantiator">
-      <button
-        aria-expanded="true"
-        aria-haspopup="listbox"
-        class="cursor-pointer rounded-md px-3 py-2 text-sm text-gray-600 dark:text-gray-300
+    <div id="instance-select" phx-hook="Instantiator">
+      <div
+        :if={length(@instances) < 2}
+        class="flex h-9 px-3 items-center text-sm text-gray-600 dark:text-gray-300"
+      >
+        <span class="sr-only">Current Oban instance</span>
+        <span class="truncate max-w-40">{@active}</span>
+      </div>
+
+      <Core.dropdown_menu
+        :if={length(@instances) >= 2}
+        id="instance-select"
+        title="Change Oban instance"
+        menu_class="max-h-64 max-w-96 overflow-auto"
+        toggle_class="flex h-9 px-3 items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300
         hover:text-gray-800 dark:hover:text-gray-200
         hover:bg-black/5 dark:hover:bg-white/5
-        ring-1 ring-inset ring-gray-400 dark:ring-gray-700
-        focus:outline-none focus:ring-blue-500 dark:focus:ring-blue-500"
-        data-title="Change Oban instance"
-        id="instance-select-button"
-        phx-click={JS.toggle(to: "#instance-select-menu")}
-        phx-hook="Tippy"
-        type="button"
+        ring-1 ring-inset ring-gray-400 dark:ring-gray-700"
       >
-        {@active}
-      </button>
+        <:toggle>
+          <span class="sr-only">Change Oban instance, currently</span>
+          <span class="truncate max-w-40">{@active}</span>
+          <Icons.icon
+            name="icon-chevron-down"
+            class="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500"
+          />
+        </:toggle>
 
-      <ul
-        class="hidden absolute z-10 top-full right-0 mt-2 py-2 text-sm font-semibold overflow-auto rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black/5"
-        id="instance-select-menu"
-      >
-        <li
-          :for={name <- @instances}
-          class="block w-full flex items-center space-x-2 py-1 px-2 cursor-pointer select-none hover:bg-gray-50 hover:dark:bg-gray-600/30"
-          role="option"
-          phx-click="select-instance"
-          phx-click-away={JS.hide(to: "#instance-select-menu")}
-          phx-target={@myself}
-          phx-value-name={name}
-        >
-          <%= if name == @active do %>
-            <Icons.icon name="icon-check" class="w-4 h-4 text-blue-500" />
-          <% else %>
-            <span class="block w-4 h-4"></span>
-          <% end %>
-          <span class="text-gray-800 dark:text-gray-200">
-            {name}
-          </span>
-        </li>
-      </ul>
+        <.option :for={name <- @instances} active={@active} myself={@myself} name={name} />
+      </Core.dropdown_menu>
     </div>
+    """
+  end
+
+  attr :active, :string, required: true
+  attr :myself, :any, required: true
+  attr :name, :string, required: true
+
+  defp option(assigns) do
+    ~H"""
+    <Core.menu_option
+      class="select-none"
+      selected={@name == @active}
+      phx-click={
+        "select-instance"
+        |> JS.push(target: @myself)
+        |> Core.close_menu("instance-select")
+        |> JS.focus(to: "#instance-select-menu-toggle")
+      }
+      phx-value-name={@name}
+    >
+      <%= if @name == @active do %>
+        <Icons.icon name="icon-check" class="w-5 h-5 shrink-0 text-blue-500" />
+      <% else %>
+        <span class="block w-5 h-5 shrink-0"></span>
+      <% end %>
+      <span class={[
+        "truncate",
+        if(@name == @active,
+          do: "text-blue-500 dark:text-blue-400",
+          else: "text-gray-800 dark:text-gray-200"
+        )
+      ]}>
+        {@name}
+      </span>
+    </Core.menu_option>
     """
   end
 

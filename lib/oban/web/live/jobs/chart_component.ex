@@ -83,49 +83,45 @@ defmodule Oban.Web.Jobs.ChartComponent do
         </div>
 
         <div id="chart-c" class="flex space-x-2">
-          <Core.dropdown_button
+          <.chart_dropdown
             disabled={not @visible}
+            icon="icon-chart-bar-square"
+            myself={@myself}
             name="series"
             options={series()}
             selected={@series}
-            target={@myself}
             title="Change metric series"
-          >
-            <Icons.icon name="icon-chart-bar-square" />
-          </Core.dropdown_button>
+          />
 
-          <Core.dropdown_button
+          <.chart_dropdown
             disabled={not @visible}
+            icon="icon-clock"
+            myself={@myself}
             name="period"
             options={periods()}
             selected={@period}
-            target={@myself}
             title="Change slice period"
-          >
-            <Icons.icon name="icon-clock" />
-          </Core.dropdown_button>
+          />
 
-          <Core.dropdown_button
+          <.chart_dropdown
             disabled={not @visible}
+            icon="icon-rectangle-group"
+            myself={@myself}
             name="group"
             options={groups_for_series(@series)}
             selected={@group}
-            target={@myself}
             title="Change metric grouping"
-          >
-            <Icons.icon name="icon-rectangle-group" />
-          </Core.dropdown_button>
+          />
 
-          <Core.dropdown_button
+          <.chart_dropdown
             disabled={not @visible or @series in ~w(exec_count full_count)}
+            icon="icon-percent-square"
+            myself={@myself}
             name="ntile"
             options={ntiles()}
             selected={@ntile}
-            target={@myself}
             title="Change percentile"
-          >
-            <Icons.icon name="icon-percent-square" />
-          </Core.dropdown_button>
+          />
         </div>
       </div>
 
@@ -139,6 +135,80 @@ defmodule Oban.Web.Jobs.ChartComponent do
         <canvas id="chart-canvas" phx-update="ignore" phx-hook="JobsChart"></canvas>
       </div>
     </div>
+    """
+  end
+
+  attr :disabled, :boolean, default: false
+  attr :icon, :string, required: true
+  attr :myself, :any, required: true
+  attr :name, :string, required: true
+  attr :options, :list, required: true
+  attr :selected, :string, required: true
+  attr :title, :string, required: true
+
+  defp chart_dropdown(assigns) do
+    ~H"""
+    <Core.dropdown_menu
+      id={@name}
+      aria_label={@title}
+      disabled={@disabled}
+      title={@title}
+      toggle_class="hidden md:flex h-9 w-9 items-center justify-center text-gray-500 dark:text-gray-400
+      enabled:hover:text-gray-700 dark:enabled:hover:text-gray-200
+      enabled:hover:bg-black/5 dark:enabled:hover:bg-white/5
+      disabled:text-gray-400 disabled:dark:text-gray-500"
+    >
+      <:toggle>
+        <Icons.icon name={@icon} />
+      </:toggle>
+
+      <.chart_option
+        :for={value <- @options}
+        myself={@myself}
+        name={@name}
+        selected={@selected}
+        value={value}
+      />
+    </Core.dropdown_menu>
+    """
+  end
+
+  attr :myself, :any, required: true
+  attr :name, :string, required: true
+  attr :selected, :string, required: true
+  attr :value, :string, required: true
+
+  defp chart_option(assigns) do
+    {class, label_class} =
+      if assigns.selected == assigns.value do
+        {"text-blue-500 dark:text-blue-400", "text-blue-500 dark:text-blue-400"}
+      else
+        {"text-gray-500 dark:text-gray-400", "text-gray-800 dark:text-gray-200"}
+      end
+
+    assigns = assign(assigns, class: class, label_class: label_class)
+
+    ~H"""
+    <Core.menu_option
+      class={["select-none", @class]}
+      id={"select-#{@name}-#{@value}"}
+      selected={@value == @selected}
+      phx-click={
+        "select-#{@name}"
+        |> JS.push(target: @myself)
+        |> Core.close_menu(@name)
+        |> JS.focus(to: "##{@name}-menu-toggle")
+      }
+      phx-value-choice={@value}
+    >
+      <%= if @value == @selected do %>
+        <Icons.icon name="icon-check" class="w-5 h-5 shrink-0" />
+      <% else %>
+        <span class="block w-5 h-5 shrink-0"></span>
+      <% end %>
+
+      <span class={["capitalize", @label_class]}>{String.replace(@value, "_", " ")}</span>
+    </Core.menu_option>
     """
   end
 

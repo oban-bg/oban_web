@@ -5,32 +5,22 @@ defmodule Oban.Web.ThemeComponent do
   def render(assigns) do
     ~H"""
     <div
-      class="relative"
       id="theme-selector"
       data-shortcut={JS.push("cycle-theme", target: "#theme-selector")}
       phx-hook="Themer"
     >
-      <button
-        aria-expanded="true"
-        aria-haspopup="listbox"
-        class="cursor-pointer text-gray-500 dark:text-gray-400 focus:outline-none hover:text-gray-700 dark:hover:text-gray-200 hidden md:block"
-        data-title="Change theme"
-        id="theme-menu-toggle"
-        phx-hook="Tippy"
-        phx-click={JS.toggle(to: "#theme-menu")}
-        type="button"
+      <Core.dropdown_menu
+        id="theme"
+        title="Change theme"
+        aria_label="Change theme"
+        toggle_class="hidden sm:flex h-9 w-9 items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5"
       >
-        <.theme_icon theme={@theme} />
-      </button>
+        <:toggle>
+          <.theme_icon theme={@theme} />
+        </:toggle>
 
-      <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 py-2 w-32 overflow-hidden rounded-md shadow-lg text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
-        id="theme-menu"
-        role="listbox"
-        tabindex="-1"
-      >
         <.option :for={theme <- ~w(light dark system)} myself={@myself} theme={@theme} value={theme} />
-      </ul>
+      </Core.dropdown_menu>
     </div>
     """
   end
@@ -40,28 +30,31 @@ defmodule Oban.Web.ThemeComponent do
   attr :value, :string, required: true
 
   defp option(assigns) do
-    class =
+    {class, label_class} =
       if assigns.theme == assigns.value do
-        "text-blue-500 dark:text-blue-400"
+        {"text-blue-500 dark:text-blue-400", "text-blue-500 dark:text-blue-400"}
       else
-        "text-gray-500 dark:text-gray-400 "
+        {"text-gray-500 dark:text-gray-400", "text-gray-800 dark:text-gray-200"}
       end
 
-    assigns = assign(assigns, :class, class)
+    assigns = assign(assigns, class: class, label_class: label_class)
 
     ~H"""
-    <li
-      class={"block w-full py-1 px-2 flex items-center cursor-pointer space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
+    <Core.menu_option
+      class={@class}
       id={"select-theme-#{@value}"}
-      phx-click-away={JS.hide(to: "#theme-menu")}
-      phx-click="update-theme"
-      phx-target={@myself}
+      selected={@theme == @value}
+      phx-click={
+        "update-theme"
+        |> JS.push(target: @myself)
+        |> Core.close_menu("theme")
+        |> JS.focus(to: "#theme-menu-toggle")
+      }
       phx-value-theme={@value}
-      role="option"
     >
       <.theme_icon theme={@value} />
-      <span class="capitalize text-gray-800 dark:text-gray-200">{@value}</span>
-    </li>
+      <span class={["capitalize", @label_class]}>{@value}</span>
+    </Core.menu_option>
     """
   end
 

@@ -1,19 +1,21 @@
 const PAIRS = {
   "/": "#search",
   "?": "#shortcuts",
-  C: "#nav-crons",
-  J: "#nav-jobs",
-  Q: "#nav-queues",
-  W: "#nav-workflows",
+  c: "#nav-crons",
+  j: "#nav-jobs",
+  q: "#nav-queues",
+  w: "#nav-workflows",
   r: "#refresh-selector",
   t: "#theme-selector",
 }
 
+const EDITABLE = ["INPUT", "TEXTAREA", "SELECT"]
+
 const Shortcuts = {
   mounted() {
     window.addEventListener("keydown", (event) => {
-      if (event.target.nodeName !== "BODY") return
-      if (event.metaKey) return
+      if (EDITABLE.includes(event.target.nodeName) || event.target.isContentEditable) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
 
       const selector = PAIRS[event.key]
 

@@ -41,81 +41,117 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
-  slot :inner_block, required: true
-  attr :name, :string, required: true
-  attr :options, :list, required: true
-  attr :selected, :any, required: true
-  attr :title, :string, required: true
-  attr :disabled, :boolean, default: false
-  attr :target, :any, default: "myself"
+  @doc """
+  An accessible dropdown menu shell with a toggle button and a menu of options.
 
-  def dropdown_button(assigns) do
+  Opening moves focus into the menu, `aria-expanded` tracks the open state, and the menu closes
+  on click-away, escape, or tab (via the Menu hook). Compose option activation with `close_menu/2`
+  so selecting an option also closes the menu.
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :aria_label, :string, default: nil
+  attr :disabled, :boolean, default: false
+  attr :menu_class, :string, default: "w-32 overflow-hidden"
+  attr :toggle_class, :string, default: nil
+  slot :toggle, required: true
+  slot :inner_block, required: true
+
+  def dropdown_menu(assigns) do
     ~H"""
-    <div class="relative" id={"#{@name}-selector"}>
+    <div class="relative">
       <button
-        aria-expanded="true"
-        aria-haspopup="listbox"
-        class="cursor-pointer text-gray-500 dark:text-gray-400 disabled:text-gray-400 disabled:dark:text-gray-500 focus:outline-none hover:text-gray-800 dark:hover:text-gray-200 hidden md:block"
+        aria-controls={"#{@id}-menu"}
+        aria-expanded="false"
+        aria-haspopup="menu"
+        aria-label={@aria_label}
+        class={[
+          "cursor-pointer disabled:cursor-not-allowed rounded-md",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+          @toggle_class
+        ]}
         data-title={@title}
         disabled={@disabled}
-        id={"#{@name}-menu-toggle"}
+        id={"#{@id}-menu-toggle"}
+        phx-click={open_menu(@id)}
         phx-hook="Tippy"
-        phx-click={JS.toggle(to: "##{@name}-menu")}
         type="button"
       >
-        {render_slot(@inner_block)}
+        {render_slot(@toggle)}
       </button>
 
       <ul
-        class="hidden absolute z-50 top-full right-0 mt-2 w-32 overflow-hidden border border-gray-100 dark:border-gray-800 rounded-md shadow-md text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none"
-        id={"#{@name}-menu"}
-        role="listbox"
-        tabindex="-1"
+        class={[
+          "hidden absolute z-50 top-full right-0 mt-2 py-2 rounded-md shadow-lg ring-1 ring-black/5",
+          "text-sm font-semibold bg-white dark:bg-gray-800 focus:outline-none",
+          @menu_class
+        ]}
+        data-close={close_menu(@id)}
+        id={"#{@id}-menu"}
+        phx-click-away={JS.exec("data-close", to: "##{@id}-menu")}
+        phx-hook="Menu"
+        role="menu"
       >
-        <%= for option <- @options do %>
-          <.dropdown_option name={@name} value={option} selected={@selected} target={@target} />
-        <% end %>
+        {render_slot(@inner_block)}
       </ul>
     </div>
     """
   end
 
-  attr :name, :any, required: true
-  attr :value, :any, required: true
-  attr :selected, :any, required: true
-  attr :target, :any
+  @doc """
+  A focusable option within a `dropdown_menu/1`.
 
-  defp dropdown_option(assigns) do
-    class =
-      if assigns.selected == assigns.value do
-        "text-blue-500 dark:text-blue-400"
-      else
-        "text-gray-500 dark:text-gray-400 "
-      end
+  Renders a link when `href` is given, otherwise a button. Passing a boolean `selected` upgrades
+  the option to a `menuitemradio` with `aria-checked`.
+  """
+  attr :class, :any, default: nil
+  attr :href, :string, default: nil
+  attr :selected, :boolean, default: nil
+  attr :rest, :global, include: ~w(target rel)
+  slot :inner_block, required: true
 
-    assigns = assign(assigns, :class, class)
+  def menu_option(assigns) do
+    base_class = ~w(
+      w-full py-1 px-2 flex items-center cursor-pointer space-x-2 text-left
+      hover:bg-gray-50 hover:dark:bg-gray-600/30
+      focus:bg-gray-50 focus:dark:bg-gray-600/30 focus:outline-none
+    )
+
+    assigns = assign(assigns, :base_class, base_class)
 
     ~H"""
-    <li
-      class={"block w-full py-1 px-2 flex items-center cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30 #{@class}"}
-      id={"select-#{@name}-#{@value}"}
-      role="option"
-      phx-click={"select-#{@name}"}
-      phx-click-away={JS.hide(to: "##{@name}-menu")}
-      phx-target={@target}
-      phx-value-choice={@value}
-    >
-      <%= if to_string(@value) == to_string(@selected) do %>
-        <Icons.icon name="icon-check" class="w-5 h-5" />
-      <% else %>
-        <span class="block w-5 h-5"></span>
-      <% end %>
-
-      <span class="capitalize text-gray-800 dark:text-gray-200">
-        {@value |> to_string() |> String.replace("_", " ")}
-      </span>
+    <li role="none">
+      <a :if={@href} class={[@base_class, @class]} href={@href} role="menuitem" {@rest}>
+        {render_slot(@inner_block)}
+      </a>
+      <button
+        :if={is_nil(@href)}
+        aria-checked={unless is_nil(@selected), do: to_string(@selected)}
+        class={[@base_class, @class]}
+        role={if is_nil(@selected), do: "menuitem", else: "menuitemradio"}
+        type="button"
+        {@rest}
+      >
+        {render_slot(@inner_block)}
+      </button>
     </li>
     """
+  end
+
+  @doc """
+  Hide an open `dropdown_menu/1` and reset its toggle's `aria-expanded` state.
+  """
+  def close_menu(js \\ %JS{}, id) do
+    js
+    |> JS.hide(to: "##{id}-menu")
+    |> JS.set_attribute({"aria-expanded", "false"}, to: "##{id}-menu-toggle")
+  end
+
+  defp open_menu(id) do
+    %JS{}
+    |> JS.toggle(to: "##{id}-menu")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "##{id}-menu-toggle")
+    |> JS.focus_first(to: "##{id}-menu")
   end
 
   attr :checked, :boolean, default: false
