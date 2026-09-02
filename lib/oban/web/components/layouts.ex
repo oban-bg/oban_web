@@ -121,7 +121,11 @@ defmodule Oban.Web.Layouts do
       class="fixed z-40 inset-0 p-6 flex items-start justify-end pointer-events-none"
     >
       <div class="max-w-sm w-full flex flex-col space-y-3">
-        <.toast :for={kind <- [:info, :error]} kind={kind} message={Phoenix.Flash.get(@flash, kind)} />
+        <.toast
+          :for={kind <- [:info, :warning, :error]}
+          kind={kind}
+          message={Phoenix.Flash.get(@flash, kind)}
+        />
       </div>
     </div>
     """
@@ -134,7 +138,7 @@ defmodule Oban.Web.Layouts do
     ~H"""
     <div
       :if={@message}
-      role={if @kind == :error, do: "alert", else: "status"}
+      role={if @kind == :info, do: "status", else: "alert"}
       class="w-full bg-white dark:bg-gray-900 shadow-lg rounded-lg pointer-events-auto"
     >
       <div class="rounded-lg ring-1 ring-black/5 overflow-hidden">
@@ -142,6 +146,9 @@ defmodule Oban.Web.Layouts do
           <div class="flex items-center">
             <div :if={@kind == :info} class="flex-shrink-0 text-emerald-600 dark:text-emerald-400">
               <Icons.icon name="icon-check-circle" />
+            </div>
+            <div :if={@kind == :warning} class="flex-shrink-0 text-amber-500 dark:text-amber-400">
+              <Icons.icon name="icon-exclamation-circle" />
             </div>
             <div :if={@kind == :error} class="flex-shrink-0 text-red-500">
               <Icons.icon name="icon-x-circle" />

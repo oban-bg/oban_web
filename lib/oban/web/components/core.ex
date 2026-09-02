@@ -327,28 +327,45 @@ defmodule Oban.Web.Components.Core do
     assigns = assign(assigns, color_classes: color_classes, icon_color: icon_color)
 
     ~H"""
-    <button
-      id={@id}
-      type="button"
-      disabled={@disabled}
-      data-confirm={@confirm}
+    <span
+      id={"#{@id}-tip"}
       data-title={@tooltip}
       phx-hook={if @tooltip, do: "Tippy"}
+      tabindex={if @disabled and is_binary(@tooltip), do: "0"}
       class={[
-        "group inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 rounded-md border text-sm font-medium transition-all duration-200",
-        unless(@disabled, do: "group-hover:pr-3"),
-        @color_classes
+        "inline-flex rounded-md",
+        @disabled && "cursor-not-allowed",
+        @disabled && is_binary(@tooltip) &&
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
       ]}
-      {@rest}
     >
-      <.button_icon name={@icon} class={["h-5 w-5 shrink-0", @icon_color]} />
-      <span class={[
-        "overflow-hidden transition-all duration-200 whitespace-nowrap",
-        if(@disabled, do: "max-w-0", else: "max-w-0 group-hover:max-w-24 group-hover:ml-1.5")
-      ]}>
-        {@label}
-      </span>
-    </button>
+      <button
+        id={@id}
+        type="button"
+        disabled={@disabled}
+        data-confirm={@confirm}
+        class={[
+          "group inline-flex items-center justify-center h-9 pl-2.5 pr-2.5 rounded-md border text-sm font-medium transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+          if(@disabled, do: "pointer-events-none", else: "group-hover:pr-3"),
+          @color_classes
+        ]}
+        {@rest}
+      >
+        <.button_icon name={@icon} class={["h-5 w-5 shrink-0", @icon_color]} />
+        <span class={[
+          "overflow-hidden transition-all duration-200 whitespace-nowrap",
+          if(@disabled,
+            do: "max-w-0",
+            else:
+              "max-w-0 group-hover:max-w-24 group-hover:ml-1.5 group-focus-visible:max-w-24 group-focus-visible:ml-1.5"
+          )
+        ]}>
+          {@label}
+        </span>
+      </button>
+      <span :if={@disabled and is_binary(@tooltip)} class="sr-only">{@tooltip}</span>
+    </span>
     """
   end
 

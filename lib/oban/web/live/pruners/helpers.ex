@@ -50,36 +50,8 @@ defmodule Oban.Web.Pruners.Helpers do
 
   defp format_value(_kind, value), do: value
 
-  def format_limit(%{limit: limit}) when is_integer(limit), do: integer_to_delimited(limit)
-  def format_limit(_rule), do: "—"
-
   def estimate_limit(%{limit: limit}) when is_integer(limit), do: integer_to_estimate(limit)
   def estimate_limit(_rule), do: "—"
-
-  def format_timeout(%{timeout: timeout}) when is_integer(timeout) and timeout < 1_000 do
-    "#{timeout}ms"
-  end
-
-  def format_timeout(%{timeout: timeout}) when is_integer(timeout) do
-    case timeout / 1_000 do
-      seconds when seconds == trunc(seconds) -> "#{trunc(seconds)}s"
-      seconds -> "#{Float.round(seconds, 1)}s"
-    end
-  end
-
-  def format_timeout(_rule), do: "—"
-
-  def to_unix(datetime) when is_struct(datetime, DateTime) do
-    DateTime.to_unix(datetime, :millisecond)
-  end
-
-  def to_unix(_datetime), do: ""
-
-  def to_iso8601(datetime) when is_struct(datetime, DateTime) do
-    DateTime.to_iso8601(datetime)
-  end
-
-  def to_iso8601(_datetime), do: nil
 
   @doc """
   Rule names are user input, so ids built from them must drop characters that aren't valid in DOM

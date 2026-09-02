@@ -18,7 +18,7 @@ defmodule Oban.Web.Pruners.Form do
   end
 
   def kind_options do
-    [{"For a maximum age", "age"}, {"To a maximum length", "length"}, {"Forever", "forever"}]
+    [{"For a max age", "age"}, {"To a max length", "length"}, {"Forever", "forever"}]
   end
 
   def unit_options, do: Enum.map(@age_units, &{&1, &1})
@@ -145,7 +145,7 @@ defmodule Oban.Web.Pruners.Form do
 
   def format_failure(%Ecto.Changeset{} = changeset) do
     if stale?(changeset) do
-      ["Rule was changed elsewhere — review the current values, then save again"]
+      ["Rule was changed elsewhere — save again to apply your edits"]
     else
       changeset
       |> Ecto.Changeset.traverse_errors(&interpolate_error/1)

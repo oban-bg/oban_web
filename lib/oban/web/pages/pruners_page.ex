@@ -483,13 +483,17 @@ defmodule Oban.Web.PrunersPage do
           put_flash_with_clear(socket, :info, message)
 
         {:error, :not_found} ->
-          put_flash_with_clear(socket, :info, "Rule no longer exists")
+          put_flash_with_clear(socket, :warning, "Rule no longer exists")
 
         {:error, reason} when is_binary(reason) ->
-          put_flash_with_clear(socket, :info, reason)
+          put_flash_with_clear(socket, :warning, reason)
 
         {:error, _changeset} ->
-          put_flash_with_clear(socket, :info, "Rule was changed elsewhere and has been reloaded")
+          put_flash_with_clear(
+            socket,
+            :warning,
+            "Rule was changed elsewhere and has been reloaded"
+          )
       end
 
     handle_refresh(socket)

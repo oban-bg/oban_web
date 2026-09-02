@@ -23,52 +23,95 @@ defmodule Oban.Web.Pruners.DetailComponent do
     <div id="pruner-details">
       <.header access={@access} changed?={@changed?} myself={@myself} rule={@rule} />
 
-      <div class="grid grid-cols-3 gap-6 px-3 py-6">
-        <div class="col-span-2">
-          <.chain
-            changed?={@changed?}
-            position={@position}
-            rule={@rule}
-            rules={@rules}
-            shadowed={@shadowed}
-            total={@total}
-          />
+      <div class="px-3 py-6">
+        <.chain
+          changed?={@changed?}
+          position={@position}
+          rule={@rule}
+          rules={@rules}
+          shadowed={@shadowed}
+          total={@total}
+        />
 
-          <p
-            :if={@rule.paused}
-            id="pruner-paused-note"
-            class="mt-3 text-sm text-gray-600 dark:text-gray-400"
-          >
-            While paused this rule drops out of the chain entirely, so its jobs fall through to
-            whichever later rule matches them next, rather than being retained.
-          </p>
+        <p
+          :if={@rule.paused}
+          id="pruner-paused-note"
+          class="mt-3 text-sm text-gray-600 dark:text-gray-400"
+        >
+          While paused this rule drops out of the chain entirely, so its jobs fall through to
+          whichever later rule matches them next, rather than being retained.
+        </p>
 
-          <p
-            :if={@shadows != []}
-            id="pruner-shadowed-note"
-            class="mt-3 text-sm text-amber-700 dark:text-amber-400"
-          >
-            Nothing reaches this rule. Every job it matches is already claimed by {shadow_names(
-              @shadows
-            )}, which {shadow_verb(@shadows)} earlier in the chain.
-          </p>
+        <p
+          :if={@shadows != []}
+          id="pruner-shadowed-note"
+          class="mt-3 text-sm text-amber-700 dark:text-amber-400"
+        >
+          Nothing reaches this rule. Every job it matches is already claimed by {shadow_names(
+            @shadows
+          )}, which {shadow_verb(@shadows)} earlier in the chain.
+        </p>
+
+        <div
+          :if={@configured?}
+          id="pruner-form-configured"
+          class="mt-6 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-300"
+        >
+          This rule is declared in your Oban configuration. Changes made here, apart from pausing
+          and reordering, are replaced from that configuration whenever the pruner restarts.
         </div>
 
-        <div class="col-span-1 space-y-6">
-          <.match_section rule={@rule} />
-          <.retention_section rule={@rule} />
-          <.metadata rule={@rule} />
-        </div>
+        <fieldset
+          id="pruner-form-fields"
+          class="mt-6"
+          disabled={not can?(:update_pruners, @access)}
+        >
+          <form
+            id="pruner-form"
+            phx-change="form-change"
+            phx-submit="save-rule"
+            phx-target={@myself}
+          >
+            <div class="grid grid-cols-2 gap-x-10 gap-y-6">
+              <.match_panel form={@form} />
+              <.retention_panel form={@form} />
+            </div>
+
+            <div
+              :if={@errors != []}
+              id="pruner-form-errors"
+              role="alert"
+              class="mt-4 px-3 py-2 rounded-md bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300 space-y-1"
+            >
+              <p :for={error <- @errors}>{error}</p>
+            </div>
+
+            <div
+              :if={can?(:update_pruners, @access)}
+              class="mt-6 flex justify-end items-center gap-4"
+            >
+              <button
+                type="button"
+                id="detail-discard"
+                disabled={not @changed?}
+                phx-click="discard-changes"
+                phx-target={@myself}
+                class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Discard
+              </button>
+              <button
+                type="submit"
+                id="detail-save"
+                disabled={not @changed?}
+                class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </fieldset>
       </div>
-
-      <.editor
-        access={@access}
-        changed?={@changed?}
-        configured?={@configured?}
-        errors={@errors}
-        form={@form}
-        myself={@myself}
-      />
     </div>
     """
   end
@@ -81,17 +124,19 @@ defmodule Oban.Web.Pruners.DetailComponent do
   defp header(assigns) do
     ~H"""
     <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
-      <button
-        id="back-link"
-        class="flex items-center min-w-0 hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-        data-confirm-back={@changed? && "Discard unsaved changes?"}
-        data-escape-back={true}
-        phx-hook="HistoryBack"
-        type="button"
-      >
-        <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
-        <span class="text-lg font-bold ml-2 truncate">{@rule.name}</span>
-      </button>
+      <h2 class="min-w-0">
+        <button
+          id="back-link"
+          class="flex items-center min-w-0 max-w-full hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          data-confirm-back={@changed? && "Discard unsaved changes?"}
+          data-escape-back={true}
+          phx-hook="HistoryBack"
+          type="button"
+        >
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
+          <span class="text-lg font-bold ml-2 truncate">{@rule.name}</span>
+        </button>
+      </h2>
 
       <div class="flex items-center space-x-3">
         <Core.status_badge
@@ -155,9 +200,9 @@ defmodule Oban.Web.Pruners.DetailComponent do
     ~H"""
     <div id="pruner-chain">
       <div class="flex items-baseline">
-        <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
-          Evaluation Chain
-        </span>
+        <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+          Rule Chain
+        </h3>
 
         <span
           id="pruner-evaluation"
@@ -245,205 +290,86 @@ defmodule Oban.Web.Pruners.DetailComponent do
     """
   end
 
-  attr :rule, :map, required: true
+  attr :form, :map, required: true
 
-  defp match_section(assigns) do
+  defp match_panel(assigns) do
     ~H"""
     <div id="pruner-match">
-      <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+      <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
         Match
-      </span>
-
-      <dl class="mt-2 space-y-2">
-        <p :if={match_pairs(@rule) == []} class="text-sm text-gray-600 dark:text-gray-400">
-          Every completed, cancelled, and discarded job.
-        </p>
-
-        <div :for={{field, value} <- match_pairs(@rule)} class="flex items-baseline text-sm">
-          <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">{field}</dt>
-          <dd class="font-medium text-gray-700 dark:text-gray-300 break-all">{value}</dd>
-        </div>
-      </dl>
-    </div>
-    """
-  end
-
-  attr :rule, :map, required: true
-
-  defp retention_section(assigns) do
-    ~H"""
-    <div id="pruner-retention">
-      <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
-        Retention
-      </span>
-
-      <dl class="mt-2 space-y-2">
-        <div class="flex items-baseline text-sm">
-          <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">{mode_label(@rule)}</dt>
-          <dd class="font-medium tabular text-gray-700 dark:text-gray-300">{format_mode(@rule)}</dd>
-        </div>
-
-        <div class="flex items-baseline text-sm">
-          <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">limit</dt>
-          <dd class="tabular text-gray-700 dark:text-gray-300">
-            {format_limit(@rule)} <span class="text-gray-500 dark:text-gray-400">per pass</span>
-          </dd>
-        </div>
-
-        <div class="flex items-baseline text-sm">
-          <dt class="w-20 shrink-0 text-gray-500 dark:text-gray-400">timeout</dt>
-          <dd class="tabular text-gray-700 dark:text-gray-300">{format_timeout(@rule)}</dd>
-        </div>
-      </dl>
-    </div>
-    """
-  end
-
-  attr :rule, :map, required: true
-
-  defp metadata(assigns) do
-    ~H"""
-    <div
-      id="pruner-metadata"
-      class="flex items-center space-x-6 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400"
-    >
-      <span>
-        Created
-        <time
-          id="pruner-inserted-at"
-          datetime={to_iso8601(@rule.inserted_at)}
-          data-timestamp={to_unix(@rule.inserted_at)}
-          phx-hook="Relativize"
-          phx-update="ignore"
-        >
-          -
-        </time>
-      </span>
-
-      <span>
-        Updated
-        <time
-          id="pruner-updated-at"
-          datetime={to_iso8601(@rule.updated_at)}
-          data-timestamp={to_unix(@rule.updated_at)}
-          phx-hook="Relativize"
-          phx-update="ignore"
-        >
-          -
-        </time>
-      </span>
-    </div>
-    """
-  end
-
-  attr :access, :any, required: true
-  attr :changed?, :boolean, required: true
-  attr :configured?, :boolean, required: true
-  attr :errors, :list, required: true
-  attr :form, :map, required: true
-  attr :myself, :any, required: true
-
-  defp editor(assigns) do
-    ~H"""
-    <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
-      <h3 class="flex items-center font-semibold mb-3 space-x-2 text-gray-500 dark:text-gray-400">
-        <Icons.icon name="icon-pencil-square" />
-        <span>Edit Configuration</span>
       </h3>
 
-      <div
-        :if={@configured?}
-        id="pruner-form-configured"
-        class="mb-3 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-300"
-      >
-        This rule is declared in your Oban configuration. Changes made here, apart from pausing and
-        reordering, are replaced from that configuration whenever the pruner restarts.
+      <div class="mt-3 space-y-4">
+        <.form_field
+          label="Queue"
+          name="queue"
+          value={@form.queue}
+          placeholder="any queue"
+          hint="Only prune jobs from this queue"
+        />
+
+        <.form_field
+          label="Worker"
+          name="worker"
+          value={@form.worker}
+          placeholder="any worker"
+          hint="Only prune jobs for this worker"
+        />
+
+        <.select_field label="State" name="state" value={@form.state} options={Form.state_options()} />
       </div>
+    </div>
+    """
+  end
 
-      <div
-        :if={@errors != []}
-        id="pruner-form-errors"
-        class="mb-3 px-3 py-2 rounded-md bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300 space-y-1"
-      >
-        <p :for={error <- @errors}>{error}</p>
-      </div>
+  attr :form, :map, required: true
 
-      <fieldset id="pruner-form-fields" disabled={not can?(:update_pruners, @access)}>
-        <form
-          id="pruner-form"
-          class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
-          phx-change="form-change"
-          phx-submit="save-rule"
-          phx-target={@myself}
-        >
+  defp retention_panel(assigns) do
+    ~H"""
+    <div id="pruner-retention">
+      <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+        Retention
+      </h3>
+
+      <div class="mt-3 space-y-4">
+        <.select_field label="Retain" name="kind" value={@form.kind} options={Form.kind_options()} />
+
+        <div :if={@form.kind == "age"} class="grid grid-cols-2 gap-4">
           <.form_field
-            label="Queue"
-            name="queue"
-            value={@form.queue}
-            placeholder="any queue"
-            hint="Only prune jobs from this queue"
-          />
-
-          <.form_field
-            label="Worker"
-            name="worker"
-            value={@form.worker}
-            placeholder="any worker"
-            hint="Only prune jobs for this worker"
-          />
-
-          <.select_field
-            label="State"
-            name="state"
-            value={@form.state}
-            options={Form.state_options()}
-          />
-
-          <.select_field
-            label="Retain"
-            name="kind"
-            value={@form.kind}
-            options={Form.kind_options()}
-          />
-
-          <div :if={@form.kind == "age"} class="grid grid-cols-2 gap-4">
-            <.form_field
-              label="Age"
-              name="age_value"
-              value={@form.age_value}
-              type="number"
-              min={1}
-              placeholder="7"
-              required={true}
-            />
-
-            <.select_field
-              label="Unit"
-              name="age_unit"
-              value={@form.age_unit}
-              options={Form.unit_options()}
-            />
-          </div>
-
-          <.form_field
-            :if={@form.kind == "length"}
-            label="Length"
-            name="length_value"
-            value={@form.length_value}
+            label="Age"
+            name="age_value"
+            value={@form.age_value}
             type="number"
             min={1}
-            placeholder="1000"
+            placeholder="7"
             required={true}
-            hint="Number of most recent jobs to keep"
           />
 
-          <p
-            :if={@form.kind == "forever"}
-            class="flex items-end pb-2 text-sm text-gray-500 dark:text-gray-400"
-          >
-            Matching jobs are never pruned.
-          </p>
+          <.select_field
+            label="Unit"
+            name="age_unit"
+            value={@form.age_unit}
+            options={Form.unit_options()}
+          />
+        </div>
 
+        <.form_field
+          :if={@form.kind == "length"}
+          label="Length"
+          name="length_value"
+          value={@form.length_value}
+          type="number"
+          min={1}
+          placeholder="1000"
+          required={true}
+          hint="Number of most recent jobs to keep"
+        />
+
+        <p :if={@form.kind == "forever"} class="text-sm italic text-gray-500 dark:text-gray-400">
+          Matching jobs are never pruned.
+        </p>
+
+        <div class="grid grid-cols-2 gap-4">
           <.form_field
             label="Limit"
             name="limit"
@@ -452,7 +378,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
             min={1}
             max={Form.max_limit()}
             placeholder="10000"
-            hint="Maximum jobs deleted per pass"
+            hint="Max jobs deleted per pass"
           />
 
           <.form_field
@@ -464,26 +390,15 @@ defmodule Oban.Web.Pruners.DetailComponent do
             placeholder="60000"
             hint="Milliseconds each pass may spend deleting"
           />
+        </div>
 
-          <.checkbox_field
-            label="Archive"
-            name="archive"
-            checked={@form.archive}
-            colspan="flex items-end pb-2"
-            hint="Copy jobs into the archive table instead of discarding them"
-          />
-
-          <div class="col-span-4 flex justify-end items-center pt-2">
-            <button
-              type="submit"
-              disabled={not @changed?}
-              class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Save Changes
-            </button>
-          </div>
-        </form>
-      </fieldset>
+        <.checkbox_field
+          label="Archive"
+          name="archive"
+          checked={@form.archive}
+          hint="Copy jobs into the archive table instead of discarding them"
+        />
+      </div>
     </div>
     """
   end
@@ -492,21 +407,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
 
   @impl Phoenix.LiveComponent
   def update(%{failure: failure}, socket) do
-    socket = assign(socket, errors: Form.format_failure(failure))
-
-    # A stale save arrives after the page reloads the rule, so adopting the current lock version
-    # lets the next save succeed instead of repeating the same conflict.
-    if Form.stale?(failure) do
-      %{baseline: baseline, form: form, rule: rule} = socket.assigns
-
-      {:ok,
-       assign(socket,
-         baseline: %{baseline | lock_version: rule.lock_version},
-         form: %{form | lock_version: rule.lock_version}
-       )}
-    else
-      {:ok, socket}
-    end
+    {:ok, assign(socket, errors: Form.format_failure(failure))}
   end
 
   # Saving advances the rule's lock version, so the form reseeds to keep editing from the values
@@ -522,17 +423,16 @@ defmodule Oban.Web.Pruners.DetailComponent do
       |> assign_new(:errors, fn -> [] end)
 
     # Refreshes replace the rule every second, and patching along the chain swaps it entirely.
-    # An untouched form follows those replacements so it never displays outdated values, while a
-    # form with edits in progress is left alone.
-    cond do
-      Map.get(socket.assigns, :seeded) != assigns.rule.name ->
-        {:ok, assign_seed(socket, assigns.rule)}
+    # Freshness is per field: an untouched field tracks the live rule (including the lock
+    # version, which makes a save after a conflict succeed), while a field with edits in
+    # progress keeps them.
+    if Map.get(socket.assigns, :seeded) == assigns.rule.name do
+      fresh = Form.seed(assigns.rule)
+      %{baseline: baseline, form: form} = socket.assigns
 
-      socket.assigns.form == socket.assigns.baseline ->
-        {:ok, assign_seed(socket, assigns.rule)}
-
-      true ->
-        {:ok, socket}
+      {:ok, assign(socket, baseline: fresh, form: merge_fresh(form, baseline, fresh))}
+    else
+      {:ok, assign_seed(socket, assigns.rule)}
     end
   end
 
@@ -569,6 +469,10 @@ defmodule Oban.Web.Pruners.DetailComponent do
     {:noreply, assign(socket, form: form)}
   end
 
+  def handle_event("discard-changes", _params, socket) do
+    {:noreply, assign_seed(socket, socket.assigns.rule)}
+  end
+
   def handle_event("save-rule", params, socket) do
     enforce_access!(:update_pruners, socket.assigns.access)
 
@@ -592,6 +496,18 @@ defmodule Oban.Web.Pruners.DetailComponent do
     form = Form.seed(rule)
 
     assign(socket, baseline: form, errors: [], form: form, seeded: rule.name)
+  end
+
+  defp merge_fresh(form, baseline, fresh) do
+    Map.new(fresh, fn {key, fresh_value} ->
+      form_value = Map.fetch!(form, key)
+
+      if form_value == Map.fetch!(baseline, key) do
+        {key, fresh_value}
+      else
+        {key, form_value}
+      end
+    end)
   end
 
   defp shadow_names(shadows), do: Enum.map_join(shadows, ", ", & &1.name)

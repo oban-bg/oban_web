@@ -59,6 +59,7 @@ defmodule Oban.Web.Pruners.NewComponent do
                 <div
                   :if={@errors != []}
                   id="new-pruner-errors"
+                  role="alert"
                   class="px-4 py-3 bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300 space-y-1"
                 >
                   <p :for={error <- @errors}>{error}</p>
@@ -151,7 +152,7 @@ defmodule Oban.Web.Pruners.NewComponent do
                       min={1}
                       max={Form.max_limit()}
                       placeholder="10000"
-                      hint="Maximum jobs deleted per pass"
+                      hint="Max jobs deleted per pass"
                     />
 
                     <.form_field

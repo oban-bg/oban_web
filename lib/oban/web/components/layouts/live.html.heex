@@ -10,7 +10,7 @@
   </a>
 
   <.notify
-    :if={Phoenix.Flash.get(@flash, :info) || Phoenix.Flash.get(@flash, :error)}
+    :if={Enum.any?([:info, :warning, :error], &Phoenix.Flash.get(@flash, &1))}
     flash={@flash}
   />
 

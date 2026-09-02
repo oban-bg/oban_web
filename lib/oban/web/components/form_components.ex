@@ -30,7 +30,7 @@ defmodule Oban.Web.FormComponents do
           id={"#{@name}-hint"}
           data-title={@hint}
           phx-hook="Tippy"
-          class="translate-y-px"
+          class="inline-flex items-center translate-y-px"
         >
           <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
           <span class="sr-only">{@hint}</span>
@@ -117,7 +117,7 @@ defmodule Oban.Web.FormComponents do
             aria-describedby={@hint && "#{@name}-hint"}
             class="sr-only peer"
           />
-          <span class="block w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:border-blue-500 peer-checked:bg-blue-500" />
+          <span class="block w-4 h-4 rounded border border-gray-300 dark:border-gray-600 peer-checked:border-blue-500 peer-checked:bg-blue-500 peer-focus-visible:ring-1 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-1 dark:peer-focus-visible:ring-offset-gray-900" />
           <Icons.icon
             name="icon-check"
             class="w-3 h-3 text-white absolute top-0.5 left-0.5 hidden peer-checked:block"
@@ -129,7 +129,7 @@ defmodule Oban.Web.FormComponents do
           id={"#{@name}-hint"}
           data-title={@hint}
           phx-hook="Tippy"
-          class="ml-1 translate-y-px"
+          class="ml-1 inline-flex items-center translate-y-px"
         >
           <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
           <span class="sr-only">{@hint}</span>

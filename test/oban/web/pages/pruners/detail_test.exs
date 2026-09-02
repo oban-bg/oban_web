@@ -20,8 +20,10 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert html =~ "media"
     assert html =~ "completed"
     assert html =~ "500 jobs"
-    assert html =~ "15s"
+    assert html =~ ~s(name="timeout" value="15000")
     assert html =~ "1 of 2"
+
+    assert has_element?(live, "h2 #back-link")
   end
 
   test "listing the whole evaluation chain" do
@@ -65,10 +67,11 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
 
     html = render(live)
 
-    assert html =~ "Every completed, cancelled, and discarded job"
-    assert html =~ "Forever"
+    assert html =~ ~s(placeholder="any queue")
+    assert html =~ ~s(value="forever" selected)
 
     assert live |> element("#detail-delete") |> render() =~ "disabled"
+    assert live |> element("#detail-delete-tip") |> render() =~ "default rule can"
   end
 
   test "warning about a rule that earlier rules already claim" do
@@ -145,7 +148,11 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
 
     live |> element("#detail-pause-resume") |> render_click()
 
-    assert render(live) =~ "changed elsewhere"
+    html = render(live)
+
+    assert html =~ "changed elsewhere"
+    assert html =~ ~s(role="alert")
+    assert html =~ "icon-exclamation-circle"
     assert %{paused: false} = Pruner.get("media")
   end
 
@@ -173,6 +180,7 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
       assert live |> element("#detail-delete") |> render() =~ "disabled"
 
       assert has_element?(live, "#pruner-form-fields[disabled]")
+      refute has_element?(live, "#detail-save")
     end
   end
 

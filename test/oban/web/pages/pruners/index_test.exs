@@ -294,7 +294,7 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
     assert_patch(live, "/oban/pruners/media")
 
-    assert render(live) =~ "Evaluation"
+    assert render(live) =~ "Rule Chain"
   end
 
   describe "read only access" do
