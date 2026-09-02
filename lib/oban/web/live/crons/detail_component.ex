@@ -14,7 +14,9 @@ defmodule Oban.Web.Crons.DetailComponent do
   def render(assigns) do
     assigns =
       assign(assigns,
+        advisories: Form.advisories(assigns.form, assigns.baseline),
         changed?: assigns.form != assigns.baseline,
+        defaults: worker_defaults(assigns.form.worker),
         editable?: assigns.cron.dynamic? and can?(:update_crons, assigns.access)
       )
 
@@ -24,15 +26,32 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="px-3 py-6">
         <div class="grid grid-cols-3 gap-6">
-          <.history_chart cron={@cron} />
+          <.history_chart changed?={@changed?} cron={@cron} />
           <.stats cron={@cron} />
         </div>
 
         <fieldset id="cron-form-fields" class="mt-6" disabled={not @editable?}>
-          <form id="cron-form" phx-change="form-change" phx-submit="save-cron" phx-target={@myself}>
+          <form
+            id="cron-form"
+            class="bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+            phx-change="form-change"
+            phx-submit="save-cron"
+            phx-target={@myself}
+          >
             <div class="grid grid-cols-2 gap-x-10 gap-y-6">
-              <.schedule_panel form={@form} />
-              <.job_panel form={@form} queues={@queues} />
+              <.schedule_panel form={@form} invalid={@invalid} timezones={@timezone_options} />
+              <.job_panel defaults={@defaults} form={@form} invalid={@invalid} queues={@queues} />
+            </div>
+
+            <div
+              :if={@editable? and @advisories != []}
+              id="cron-form-advisories"
+              class="mt-4 flex items-start gap-2 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-800 dark:text-amber-300"
+            >
+              <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 shrink-0" />
+              <div class="space-y-1">
+                <p :for={advisory <- @advisories}>{advisory}</p>
+              </div>
             </div>
 
             <div
@@ -49,16 +68,17 @@ defmodule Oban.Web.Crons.DetailComponent do
               id="cron-static-note"
               class="mt-6 text-sm text-gray-500 dark:text-gray-400"
             >
-              This cron is declared in your Oban configuration, so it can't be edited here.
+              This cron is declared in your Oban config, so it can't be edited here.
               <a
                 rel="static-blocker"
                 href="https://oban.pro/docs/pro/Oban.Pro.Cron.html"
                 target="_blank"
                 class="inline-flex items-center gap-1 text-blue-500 hover:underline rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
               >
-                Editing requires Pro Cron
+                Move it to Pro Cron
                 <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3" />
               </a>
+              to manage it from the dashboard.
             </p>
 
             <div :if={@editable?} class="mt-6 flex justify-end items-center gap-4">
@@ -76,6 +96,7 @@ defmodule Oban.Web.Crons.DetailComponent do
                 type="submit"
                 id="detail-save"
                 disabled={not @changed?}
+                phx-disable-with="Saving…"
                 class="px-6 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Changes
@@ -123,6 +144,13 @@ defmodule Oban.Web.Crons.DetailComponent do
           label="Dynamic"
         />
         <Core.status_badge
+          :if={not @cron.dynamic?}
+          id="status-static"
+          icon="command_line"
+          label="Static"
+          tooltip="Declared in your Oban config"
+        />
+        <Core.status_badge
           :if={@cron.paused?}
           id="status-paused"
           icon="pause_circle"
@@ -162,7 +190,7 @@ defmodule Oban.Web.Crons.DetailComponent do
               else: "Only dynamic crons can be deleted"
           }
           disabled={not @cron.dynamic? or not can?(:delete_crons, @access)}
-          confirm="Are you sure you want to delete this cron?"
+          confirm={"Delete the #{@cron.name} cron? Jobs it already inserted will still run."}
           phx-click="delete-cron"
           phx-target={@myself}
         />
@@ -177,17 +205,26 @@ defmodule Oban.Web.Crons.DetailComponent do
 
   attr :cron, :any, required: true
 
+  attr :changed?, :boolean, default: false
+
   defp history_chart(assigns) do
     ~H"""
     <div id="cron-history" class="col-span-2">
       <div class="flex items-baseline">
         <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
           History
+          <span
+            id="cron-history-window"
+            class="ml-1 normal-case font-normal text-gray-400 dark:text-gray-500 tabular"
+          >
+            {history_window(@cron.history)}
+          </span>
         </h3>
 
         <.link
           id="cron-view-jobs"
-          navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: "completed"})}
+          navigate={oban_path(:jobs, %{meta: [["cron_name"], @cron.name], state: jobs_state(@cron)})}
+          data-confirm={@changed? && "Discard unsaved changes?"}
           class="ml-auto flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
         >
           View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
@@ -212,9 +249,25 @@ defmodule Oban.Web.Crons.DetailComponent do
     <dl class="col-span-1 space-y-4">
       <div class="flex flex-col">
         <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Last Run
+          Schedule
         </dt>
         <dd class="text-base text-gray-800 dark:text-gray-200">
+          <code class="font-mono">{@cron.expression}</code>
+          <span
+            :if={CronExpr.describe(@cron.expression)}
+            id="cron-expression-description"
+            class="ml-1 text-gray-500 dark:text-gray-400"
+          >
+            ({CronExpr.describe(@cron.expression)})
+          </span>
+        </dd>
+      </div>
+
+      <div class="flex flex-col">
+        <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          Last Run
+        </dt>
+        <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
           <span
             id="cron-last-time"
             data-timestamp={maybe_to_unix(@cron.last_at)}
@@ -230,7 +283,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
           Next Run
         </dt>
-        <dd class="text-base text-gray-800 dark:text-gray-200">
+        <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
           <span
             id="cron-next-time"
             data-timestamp={maybe_to_unix(@cron.next_at)}
@@ -247,9 +300,9 @@ defmodule Oban.Web.Crons.DetailComponent do
           Last Status
         </dt>
         <dd class="flex items-center space-x-1">
-          <.state_icon state={@cron.last_state} paused={@cron.paused?} />
+          <.state_icon state={@cron.last_state} />
           <span class="text-base text-gray-800 dark:text-gray-200">
-            {if @cron.paused?, do: "Paused", else: state_label(@cron.last_state)}
+            {state_label(@cron.last_state)}
           </span>
         </dd>
       </div>
@@ -258,6 +311,9 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   attr :form, :map, required: true
+
+  attr :invalid, :list, default: []
+  attr :timezones, :list, required: true
 
   defp schedule_panel(assigns) do
     ~H"""
@@ -272,32 +328,26 @@ defmodule Oban.Web.Crons.DetailComponent do
           name="name"
           value={@form.name}
           required={true}
+          invalid={:name in @invalid}
           hint="Changing the name resets this cron's history"
         />
 
-        <div>
-          <.form_field
-            label="Expression"
-            name="expression"
-            value={@form.expression}
-            placeholder="* * * * *"
-            required={true}
-          />
-
-          <p
-            :if={CronExpr.describe(@form.expression)}
-            id="cron-expression-description"
-            class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"
-          >
-            {CronExpr.describe(@form.expression)}
-          </p>
-        </div>
+        <.form_field
+          label="Expression"
+          name="expression"
+          value={@form.expression}
+          placeholder="* * * * *"
+          required={true}
+          invalid={:expression in @invalid}
+          hint="Changing the schedule resets guaranteed insertion"
+        />
 
         <.select_field
           label="Timezone"
           name="timezone"
           value={@form.timezone}
-          options={timezone_options()}
+          options={[{"cron default", ""} | @timezones]}
+          hint="Changing the timezone resets guaranteed insertion"
         />
 
         <.checkbox_field
@@ -314,6 +364,9 @@ defmodule Oban.Web.Crons.DetailComponent do
   attr :form, :map, required: true
   attr :queues, :list, required: true
 
+  attr :defaults, :map, required: true
+  attr :invalid, :list, default: []
+
   defp job_panel(assigns) do
     ~H"""
     <div id="cron-job">
@@ -328,13 +381,14 @@ defmodule Oban.Web.Crons.DetailComponent do
           value={@form.worker}
           placeholder="MyApp.Workers.SomeWorker"
           required={true}
+          invalid={:worker in @invalid}
         />
 
         <.select_field
           label="Queue"
           name="queue"
           value={@form.queue}
-          options={queue_options(@queues, @form.queue)}
+          options={queue_options(@queues, @form.queue, @defaults.queue)}
         />
 
         <div class="grid grid-cols-2 gap-4">
@@ -345,7 +399,7 @@ defmodule Oban.Web.Crons.DetailComponent do
             type="number"
             min={0}
             max={9}
-            placeholder="0"
+            placeholder={@defaults.priority}
           />
 
           <.form_field
@@ -354,7 +408,7 @@ defmodule Oban.Web.Crons.DetailComponent do
             value={@form.max_attempts}
             type="number"
             min={1}
-            placeholder="20"
+            placeholder={@defaults.max_attempts}
           />
         </div>
 
@@ -372,6 +426,7 @@ defmodule Oban.Web.Crons.DetailComponent do
           value={@form.args}
           type="textarea"
           placeholder="{}"
+          invalid={:args in @invalid}
           rows={2}
           hint="A JSON object passed to every job"
         />
@@ -380,12 +435,10 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
-  # A blank timezone defers to the plugin's timezone, and a blank queue to the worker's queue. A
-  # queue that isn't running still has to appear as an option, otherwise the browser selects the
-  # first option and a save would silently change it.
-  defp timezone_options, do: [{"plugin default", ""} | Timezones.options()]
-
-  defp queue_options(queues, current) do
+  # A blank timezone defers to Pro Cron's configured timezone, and a blank queue to the worker's
+  # queue. A queue that isn't running still has to appear as an option, otherwise the browser
+  # selects the first option and a save would silently change it.
+  defp queue_options(queues, current, default) do
     options = queue_options(queues)
 
     options =
@@ -395,8 +448,32 @@ defmodule Oban.Web.Crons.DetailComponent do
         [{current, current} | options]
       end
 
-    [{"worker default", ""} | options]
+    label = if default, do: "worker default (#{default})", else: "worker default"
+
+    [{label, ""} | options]
   end
+
+  # Placeholders show what the worker itself would use, so leaving a field blank isn't a guess.
+  # Workers from other languages or apps aren't loaded here, and then there's nothing to claim.
+  defp worker_defaults(worker) do
+    case Oban.Worker.from_string(worker) do
+      {:ok, module} ->
+        opts = module.__opts__()
+
+        %{
+          max_attempts: to_string(Keyword.get(opts, :max_attempts, 20)),
+          priority: to_string(Keyword.get(opts, :priority, 0)),
+          queue: to_string(Keyword.get(opts, :queue, :default))
+        }
+
+      {:error, _reason} ->
+        %{max_attempts: "worker default", priority: "worker default", queue: nil}
+    end
+  end
+
+  defp history_window([]), do: "no runs yet"
+  defp history_window([_job]), do: "last run"
+  defp history_window(jobs), do: "last #{length(jobs)} runs"
 
   # Callbacks
 
@@ -408,6 +485,8 @@ defmodule Oban.Web.Crons.DetailComponent do
       socket
       |> assign(assigns)
       |> assign_new(:errors, fn -> [] end)
+      |> assign_new(:invalid, fn -> [] end)
+      |> assign_new(:timezone_options, fn -> Timezones.options_with_offsets() end)
       |> push_event("cron-history", %{history: chart_data})
 
     # Refreshes replace the cron every second. Freshness is per field: an untouched field tracks
@@ -478,11 +557,20 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     %{cron: cron, conf: conf} = socket.assigns
 
-    paused? = not cron.paused?
+    verb = if cron.paused?, do: "resume", else: "pause"
 
-    Cron.update(conf.name, cron.name, paused: paused?)
+    case Cron.update(conf.name, cron.name, paused: not cron.paused?) do
+      {:ok, entry} ->
+        send(self(), :refresh)
+        send(self(), {:flash, :info, "#{String.capitalize(verb)}d cron #{cron.name}"})
 
-    {:noreply, assign(socket, cron: %{cron | paused?: paused?})}
+        {:noreply, assign(socket, cron: %{cron | paused?: entry.paused})}
+
+      {:error, _reason} ->
+        send(self(), {:flash, :error, "Failed to #{verb} cron #{cron.name}"})
+
+        {:noreply, socket}
+    end
   end
 
   def handle_event("delete-cron", _params, socket) do
@@ -528,13 +616,14 @@ defmodule Oban.Web.Crons.DetailComponent do
       if entry.name == cron.name do
         send(self(), :refresh)
 
-        {:noreply, assign(socket, baseline: form, errors: [], seeded: nil)}
+        {:noreply, assign(socket, baseline: form, errors: [], invalid: [], seeded: nil)}
       else
         {:noreply, push_patch(socket, to: oban_path([:crons, entry.name], page_params))}
       end
     else
       {:error, reason} ->
-        {:noreply, assign(socket, errors: Form.format_failure(reason))}
+        {:noreply,
+         assign(socket, errors: Form.format_failure(reason), invalid: Form.invalid_fields(reason))}
     end
   end
 
@@ -543,7 +632,7 @@ defmodule Oban.Web.Crons.DetailComponent do
   defp assign_seed(socket, cron) do
     form = Form.seed(cron)
 
-    assign(socket, baseline: form, errors: [], form: form, seeded: cron.name)
+    assign(socket, baseline: form, errors: [], form: form, invalid: [], seeded: cron.name)
   end
 
   defp merge_fresh(form, baseline, fresh) do
@@ -557,6 +646,11 @@ defmodule Oban.Web.Crons.DetailComponent do
       end
     end)
   end
+
+  # The jobs page needs a state to filter on, and the cron's own last state is the one worth
+  # looking at. Without any runs there is nothing to show but the default.
+  defp jobs_state(%{last_state: state}) when is_binary(state), do: state
+  defp jobs_state(_cron), do: "completed"
 
   defp state_label(nil), do: "Unknown"
   defp state_label(state), do: String.capitalize(state)

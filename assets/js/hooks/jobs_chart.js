@@ -27,7 +27,7 @@ Chart.register(
 )
 
 Chart.defaults.font.size = 12
-Chart.defaults.font.family = "Inter var"
+Chart.defaults.font.family = "Inter var, sans-serif"
 
 const STORABLE = ["group", "ntile", "period", "series", "visible"]
 

@@ -52,8 +52,8 @@ defmodule Oban.Web.Crons.Form do
   # than merging a blank over the previous value. Changing the schedule or timezone resets the
   # entry's insertion history, which only happens when the expression is part of the update.
   def build_opts(form, baseline, current_opts) do
-    with {:ok, name} <- parse_required(form.name, "Name is required"),
-         {:ok, worker} <- parse_required(form.worker, "Worker is required"),
+    with {:ok, name} <- parse_required(form.name, :name, "Name is required"),
+         {:ok, worker} <- parse_required(form.worker, :worker, "Worker is required"),
          {:ok, expression} <- parse_expression(form.expression),
          {:ok, args} <- parse_args(form.args) do
       opts =
@@ -77,18 +77,18 @@ defmodule Oban.Web.Crons.Form do
     end
   end
 
-  defp parse_required(value, message) do
+  defp parse_required(value, field, message) do
     case parse_string(value) do
-      nil -> {:error, message}
+      nil -> {:error, {field, message}}
       value -> {:ok, value}
     end
   end
 
   defp parse_expression(value) do
-    with {:ok, expression} <- parse_required(value, "Expression is required") do
+    with {:ok, expression} <- parse_required(value, :expression, "Expression is required") do
       case Expression.parse(expression) do
         {:ok, _parsed} -> {:ok, expression}
-        {:error, _error} -> {:error, "Expression isn't a valid cron expression"}
+        {:error, _error} -> {:error, {:expression, "Expression isn't a valid cron expression"}}
       end
     end
   end
@@ -101,21 +101,53 @@ defmodule Oban.Web.Crons.Form do
       json ->
         case Oban.JSON.decode!(json) do
           args when is_map(args) -> {:ok, args}
-          _other -> {:error, "Args must be a JSON object"}
+          _other -> {:error, {:args, "Args must be a JSON object"}}
         end
     end
   rescue
-    _error -> {:error, "Args must be a JSON object"}
+    _error -> {:error, {:args, "Args must be a JSON object"}}
   end
 
   defp put_present(opts, _key, nil), do: opts
   defp put_present(opts, key, value), do: Map.put(opts, key, value)
 
+  # Consequences that aren't visible from the fields themselves. Renaming starts a fresh history
+  # because jobs are tracked by cron name, and rescheduling clears the insertion tracking that
+  # guaranteed mode uses to backfill missed runs.
+  def advisories(form, baseline) do
+    consequences = [
+      {renamed?(form, baseline),
+       "Saving under a new name starts a fresh history. Jobs already inserted stay under the old name."},
+      {baseline.guaranteed and rescheduled?(form, baseline),
+       "Saving a new schedule resets guaranteed insertion. Runs missed before the change won't be backfilled."}
+    ]
+
+    for {applies?, message} <- consequences, applies?, do: message
+  end
+
+  defp renamed?(form, baseline) do
+    case parse_string(form.name) do
+      nil -> false
+      name -> name != baseline.name
+    end
+  end
+
   defp rescheduled?(form, baseline) do
     form.expression != baseline.expression or form.timezone != baseline.timezone
   end
 
+  def format_failure({_field, message}) when is_binary(message), do: [message]
+
   def format_failure(message) when is_binary(message), do: [message]
 
   def format_failure(%Ecto.Changeset{} = changeset), do: changeset_errors(changeset)
+
+  # Fields the failure points at, so the form can mark them invalid alongside the message.
+  def invalid_fields({field, _message}), do: [field]
+
+  def invalid_fields(%Ecto.Changeset{errors: errors}) do
+    for {field, _error} <- errors, to_string(field) in @cast_keys, uniq: true, do: field
+  end
+
+  def invalid_fields(_failure), do: []
 end

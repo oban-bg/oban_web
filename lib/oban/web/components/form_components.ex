@@ -12,6 +12,7 @@ defmodule Oban.Web.FormComponents do
   attr :required, :boolean, default: false
   attr :disabled, :boolean, default: false
   attr :hint, :string, default: nil
+  attr :invalid, :boolean, default: false
   attr :rows, :integer, default: 2
   attr :min, :integer, default: nil
   attr :max, :integer, default: nil
@@ -44,7 +45,14 @@ defmodule Oban.Web.FormComponents do
           disabled={@disabled}
           placeholder={@placeholder}
           aria-describedby={@hint && "#{@name}-hint"}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+          aria-invalid={@invalid && "true"}
+          class={[
+            "block w-full font-mono text-sm shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50",
+            if(@invalid,
+              do: "border-red-500 dark:border-red-400",
+              else: "border-gray-300 dark:border-gray-600"
+            )
+          ]}
         >{@value}</textarea>
       <% else %>
         <input
@@ -58,7 +66,14 @@ defmodule Oban.Web.FormComponents do
           placeholder={@placeholder}
           required={@required}
           aria-describedby={@hint && "#{@name}-hint"}
-          class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+          aria-invalid={@invalid && "true"}
+          class={[
+            "block w-full font-mono text-sm shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50",
+            if(@invalid,
+              do: "border-red-500 dark:border-red-400",
+              else: "border-gray-300 dark:border-gray-600"
+            )
+          ]}
         />
       <% end %>
     </div>
@@ -70,18 +85,41 @@ defmodule Oban.Web.FormComponents do
   attr :value, :any, default: nil
   attr :options, :list, required: true
   attr :disabled, :boolean, default: false
+  attr :hint, :string, default: nil
+  attr :invalid, :boolean, default: false
 
   def select_field(assigns) do
     ~H"""
     <div>
-      <label for={@name} class="block font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
+      <label
+        for={@name}
+        class="flex items-center gap-1 font-medium text-sm text-gray-700 dark:text-gray-300 mb-2"
+      >
         {@label}
+        <span
+          :if={@hint}
+          id={"#{@name}-hint"}
+          data-title={@hint}
+          phx-hook="Tippy"
+          class="inline-flex items-center translate-y-px"
+        >
+          <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <span class="sr-only">{@hint}</span>
+        </span>
       </label>
       <select
         id={@name}
         name={@name}
         disabled={@disabled}
-        class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+        aria-describedby={@hint && "#{@name}-hint"}
+        aria-invalid={@invalid && "true"}
+        class={[
+          "block w-full font-mono text-sm shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50",
+          if(@invalid,
+            do: "border-red-500 dark:border-red-400",
+            else: "border-gray-300 dark:border-gray-600"
+          )
+        ]}
       >
         <option :for={{label, val} <- @options} value={val} selected={val == @value}>
           {label}

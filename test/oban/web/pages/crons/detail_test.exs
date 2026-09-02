@@ -79,7 +79,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert has_element?(live, "h2 #back-link")
     end
 
-    test "describing the expression as it is edited" do
+    test "describing the stored schedule rather than edits in progress" do
       Cron.insert([{"*/15 * * * *", DetailCronWorker, name: "describe-test"}])
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons/describe-test")
@@ -88,7 +88,51 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       |> element("#cron-form")
       |> render_change(%{"expression" => "0 9 * * 1"})
 
-      assert live |> element("#cron-expression-description") |> render() =~ "Monday"
+      description = live |> element("#cron-expression-description") |> render()
+
+      assert description =~ "Every 15 minutes"
+      refute description =~ "Monday"
+    end
+
+    test "labeling timezones with their current offset" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "offset-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/offset-test")
+
+      assert has_element?(live, ~s(#timezone option[value="Etc/UTC"]), "Etc/UTC (UTC+00:00)")
+      assert has_element?(live, ~s(#timezone option[value="America/Chicago"]), "(UTC-0")
+    end
+
+    test "showing the worker's own defaults as placeholders" do
+      Cron.insert([
+        {"0 * * * *", DetailCronWorker, name: "plain-worker"},
+        {"0 * * * *", DefaultsCronWorker, name: "custom-worker"},
+        {"0 * * * *", "Python.Worker", name: "foreign-worker"}
+      ])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/plain-worker")
+
+      assert has_element?(live, ~s(#max_attempts[placeholder="20"]))
+      assert has_element?(live, ~s(#priority[placeholder="0"]))
+      assert has_element?(live, "#queue option", "worker default (default)")
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/custom-worker")
+
+      assert has_element?(live, ~s(#max_attempts[placeholder="7"]))
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/foreign-worker")
+
+      assert has_element?(live, ~s(#max_attempts[placeholder="worker default"]))
+      assert has_element?(live, "#queue option", "worker default")
+      refute has_element?(live, "#queue option", "worker default (")
+    end
+
+    test "sizing the history window in the heading" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "window-test"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/window-test")
+
+      assert live |> element("#cron-history-window") |> render() =~ "no runs yet"
     end
 
     test "shows dynamic badge only for dynamic crons" do
@@ -98,12 +142,14 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       refresh(live)
       assert has_element?(live, "#status-dynamic")
+      refute has_element?(live, "#status-static")
 
       static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
       {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
       refresh(live)
       refute has_element?(live, "#status-dynamic")
+      assert has_element?(live, "#status-static")
     end
 
     test "pause button toggles cron pause state" do
@@ -123,6 +169,12 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert has_element?(live, "button", "Resume")
       refute has_element?(live, "button", "Pause")
       assert has_element?(live, "#status-paused")
+      assert [%{paused: true}] = Cron.all()
+
+      html = refresh(live)
+
+      assert html =~ "Paused cron pause-test"
+      refute html =~ ~r/Last Status.*Paused/s
     end
 
     test "pause button is disabled for static crons" do
@@ -150,7 +202,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       html = refresh(live)
 
-      assert html =~ "Editing requires Pro Cron"
+      assert html =~ "Move it to Pro Cron"
       assert has_element?(live, "[rel=static-blocker]")
       assert has_element?(live, "#cron-form-fields[disabled]")
       refute has_element?(live, "#detail-save")
@@ -269,7 +321,10 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       refresh(live)
 
-      assert has_element?(live, "button", "Delete")
+      assert has_element?(
+               live,
+               ~s(#delete-cron-button[data-confirm="Delete the delete-test cron? Jobs it already inserted will still run."])
+             )
 
       live
       |> element("button", "Delete")
@@ -388,6 +443,62 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
 
       assert [entry] = Enum.filter(Cron.all(), &(&1.name == "bad-expr-cron"))
       assert entry.expression == "0 * * * *"
+    end
+
+    test "guarding the jobs link while there are unsaved edits" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "guard-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/guard-cron")
+
+      refute has_element?(live, "#cron-view-jobs[data-confirm]")
+      assert has_element?(live, "#detail-save[phx-disable-with]")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"priority" => "3"})
+
+      assert has_element?(live, "#cron-view-jobs[data-confirm]")
+    end
+
+    test "warning about consequences that aren't visible from the fields" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "advise-cron", guaranteed: true}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/advise-cron")
+
+      refute has_element?(live, "#cron-form-advisories")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"priority" => "3"})
+
+      refute has_element?(live, "#cron-form-advisories")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"expression" => "30 * * * *"})
+
+      assert has_element?(live, "#cron-form-advisories", "Saving a new schedule")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"expression" => "0 * * * *", "name" => "renamed-cron"})
+
+      html = render(live)
+
+      assert html =~ "starts a fresh history"
+      refute html =~ "Saving a new schedule"
+    end
+
+    test "skipping the schedule warning without guaranteed insertion" do
+      Cron.insert([{"0 * * * *", DetailCronWorker, name: "plain-cron"}])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/plain-cron")
+
+      live
+      |> element("#cron-form")
+      |> render_change(%{"timezone" => "America/Chicago"})
+
+      refute has_element?(live, "#cron-form-advisories")
     end
 
     test "renaming a cron reopens it at the new address" do
