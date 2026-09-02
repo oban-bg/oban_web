@@ -6,7 +6,7 @@ defmodule Oban.Web.CronsPage do
   alias Oban.Web.{Cron, CronQuery, Page, QueueQuery, SearchComponent, SortComponent, Utils}
   alias Oban.Web.Crons.{DetailComponent, NewComponent, TableComponent}
 
-  @known_params ~w(limit modes names sort_by sort_dir states workers)
+  @known_params CronQuery.known_params() ++ ~w(limit sort_by sort_dir)
 
   @inc_limit 20
   @max_limit 100
@@ -180,7 +180,7 @@ defmodule Oban.Web.CronsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(CronQuery)
       |> then(&Map.merge(socket.assigns.default_params, &1))
 
     {:noreply,
@@ -193,7 +193,7 @@ defmodule Oban.Web.CronsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(CronQuery)
       |> then(&Map.merge(socket.assigns.default_params, &1))
 
     case CronQuery.get_cron(cron_name, socket.assigns.conf) do
@@ -212,7 +212,7 @@ defmodule Oban.Web.CronsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(CronQuery)
 
     socket =
       socket

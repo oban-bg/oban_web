@@ -1,11 +1,13 @@
 defmodule Oban.Web.PrunerQuery do
   @moduledoc false
 
+  use Oban.Web.Queryable
+
   import Oban.Web.Pruners.Helpers, only: [match_pairs: 1, mode_label: 1]
 
   alias Oban.Period
   alias Oban.Pro.Pruner
-  alias Oban.Web.{Search, Utils}
+  alias Oban.Web.Utils
 
   @compile {:no_warn_undefined, Oban.Pro.Pruner}
 
@@ -13,15 +15,6 @@ defmodule Oban.Web.PrunerQuery do
 
   # Legacy config generates machine named rules, e.g. `queue-events`, one for every override.
   @legacy_sources [queue: :queue_overrides, state: :state_overrides, worker: :worker_overrides]
-
-  @suggest_qualifier [
-    {"names:", "pruning rule name", "names:media"},
-    {"queues:", "queue the rule matches", "queues:media"},
-    {"workers:", "worker the rule matches", "workers:MyApp.Worker"},
-    {"states:", "job state the rule matches", "states:discarded"},
-    {"modes:", "retention mode (age/length)", "modes:age"},
-    {"stats:", "a status such as paused", "stats:paused"}
-  ]
 
   @suggest_mode [
     {"age", "jobs are retained by age", "age"},
@@ -40,81 +33,65 @@ defmodule Oban.Web.PrunerQuery do
     {"paused", "the rule is skipped while pruning", "paused"}
   ]
 
-  @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
-
   # Searching
 
-  def filterable, do: ~w(modes names queues states stats workers)a
-
-  def parse(terms) when is_binary(terms) do
-    Search.parse(terms, &parse_term/1)
+  @impl Queryable
+  def qualifiers do
+    [
+      names: [
+        desc: "pruning rule name",
+        example: "names:media",
+        suggest: &suggest_names/2
+      ],
+      queues: [
+        desc: "queue the rule matches",
+        example: "queues:media",
+        suggest: &suggest_queues/2
+      ],
+      workers: [
+        desc: "worker the rule matches",
+        example: "workers:MyApp.Worker",
+        suggest: &suggest_workers/2
+      ],
+      states: [
+        desc: "job state the rule matches",
+        example: "states:discarded",
+        suggest: @suggest_state
+      ],
+      modes: [
+        desc: "retention mode (age/len)",
+        example: "modes:age",
+        suggest: @suggest_mode
+      ],
+      stats: [
+        desc: "a status such as paused",
+        example: "stats:paused",
+        suggest: @suggest_stat
+      ]
+    ]
   end
 
-  def suggest(terms, conf, _opts \\ []) do
-    terms
-    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
-    |> List.last()
-    |> to_string()
-    |> case do
-      "" ->
-        @suggest_qualifier
-
-      last ->
-        case String.split(last, ":", parts: 2) do
-          ["names", frag] -> suggest_names(frag, conf)
-          ["queues", frag] -> suggest_match(frag, conf, :queue)
-          ["workers", frag] -> suggest_match(frag, conf, :worker)
-          ["modes", frag] -> suggest_static(frag, @suggest_mode)
-          ["states", frag] -> suggest_static(frag, @suggest_state)
-          ["stats", frag] -> suggest_static(frag, @suggest_stat)
-          [frag] -> suggest_static(frag, @suggest_qualifier)
-          _ -> []
-        end
-    end
-  end
-
-  def append(terms, choice) do
-    Search.append(terms, choice, @known_qualifiers)
-  end
-
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
-      [] -> terms
-      [{match, _, _} | _] -> append(terms, match)
-    end
-  end
-
-  defp suggest_static(fragment, possibilities) do
-    for {field, _, _} = suggest <- possibilities,
-        String.starts_with?(field, fragment),
-        do: suggest
-  end
-
-  defp suggest_names(fragment, conf) do
+  defp suggest_names(frag, conf) do
     conf
     |> all_rules()
     |> Enum.map(& &1.name)
-    |> Search.restrict_suggestions(fragment)
+    |> Search.restrict_suggestions(frag)
   end
+
+  defp suggest_queues(frag, conf), do: suggest_match(frag, conf, :queue)
+
+  defp suggest_workers(frag, conf), do: suggest_match(frag, conf, :worker)
 
   # Only values that some rule actually matches on are suggested, because filtering by anything
   # else can't narrow the chain.
-  defp suggest_match(fragment, conf, key) do
+  defp suggest_match(frag, conf, key) do
     conf
     |> all_rules()
     |> Enum.map(&match_value(&1, key))
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
-    |> Search.restrict_suggestions(fragment)
+    |> Search.restrict_suggestions(frag)
   end
-
-  defp parse_term("names:" <> names), do: {:names, String.split(names, ",")}
-  defp parse_term("queues:" <> queues), do: {:queues, String.split(queues, ",")}
-  defp parse_term("workers:" <> workers), do: {:workers, String.split(workers, ",")}
-  defp parse_term("states:" <> states), do: {:states, String.split(states, ",")}
-  defp parse_term("modes:" <> modes), do: {:modes, String.split(modes, ",")}
-  defp parse_term("stats:" <> stats), do: {:stats, String.split(stats, ",")}
-  defp parse_term(_term), do: {:none, ""}
 
   @doc """
   All persisted rules, in the order the pruner evaluates them.
@@ -134,13 +111,9 @@ defmodule Oban.Web.PrunerQuery do
   because the default rule always evaluates last regardless of its position.
   """
   def display_rules(rules, params) do
-    {sort_by, sort_dir} = parse_sort(params)
-    conditions = Map.take(params, filterable())
-
     rules
     |> Enum.with_index()
-    |> Enum.filter(fn {rule, _index} -> filter(rule, conditions) end)
-    |> Enum.sort_by(fn {rule, index} -> order(rule, index, sort_by) end, sort_dir)
+    |> Queryable.refine(__MODULE__, params, default_sort: {:order, :asc})
     |> Enum.map(fn {rule, _index} -> rule end)
   end
 
@@ -235,16 +208,11 @@ defmodule Oban.Web.PrunerQuery do
 
   # Sorting
 
-  defp parse_sort(%{sort_by: sort_by, sort_dir: dir}) do
-    {String.to_existing_atom(sort_by), String.to_existing_atom(dir)}
-  end
-
-  defp parse_sort(_params), do: {:order, :asc}
-
-  defp order(_rule, index, :order), do: index
-  defp order(rule, _index, :name), do: rule.name
-  defp order(rule, _index, :limit), do: rule.limit
-  defp order(rule, _index, :retention), do: retention(rule)
+  @impl Queryable
+  def order({_rule, index}, :order), do: index
+  def order({rule, _index}, :name), do: rule.name
+  def order({rule, _index}, :limit), do: rule.limit
+  def order({rule, _index}, :retention), do: retention(rule)
 
   # Ages and lengths aren't comparable, so rules group by mode and only then by how much they
   # retain, with infinite retention last.
@@ -261,18 +229,13 @@ defmodule Oban.Web.PrunerQuery do
 
   # Filtering
 
-  defp filter(_rule, conditions) when conditions == %{}, do: true
-
-  defp filter(rule, conditions) when is_map(conditions) do
-    Enum.all?(conditions, &filter(rule, &1))
-  end
-
-  defp filter(rule, {:names, names}), do: rule.name in names
-  defp filter(rule, {:queues, queues}), do: match_value(rule, :queue) in queues
-  defp filter(rule, {:states, states}), do: match_value(rule, :state) in states
-  defp filter(rule, {:workers, workers}), do: match_value(rule, :worker) in workers
-  defp filter(rule, {:modes, modes}), do: mode_label(rule) in modes
-  defp filter(rule, {:stats, stats}), do: Enum.any?(stats, &stat?(rule, &1))
+  @impl Queryable
+  def filter({rule, _index}, {:names, names}), do: rule.name in names
+  def filter({rule, _index}, {:queues, queues}), do: match_value(rule, :queue) in queues
+  def filter({rule, _index}, {:states, states}), do: match_value(rule, :state) in states
+  def filter({rule, _index}, {:workers, workers}), do: match_value(rule, :worker) in workers
+  def filter({rule, _index}, {:modes, modes}), do: mode_label(rule) in modes
+  def filter({rule, _index}, {:stats, stats}), do: Enum.any?(stats, &stat?(rule, &1))
 
   defp stat?(rule, "active"), do: not rule.paused
   defp stat?(rule, "archiving"), do: rule.archive

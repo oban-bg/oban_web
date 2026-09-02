@@ -9,7 +9,7 @@ defmodule Oban.Web.WorkflowsPage do
 
   @compile {:no_warn_undefined, Oban.Pro.Workflow}
 
-  @known_params ~w(ids kinds limit names queues sort_by sort_dir states workers)
+  @known_params WorkflowQuery.known_params() ++ ~w(limit sort_by sort_dir)
 
   @keep_on_mount ~w(
     compensation
@@ -247,7 +247,7 @@ defmodule Oban.Web.WorkflowsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(WorkflowQuery)
 
     socket =
       socket

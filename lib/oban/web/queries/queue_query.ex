@@ -1,18 +1,14 @@
 defmodule Oban.Web.QueueQuery do
   @moduledoc false
 
-  alias Oban.Met
-  alias Oban.Web.{Queue, Search}
+  use Oban.Web.Queryable
 
-  @suggest_qualifier [
-    {"nodes:", "host name", "nodes:machine@somehost"},
-    {"modes:", "a concurrency mode such as global", "global"},
-    {"stats:", "a status such as paused or terminating", "paused"}
-  ]
+  alias Oban.Met
+  alias Oban.Web.Queue
 
   @suggest_mode [
-    {"global_limit", "the queue is has a global limit", "global_limit"},
-    {"rate_limit", "the queue is has a rate limit", "rate_limit"}
+    {"global_limit", "the queue has a global limit", "global_limit"},
+    {"rate_limit", "the queue has a rate limit", "rate_limit"}
   ]
 
   @suggest_stat [
@@ -20,95 +16,45 @@ defmodule Oban.Web.QueueQuery do
     {"terminating", "the queue is shutting down", "terminating"}
   ]
 
-  @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
-
   # Searching
 
-  def filterable, do: ~w(modes nodes stats)a
-
-  def parse(terms) when is_binary(terms) do
-    Search.parse(terms, &parse_term/1)
+  @impl Queryable
+  def qualifiers do
+    [
+      modes: [
+        desc: "a concurrency mode such as global",
+        example: "modes:global_limit",
+        suggest: @suggest_mode
+      ],
+      nodes: [
+        desc: "host name",
+        example: "nodes:machine@somehost",
+        suggest: &suggest_nodes/2
+      ],
+      stats: [
+        desc: "a status such as paused or terminating",
+        example: "stats:paused",
+        suggest: @suggest_stat
+      ]
+    ]
   end
 
-  def suggest(terms, conf, _opts \\ []) do
-    terms
-    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
-    |> List.last()
-    |> to_string()
-    |> case do
-      "" ->
-        @suggest_qualifier
-
-      last ->
-        case String.split(last, ":", parts: 2) do
-          ["modes", frag] -> suggest_static(frag, @suggest_mode)
-          ["nodes", frag] -> suggest_nodes(frag, conf)
-          ["stats", frag] -> suggest_static(frag, @suggest_stat)
-          [frag] -> suggest_static(frag, @suggest_qualifier)
-          _ -> []
-        end
-    end
-  end
-
-  defp suggest_static(fragment, possibilities) do
-    for {field, _, _} = suggest <- possibilities,
-        String.starts_with?(field, fragment),
-        do: suggest
-  end
-
-  defp suggest_nodes(fragment, conf) do
+  defp suggest_nodes(frag, conf) do
     conf.name
-    |> Oban.Met.labels("node")
-    |> Search.restrict_suggestions(fragment)
+    |> Met.labels("node")
+    |> Search.restrict_suggestions(frag)
   end
-
-  def append(terms, choice) do
-    Search.append(terms, choice, @known_qualifiers)
-  end
-
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
-      [] ->
-        terms
-
-      [{match, _, _} | _] ->
-        append(terms, match)
-    end
-  end
-
-  defp parse_term("nodes:" <> nodes) do
-    {:nodes, String.split(nodes, ",")}
-  end
-
-  defp parse_term("modes:" <> modes) do
-    {:modes, String.split(modes, ",")}
-  end
-
-  defp parse_term("stats:" <> stats) do
-    {:stats, String.split(stats, ",")}
-  end
-
-  defp parse_term(_term), do: {:none, ""}
 
   # Querying
 
   def all_queues(params, conf, counts \\ %{})
 
   def all_queues(params, %{name: name}, counts) do
-    {sort_by, sort_dir} = parse_sort(params)
-    limit = Map.get(params, :limit) || Map.get(params, "limit")
-
-    conditions = Map.take(params, filterable())
-
-    queues =
-      name
-      |> Met.checks()
-      |> Enum.group_by(& &1["queue"])
-      |> Enum.map(&new(&1, counts))
-      |> Enum.filter(&filter(&1, conditions))
-      |> Enum.sort_by(&order(&1, sort_by), sort_dir)
-
-    if limit, do: Enum.take(queues, limit), else: queues
+    name
+    |> Met.checks()
+    |> Enum.group_by(& &1["queue"])
+    |> Enum.map(&new(&1, counts))
+    |> Queryable.refine(__MODULE__, params, default_sort: {:name, :asc})
   end
 
   defp new({name, checks}, counts) do
@@ -117,32 +63,21 @@ defmodule Oban.Web.QueueQuery do
     struct!(Queue, %{name: name, checks: checks, counts: counts})
   end
 
-  defp parse_sort(%{sort_by: sby, sort_dir: dir}) do
-    {String.to_existing_atom(sby), String.to_existing_atom(dir)}
-  end
-
-  defp parse_sort(_params), do: {:name, :asc}
-
   # Filtering
 
-  defp filter(_row, conditions) when conditions == %{}, do: true
-
-  defp filter(row, conditions) when is_map(conditions) do
-    Enum.all?(conditions, &filter(row, &1))
-  end
-
-  defp filter(%{checks: checks}, {:nodes, nodes}) do
+  @impl Queryable
+  def filter(%{checks: checks}, {:nodes, nodes}) do
     Enum.any?(checks, &(&1["node"] in nodes))
   end
 
-  defp filter(queue, {:modes, modes}) do
+  def filter(queue, {:modes, modes}) do
     Enum.all?(modes, fn
       "global_limit" -> Queue.global_limit?(queue)
       "rate_limit" -> Queue.rate_limit?(queue)
     end)
   end
 
-  defp filter(queue, {:stats, stats}) do
+  def filter(queue, {:stats, stats}) do
     Enum.all?(stats, fn
       "paused" -> Queue.any_paused?(queue)
       "terminating" -> Queue.terminating?(queue)
@@ -151,29 +86,30 @@ defmodule Oban.Web.QueueQuery do
 
   # Sorting
 
-  defp order(%{counts: counts}, :avail) do
+  @impl Queryable
+  def order(%{counts: counts}, :avail) do
     Map.get(counts, "available", 0)
   end
 
-  defp order(%{counts: counts}, :exec) do
+  def order(%{counts: counts}, :exec) do
     Map.get(counts, "executing", 0)
   end
 
-  defp order(queue, :local) do
+  def order(queue, :local) do
     Queue.local_limit(queue)
   end
 
-  defp order(queue, :global) do
+  def order(queue, :global) do
     Queue.global_limit(queue)
   end
 
-  defp order(%{name: name}, :name), do: name
+  def order(%{name: name}, :name), do: name
 
-  defp order(%{checks: checks}, :nodes) do
+  def order(%{checks: checks}, :nodes) do
     length(checks)
   end
 
-  defp order(%{checks: checks}, :rate_limit) do
+  def order(%{checks: checks}, :rate_limit) do
     checks
     |> Enum.map(&get_in(&1, ["rate_limit", "windows"]))
     |> Enum.reject(&is_nil/1)
@@ -181,7 +117,7 @@ defmodule Oban.Web.QueueQuery do
     |> Enum.reduce(0, &(&1["curr_count"] + &1["prev_count"] + &2))
   end
 
-  defp order(%{checks: checks}, :started) do
+  def order(%{checks: checks}, :started) do
     started_at_to_diff = fn started_at ->
       {:ok, date_time, _} = DateTime.from_iso8601(started_at)
 

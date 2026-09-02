@@ -98,28 +98,43 @@ defmodule Oban.Web.Helpers do
   end
 
   @doc """
-  Restore params from URI encoding.
+  Restore params from URI encoding, using a queryable's qualifiers to type the values.
   """
-  def decode_params(params) do
+  def decode_params(params, queryable) do
+    qualifiers = queryable.qualifiers()
+
     Map.new(params, fn
       {"limit", val} ->
         {:limit, String.to_integer(val)}
 
-      {key, val} when key in ~w(args meta) ->
-        val =
-          val
-          |> String.split("++")
-          |> List.update_at(0, &String.split(&1, ","))
-
-        {String.to_existing_atom(key), val}
-
-      {key, val}
-      when key in ~w(ids kinds modes names nodes priorities queues stats states tags workers) ->
-        {String.to_existing_atom(key), String.split(val, ",")}
-
       {key, val} ->
-        {String.to_existing_atom(key), val}
+        key = String.to_existing_atom(key)
+
+        case Keyword.fetch(qualifiers, key) do
+          {:ok, spec} -> {key, decode_value(val, spec)}
+          :error -> {key, val}
+        end
     end)
+  end
+
+  defp decode_value(val, spec) do
+    parse = Keyword.get(spec, :parse, :list)
+
+    cond do
+      Keyword.get(spec, :kind) == :path ->
+        val
+        |> String.split("++")
+        |> List.update_at(0, &String.split(&1, ","))
+
+      parse == :string ->
+        val
+
+      is_function(parse, 1) ->
+        parse.(val)
+
+      true ->
+        String.split(val, ",")
+    end
   end
 
   def active_filter?(params, :state, value) do

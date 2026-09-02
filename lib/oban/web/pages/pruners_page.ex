@@ -6,7 +6,7 @@ defmodule Oban.Web.PrunersPage do
   alias Oban.Web.{Page, PrunerQuery, SearchComponent, SortComponent, Telemetry, Utils}
   alias Oban.Web.Pruners.{DetailComponent, NewComponent, TableComponent}
 
-  @known_params ~w(modes names queues sort_by sort_dir states stats workers)
+  @known_params PrunerQuery.known_params() ++ ~w(sort_by sort_dir)
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -332,7 +332,7 @@ defmodule Oban.Web.PrunersPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(PrunerQuery)
       |> then(&Map.merge(socket.assigns.default_params, &1))
 
     assign(socket, params: params)

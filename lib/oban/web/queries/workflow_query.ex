@@ -1,10 +1,12 @@
 defmodule Oban.Web.WorkflowQuery do
   @moduledoc false
 
+  use Oban.Web.Queryable
+
   import Ecto.Query
 
   alias Oban.{Job, Repo}
-  alias Oban.Web.{Search, Utils, Workflow}
+  alias Oban.Web.{Utils, Workflow}
   alias Oban.Web.Workflows.Helpers
 
   @default_sup_graph_limit 500
@@ -177,15 +179,6 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
-  @suggest_qualifier [
-    {"ids:", "workflow id", "ids:01234567-89ab-cdef"},
-    {"kinds:", "workflow kind", "kinds:compensation"},
-    {"names:", "workflow name", "names:order-fulfillment"},
-    {"queues:", "queue name", "queues:default"},
-    {"workers:", "worker module", "workers:MyApp.Worker"},
-    {"states:", "workflow state", "states:executing"}
-  ]
-
   @suggest_kind [
     {"compensation", "rolls back a failed workflow", "kinds:compensation"},
     {"standard", "non compensation workflows", "kinds:standard"}
@@ -198,43 +191,26 @@ defmodule Oban.Web.WorkflowQuery do
     {"discarded", "workflow has discarded jobs", "states:discarded"}
   ]
 
-  @known_qualifiers MapSet.new(@suggest_qualifier, fn {qualifier, _, _} -> qualifier end)
-
   # Searching
 
-  def filterable, do: ~w(ids kinds names queues workers states)a
-
-  def parse(terms) when is_binary(terms) do
-    Search.parse(terms, &parse_term/1)
-  end
-
-  def suggest(terms, conf, _opts \\ []) do
-    terms
-    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
-    |> List.last()
-    |> to_string()
-    |> case do
-      "" ->
-        @suggest_qualifier
-
-      last ->
-        case String.split(last, ":", parts: 2) do
-          ["ids", _frag] -> []
-          ["kinds", frag] -> suggest_static(frag, @suggest_kind)
-          ["names", frag] -> suggest_names(frag, conf)
-          ["queues", frag] -> suggest_queues(frag, conf)
-          ["workers", frag] -> suggest_workers(frag, conf)
-          ["states", frag] -> suggest_static(frag, @suggest_state)
-          [frag] -> suggest_static(frag, @suggest_qualifier)
-          _ -> []
-        end
-    end
-  end
-
-  defp suggest_static(fragment, possibilities) do
-    for {field, _, _} = suggest <- possibilities,
-        String.starts_with?(field, fragment),
-        do: suggest
+  @impl Queryable
+  def qualifiers do
+    [
+      ids: [desc: "workflow id", example: "ids:01234567-89ab-cdef"],
+      kinds: [desc: "workflow kind", example: "kinds:compensation", suggest: @suggest_kind],
+      names: [
+        desc: "workflow name",
+        example: "names:order-fulfillment",
+        suggest: &suggest_names/2
+      ],
+      queues: [desc: "queue name", example: "queues:default", suggest: &suggest_queues/2],
+      workers: [
+        desc: "worker module",
+        example: "workers:MyApp.Worker",
+        suggest: &suggest_workers/2
+      ],
+      states: [desc: "workflow state", example: "states:executing", suggest: @suggest_state]
+    ]
   end
 
   defp suggest_names(fragment, conf) do
@@ -274,43 +250,6 @@ defmodule Oban.Web.WorkflowQuery do
     |> Enum.reject(&(&1 == Helpers.compensation_worker()))
     |> Search.restrict_suggestions(fragment)
   end
-
-  def append(terms, choice) do
-    Search.append(terms, choice, @known_qualifiers)
-  end
-
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
-      [] -> terms
-      [{match, _, _} | _] -> append(terms, match)
-    end
-  end
-
-  defp parse_term("ids:" <> ids) do
-    {:ids, String.split(ids, ",")}
-  end
-
-  defp parse_term("kinds:" <> kinds) do
-    {:kinds, String.split(kinds, ",")}
-  end
-
-  defp parse_term("names:" <> names) do
-    {:names, String.split(names, ",")}
-  end
-
-  defp parse_term("queues:" <> queues) do
-    {:queues, String.split(queues, ",")}
-  end
-
-  defp parse_term("workers:" <> workers) do
-    {:workers, String.split(workers, ",")}
-  end
-
-  defp parse_term("states:" <> states) do
-    {:states, String.split(states, ",")}
-  end
-
-  defp parse_term(_term), do: {:none, ""}
 
   # Querying
 

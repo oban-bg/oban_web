@@ -11,7 +11,7 @@ defmodule Oban.Web.QueuesPage do
   @max_limit 100
   @min_limit 20
 
-  @known_params ~w(limit modes nodes sort_by sort_dir stats)
+  @known_params QueueQuery.known_params() ++ ~w(limit sort_by sort_dir)
   @keep_on_mount ~w(checks counts default_params detail history node_history params queues selected)a
 
   @impl Phoenix.LiveComponent
@@ -273,7 +273,7 @@ defmodule Oban.Web.QueuesPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(QueueQuery)
 
     socket =
       socket

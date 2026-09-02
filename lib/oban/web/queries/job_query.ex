@@ -1,11 +1,13 @@
 defmodule Oban.Web.JobQuery do
   @moduledoc false
 
+  use Oban.Web.Queryable
+
   import Ecto.Query
   import Oban.Web.QueryHelpers
 
   alias Oban.{Config, Job, Repo}
-  alias Oban.Web.{Cache, Resolver, Search}
+  alias Oban.Web.{Cache, Resolver}
 
   @defaults %{
     limit: 30,
@@ -124,21 +126,6 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  def parse(terms) when is_binary(terms) do
-    Search.parse(terms, &parse_term/1)
-  end
-
-  @suggest_qualifier [
-    {"args.", "a key or value in args", "args.id:123"},
-    {"ids:", "one or more job ids", "ids:1,2,3"},
-    {"meta.", "a key or value in meta", "meta.batch_id:123"},
-    {"nodes:", "host name", "nodes:machine@somehost"},
-    {"priorities:", "number from 0 to 9", "priorities:1"},
-    {"queues:", "queue name", "queues:default"},
-    {"tags:", "tag name", "tags:super,duper"},
-    {"workers:", "worker module", "workers:MyApp.SomeWorker"}
-  ]
-
   @suggest_priority [
     {"0", "critical", "priorities:0"},
     {"1", "urgent", "priorities:1"},
@@ -152,41 +139,53 @@ defmodule Oban.Web.JobQuery do
     {"9", "negligible", "priorities:9"}
   ]
 
-  @known_qualifiers for {qualifier, _, _} <- @suggest_qualifier, into: MapSet.new(), do: qualifier
+  # Searching
 
-  def filterable, do: ~w(args ids meta nodes priorities queues tags workers)a
-
-  def suggest(terms, conf, opts \\ []) do
-    terms
-    |> String.split(~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/)
-    |> List.last()
-    |> to_string()
-    |> case do
-      "" ->
-        @suggest_qualifier
-
-      last ->
-        case String.split(last, ":", parts: 2) do
-          ["args." <> path, frag] -> suggest_json_vals(:args, path, frag, conf, opts)
-          ["meta." <> path, frag] -> suggest_json_vals(:meta, path, frag, conf, opts)
-          ["nodes", frag] -> suggest_nodes(frag, conf, opts)
-          ["queues", frag] -> suggest_queues(frag, conf, opts)
-          ["priorities", frag] -> suggest_static(@suggest_priority, frag)
-          ["tags", frag] -> suggest_tags(frag, conf, opts)
-          ["workers", frag] -> suggest_workers(frag, conf, opts)
-          ["args." <> path] -> suggest_json_path(:args, path, conf, opts)
-          ["meta." <> path] -> suggest_json_path(:meta, path, conf, opts)
-          [frag] -> suggest_static(@suggest_qualifier, frag)
-          _ -> []
-        end
-    end
+  @impl Queryable
+  def qualifiers do
+    [
+      args: [
+        kind: :path,
+        desc: "a key or value in args",
+        example: "args.id:123",
+        suggest: &suggest_args_vals/4,
+        suggest_keys: &suggest_args_keys/3
+      ],
+      ids: [desc: "one or more job ids", example: "ids:1,2,3", parse: :ints],
+      meta: [
+        kind: :path,
+        desc: "a key or value in meta",
+        example: "meta.batch_id:123",
+        suggest: &suggest_meta_vals/4,
+        suggest_keys: &suggest_meta_keys/3
+      ],
+      nodes: [desc: "host name", example: "nodes:machine@somehost", suggest: &suggest_nodes/3],
+      priorities: [
+        desc: "number from 0 to 9",
+        example: "priorities:1",
+        suggest: @suggest_priority,
+        parse: :ints
+      ],
+      queues: [desc: "queue name", example: "queues:default", suggest: &suggest_queues/3],
+      tags: [desc: "tag name", example: "tags:super,duper", suggest: &suggest_tags/3],
+      workers: [
+        desc: "worker module",
+        example: "workers:MyApp.SomeWorker",
+        suggest: &suggest_workers/3
+      ],
+      state: [hidden: true, parse: :string]
+    ]
   end
 
-  defp suggest_static(possibilities, fragment) do
-    for {field, _, _} = suggest <- possibilities,
-        String.starts_with?(field, fragment),
-        do: suggest
-  end
+  defp suggest_args_keys(path, conf, opts), do: suggest_json_path(:args, path, conf, opts)
+
+  defp suggest_meta_keys(path, conf, opts), do: suggest_json_path(:meta, path, conf, opts)
+
+  defp suggest_args_vals(path, frag, conf, opts),
+    do: suggest_json_vals(:args, path, frag, conf, opts)
+
+  defp suggest_meta_vals(path, frag, conf, opts),
+    do: suggest_json_vals(:meta, path, frag, conf, opts)
 
   defp suggest_json_path(field, term, conf, opts) do
     {frag, path} =
@@ -358,20 +357,6 @@ defmodule Oban.Web.JobQuery do
     Cache.fetch(key, fn -> Repo.all(conf, query) end)
   end
 
-  def append(terms, choice) do
-    Search.append(terms, choice, @known_qualifiers)
-  end
-
-  def complete(terms, conf) do
-    case suggest(terms, conf) do
-      [] ->
-        terms
-
-      [{match, _, _} | _] ->
-        append(terms, match)
-    end
-  end
-
   # Queries
 
   def all_jobs(params, conf, opts \\ []) do
@@ -514,71 +499,6 @@ defmodule Oban.Web.JobQuery do
   end
 
   def retry_jobs(_conf, _ids), do: :ok
-
-  # Parsing Helpers
-
-  defp parse_term("args:" <> terms) do
-    {:args, String.trim(terms)}
-  end
-
-  defp parse_term("args." <> path_and_term) do
-    parse_path(:args, path_and_term)
-  end
-
-  defp parse_term("ids:" <> ids) do
-    parse_ints(:ids, ids)
-  end
-
-  defp parse_term("meta:" <> terms) do
-    {:meta, String.trim(terms)}
-  end
-
-  defp parse_term("meta." <> path_and_term) do
-    parse_path(:meta, path_and_term)
-  end
-
-  defp parse_term("nodes:" <> nodes) do
-    {:nodes, String.split(nodes, ",")}
-  end
-
-  defp parse_term("priorities:" <> priorities) when byte_size(priorities) > 0 do
-    parse_ints(:priorities, priorities)
-  end
-
-  defp parse_term("queues:" <> queues) do
-    {:queues, String.split(queues, ",")}
-  end
-
-  defp parse_term("state:" <> states) do
-    {:state, String.split(states, ",")}
-  end
-
-  defp parse_term("tags:" <> tags) do
-    {:tags, String.split(tags, ",")}
-  end
-
-  defp parse_term("workers:" <> workers) do
-    {:workers, String.split(workers, ",")}
-  end
-
-  defp parse_term(_term), do: {:none, ""}
-
-  defp parse_ints(field, value) do
-    {field,
-     value
-     |> String.split(",", trim: true)
-     |> Enum.map(&String.to_integer/1)}
-  end
-
-  defp parse_path(field, path_and_term) do
-    case String.split(path_and_term, ":", parts: 2) do
-      [path, term] ->
-        {field, [String.split(path, "."), term]}
-
-      [path] ->
-        {field, [String.split(path, "."), ""]}
-    end
-  end
 
   # Filter Helpers
 

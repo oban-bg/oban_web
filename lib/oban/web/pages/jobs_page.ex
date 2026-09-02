@@ -19,7 +19,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
 
-  @known_params ~w(args ids limit meta nodes priorities queues sort_by sort_dir state tags workers)
+  @known_params JobQuery.known_params() ++ ~w(limit sort_by sort_dir)
   @ordered_states ~w(executing available scheduled suspended retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent
@@ -538,7 +538,7 @@ defmodule Oban.Web.JobsPage do
     params =
       params
       |> Map.take(@known_params)
-      |> decode_params()
+      |> decode_params(JobQuery)
 
     Map.merge(socket.assigns.default_params, params)
   end

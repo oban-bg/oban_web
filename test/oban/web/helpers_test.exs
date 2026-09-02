@@ -17,23 +17,30 @@ defmodule Oban.Web.HelpersTest do
     end
   end
 
-  describe "decode_params/1" do
-    import Helpers, only: [decode_params: 1]
+  describe "decode_params/2" do
+    import Helpers, only: [decode_params: 2]
+
+    alias Oban.Web.JobQuery
 
     test "decoding fields with known integers" do
-      assert %{limit: 1} = decode_params(%{"limit" => "1"})
+      assert %{limit: 1} = decode_params(%{"limit" => "1"}, JobQuery)
     end
 
     test "decoding params with multiple values" do
-      assert %{nodes: ~w(web-1 web-2)} = decode_params(%{"nodes" => "web-1,web-2"})
-      assert %{queues: ~w(alpha gamma)} = decode_params(%{"queues" => "alpha,gamma"})
-      assert %{workers: ~w(A B)} = decode_params(%{"workers" => "A,B"})
+      assert %{nodes: ~w(web-1 web-2)} = decode_params(%{"nodes" => "web-1,web-2"}, JobQuery)
+      assert %{queues: ~w(alpha gamma)} = decode_params(%{"queues" => "alpha,gamma"}, JobQuery)
+      assert %{workers: ~w(A B)} = decode_params(%{"workers" => "A,B"}, JobQuery)
     end
 
     test "decoding params with path qualifiers" do
-      assert %{args: [~w(a), "x"]} = decode_params(%{"args" => "a++x"})
-      assert %{args: [~w(a b), "x"]} = decode_params(%{"args" => "a,b++x"})
-      assert %{meta: [~w(a), "x"]} = decode_params(%{"meta" => "a++x"})
+      assert %{args: [~w(a), "x"]} = decode_params(%{"args" => "a++x"}, JobQuery)
+      assert %{args: [~w(a b), "x"]} = decode_params(%{"args" => "a,b++x"}, JobQuery)
+      assert %{meta: [~w(a), "x"]} = decode_params(%{"meta" => "a++x"}, JobQuery)
+    end
+
+    test "decoding params not declared as qualifiers" do
+      assert %{sort_by: "time", state: "executing"} =
+               decode_params(%{"sort_by" => "time", "state" => "executing"}, JobQuery)
     end
   end
 
