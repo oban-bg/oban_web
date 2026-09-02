@@ -235,10 +235,6 @@ defmodule Oban.Web.PrunerQuery do
 
   # Sorting
 
-  defp parse_sort(%{sort_by: "updated", sort_dir: dir}) do
-    {:updated, {String.to_existing_atom(dir), DateTime}}
-  end
-
   defp parse_sort(%{sort_by: sort_by, sort_dir: dir}) do
     {String.to_existing_atom(sort_by), String.to_existing_atom(dir)}
   end
@@ -248,7 +244,6 @@ defmodule Oban.Web.PrunerQuery do
   defp order(_rule, index, :order), do: index
   defp order(rule, _index, :name), do: rule.name
   defp order(rule, _index, :limit), do: rule.limit
-  defp order(rule, _index, :updated), do: rule.updated_at
   defp order(rule, _index, :retention), do: retention(rule)
 
   # Ages and lengths aren't comparable, so rules group by mode and only then by how much they

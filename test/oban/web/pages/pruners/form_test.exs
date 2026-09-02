@@ -88,6 +88,27 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       assert %{mode: %{value: "infinity"}} = Pruner.get("audit")
     end
 
+    test "creating a rule that starts paused, confirming before discarding edits" do
+      live = start_pruner_live!(rules: [[name: "default", max_len: 1_000]])
+
+      refute live |> element("#new-pruner-close") |> render() =~ "data-confirm"
+
+      live
+      |> form("#new-pruner-form", %{"name" => "events", "age_value" => "1"})
+      |> render_change()
+
+      assert live |> element("#new-pruner-close") |> render() =~ "Discard this unsaved rule?"
+      assert live |> element("#new-pruner-bg") |> render() =~ "Discard this unsaved rule?"
+
+      live
+      |> form("#new-pruner-form", %{"paused" => "true"})
+      |> render_submit()
+
+      assert_patch(live, "/oban/pruners")
+
+      assert %{paused: true} = Pruner.get("events")
+    end
+
     test "surfacing errors without saving" do
       live = start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]])
 
@@ -103,6 +124,13 @@ defmodule Oban.Web.Pages.Pruners.FormTest do
       |> render_submit()
 
       assert live |> element("#new-pruner-errors") |> render() =~ "Age must be a positive number"
+      assert is_nil(Pruner.get("broken"))
+
+      live
+      |> form("#new-pruner-form", %{"age_value" => "30", "age_unit" => "seconds"})
+      |> render_submit()
+
+      assert live |> element("#new-pruner-errors") |> render() =~ "at least a minute"
       assert is_nil(Pruner.get("broken"))
     end
   end

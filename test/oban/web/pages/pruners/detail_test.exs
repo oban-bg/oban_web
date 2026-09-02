@@ -26,6 +26,31 @@ defmodule Oban.Web.Pages.Pruners.DetailTest do
     assert has_element?(live, "h2 #back-link")
   end
 
+  test "linking to the jobs a rule matches" do
+    live =
+      start_pruner_live!(
+        rules: [
+          [name: "media", queue: "media", state: :cancelled, max_len: 500],
+          [name: "default", max_age: {1, :day}]
+        ],
+        rule: "media"
+      )
+
+    link = live |> element("#pruner-view-jobs") |> render()
+
+    assert link =~ "queues=media"
+    assert link =~ "state=cancelled"
+
+    live
+    |> element("#chain-default")
+    |> render_click()
+
+    link = live |> element("#pruner-view-jobs") |> render()
+
+    assert link =~ "state=completed"
+    refute link =~ "queues="
+  end
+
   test "listing the whole evaluation chain" do
     live =
       start_pruner_live!(

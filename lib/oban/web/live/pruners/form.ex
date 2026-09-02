@@ -3,6 +3,8 @@ defmodule Oban.Web.Pruners.Form do
 
   import Oban.Web.FormComponents, only: [parse_int: 1, parse_string: 1]
 
+  alias Oban.Period
+
   # Pruning by age bypasses row-number filtering with a constant of 100M, so limits anywhere
   # near it silently stop pruning. Pro's changeset enforces the same ceiling.
   @max_limit 10_000_000
@@ -23,6 +25,10 @@ defmodule Oban.Web.Pruners.Form do
 
   def unit_options, do: Enum.map(@age_units, &{&1, &1})
 
+  # The pruner only runs once a minute, so a retention below sixty seconds isn't possible.
+  def min_age(%{age_unit: "seconds"}), do: 60
+  def min_age(_form), do: 1
+
   def seed do
     %{
       name: "",
@@ -36,6 +42,7 @@ defmodule Oban.Web.Pruners.Form do
       limit: "",
       timeout: "",
       archive: false,
+      paused: false,
       lock_version: nil
     }
   end
@@ -53,6 +60,7 @@ defmodule Oban.Web.Pruners.Form do
       limit: to_string(rule.limit),
       timeout: to_string(rule.timeout),
       archive: rule.archive,
+      paused: rule.paused,
       lock_version: rule.lock_version
     })
   end
@@ -83,10 +91,8 @@ defmodule Oban.Web.Pruners.Form do
         {String.to_existing_atom(key), params[key]}
       end
 
-    if is_binary(params["archive"]) do
-      Map.put(cast, :archive, params["archive"] == "true")
-    else
-      cast
+    for key <- ~w(archive paused), is_binary(params[key]), reduce: cast do
+      acc -> Map.put(acc, String.to_existing_atom(key), params[key] == "true")
     end
   end
 
@@ -125,10 +131,15 @@ defmodule Oban.Web.Pruners.Form do
   defp parse_retention(%{kind: "age"} = form) do
     value = parse_int(form.age_value)
 
-    if is_integer(value) and value > 0 and form.age_unit in @age_units do
-      {:ok, [max_age: {value, String.to_existing_atom(form.age_unit)}]}
-    else
-      {:error, "Age must be a positive number"}
+    cond do
+      not is_integer(value) or value < 1 or form.age_unit not in @age_units ->
+        {:error, "Age must be a positive number"}
+
+      Period.to_seconds({value, String.to_existing_atom(form.age_unit)}) < 60 ->
+        {:error, "Age must be at least a minute, the pruner only runs once a minute"}
+
+      true ->
+        {:ok, [max_age: {value, String.to_existing_atom(form.age_unit)}]}
     end
   end
 

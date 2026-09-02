@@ -7,19 +7,22 @@ defmodule Oban.Web.Pruners.NewComponent do
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
+    assigns = assign(assigns, :changed?, assigns.form != Form.seed())
+
     ~H"""
     <div
       id="new-pruner"
       class="relative z-50 hidden"
       phx-mounted={show_drawer()}
       phx-remove={hide_drawer()}
-      phx-window-keydown="keydown"
-      phx-target={@myself}
+      phx-window-keydown={JS.dispatch("click", to: "#new-pruner-close")}
+      phx-key="escape"
     >
       <div
         id="new-pruner-bg"
         class="bg-zinc-50/80 dark:bg-zinc-950/80 fixed inset-0 hidden transition-opacity"
         aria-hidden="true"
+        data-confirm={@changed? && "Discard this unsaved rule?"}
         phx-click="close"
         phx-target={@myself}
       />
@@ -46,8 +49,10 @@ defmodule Oban.Web.Pruners.NewComponent do
                     New Pruning Rule
                   </h2>
                   <button
+                    id="new-pruner-close"
                     type="button"
                     class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                    data-confirm={@changed? && "Discard this unsaved rule?"}
                     phx-click="close"
                     phx-target={@myself}
                     aria-label="Close"
@@ -118,7 +123,7 @@ defmodule Oban.Web.Pruners.NewComponent do
                       name="age_value"
                       value={@form.age_value}
                       type="number"
-                      min={1}
+                      min={Form.min_age(@form)}
                       placeholder="7"
                       required={true}
                     />
@@ -171,6 +176,13 @@ defmodule Oban.Web.Pruners.NewComponent do
                     name="archive"
                     checked={@form.archive}
                     hint="Copy jobs into the archive table instead of discarding them"
+                  />
+
+                  <.checkbox_field
+                    label="Start paused"
+                    name="paused"
+                    checked={@form.paused}
+                    hint="Store the rule without pruning anything until it's resumed"
                   />
 
                   <div class="pt-4">
@@ -226,7 +238,8 @@ defmodule Oban.Web.Pruners.NewComponent do
 
     case Form.build_opts(form) do
       {:ok, opts} ->
-        send(self(), {:insert_rule, opts})
+        # Only creation takes paused from the form; the detail toggles pausing as its own action.
+        send(self(), {:insert_rule, Keyword.put(opts, :paused, form.paused)})
 
         {:noreply, assign(socket, errors: [])}
 
@@ -237,14 +250,6 @@ defmodule Oban.Web.Pruners.NewComponent do
 
   def handle_event("close", _params, socket) do
     {:noreply, push_patch(socket, to: oban_path(:pruners))}
-  end
-
-  def handle_event("keydown", %{"key" => "Escape"}, socket) do
-    {:noreply, push_patch(socket, to: oban_path(:pruners))}
-  end
-
-  def handle_event("keydown", _params, socket) do
-    {:noreply, socket}
   end
 
   # JS Commands

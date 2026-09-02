@@ -8,7 +8,7 @@ defmodule Oban.Web.Pruners.TableComponent do
     ~H"""
     <div id="pruners-table" class="min-w-full">
       <div class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-        <span class="w-7 shrink-0"></span>
+        <span class="w-10 shrink-0"></span>
         <div class="flex flex-grow items-center">
           <.header label="rule" class="w-1/3 text-left" />
           <div class="ml-auto flex items-center space-x-6">
@@ -113,10 +113,10 @@ defmodule Oban.Web.Pruners.TableComponent do
         @rule.paused && "opacity-75"
       ]}
     >
-      <div class="relative w-7 shrink-0 flex flex-col items-center justify-center">
+      <div class="relative w-10 shrink-0 self-stretch flex flex-col items-stretch justify-center">
         <span
           class={[
-            "text-xs tabular text-gray-400 dark:text-gray-500",
+            "text-xs text-center tabular text-gray-400 dark:text-gray-500",
             not default?(@rule) &&
               "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
           ]}
@@ -208,7 +208,7 @@ defmodule Oban.Web.Pruners.TableComponent do
             >
               <Icons.icon
                 name="icon-exclamation-circle"
-                class="w-5 h-5 text-amber-500"
+                class="w-5 h-5 text-amber-500 dark:text-amber-400"
                 rel="is-shadowed"
               />
               <span class="sr-only">Shadowed by earlier rules</span>
@@ -266,6 +266,7 @@ defmodule Oban.Web.Pruners.TableComponent do
       phx-value-offset={@offset}
       phx-target={@myself}
       class={[
+        "flex-1 min-h-0 flex items-center justify-center",
         "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity",
         "rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
         if(@disabled,

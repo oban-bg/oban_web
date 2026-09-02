@@ -13,6 +13,7 @@ colors:
   accent-interaction: "#3b82f6"
   accent-brand: "#8b5cf6"
   danger: "#ef4444"
+  warning: "#f59e0b"
   canvas-light: "#e5e7eb"
   canvas-dark: "#030712"
   panel-light: "#ffffff"
@@ -119,6 +120,7 @@ A disciplined neutral gray field carrying eight luminous state hues, one interac
 - **Interaction blue** (blue-500, #3b82f6): selection and focus — checked checkboxes, focus rings, selected dropdown options, hover on primary actions.
 - **Brand violet** (violet-500, #8b5cf6): brand presence inside the tool — sidebar hover affordances, the resize handle, status badges (violet-100/violet-700 pill), the loading spinner fill, active filter row borders.
 - **Danger red** (red-500, #ef4444): destructive actions only (delete, cancel), on text and hover borders.
+- **Warning amber** (amber-500 #f59e0b light / amber-400 #fbbf24 dark): advisory signal — something is stored but inert, misconfigured, or shadowed, without being an error. Appears as warning flashes and banners (amber-50 / amber-900/20 fills with amber-800 / amber-300 text) and as `text-amber-500 dark:text-amber-400` icons. Advisory only; never for job state, interaction, or destruction.
 
 ### Neutral
 - **Canvas** (gray-200 #e5e7eb light / gray-950 #030712 dark): the recessed page background everything floats above.

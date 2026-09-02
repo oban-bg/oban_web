@@ -95,10 +95,6 @@ defmodule Oban.Web.PrunerQueryTest do
       assert ~w(failures default audit media) = names(rules, sort(%{}, "retention", "asc"))
     end
 
-    test "sorting rules by when they were updated", %{rules: rules} do
-      assert ~w(media audit failures default) = names(rules, sort(%{}, "updated", "asc"))
-    end
-
     test "reversing the evaluation chain", %{rules: rules} do
       assert ~w(default failures audit media) = names(rules, sort(%{}, "order", "desc"))
     end

@@ -52,7 +52,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
             phx-target={@myself}
           >
             <div class="grid grid-cols-2 gap-x-10 gap-y-6">
-              <.match_panel form={@form} />
+              <.match_panel form={@form} rule={@rule} />
               <.retention_panel form={@form} />
             </div>
 
@@ -266,7 +266,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
               <Icons.icon
                 :if={MapSet.member?(@shadowed, other.name)}
                 name="icon-exclamation-circle"
-                class="w-4 h-4 text-amber-500"
+                class="w-4 h-4 text-amber-500 dark:text-amber-400"
                 rel="is-shadowing"
               />
               <span :if={MapSet.member?(@shadowed, other.name)} class="sr-only">
@@ -281,13 +281,24 @@ defmodule Oban.Web.Pruners.DetailComponent do
   end
 
   attr :form, :map, required: true
+  attr :rule, :map, required: true
 
   defp match_panel(assigns) do
     ~H"""
     <div id="pruner-match">
-      <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
-        Match
-      </h3>
+      <div class="flex items-baseline">
+        <h3 class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400">
+          Match
+        </h3>
+
+        <.link
+          id="pruner-view-jobs"
+          navigate={jobs_path(@rule)}
+          class="ml-auto flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+        >
+          View matching jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
+        </.link>
+      </div>
 
       <div class="mt-3 space-y-4">
         <.form_field
@@ -330,7 +341,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
             name="age_value"
             value={@form.age_value}
             type="number"
-            min={1}
+            min={Form.min_age(@form)}
             placeholder="7"
             required={true}
           />
@@ -498,6 +509,22 @@ defmodule Oban.Web.Pruners.DetailComponent do
         {key, form_value}
       end
     end)
+  end
+
+  # Rules without a state match prune all prunable states, but the jobs page shows one state at a
+  # time, so completed stands in as the state with the most jobs to show.
+  defp jobs_path(rule) do
+    match = Map.new(match_pairs(rule))
+
+    params =
+      %{
+        state: Map.get(match, :state, "completed"),
+        queues: Map.get(match, :queue),
+        workers: Map.get(match, :worker)
+      }
+      |> Map.reject(fn {_key, value} -> is_nil(value) end)
+
+    oban_path(:jobs, params)
   end
 
   defp shadow_names(shadows), do: Enum.map_join(shadows, ", ", & &1.name)

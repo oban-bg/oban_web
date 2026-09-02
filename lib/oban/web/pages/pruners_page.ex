@@ -49,7 +49,7 @@ defmodule Oban.Web.PrunersPage do
               <div class="pl-3 ml-auto flex items-center">
                 <SortComponent.select
                   id="pruners-sort"
-                  by={~w(order name retention limit updated)}
+                  by={~w(order name retention limit)}
                   page={:pruners}
                   params={sort_params(@params, @default_params)}
                 />
@@ -192,7 +192,7 @@ defmodule Oban.Web.PrunersPage do
       <.link
         href="https://oban.pro"
         target="_blank"
-        class="inline-flex items-center px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-medium transition-colors"
+        class="inline-flex items-center px-5 py-2.5 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-medium transition-colors"
       >
         Learn about Oban Pro <Icons.icon name="icon-arrow-top-right-on-square" class="w-4 h-4 ml-2" />
       </.link>
@@ -400,15 +400,16 @@ defmodule Oban.Web.PrunersPage do
 
     case Enum.find_index(rules, &(&1.name == name)) do
       nil ->
-        :ok
+        {:noreply, apply_result(socket, {:error, :not_found}, nil)}
 
       index ->
-        Telemetry.action(:move_pruner, socket, [name: name], fn ->
-          PrunerQuery.move_rule(conf, Enum.at(rules, index), index + offset)
-        end)
-    end
+        result =
+          Telemetry.action(:move_pruner, socket, [name: name], fn ->
+            PrunerQuery.move_rule(conf, Enum.at(rules, index), index + offset)
+          end)
 
-    {:noreply, handle_refresh(socket)}
+        {:noreply, apply_result(socket, result, nil)}
+    end
   end
 
   def handle_info({:insert_rule, opts}, socket) do
@@ -476,11 +477,16 @@ defmodule Oban.Web.PrunersPage do
     {:noreply, socket}
   end
 
+  # A nil message means success is visible on its own, like a reordered row, so only failures
+  # flash.
   defp apply_result(socket, result, message) do
     socket =
       case result do
-        {:ok, _rule} ->
+        {:ok, _rule} when is_binary(message) ->
           put_flash_with_clear(socket, :info, message)
+
+        {:ok, _rule} ->
+          socket
 
         {:error, :not_found} ->
           put_flash_with_clear(socket, :warning, "Rule no longer exists")

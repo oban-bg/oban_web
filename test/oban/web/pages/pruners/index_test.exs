@@ -246,7 +246,7 @@ defmodule Oban.Web.Pages.Pruners.IndexTest do
 
       refresh(live)
 
-      for mode <- ~w(name retention limit updated) do
+      for mode <- ~w(name retention limit) do
         live |> element("a#sort-#{mode}") |> render_click()
 
         assert_patch(live, pruners_path(sort_by: mode, sort_dir: "asc"))
