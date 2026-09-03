@@ -421,6 +421,7 @@ defmodule Oban.Web.Components.Core do
   attr :gap, :integer, default: 1
   attr :height, :integer, default: 16
   attr :class, :string, default: nil
+  attr :label, :string, default: "Recent activity"
 
   def sparkline(assigns) do
     history = assigns.history
@@ -485,6 +486,8 @@ defmodule Oban.Web.Components.Core do
       height={@height}
       viewBox={"0 0 #{@width} #{@height}"}
       class={["flex-shrink-0", @class]}
+      role="img"
+      aria-label={@label}
       phx-hook="QueueSparkline"
       data-tooltip={Oban.JSON.encode!(@tooltip_data)}
       data-bar-width={@bar_width}

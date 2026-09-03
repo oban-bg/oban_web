@@ -129,8 +129,8 @@ defmodule Oban.Web.Crons.DetailComponent do
           <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
           <span class="text-lg font-bold ml-2 truncate">
             {@cron.worker}
-            <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
-              ({@cron.name})
+            <span class="font-normal text-gray-500 dark:text-gray-400">
+              Cron<span :if={show_name?(@cron)}> ({@cron.name})</span>
             </span>
           </span>
         </button>

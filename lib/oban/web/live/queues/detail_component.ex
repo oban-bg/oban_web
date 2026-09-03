@@ -6,6 +6,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   alias Oban.Config
   alias Oban.Met
+  alias Oban.Web.Colors
   alias Oban.Web.Components.Core
   alias Oban.Web.Metrics
   alias Oban.Web.Queue
@@ -53,6 +54,8 @@ defmodule Oban.Web.Queues.DetailComponent do
       |> assign(node_history: assigns[:node_history] || %{})
       |> assign_new(:instances_open?, fn -> true end)
       |> assign_new(:config_open?, fn -> false end)
+      |> assign_new(:errors, fn -> %{} end)
+      |> assign_new(:invalid, fn -> [] end)
       |> assign_new(:inputs, fn ->
         %{
           local_limit: local_limit(checks),
@@ -90,16 +93,19 @@ defmodule Oban.Web.Queues.DetailComponent do
         </div>
 
         <div class="col-span-1">
-          <.stats_grid checks={@checks} counts={@counts} inputs={@inputs} />
+          <.stats_grid checks={@checks} counts={@counts} inputs={@inputs} queue={@queue} />
         </div>
       </div>
 
       <.instances_section
         access={@access}
         checks={@checks}
+        error={@errors[:local]}
+        inputs={@inputs}
         instances_open?={@instances_open?}
         myself={@myself}
         node_history={@node_history}
+        queue={@queue}
       />
 
       <.config_section
@@ -107,7 +113,9 @@ defmodule Oban.Web.Queues.DetailComponent do
         checks={@checks}
         conf={@conf}
         config_open?={@config_open?}
+        errors={@errors}
         inputs={@inputs}
+        invalid={@invalid}
         myself={@myself}
         queue={@queue}
       />
@@ -131,18 +139,22 @@ defmodule Oban.Web.Queues.DetailComponent do
 
     ~H"""
     <div class="flex justify-between items-center px-3 py-4 border-b border-gray-200 dark:border-gray-700">
-      <button
-        id="back-link"
-        class="flex items-center hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0"
-        data-escape-back={true}
-        phx-hook="HistoryBack"
-        type="button"
-      >
-        <Icons.icon name="icon-arrow-left" class="w-5 h-5" />
-        <span class="text-lg capitalize font-bold ml-2">{@queue} Queue</span>
-      </button>
+      <h2 class="min-w-0">
+        <button
+          id="back-link"
+          class="flex items-center min-w-0 max-w-full hover:text-blue-500 cursor-pointer bg-transparent border-0 p-0 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          data-escape-back={true}
+          phx-hook="HistoryBack"
+          type="button"
+        >
+          <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
+          <span class="text-lg font-bold ml-2 truncate">
+            {@queue} <span class="font-normal text-gray-500 dark:text-gray-400">Queue</span>
+          </span>
+        </button>
+      </h2>
 
-      <div class="flex space-x-3">
+      <div class="flex shrink-0 space-x-3">
         <Core.status_badge
           :if={@terminating?}
           id="status-terminating"
@@ -180,19 +192,9 @@ defmodule Oban.Web.Queues.DetailComponent do
           color="red"
           tooltip="Stop this queue on all nodes"
           disabled={not can?(:stop_queues, @access)}
-          confirm="Are you sure you want to stop this queue?"
+          confirm={stop_confirm(@queue, @checks)}
           phx-target={@myself}
           phx-click="stop-queue"
-        />
-
-        <Core.icon_button
-          id="detail-edit"
-          icon="pencil_square"
-          label="Edit"
-          color="violet"
-          tooltip="Edit queue configuration"
-          disabled={not can?(:scale_queues, @access)}
-          phx-click={scroll_to_config()}
         />
       </div>
     </div>
@@ -203,17 +205,19 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   defp history_chart(assigns) do
     ~H"""
-    <div class="group relative">
+    <div class="group relative h-full">
       <div
         id="queue-detail-chart"
-        class="h-64 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+        class="h-full min-h-64 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+        role="img"
+        aria-label={"Jobs executed in the #{@queue} queue over the last 5 minutes"}
         phx-hook="QueueDetailChart"
         phx-update="ignore"
       >
       </div>
       <.link
         navigate={oban_path(:jobs, %{queues: @queue, state: "completed"})}
-        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-opacity"
       >
         View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
       </.link>
@@ -223,111 +227,99 @@ defmodule Oban.Web.Queues.DetailComponent do
 
   # Stats Grid Component
 
+  @state_order ~w(executing available scheduled retryable cancelled discarded completed)
+
   defp stats_grid(assigns) do
+    states =
+      for state <- @state_order do
+        count =
+          case state do
+            "executing" -> executing_count(assigns.checks)
+            _ -> assigns.counts[state] || 0
+          end
+
+        {state, count}
+      end
+
+    assigns = assign(assigns, states: states)
+
     ~H"""
-    <div class="space-y-4">
-      <div class="grid grid-cols-4 gap-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Executing
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {executing_count(@checks)}
-          </span>
-        </div>
+    <div class="flex flex-col gap-4">
+      <ul id="queue-state-counts" class="bg-gray-50 dark:bg-gray-800 rounded-md p-3 space-y-0.5">
+        <li :for={{state, count} <- @states}>
+          <.link
+            id={"queue-state-#{state}"}
+            navigate={oban_path(:jobs, %{queues: @queue, state: state})}
+            class={[
+              "flex items-center gap-2.5 -mx-1 px-2 py-1 rounded-md",
+              "hover:bg-gray-100 dark:hover:bg-gray-700",
+              "focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+            ]}
+          >
+            <span class={[
+              "w-2 h-2 rounded-full shrink-0",
+              if(count > 0, do: Colors.state_bg_class(state), else: "bg-gray-300 dark:bg-gray-600")
+            ]} />
+            <span class={[
+              "flex-1 text-sm",
+              if(state == "executing",
+                do: "font-semibold text-gray-800 dark:text-gray-200",
+                else: "font-medium text-gray-600 dark:text-gray-300"
+              )
+            ]}>
+              {state}
+            </span>
+            <span class={[
+              "text-sm tabular",
+              cond do
+                state == "executing" -> "font-semibold text-gray-800 dark:text-gray-200"
+                count > 0 -> "text-gray-800 dark:text-gray-200"
+                true -> "text-gray-400 dark:text-gray-500"
+              end
+            ]}>
+              {integer_to_estimate(count)}
+            </span>
+          </.link>
+        </li>
+      </ul>
 
+      <dl id="queue-limits" class="grid grid-cols-4 gap-4 px-3">
         <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Available
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["available"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Scheduled
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["scheduled"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Retryable
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["retryable"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Cancelled
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["cancelled"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Discarded
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["discarded"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Completed
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
-            {integer_to_estimate(@counts["completed"])}
-          </span>
-        </div>
-
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-            Started
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200">
-            {started_at(@checks)}
-          </span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-3 gap-4 p-3 rounded-md">
-        <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
             Local Limit
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+          </dt>
+          <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
             {local_limit_display(@checks)}
-          </span>
+          </dd>
         </div>
 
         <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
             Global Limit
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+          </dt>
+          <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
             {global_limit_display(@inputs)}
-          </span>
+          </dd>
         </div>
 
         <div class="flex flex-col">
-          <span class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+          <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
             Rate Limit
-          </span>
-          <span class="text-base text-gray-800 dark:text-gray-200 tabular">
+          </dt>
+          <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
             {rate_limit_display(@inputs)}
-          </span>
+          </dd>
         </div>
-      </div>
+
+        <div class="flex flex-col">
+          <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+            Last Started
+          </dt>
+          <dd class="text-base text-gray-800 dark:text-gray-200 tabular">
+            {started_at(@checks)}
+          </dd>
+        </div>
+      </dl>
     </div>
     """
   end
@@ -338,27 +330,82 @@ defmodule Oban.Web.Queues.DetailComponent do
     ~H"""
     <div id="queue-instances" class="border-t border-gray-200 dark:border-gray-700">
       <div class="px-3 py-6">
-        <button
-          id="instances-toggle"
-          type="button"
-          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
-          phx-click={toggle_instances(@myself)}
-        >
-          <Icons.icon
-            name="icon-chevron-right"
-            id="instances-chevron"
-            class={["w-5 h-5 transition-transform", if(@instances_open?, do: "rotate-90")]}
-          />
-          <span class="font-semibold">
-            Instances
-            <span class="text-gray-400 font-normal">
-              ({length(@checks)})
+        <div class="flex items-center justify-between gap-4">
+          <button
+            id="instances-toggle"
+            type="button"
+            class="flex items-center space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+            aria-controls="instances-content"
+            aria-expanded={to_string(@instances_open?)}
+            phx-click={toggle_instances(@myself)}
+          >
+            <Icons.icon
+              name="icon-chevron-right"
+              id="instances-chevron"
+              class={["w-5 h-5 transition-transform", if(@instances_open?, do: "rotate-90")]}
+            />
+            <span class="font-semibold">
+              Instances
+              <span class="text-gray-400 dark:text-gray-500 font-normal">
+                ({length(@checks)})
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+
+          <form
+            id="local-form"
+            class="flex items-center gap-3"
+            phx-target={@myself}
+            phx-change="form-change"
+            phx-submit="local-submit"
+          >
+            <label
+              for="local_limit"
+              class="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300"
+            >
+              <Icons.icon
+                :if={not can?(:scale_queues, @access)}
+                name="icon-lock-closed"
+                class="w-4 h-4 text-gray-500 dark:text-gray-400"
+              /> Limit on all nodes
+            </label>
+
+            <input
+              type="number"
+              id="local_limit"
+              name="local_limit"
+              value={@inputs.local_limit}
+              min="1"
+              required
+              disabled={not can?(:scale_queues, @access)}
+              aria-invalid={@error && "true"}
+              aria-describedby={@error && "local-form-error"}
+              class={[
+                "block w-20 font-mono text-sm shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50",
+                if(@error,
+                  do: "border-red-500 dark:border-red-400",
+                  else: "border-gray-300 dark:border-gray-600"
+                )
+              ]}
+            />
+
+            <button
+              type="submit"
+              class={primary_button()}
+              disabled={
+                @inputs.local_limit == local_limit(@checks) or not can?(:scale_queues, @access)
+              }
+            >
+              Scale
+            </button>
+          </form>
+        </div>
+
+        <.form_error id="local-form-error" error={@error} class="mt-2 text-right" />
 
         <div id="instances-content" class={["mt-3", unless(@instances_open?, do: "hidden")]}>
           <table class="table-fixed min-w-full divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+            <caption class="sr-only">Nodes running the {@queue} queue</caption>
             <thead>
               <tr class="bg-gray-50 dark:bg-gray-950 text-gray-500 dark:text-gray-500">
                 <th
@@ -424,7 +471,9 @@ defmodule Oban.Web.Queues.DetailComponent do
         <button
           id="config-toggle"
           type="button"
-          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+          class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          aria-controls="config-content"
+          aria-expanded={to_string(@config_open?)}
           phx-click={toggle_config(@myself)}
         >
           <Icons.icon
@@ -432,70 +481,42 @@ defmodule Oban.Web.Queues.DetailComponent do
             id="config-chevron"
             class={["w-5 h-5 transition-transform", if(@config_open?, do: "rotate-90")]}
           />
-          <span class="font-semibold">Edit Configuration</span>
+          <span class="font-semibold">Global & Rate Limits</span>
         </button>
 
         <div id="config-content" class={["mt-3", unless(@config_open?, do: "hidden")]}>
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4">
-            <form
-              id="local-form"
-              phx-target={@myself}
-              phx-change="form-change"
-              phx-submit="local-submit"
-            >
-              <h3 class="flex items-center mb-4">
-                <Icons.icon name="icon-map-pin" class="w-5 h-5 mr-1 text-gray-500" />
-                <span class="text-base font-medium">Local Limit</span>
-              </h3>
-
-              <.form_field
-                label="Limit"
-                name="local_limit"
-                value={@inputs.local_limit}
-                type="number"
-                disabled={not can?(:scale_queues, @access)}
+          <div class="grid grid-cols-2 gap-x-10 gap-y-6 bg-gray-50 dark:bg-gray-800 rounded-md p-4">
+            <div :if={missing_pro?(@conf)} id="global-form">
+              <.panel_heading
+                icon="icon-globe"
+                id="global-limit-info"
+                hint="Limits total concurrent jobs across all nodes"
+                title="Global Limit"
               />
-
-              <.submit_input
-                locked={not can?(:scale_queues, @access)}
-                disabled={
-                  @inputs.local_limit == local_limit(@checks) or not can?(:scale_queues, @access)
-                }
-                label="Scale"
-              />
-            </form>
+              <.requires_pro />
+            </div>
 
             <form
-              class="p-4 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800"
+              :if={not missing_pro?(@conf)}
               id="global-form"
               phx-change="form-change"
               phx-submit="global-update"
               phx-target={@myself}
             >
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="flex items-center">
-                  <Icons.icon name="icon-globe" class="w-5 h-5 mr-1 text-gray-500" />
-                  <span class="text-base font-medium">Global Limit</span>
-                  <span
-                    id="global-limit-info"
-                    data-title="Limits total concurrent jobs across all nodes"
-                    phx-hook="Tippy"
-                    class="ml-1"
-                  >
-                    <Icons.icon
-                      name="icon-info-circle"
-                      class="w-4 h-4 text-gray-400 dark:text-gray-500"
-                    />
-                  </span>
-                </h3>
-
+              <.panel_heading
+                icon="icon-globe"
+                id="global-limit-info"
+                hint="Limits total concurrent jobs across all nodes"
+                title="Global Limit"
+              >
                 <.toggle_button
-                  disabled={not can?(:scale_queues, @access) or missing_pro?(@conf)}
+                  disabled={not can?(:scale_queues, @access)}
                   enabled={not is_nil(@inputs.global_allowed)}
                   feature="global"
+                  label="Global limit"
                   myself={@myself}
                 />
-              </div>
+              </.panel_heading>
 
               <div class="flex w-full mb-6">
                 <div class="w-1/2 pr-1.5">
@@ -504,10 +525,10 @@ defmodule Oban.Web.Queues.DetailComponent do
                     name="global_allowed"
                     value={@inputs.global_allowed}
                     type="number"
-                    disabled={
-                      not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
-                        missing_pro?(@conf)
-                    }
+                    min={1}
+                    required={not is_nil(@inputs.global_allowed)}
+                    invalid={"global_allowed" in @invalid}
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
                   />
                 </div>
               </div>
@@ -519,28 +540,19 @@ defmodule Oban.Web.Queues.DetailComponent do
                     name="global_partition_fields"
                     value={@inputs.global_partition_fields}
                     options={partition_options()}
-                    disabled={
-                      not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
-                        missing_pro?(@conf)
-                    }
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
                   />
                 </div>
 
                 <div class="w-1/2">
-                  <label for="global_partition_keys" class="block font-medium text-sm mb-2">
-                    Partition Keys
-                  </label>
-
-                  <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                  <.form_field
+                    label="Partition Keys"
+                    name="global_partition_keys"
+                    value={@inputs.global_partition_keys}
                     disabled={
                       keyless_partition?(@inputs.global_partition_fields) or
-                        not can?(:scale_queues, @access) or missing_pro?(@conf)
+                        not can?(:scale_queues, @access)
                     }
-                    id="global_partition_keys"
-                    name="global_partition_keys"
-                    type="text"
-                    value={@inputs.global_partition_keys}
                   />
                 </div>
               </div>
@@ -549,7 +561,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 <.toggle_field
                   disabled={
                     not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
-                      is_nil(@inputs.global_partition_fields) or missing_pro?(@conf)
+                      is_nil(@inputs.global_partition_fields)
                   }
                   enabled={@inputs.global_burst}
                   feature="burst"
@@ -559,10 +571,7 @@ defmodule Oban.Web.Queues.DetailComponent do
                 />
 
                 <.toggle_field
-                  disabled={
-                    not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed) or
-                      missing_pro?(@conf)
-                  }
+                  disabled={not can?(:scale_queues, @access) or is_nil(@inputs.global_allowed)}
                   enabled={@inputs.global_per_node}
                   feature="per-node"
                   hint="Scale the allowed limit by the number of nodes running the queue, best combined with a partition"
@@ -571,59 +580,50 @@ defmodule Oban.Web.Queues.DetailComponent do
                 />
               </div>
 
-              <div class="flex flex-col items-end gap-2">
-                <.submit_input
-                  locked={not can?(:scale_queues, @access)}
-                  disabled={
-                    global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access) or
-                      missing_pro?(@conf)
-                  }
-                  label="Apply"
-                />
-                <a
-                  :if={missing_pro?(@conf)}
-                  rel="requires-pro"
-                  href="https://oban.pro/docs/pro/Oban.Pro.Engine.html"
-                  target="_blank"
-                  class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  Requires Pro Engine
-                  <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
-                </a>
-              </div>
+              <.form_error id="global-form-error" error={@errors[:global]} class="mt-4" />
+
+              <.submit_input
+                locked={not can?(:scale_queues, @access)}
+                disabled={global_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                confirm={
+                  (is_nil(@inputs.global_allowed) and not is_nil(global_allowed(@checks))) &&
+                    "Remove the global limit from the #{@queue} queue? Each node will run up to its local limit instead."
+                }
+                label="Apply"
+              />
             </form>
 
+            <div :if={missing_pro?(@conf)} id="rate-limit-form">
+              <.panel_heading
+                icon="icon-arrow-trending-down"
+                id="rate-limit-info"
+                hint="Limits how many jobs start within each period"
+                title="Rate Limit"
+              />
+              <.requires_pro />
+            </div>
+
             <form
-              class="p-4 bg-violet-50 dark:bg-violet-950/30 rounded-md ring-1 ring-violet-200 dark:ring-violet-800"
+              :if={not missing_pro?(@conf)}
               id="rate-limit-form"
               phx-change="form-change"
               phx-submit="rate-limit-update"
               phx-target={@myself}
             >
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="flex items-center">
-                  <Icons.icon name="icon-arrow-trending-down" class="w-5 h-5 mr-1 text-gray-500" />
-                  <span class="text-base font-medium">Rate Limit</span>
-                  <span
-                    id="rate-limit-info"
-                    data-title="Limits jobs executed within a time window"
-                    phx-hook="Tippy"
-                    class="ml-1"
-                  >
-                    <Icons.icon
-                      name="icon-info-circle"
-                      class="w-4 h-4 text-gray-400 dark:text-gray-500"
-                    />
-                  </span>
-                </h3>
-
+              <.panel_heading
+                icon="icon-arrow-trending-down"
+                id="rate-limit-info"
+                hint="Limits how many jobs start within each period"
+                title="Rate Limit"
+              >
                 <.toggle_button
-                  disabled={not can?(:scale_queues, @access) or missing_pro?(@conf)}
+                  disabled={not can?(:scale_queues, @access)}
                   enabled={not is_nil(@inputs.rate_allowed)}
                   feature="rate-limit"
+                  label="Rate limit"
                   myself={@myself}
                 />
-              </div>
+              </.panel_heading>
 
               <div class="flex w-full space-x-3 mb-6">
                 <div class="w-1/2">
@@ -632,23 +632,23 @@ defmodule Oban.Web.Queues.DetailComponent do
                     name="rate_allowed"
                     value={@inputs.rate_allowed}
                     type="number"
-                    disabled={
-                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
-                        missing_pro?(@conf)
-                    }
+                    min={1}
+                    required={not is_nil(@inputs.rate_allowed)}
+                    invalid={"rate_allowed" in @invalid}
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
                   />
                 </div>
 
                 <div class="w-1/2">
                   <.form_field
-                    label="Period"
+                    label="Period (seconds)"
                     name="rate_period"
                     value={@inputs.rate_period}
                     type="number"
-                    disabled={
-                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
-                        missing_pro?(@conf)
-                    }
+                    min={1}
+                    required={not is_nil(@inputs.rate_allowed)}
+                    invalid={"rate_period" in @invalid}
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
                   />
                 </div>
               </div>
@@ -660,52 +660,34 @@ defmodule Oban.Web.Queues.DetailComponent do
                     name="rate_partition_fields"
                     value={@inputs.rate_partition_fields}
                     options={partition_options()}
-                    disabled={
-                      not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed) or
-                        missing_pro?(@conf)
-                    }
+                    disabled={not can?(:scale_queues, @access) or is_nil(@inputs.rate_allowed)}
                   />
                 </div>
 
                 <div class="w-1/2">
-                  <label for="rate_partition_keys" class="block font-medium text-sm mb-2">
-                    Partition Keys
-                  </label>
-
-                  <input
-                    class="block w-full font-mono text-sm py-2 shadow-sm border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 disabled:opacity-50 rounded-md focus:ring-blue-400 focus:border-blue-400"
+                  <.form_field
+                    label="Partition Keys"
+                    name="rate_partition_keys"
+                    value={@inputs.rate_partition_keys}
                     disabled={
                       keyless_partition?(@inputs.rate_partition_fields) or
-                        not can?(:scale_queues, @access) or missing_pro?(@conf)
+                        not can?(:scale_queues, @access)
                     }
-                    id="rate_partition_keys"
-                    name="rate_partition_keys"
-                    type="text"
-                    value={@inputs.rate_partition_keys}
                   />
                 </div>
               </div>
 
-              <div class="flex flex-col items-end gap-2 mt-4">
-                <.submit_input
-                  locked={not can?(:scale_queues, @access)}
-                  disabled={
-                    rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access) or
-                      missing_pro?(@conf)
-                  }
-                  label="Apply"
-                />
-                <a
-                  :if={missing_pro?(@conf)}
-                  rel="requires-pro"
-                  href="https://oban.pro/docs/pro/Oban.Pro.Engine.html"
-                  target="_blank"
-                  class="text-xs text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  Requires Pro Engine
-                  <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3 inline-block" />
-                </a>
-              </div>
+              <.form_error id="rate-limit-form-error" error={@errors[:rate]} class="mt-4" />
+
+              <.submit_input
+                locked={not can?(:scale_queues, @access)}
+                disabled={rate_unchanged?(@checks, @inputs) or not can?(:scale_queues, @access)}
+                confirm={
+                  (is_nil(@inputs.rate_allowed) and not is_nil(rate_allowed(@checks))) &&
+                    "Remove the rate limit from the #{@queue} queue? Jobs will start as fast as the other limits allow."
+                }
+                label="Apply"
+              />
             </form>
           </div>
         </div>
@@ -737,45 +719,59 @@ defmodule Oban.Web.Queues.DetailComponent do
     inputs =
       for {key, val} <- params, key in @integer_inputs, reduce: socket.assigns.inputs do
         acc ->
-          case Integer.parse(val) do
-            {int, _} when int > 0 ->
-              %{acc | String.to_existing_atom(key) => int}
-
-            _ ->
-              acc
+          case parse_limit(val) do
+            {:ok, int} -> %{acc | String.to_existing_atom(key) => int}
+            :error -> acc
           end
       end
 
-    {:noreply, assign(socket, inputs: inputs)}
+    socket =
+      socket
+      |> assign(inputs: inputs)
+      |> clear_error(params["_target"])
+
+    {:noreply, socket}
   end
 
   def handle_event("local-submit", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    limit = String.to_integer(params["local_limit"])
+    case parse_limit(params["local_limit"]) do
+      {:ok, limit} ->
+        send(self(), {:scale_queue, socket.assigns.queue, limit: limit})
 
-    send(self(), {:scale_queue, socket.assigns.queue, limit: limit})
+        inputs = %{socket.assigns.inputs | local_limit: limit}
 
-    inputs = %{socket.assigns.inputs | local_limit: limit}
+        {:noreply,
+         assign(socket, inputs: inputs, errors: Map.delete(socket.assigns.errors, :local))}
 
-    {:noreply, assign(socket, inputs: inputs)}
+      :error ->
+        {:noreply,
+         put_error(socket, :local, ["local_limit"], "Limit must be a whole number of 1 or more")}
+    end
+  end
+
+  def handle_event("global-update", %{"global_allowed" => nil}, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
+    send(self(), {:scale_queue, socket.assigns.queue, global_limit: nil})
+
+    inputs =
+      socket.assigns.inputs
+      |> Map.replace!(:global_allowed, nil)
+      |> Map.replace!(:global_burst, false)
+      |> Map.replace!(:global_per_node, false)
+      |> Map.replace!(:global_partition_fields, "")
+      |> Map.replace!(:global_partition_keys, "")
+
+    {:noreply, assign(socket, inputs: inputs, errors: Map.delete(socket.assigns.errors, :global))}
   end
 
   def handle_event("global-update", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    inputs =
-      if is_nil(params["global_allowed"]) do
-        send(self(), {:scale_queue, socket.assigns.queue, global_limit: nil})
-
-        socket.assigns.inputs
-        |> Map.replace!(:global_allowed, nil)
-        |> Map.replace!(:global_burst, false)
-        |> Map.replace!(:global_per_node, false)
-        |> Map.replace!(:global_partition_fields, "")
-        |> Map.replace!(:global_partition_keys, "")
-      else
-        allowed = String.to_integer(params["global_allowed"])
+    case parse_limit(params["global_allowed"]) do
+      {:ok, allowed} ->
         fields = maybe_split(params["global_partition_fields"])
         keys = maybe_split(params["global_partition_keys"])
         burst = fields != [] and socket.assigns.inputs.global_burst
@@ -797,57 +793,88 @@ defmodule Oban.Web.Queues.DetailComponent do
 
         send(self(), {:scale_queue, socket.assigns.queue, global_limit: global_limit})
 
-        socket.assigns.inputs
-        |> Map.replace!(:global_allowed, allowed)
-        |> Map.replace!(:global_burst, burst)
-        |> Map.replace!(:global_per_node, per_node)
-        |> Map.replace!(:global_partition_fields, Enum.join(fields, ","))
-        |> Map.replace!(:global_partition_keys, Enum.join(keys, ","))
-      end
+        inputs =
+          socket.assigns.inputs
+          |> Map.replace!(:global_allowed, allowed)
+          |> Map.replace!(:global_burst, burst)
+          |> Map.replace!(:global_per_node, per_node)
+          |> Map.replace!(:global_partition_fields, Enum.join(fields, ","))
+          |> Map.replace!(:global_partition_keys, Enum.join(keys, ","))
 
-    {:noreply, assign(socket, inputs: inputs)}
+        {:noreply,
+         assign(socket, inputs: inputs, errors: Map.delete(socket.assigns.errors, :global))}
+
+      :error ->
+        {:noreply,
+         put_error(
+           socket,
+           :global,
+           ["global_allowed"],
+           "Allowed must be a whole number of 1 or more"
+         )}
+    end
+  end
+
+  def handle_event("rate-limit-update", %{"rate_allowed" => nil}, socket) do
+    enforce_access!(:scale_queues, socket.assigns.access)
+
+    send(self(), {:scale_queue, socket.assigns.queue, rate_limit: nil})
+
+    inputs =
+      socket.assigns.inputs
+      |> Map.replace!(:rate_allowed, nil)
+      |> Map.replace!(:rate_period, nil)
+      |> Map.replace!(:rate_partition_fields, "")
+      |> Map.replace!(:rate_partition_keys, "")
+
+    {:noreply, assign(socket, inputs: inputs, errors: Map.delete(socket.assigns.errors, :rate))}
   end
 
   def handle_event("rate-limit-update", params, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    inputs =
-      if is_nil(params["rate_allowed"]) do
-        send(self(), {:scale_queue, socket.assigns.queue, rate_limit: nil})
+    with {:ok, allowed} <- parse_limit(params["rate_allowed"]),
+         {:ok, period} <- parse_limit(params["rate_period"]) do
+      fields = maybe_split(params["rate_partition_fields"])
+      keys = maybe_split(params["rate_partition_keys"])
 
-        socket.assigns.inputs
-        |> Map.replace!(:rate_allowed, nil)
-        |> Map.replace!(:rate_period, nil)
-        |> Map.replace!(:rate_partition_fields, "")
-        |> Map.replace!(:rate_partition_keys, "")
-      else
-        allowed = String.to_integer(params["rate_allowed"])
-        period = String.to_integer(params["rate_period"])
-        fields = maybe_split(params["rate_partition_fields"])
-        keys = maybe_split(params["rate_partition_keys"])
+      rate_limit =
+        case fields do
+          [] ->
+            %{allowed: allowed, period: period}
 
-        rate_limit =
-          case fields do
-            [] ->
-              %{allowed: allowed, period: period}
+          ["worker"] ->
+            %{allowed: allowed, period: period, partition: [fields: fields]}
 
-            ["worker"] ->
-              %{allowed: allowed, period: period, partition: [fields: fields]}
+          _ ->
+            %{allowed: allowed, period: period, partition: [fields: fields, keys: keys]}
+        end
 
-            _ ->
-              %{allowed: allowed, period: period, partition: [fields: fields, keys: keys]}
-          end
+      send(self(), {:scale_queue, socket.assigns.queue, rate_limit: rate_limit})
 
-        send(self(), {:scale_queue, socket.assigns.queue, rate_limit: rate_limit})
-
+      inputs =
         socket.assigns.inputs
         |> Map.replace!(:rate_allowed, allowed)
         |> Map.replace!(:rate_period, period)
         |> Map.replace!(:rate_partition_fields, Enum.join(fields, ","))
         |> Map.replace!(:rate_partition_keys, Enum.join(keys, ","))
-      end
 
-    {:noreply, assign(socket, inputs: inputs)}
+      {:noreply, assign(socket, inputs: inputs, errors: Map.delete(socket.assigns.errors, :rate))}
+    else
+      :error ->
+        invalid =
+          for field <- ["rate_allowed", "rate_period"],
+              parse_limit(params[field]) == :error,
+              do: field
+
+        {:noreply,
+         put_error(
+           socket,
+           :rate,
+           invalid,
+           "Allowed and period must be whole numbers of 1 or more"
+         )}
+    end
   end
 
   def handle_event("toggle-feature", %{"feature" => "global"}, socket) do
@@ -901,7 +928,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
     send(self(), {:pause_queue, socket.assigns.queue})
 
-    {:noreply, socket}
+    {:noreply, put_paused(socket, true)}
   end
 
   def handle_event("resume-queue", _params, socket) do
@@ -909,7 +936,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
     send(self(), {:resume_queue, socket.assigns.queue})
 
-    {:noreply, socket}
+    {:noreply, put_paused(socket, false)}
   end
 
   def handle_event("stop-queue", _params, socket) do
@@ -933,7 +960,14 @@ defmodule Oban.Web.Queues.DetailComponent do
   defp toggle_field(assigns) do
     ~H"""
     <div class={["w-1/2 flex items-center", if(@disabled, do: "opacity-50")]}>
-      <.toggle_button disabled={@disabled} enabled={@enabled} feature={@feature} myself={@myself} />
+      <.toggle_button
+        described_by={@hint && "#{@feature}-hint"}
+        disabled={@disabled}
+        enabled={@enabled}
+        feature={@feature}
+        label={@label}
+        myself={@myself}
+      />
 
       <span class="ml-2 font-medium text-sm text-gray-700 dark:text-gray-300">{@label}</span>
 
@@ -943,19 +977,36 @@ defmodule Oban.Web.Queues.DetailComponent do
         data-title={@hint}
         phx-hook="Tippy"
         class="ml-1 flex items-center"
+        tabindex="0"
       >
         <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <span class="sr-only">{@hint}</span>
       </span>
     </div>
     """
   end
 
+  attr :described_by, :string, default: nil
+  attr :disabled, :boolean, required: true
+  attr :enabled, :boolean, required: true
+  attr :feature, :string, required: true
+  attr :label, :string, required: true
+  attr :myself, :any, required: true
+
   defp toggle_button(assigns) do
     ~H"""
     <button
-      class="bg-gray-200 dark:bg-gray-800 relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class={[
+        "relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer",
+        "transition-colors ease-in-out duration-200",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800",
+        "disabled:cursor-not-allowed",
+        if(@enabled, do: "bg-blue-500", else: "bg-gray-300 dark:bg-gray-600")
+      ]}
       role="switch"
       aria-checked={to_string(@enabled)}
+      aria-describedby={@described_by}
+      aria-label={@label}
       disabled={@disabled}
       id={"toggle-#{@feature}"}
       phx-target={@myself}
@@ -981,15 +1032,74 @@ defmodule Oban.Web.Queues.DetailComponent do
     """
   end
 
+  defp panel_heading(assigns) do
+    assigns = assign_new(assigns, :inner_block, fn -> [] end)
+
+    ~H"""
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="flex items-center">
+        <Icons.icon name={@icon} class="w-5 h-5 mr-1 text-gray-500 dark:text-gray-400" />
+        <span class="text-base font-medium">{@title}</span>
+        <span id={@id} data-title={@hint} phx-hook="Tippy" class="ml-1 flex items-center" tabindex="0">
+          <Icons.icon name="icon-info-circle" class="w-4 h-4 text-gray-400 dark:text-gray-500" />
+          <span class="sr-only">{@hint}</span>
+        </span>
+      </h3>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  defp requires_pro(assigns) do
+    ~H"""
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Available with the Pro engine.
+      <a
+        rel="requires-pro"
+        href="https://oban.pro/docs/pro/Oban.Pro.Engine.html"
+        target="_blank"
+        class="inline-flex items-center gap-0.5 font-medium text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 hover:underline"
+      >
+        Learn more <Icons.icon name="icon-arrow-top-right-on-square" class="w-3 h-3" />
+      </a>
+    </p>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :error, :string, default: nil
+  attr :class, :string, default: nil
+
+  defp form_error(assigns) do
+    ~H"""
+    <p
+      :if={@error}
+      id={@id}
+      role="alert"
+      class={["text-sm text-red-600 dark:text-red-400", @class]}
+    >
+      {@error}
+    </p>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :locked, :boolean, required: true
+  attr :disabled, :boolean, required: true
+  attr :confirm, :any, default: nil
+
   defp submit_input(assigns) do
     ~H"""
     <div class="flex items-center justify-end mt-4 space-x-2">
-      <%= if @locked do %>
-        <Icons.icon name="icon-lock-closed" class="w-5 h-5 text-gray-600 dark:text-gray-400" />
-      <% end %>
+      <Icons.icon
+        :if={@locked}
+        name="icon-lock-closed"
+        class="w-5 h-5 text-gray-600 dark:text-gray-400"
+      />
 
       <button
-        class={"block px-3 py-2 font-medium text-sm text-gray-600 dark:text-gray-100 bg-gray-300 dark:bg-blue-950 dark:bg-opacity-25 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-md shadow-sm #{if @disabled, do: "opacity-30 pointer-events-none"}"}
+        class={primary_button()}
+        data-confirm={@confirm || nil}
         disabled={@disabled}
         type="submit"
       >
@@ -997,6 +1107,10 @@ defmodule Oban.Web.Queues.DetailComponent do
       </button>
     </div>
     """
+  end
+
+  defp primary_button do
+    "px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
   end
 
   # JS Functions
@@ -1017,14 +1131,29 @@ defmodule Oban.Web.Queues.DetailComponent do
     |> JS.push("toggle-config", target: myself)
   end
 
-  defp scroll_to_config do
-    %JS{}
-    |> JS.show(to: "#config-content", transition: "fade-in-scale")
-    |> JS.add_class("rotate-90", to: "#config-chevron")
-    |> JS.focus(to: "#local-form input")
+  # Helpers
+
+  defp put_paused(socket, paused?) do
+    checks = Enum.map(socket.assigns.checks, &Map.put(&1, "paused", paused?))
+    queue_struct = %Queue{name: socket.assigns.queue, checks: checks}
+
+    assign(socket, checks: checks, queue_struct: queue_struct)
   end
 
-  # Helpers
+  defp stop_confirm(queue, checks) do
+    nodes = count_phrase(length(checks), "node")
+
+    case executing_count(checks) do
+      0 ->
+        "Stop the #{queue} queue on #{nodes}? It can't be restarted from the dashboard."
+
+      count ->
+        "Stop the #{queue} queue on #{nodes}? #{count_phrase(count, "executing job")} will finish first, but the queue can't be restarted from the dashboard."
+    end
+  end
+
+  defp count_phrase(1, noun), do: "1 #{noun}"
+  defp count_phrase(count, noun), do: "#{count} #{noun}s"
 
   defp local_limit([]), do: 0
 
@@ -1097,9 +1226,47 @@ defmodule Oban.Web.Queues.DetailComponent do
       inputs.rate_partition_keys == partition_value(checks, "rate_limit", "keys")
   end
 
-  defp maybe_split(""), do: []
+  defp parse_limit(value) when is_binary(value) do
+    case Integer.parse(String.trim(value)) do
+      {int, ""} when int > 0 -> {:ok, int}
+      _ -> :error
+    end
+  end
+
+  defp parse_limit(value) when is_integer(value) and value > 0, do: {:ok, value}
+  defp parse_limit(_value), do: :error
+
+  defp put_error(socket, key, fields, message) do
+    errors = Map.put(socket.assigns.errors, key, message)
+    invalid = Enum.uniq(fields ++ socket.assigns.invalid)
+
+    assign(socket, errors: errors, invalid: invalid)
+  end
+
+  defp clear_error(socket, [field | _]) when field in @integer_inputs do
+    key =
+      case field do
+        "local_limit" -> :local
+        "global_allowed" -> :global
+        _ -> :rate
+      end
+
+    assign(socket,
+      errors: Map.delete(socket.assigns.errors, key),
+      invalid: List.delete(socket.assigns.invalid, field)
+    )
+  end
+
+  defp clear_error(socket, _target), do: socket
+
   defp maybe_split(nil), do: []
-  defp maybe_split(value) when is_binary(value), do: String.split(value, ",")
+
+  defp maybe_split(value) when is_binary(value) do
+    value
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
 
   defp maybe_add_burst(global_limit, true), do: Map.put(global_limit, :burst, true)
   defp maybe_add_burst(global_limit, false), do: global_limit

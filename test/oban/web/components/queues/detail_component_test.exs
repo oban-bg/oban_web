@@ -18,13 +18,15 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   end
 
   test "restricting actions based on access" do
-    html = render_component(Component, assigns(access: :read_only), router: Router)
+    conf = %{Config.new(repo: Repo) | engine: Oban.Pro.Engine}
+
+    html = render_component(Component, assigns(access: :read_only, conf: conf), router: Router)
 
     assert has_fragment?(html, "[name=local_limit][disabled]")
     assert has_fragment?(html, "[name=global_allowed][disabled]")
     assert has_fragment?(html, "[name=rate_allowed][disabled]")
 
-    html = render_component(Component, assigns(access: :all), router: Router)
+    html = render_component(Component, assigns(access: :all, conf: conf), router: Router)
 
     refute has_fragment?(html, "[name=local_limit][disabled]")
   end
@@ -49,6 +51,8 @@ defmodule Oban.Web.Queues.DetailComponentTest do
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
     assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
+    refute has_fragment?(html, "[name=global_allowed]")
+    refute has_fragment?(html, "[name=rate_allowed]")
 
     # Engines other than the Pro engine can't apply global or rate limits
     conf = %{conf | engine: FakeEngine}
@@ -100,7 +104,6 @@ defmodule Oban.Web.Queues.DetailComponentTest do
 
     assert has_fragment?(html, "#detail-pause-resume")
     assert has_fragment?(html, "#detail-stop")
-    assert has_fragment?(html, "#detail-edit")
   end
 
   test "restricting header actions based on access" do

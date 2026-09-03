@@ -11,14 +11,20 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
   end
 
   def update(assigns, socket) do
+    previous = socket.assigns[:checks]
+    checks = assigns.checks
+
     socket =
       socket
-      |> assign(access: assigns.access, checks: assigns.checks)
+      |> assign(access: assigns.access, checks: checks)
       |> assign(node_history: assigns[:node_history] || [])
-      |> assign(queue: assigns.checks["queue"])
-      |> assign(paused: assigns.checks["paused"])
-      |> assign_new(:local_limit, fn -> assigns.checks["local_limit"] end)
+      |> assign(queue: checks["queue"])
+      |> assign(paused: checks["paused"])
+      |> assign_new(:local_limit, fn -> checks["local_limit"] end)
       |> assign_new(:editing?, fn -> false end)
+      |> assign_new(:error, fn -> nil end)
+      |> assign_new(:settled, fn -> nil end)
+      |> track_limit(previous, checks)
 
     {:ok, socket}
   end
@@ -39,25 +45,46 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
             id={"#{@checks["node"]}-form"}
             class="flex items-center justify-end"
             phx-target={@myself}
+            phx-change="form-change"
             phx-submit="update"
           >
             <input type="hidden" name="node" value={@checks["node"]} />
 
             <div class="flex items-center space-x-4">
+              <p
+                :if={@error}
+                id={"#{@checks["node"]}-error"}
+                role="alert"
+                class="text-sm text-red-600 dark:text-red-400"
+              >
+                {@error}
+              </p>
+
               <div class="w-24">
                 <input
                   type="number"
                   name="local_limit"
                   value={@local_limit}
+                  min="1"
+                  required
+                  aria-label={"Local limit on #{@checks["node"]}"}
                   disabled={not can?(:scale_queues, @access)}
-                  class="block w-full font-mono text-sm shadow-sm border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+                  aria-invalid={@error && "true"}
+                  aria-describedby={@error && "#{@checks["node"]}-error"}
+                  class={[
+                    "block w-full font-mono text-sm shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50",
+                    if(@error,
+                      do: "border-red-500 dark:border-red-400",
+                      else: "border-gray-300 dark:border-gray-600"
+                    )
+                  ]}
                 />
               </div>
 
               <div class="flex space-x-2">
                 <button
                   type="button"
-                  class="px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md cursor-pointer"
+                  class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 cursor-pointer"
                   phx-click="cancel-edit"
                   phx-target={@myself}
                 >
@@ -65,7 +92,7 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
                 </button>
                 <button
                   type="submit"
-                  class={"px-3 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md cursor-pointer #{if @local_limit == @checks["local_limit"], do: "opacity-50 cursor-not-allowed"}"}
+                  class="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-md hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={@local_limit == @checks["local_limit"]}
                 >
                   Scale
@@ -80,16 +107,24 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
             id={"sparkline-#{@checks["node"]}"}
             history={if is_map(@node_history), do: @node_history, else: %{}}
             count={120}
+            label={"Recent activity on #{@checks["node"]}"}
           />
         </td>
         <td class="text-right py-3 tabular">{executing_count(@checks)}</td>
-        <td class="text-right py-3 tabular">{@checks["local_limit"]}</td>
+        <td id={"#{@checks["node"]}-limit"} class="text-right py-3 tabular">
+          <.limit_value
+            confirmed={@checks["local_limit"]}
+            local_limit={@local_limit}
+            node={@checks["node"]}
+            settled={@settled}
+          />
+        </td>
         <td class="text-right py-3">{started_at(@checks)}</td>
         <td class="pr-3 py-3">
           <div class="flex items-center justify-end space-x-2">
             <.pause_button
               disabled={not can?(:pause_queues, @access)}
-              node={node_name(@checks)}
+              node={@checks["node"]}
               paused={@paused}
               queue={@queue}
               target={@myself}
@@ -126,17 +161,47 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
     """
   end
 
+  defp limit_value(%{confirmed: limit, local_limit: limit} = assigns) do
+    ~H"""
+    <span
+      id={"#{@node}-limit-#{@settled || 0}"}
+      class="inline-block -mx-1.5 px-1.5 rounded"
+      phx-mounted={@settled && settle_limit()}
+    >
+      {@confirmed}
+    </span>
+    """
+  end
+
+  defp limit_value(assigns) do
+    ~H"""
+    <span
+      id={"#{@node}-pending"}
+      class="text-gray-400 dark:text-gray-500 animate-pulse cursor-default"
+      data-title={"Waiting for #{@node} to report the new limit"}
+      phx-hook="Tippy"
+    >
+      {@local_limit}<span class="sr-only"> pending</span>
+    </span>
+    """
+  end
+
+  defp settle_limit, do: JS.transition("limit-settle", time: 1500)
+
   defp pause_button(assigns) do
     assigns =
       assigns
       |> assign_new(:id, fn -> "#{assigns.node}-toggle-pause" end)
-      |> assign_new(:tooltip, fn -> if assigns.paused, do: "Resume queue", else: "Pause queue" end)
+      |> assign_new(:tooltip, fn ->
+        if assigns.paused, do: "Resume on this node", else: "Pause on this node"
+      end)
 
     ~H"""
     <button
       id={@id}
       rel="toggle-pause"
-      class="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      class="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-yellow-500 dark:hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      aria-label={@tooltip}
       data-title={@tooltip}
       disabled={@disabled}
       phx-click="toggle-pause"
@@ -160,7 +225,8 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
     <button
       id={"#{@node}-edit"}
       rel="toggle-edit"
-      class="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-violet-500 dark:hover:text-violet-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+      class="p-1.5 rounded text-gray-400 dark:text-gray-500 hover:text-violet-500 dark:hover:text-violet-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      aria-label="Edit local limit"
       data-title="Edit local limit"
       disabled={@disabled}
       phx-click="toggle-edit"
@@ -185,22 +251,47 @@ defmodule Oban.Web.Queues.DetailInstanceComponent do
     {:noreply, assign(socket, paused: not socket.assigns.paused)}
   end
 
+  def handle_event("form-change", %{"local_limit" => limit}, socket) do
+    case Integer.parse(String.trim(limit)) do
+      {limit, ""} when limit > 0 -> {:noreply, assign(socket, local_limit: limit)}
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event("toggle-edit", _params, socket) do
     {:noreply, assign(socket, editing?: not socket.assigns.editing?)}
   end
 
   def handle_event("cancel-edit", _params, socket) do
-    {:noreply, assign(socket, editing?: false, local_limit: socket.assigns.checks["local_limit"])}
+    {:noreply,
+     assign(socket,
+       editing?: false,
+       error: nil,
+       local_limit: socket.assigns.checks["local_limit"]
+     )}
   end
 
   def handle_event("update", %{"local_limit" => limit}, socket) do
     enforce_access!(:scale_queues, socket.assigns.access)
 
-    limit = String.to_integer(limit)
     checks = socket.assigns.checks
 
-    send(self(), {:scale_queue, checks["queue"], checks["name"], checks["node"], limit})
+    case Integer.parse(String.trim(limit)) do
+      {limit, ""} when limit > 0 ->
+        send(self(), {:scale_queue, checks["queue"], checks["name"], checks["node"], limit})
 
-    {:noreply, assign(socket, local_limit: limit, editing?: false)}
+        {:noreply, assign(socket, local_limit: limit, editing?: false, error: nil)}
+
+      _ ->
+        {:noreply, assign(socket, error: "Limit must be a whole number of 1 or more")}
+    end
   end
+
+  defp track_limit(socket, %{"local_limit" => old}, %{"local_limit" => new}) when old != new do
+    local_limit = if socket.assigns.editing?, do: socket.assigns.local_limit, else: new
+
+    assign(socket, local_limit: local_limit, settled: System.unique_integer([:positive]))
+  end
+
+  defp track_limit(socket, _previous, _checks), do: socket
 end

@@ -21,6 +21,22 @@
   animation-timing-function: linear;
 }
 
+/* A node reported a new limit; flash the value once and fade back to rest. */
+@keyframes limit-settle {
+  from { background-color: rgb(59 130 246 / 0.25); }
+  to { background-color: transparent; }
+}
+
+.limit-settle {
+  animation: 1.2s ease-out limit-settle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .limit-settle {
+    animation: none;
+  }
+}
+
 select:-moz-focusring {
   color: transparent;
   text-shadow: 0 0 0 #000;

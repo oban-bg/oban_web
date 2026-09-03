@@ -17,6 +17,20 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert has_element?(live, "[name=local_limit][value=\"5\"]")
   end
 
+  test "linking each state count to the jobs filtered by queue and state" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    assert has_element?(
+             live,
+             ~s(#queue-state-executing[href*="queues=alpha"][href*="state=executing"])
+           )
+
+    assert has_element?(live, ~s(#queue-state-discarded[href*="state=discarded"]), "discarded")
+    assert has_element?(live, "#queue-limits dd.tabular", "5")
+  end
+
   test "scaling the local limit across all nodes" do
     gossip(local_limit: 5, queue: "alpha")
 
@@ -31,6 +45,209 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_action(:scale_queue, queue: "alpha")
     assert_notice(live, "Local limit set for alpha queue")
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
+  end
+
+  test "showing a new limit as pending until the node reports it" do
+    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+
+    live = render_details("alpha")
+
+    refute has_element?(live, "#web-1-pending")
+
+    live
+    |> form("#local-form")
+    |> render_submit(%{local_limit: 10})
+
+    assert has_element?(live, "#web-1-pending", "10")
+    refute has_element?(live, "#web-1-limit [phx-mounted]")
+
+    gossip(local_limit: 10, node: "web-1", queue: "alpha")
+    send(live.pid, :refresh)
+
+    refute has_element?(live, "#web-1-pending")
+    assert has_element?(live, "#web-1-limit [phx-mounted]", "10")
+  end
+
+  test "rejecting an invalid local limit for all nodes" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> form("#local-form")
+    |> render_submit(%{local_limit: "0"})
+
+    assert has_element?(live, "#local-form-error[role=alert]", "whole number of 1 or more")
+    assert has_element?(live, ~s(#local_limit[aria-invalid="true"]))
+    refute_receive {:action, %{action: :scale_queue}}
+
+    live
+    |> form("#local-form")
+    |> render_submit(%{local_limit: "3"})
+
+    refute has_element?(live, "#local-form-error")
+    assert_signal(%{"action" => "scale", "limit" => 3, "queue" => "alpha"})
+  end
+
+  test "rejecting an invalid limit for a single instance" do
+    gossip(local_limit: 5, queue: "alpha", node: "web-1")
+
+    live = render_details("alpha")
+
+    live
+    |> element("#web-1-edit")
+    |> render_click()
+
+    live
+    |> form("#web-1-form")
+    |> render_submit(%{local_limit: " "})
+
+    assert has_element?(live, "#web-1-error[role=alert]", "whole number of 1 or more")
+    assert has_element?(live, "#web-1-form [name=local_limit]")
+    refute_receive {:action, %{action: :scale_queue}}
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
+  test "rejecting invalid global and rate limits" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> element("#toggle-global")
+    |> render_click()
+
+    live
+    |> form("#global-form")
+    |> render_submit(%{global_allowed: "-1"})
+
+    assert has_element?(live, "#global-form-error[role=alert]")
+    assert has_element?(live, ~s([name=global_allowed][aria-invalid="true"]))
+
+    live
+    |> element("#toggle-rate-limit")
+    |> render_click()
+
+    live
+    |> form("#rate-limit-form")
+    |> render_submit(%{rate_allowed: "5", rate_period: "abc"})
+
+    assert has_element?(live, "#rate-limit-form-error[role=alert]")
+    assert has_element?(live, ~s([name=rate_period][aria-invalid="true"]))
+    refute has_element?(live, ~s([name=rate_allowed][aria-invalid="true"]))
+    refute_receive {:action, %{action: :scale_queue}}
+  end
+
+  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
+  test "exposing names and disclosure state to assistive technology" do
+    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+
+    live = render_details("alpha")
+
+    assert has_element?(live, ~s(#instances-toggle[aria-expanded="true"][aria-controls]))
+    assert has_element?(live, ~s(#config-toggle[aria-expanded="false"][aria-controls]))
+    assert has_element?(live, ~s(#toggle-global[role="switch"][aria-label="Global limit"]))
+
+    assert has_element?(
+             live,
+             ~s(#toggle-burst[aria-label="Burst"][aria-describedby="burst-hint"])
+           )
+
+    assert has_element?(live, ~s(#web-1-toggle-pause[aria-label="Pause on this node"]))
+    assert has_element?(live, ~s(#sparkline-web-1[role="img"][aria-label*="web-1"]))
+
+    live
+    |> element("#config-toggle")
+    |> render_click()
+
+    assert has_element?(live, ~s(#config-toggle[aria-expanded="true"]))
+
+    live
+    |> element("#web-1-edit")
+    |> render_click()
+
+    assert has_element?(
+             live,
+             ~s(#web-1-form [name=local_limit][aria-label="Local limit on web-1"])
+           )
+  end
+
+  test "leaving the details when the queue stops running on every node" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    Oban.Met.Examiner.purge(Oban.Registry.via(Oban, Oban.Met.Examiner), 1)
+
+    send(live.pid, :refresh)
+
+    assert_patch(live, "/oban/queues")
+    assert_notice(live, "The alpha queue is no longer running on any node")
+  end
+
+  test "pausing and resuming the queue on every node" do
+    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+    gossip(local_limit: 5, node: "web-2", queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> element("#detail-pause-resume")
+    |> render_click()
+
+    assert_action(:pause_queue, queue: "alpha")
+    assert_notice(live, "Paused the alpha queue on 2 nodes")
+    assert has_element?(live, "#status-paused")
+
+    live
+    |> element("#detail-pause-resume")
+    |> render_click()
+
+    assert_action(:resume_queue, queue: "alpha")
+    assert_notice(live, "Resumed the alpha queue on 2 nodes")
+    refute has_element?(live, "#status-paused")
+  end
+
+  test "pausing the queue on a single node" do
+    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+
+    live = render_details("alpha")
+
+    live
+    |> element("#web-1-toggle-pause")
+    |> render_click()
+
+    assert_action(:pause_queue, queue: "alpha", node: "web-1")
+    assert_notice(live, "Paused the alpha queue on web-1")
+  end
+
+  test "stopping the queue on every node" do
+    gossip(local_limit: 5, node: "web-1", queue: "alpha", running: [1, 2])
+
+    live = render_details("alpha")
+
+    assert has_element?(
+             live,
+             ~s(#detail-stop[data-confirm*="Stop the alpha queue on 1 node? 2 executing jobs"])
+           )
+
+    live
+    |> element("#detail-stop")
+    |> render_click()
+
+    assert_action(:stop_queue, queue: "alpha")
+    assert_notice(live, "Stopped the alpha queue on 1 node")
+  end
+
+  test "reporting a limit the engine rejects instead of crashing" do
+    gossip(local_limit: 5, queue: "alpha")
+
+    live = render_details("alpha")
+
+    send(live.pid, {:scale_queue, "alpha", global_limit: %{allowed: 5}})
+
+    assert_notice(live, "Global limit not applied to alpha queue")
+    refute_receive {:action, %{action: :scale_queue}}
   end
 
   @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
@@ -322,6 +539,13 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     |> render_click()
 
     assert has_element?(live, "#web-1-form [name=local_limit][value=\"5\"]")
+    assert has_element?(live, "#web-1-form button[type=submit][disabled]")
+
+    live
+    |> form("#web-1-form")
+    |> render_change(%{local_limit: 9})
+
+    refute has_element?(live, "#web-1-form button[type=submit][disabled]")
 
     live
     |> form("#web-1-form")

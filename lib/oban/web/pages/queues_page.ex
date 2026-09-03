@@ -175,7 +175,8 @@ defmodule Oban.Web.QueuesPage do
         %{}
       end
 
-    assign(socket,
+    socket
+    |> assign(
       checks: checks(conf),
       counts: queue_counts[:available],
       history: queue_history(conf),
@@ -184,7 +185,24 @@ defmodule Oban.Web.QueuesPage do
       show_less?: limit > @min_limit,
       show_more?: limit < @max_limit and length(queues) == limit
     )
+    |> leave_vanished_detail()
   end
+
+  defp leave_vanished_detail(%{assigns: %{detail: queue, checks: checks}} = socket)
+       when is_binary(queue) do
+    if Enum.any?(checks, &(&1["queue"] == queue)) do
+      socket
+    else
+      params = without_defaults(socket.assigns.params, socket.assigns.default_params)
+
+      socket
+      |> assign(detail: nil)
+      |> put_flash_with_clear(:info, "The #{queue} queue is no longer running on any node")
+      |> push_patch(to: oban_path(:queues, params), replace: true)
+    end
+  end
+
+  defp leave_vanished_detail(socket), do: socket
 
   defp checks(conf) do
     Met.checks(conf.name)
@@ -333,7 +351,9 @@ defmodule Oban.Web.QueuesPage do
       Oban.pause_queue(socket.assigns.conf.name, queue: queue)
     end)
 
-    {:noreply, socket}
+    message = "Paused the #{queue} queue on #{nodes_phrase(socket, queue)}"
+
+    {:noreply, put_flash_with_clear(socket, :info, message)}
   end
 
   def handle_info({:pause_queue, queue, name, node}, socket) do
@@ -341,7 +361,7 @@ defmodule Oban.Web.QueuesPage do
       Oban.pause_queue(socket.assigns.conf.name, node: node, queue: queue)
     end)
 
-    {:noreply, socket}
+    {:noreply, put_flash_with_clear(socket, :info, "Paused the #{queue} queue on #{node}")}
   end
 
   def handle_info({:resume_queue, queue}, socket) do
@@ -349,7 +369,9 @@ defmodule Oban.Web.QueuesPage do
       Oban.resume_queue(socket.assigns.conf.name, queue: queue)
     end)
 
-    {:noreply, socket}
+    message = "Resumed the #{queue} queue on #{nodes_phrase(socket, queue)}"
+
+    {:noreply, put_flash_with_clear(socket, :info, message)}
   end
 
   def handle_info({:resume_queue, queue, name, node}, socket) do
@@ -357,7 +379,7 @@ defmodule Oban.Web.QueuesPage do
       Oban.resume_queue(socket.assigns.conf.name, node: node, queue: queue)
     end)
 
-    {:noreply, socket}
+    {:noreply, put_flash_with_clear(socket, :info, "Resumed the #{queue} queue on #{node}")}
   end
 
   def handle_info({:stop_queue, queue}, socket) do
@@ -367,7 +389,9 @@ defmodule Oban.Web.QueuesPage do
       Oban.stop_queue(socket.assigns.conf.name, queue: queue)
     end)
 
-    {:noreply, put_flash_with_clear(socket, :info, "Queue #{queue} stopped")}
+    message = "Stopped the #{queue} queue on #{nodes_phrase(socket, queue)}"
+
+    {:noreply, put_flash_with_clear(socket, :info, message)}
   end
 
   # Bulk Actions
@@ -426,32 +450,47 @@ defmodule Oban.Web.QueuesPage do
   # Scaling
 
   def handle_info({:scale_queue, queue, name, node, limit}, socket) do
-    meta = [queue: queue, name: name, node: node, limit: limit]
+    opts = [queue: queue, node: node, limit: limit]
 
-    Telemetry.action(:scale_queue, socket, meta, fn ->
-      Oban.scale_queue(socket.assigns.conf.name, node: node, queue: queue, limit: limit)
-    end)
+    case validate_scale(socket.assigns.conf, opts) do
+      :ok ->
+        Telemetry.action(:scale_queue, socket, Keyword.put(opts, :name, name), fn ->
+          Oban.scale_queue(socket.assigns.conf.name, opts)
+        end)
 
-    send_update(DetailComponent, id: "detail", local_limit: limit)
+        send_update(DetailComponent, id: "detail", local_limit: limit)
 
-    {:noreply,
-     put_flash_with_clear(socket, :info, "Local limit set for #{queue} queue on #{node}")}
+        {:noreply,
+         put_flash_with_clear(socket, :info, "Local limit set for #{queue} queue on #{node}")}
+
+      {:error, error} ->
+        for checks <- socket.assigns.checks, checks["queue"] == queue, checks["node"] == node do
+          send_update(DetailInstanceComponent,
+            id: node_name(checks),
+            local_limit: checks["local_limit"]
+          )
+        end
+
+        {:noreply, put_flash_with_clear(socket, :error, scale_error(queue, opts, error))}
+    end
   end
 
   def handle_info({:scale_queue, queue, opts}, socket) do
     opts = Keyword.put(opts, :queue, queue)
 
-    Telemetry.action(:scale_queue, socket, opts, fn ->
-      Oban.scale_queue(socket.assigns.conf.name, opts)
-    end)
+    case validate_scale(socket.assigns.conf, opts) do
+      :ok ->
+        Telemetry.action(:scale_queue, socket, opts, fn ->
+          Oban.scale_queue(socket.assigns.conf.name, opts)
+        end)
 
-    if Keyword.has_key?(opts, :limit) do
-      for checks <- socket.assigns.checks do
-        send_update(DetailInstanceComponent, id: node_name(checks), local_limit: opts[:limit])
-      end
+        sync_local_limits(socket, queue, opts[:limit])
+
+        {:noreply, put_flash_with_clear(socket, :info, scale_message(queue, opts))}
+
+      {:error, error} ->
+        {:noreply, put_flash_with_clear(socket, :error, scale_error(queue, opts, error))}
     end
-
-    {:noreply, put_flash_with_clear(socket, :info, scale_message(queue, opts))}
   end
 
   # Selection
@@ -501,6 +540,35 @@ defmodule Oban.Web.QueuesPage do
 
   # Socket Helpers
 
+  defp nodes_phrase(socket, queue) do
+    case Enum.count(socket.assigns.checks, &(&1["queue"] == queue)) do
+      1 -> "1 node"
+      count -> "#{count} nodes"
+    end
+  end
+
+  defp sync_local_limits(_socket, _queue, nil), do: :ok
+
+  defp sync_local_limits(socket, queue, limit) do
+    for checks <- socket.assigns.checks, checks["queue"] == queue do
+      send_update(DetailInstanceComponent, id: node_name(checks), local_limit: limit)
+    end
+
+    :ok
+  end
+
+  defp validate_scale(conf, opts) do
+    opts =
+      opts
+      |> Keyword.drop([:node])
+      |> Keyword.put(:validate, true)
+
+    case conf.engine.init(conf, opts) do
+      {:ok, _meta} -> :ok
+      {:error, error} -> {:error, error}
+    end
+  end
+
   defp scale_message(queue, opts) do
     cond do
       Keyword.has_key?(opts, :global_limit) and is_nil(opts[:global_limit]) ->
@@ -518,5 +586,16 @@ defmodule Oban.Web.QueuesPage do
       Keyword.has_key?(opts, :limit) ->
         "Local limit set for #{queue} queue"
     end
+  end
+
+  defp scale_error(queue, opts, error) do
+    label =
+      cond do
+        Keyword.has_key?(opts, :global_limit) -> "Global limit"
+        Keyword.has_key?(opts, :rate_limit) -> "Rate limit"
+        true -> "Local limit"
+      end
+
+    "#{label} not applied to #{queue} queue: #{Exception.message(error)}"
   end
 end
