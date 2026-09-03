@@ -222,13 +222,16 @@ defmodule Oban.Web.CronQuery do
   def crontab_history(crontab, conf) do
     names = Enum.map(crontab, &elem(&1, 3))
 
-    inside =
+    # The `offset: 0` is an optimization fence for Postgres. Without it the planner pulls the
+    # subquery up and, lacking stats for the lateral value, walks the primary key backward
+    # filtering on `meta` rather than using the GIN index. CockroachDB elides a zero offset.
+    matched =
       from o in Job,
         where:
           fragment("? @> jsonb_build_object('cron_name', ?)", o.meta, parent_as(:list).value),
-        order_by: [desc: o.id],
-        limit: @history_limit,
+        offset: 0,
         select: %{
+          id: o.id,
           cron_name: o.meta["cron_name"],
           state: o.state,
           attempted_at: o.attempted_at,
@@ -238,6 +241,18 @@ defmodule Oban.Web.CronQuery do
               fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at),
               :utc_datetime_usec
             )
+        }
+
+    inside =
+      from m in subquery(matched),
+        order_by: [desc: m.id],
+        limit: @history_limit,
+        select: %{
+          cron_name: m.cron_name,
+          state: m.state,
+          attempted_at: m.attempted_at,
+          scheduled_at: m.scheduled_at,
+          finished_at: m.finished_at
         }
 
     query =
