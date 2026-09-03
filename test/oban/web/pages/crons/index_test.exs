@@ -74,6 +74,26 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     assert table =~ ~r/Oban.Workers.CronC/
   end
 
+  test "viewing decorated crons by their handler", %{live: live} do
+    args = %{mod: "Oban.Workers.Reports", fun: "digest", arg: []}
+
+    Cron.insert([
+      {"0 * * * *", Oban.Pro.Decorator, name: "Oban.Workers.Reports.digest/0", args: args}
+    ])
+
+    refresh(live)
+
+    table =
+      live
+      |> element("#crons-table")
+      |> render()
+
+    assert table =~ "Oban.Workers.Reports.digest/0"
+    assert table =~ "decorated"
+    refute table =~ "Oban.Pro.Decorator"
+    refute table =~ ~s("fun" => "digest")
+  end
+
   test "sorting crons by different properties", %{live: live} do
     refresh(live)
 

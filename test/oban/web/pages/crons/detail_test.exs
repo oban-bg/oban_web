@@ -12,6 +12,13 @@ defmodule Oban.Workers.DefaultsCronWorker do
   def perform(_job), do: :ok
 end
 
+defmodule Oban.Workers.DecoratedCron do
+  use Oban.Pro.Decorator
+
+  @job true
+  def digest, do: :ok
+end
+
 defmodule Oban.Web.Pages.Crons.DetailTest do
   use Oban.Web.Case
 
@@ -515,6 +522,73 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       assert render(live) =~ ~s(name="name" value="new-name")
       assert has_element?(live, "#detail-save[disabled]")
       assert [%{name: "new-name"}] = Cron.all()
+    end
+  end
+
+  describe "decorated crons" do
+    @handler "Oban.Workers.DecoratedCron.digest/0"
+    @args %{mod: "Oban.Workers.DecoratedCron", fun: "digest", arg: []}
+
+    setup do
+      Cron.insert([
+        {"0 * * * *", Oban.Pro.Decorator, name: @handler, args: @args, tags: ["digest"]}
+      ])
+
+      {:ok, live, _html} = live(build_conn(), "/oban/crons/#{URI.encode_www_form(@handler)}")
+
+      {:ok, live: live}
+    end
+
+    test "presenting the decorated function as the handler", %{live: live} do
+      html = refresh(live)
+
+      assert has_element?(live, "#back-link", @handler)
+      assert has_element?(live, "#status-decorated")
+      refute has_element?(live, "#status-dynamic")
+      refute has_element?(live, "#back-link", "Oban.Pro.Decorator")
+
+      assert html =~ ~s(name="handler")
+      assert html =~ @handler
+      refute html =~ ~s(name="worker")
+      refute html =~ ~s(name="args")
+
+      assert live |> element(~s(input[name="handler"])) |> render() =~ "disabled"
+    end
+
+    test "run now preserves the decorator args and labels the job", %{live: live} do
+      refresh(live)
+
+      live
+      |> element("button", "Run Now")
+      |> render_click()
+
+      assert [job] = Repo.all(Job)
+
+      # The decorator encodes the arg list as a term on insert, just as Pro Cron does.
+      assert job.worker == "Oban.Pro.Decorator"
+      assert %{"mod" => "Oban.Workers.DecoratedCron", "fun" => "digest", "arg" => _} = job.args
+
+      assert %{"cron_name" => @handler, "decorated" => true, "decorated_name" => @handler} =
+               job.meta
+
+      assert job.tags == ["digest"]
+    end
+
+    test "editing the schedule leaves the handler untouched", %{live: live} do
+      live
+      |> form("#cron-form", %{"expression" => "*/30 * * * *", "priority" => "2"})
+      |> render_submit()
+
+      assert [entry] = Enum.filter(Cron.all(), &(&1.name == @handler))
+      assert entry.worker == "Oban.Pro.Decorator"
+      assert entry.expression == "*/30 * * * *"
+      assert entry.opts["priority"] == 2
+
+      assert entry.opts["args"] == %{
+               "mod" => "Oban.Workers.DecoratedCron",
+               "fun" => "digest",
+               "arg" => []
+             }
     end
   end
 

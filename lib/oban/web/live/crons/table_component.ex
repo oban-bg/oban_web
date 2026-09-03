@@ -143,14 +143,14 @@ defmodule Oban.Web.Crons.TableComponent do
       <.link patch={oban_path([:crons, @cron.name])} class="pl-3 py-3.5 flex flex-grow items-center">
         <div class="w-1/3">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
-            {@cron.worker}
+            {@cron.handler}
             <span :if={show_name?(@cron)} class="font-normal text-gray-500 dark:text-gray-400">
               ({@cron.name})
             </span>
           </span>
 
           <div
-            :if={@cron.dynamic? or has_tags?(@cron.opts) or format_opts(@cron.opts)}
+            :if={@cron.dynamic? or has_tags?(@cron.opts) or format_opts(@cron)}
             class="flex flex-wrap items-center gap-1.5 mt-1"
           >
             <span
@@ -161,6 +161,13 @@ defmodule Oban.Web.Crons.TableComponent do
             </span>
 
             <span
+              :if={@cron.decorated?}
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300"
+            >
+              decorated
+            </span>
+
+            <span
               :for={tag <- get_tags(@cron.opts)}
               class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
             >
@@ -168,10 +175,10 @@ defmodule Oban.Web.Crons.TableComponent do
             </span>
 
             <samp
-              :if={format_opts(@cron.opts)}
+              :if={format_opts(@cron)}
               class="font-mono text-xs text-gray-500 dark:text-gray-400"
             >
-              {format_opts(@cron.opts)}
+              {format_opts(@cron)}
             </samp>
           </div>
         </div>
@@ -231,6 +238,10 @@ defmodule Oban.Web.Crons.TableComponent do
         "#{String.capitalize(state)} as of #{NaiveDateTime.truncate(cron.last_at, :second)}"
     end
   end
+
+  # A decorated entry's args only encode the handler that's already shown as the name.
+  defp format_opts(%{decorated?: true, opts: opts}), do: format_opts(Map.delete(opts, "args"))
+  defp format_opts(%Cron{opts: opts}), do: format_opts(opts)
 
   defp format_opts(opts) when map_size(opts) == 0, do: nil
 

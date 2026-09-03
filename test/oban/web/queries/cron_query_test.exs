@@ -41,6 +41,51 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
         stop_supervised(name)
       end
+
+      @tag :pro
+      @tag capture_log: true
+      test "deriving the handler for decorated entries" do
+        args = %{mod: "MyApp.Reports", fun: "digest", arg: []}
+
+        name =
+          start_supervised_oban!(
+            engine: @engine,
+            name: make_ref(),
+            repo: @repo,
+            plugins: [{Oban.Cron, crontab: [{"0 * * * *", Oban.Pro.Decorator, args: args}]}]
+          )
+
+        conf = Oban.config(name)
+
+        assert [cron] = CronQuery.all_crons(%{}, conf)
+        assert cron.worker == "Oban.Pro.Decorator"
+        assert cron.handler == "MyApp.Reports.digest/0"
+        assert cron.decorated?
+
+        assert [{"MyApp.Reports.digest/0", _, _}] = CronQuery.suggest("workers:", conf)
+        assert [_cron] = CronQuery.all_crons(%{workers: ["MyApp.Reports.digest/0"]}, conf)
+        assert [_cron] = CronQuery.all_crons(%{workers: ["Oban.Pro.Decorator"]}, conf)
+        assert [] = CronQuery.all_crons(%{workers: ["MyApp.Other"]}, conf)
+
+        stop_supervised(name)
+      end
+
+      @tag capture_log: true
+      test "keeping the worker as the handler for regular entries" do
+        name =
+          start_supervised_oban!(
+            engine: @engine,
+            name: make_ref(),
+            repo: @repo,
+            plugins: [{Oban.Cron, crontab: [{"0 * * * *", FakeWorker, args: %{mod: "x"}}]}]
+          )
+
+        assert [cron] = CronQuery.all_crons(%{}, Oban.config(name))
+        assert cron.handler == inspect(FakeWorker)
+        refute cron.decorated?
+
+        stop_supervised(name)
+      end
     end
 
     describe "cron_history/2" do

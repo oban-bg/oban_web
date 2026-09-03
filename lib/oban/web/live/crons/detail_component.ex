@@ -40,7 +40,13 @@ defmodule Oban.Web.Crons.DetailComponent do
           >
             <div class="grid grid-cols-2 gap-x-10 gap-y-6">
               <.schedule_panel form={@form} invalid={@invalid} timezones={@timezone_options} />
-              <.job_panel defaults={@defaults} form={@form} invalid={@invalid} queues={@queues} />
+              <.job_panel
+                cron={@cron}
+                defaults={@defaults}
+                form={@form}
+                invalid={@invalid}
+                queues={@queues}
+              />
             </div>
 
             <div
@@ -128,7 +134,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         >
           <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
           <span class="text-lg font-bold ml-2 truncate">
-            {@cron.worker}
+            {@cron.handler}
             <span class="font-normal text-gray-500 dark:text-gray-400">
               Cron<span :if={show_name?(@cron)}> ({@cron.name})</span>
             </span>
@@ -138,7 +144,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="flex items-center space-x-3">
         <Core.status_badge
-          :if={@cron.dynamic?}
+          :if={@cron.dynamic? and not @cron.decorated?}
           id="status-dynamic"
           icon="sparkles"
           label="Dynamic"
@@ -149,6 +155,13 @@ defmodule Oban.Web.Crons.DetailComponent do
           icon="command_line"
           label="Static"
           tooltip="Declared in your Oban config"
+        />
+        <Core.status_badge
+          :if={@cron.decorated?}
+          id="status-decorated"
+          icon="sparkles"
+          label="Decorated"
+          tooltip={"Calls #{@cron.handler} through #{@cron.worker}"}
         />
         <Core.status_badge
           :if={@cron.paused?}
@@ -361,12 +374,16 @@ defmodule Oban.Web.Crons.DetailComponent do
     """
   end
 
+  attr :cron, :any, required: true
   attr :form, :map, required: true
   attr :queues, :list, required: true
 
   attr :defaults, :map, required: true
   attr :invalid, :list, default: []
 
+  # A decorated entry's worker and args together encode the function it calls. Those are set by
+  # the annotation, so the editor shows the handler in their place and leaves it alone; disabled
+  # fields aren't submitted, and the stored values carry over untouched.
   defp job_panel(assigns) do
     ~H"""
     <div id="cron-job">
@@ -376,6 +393,16 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="mt-3 space-y-4">
         <.form_field
+          :if={@cron.decorated?}
+          label="Handler"
+          name="handler"
+          value={@cron.handler}
+          disabled={true}
+          hint="Decorated crons always call the function they were declared on"
+        />
+
+        <.form_field
+          :if={not @cron.decorated?}
           label="Worker"
           name="worker"
           value={@form.worker}
@@ -421,6 +448,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         />
 
         <.form_field
+          :if={not @cron.decorated?}
           label="Args"
           name="args"
           value={@form.args}
@@ -526,14 +554,14 @@ defmodule Oban.Web.Crons.DetailComponent do
       cron.opts
       |> Map.take(~w(max_attempts priority queue tags))
       |> Keyword.new(fn {key, val} -> {String.to_existing_atom(key), val} end)
-      |> Keyword.put(:meta, %{cron: true, cron_expr: cron.expression, cron_name: cron.name})
+      |> Keyword.put(:meta, run_now_meta(cron))
 
     changeset = build_changeset(cron.worker, args, opts)
 
     case Oban.insert(conf.name, changeset) do
       {:ok, _job} ->
         send(self(), :refresh)
-        send(self(), {:flash, :info, "Job inserted for #{cron.worker}"})
+        send(self(), {:flash, :info, "Job inserted for #{cron.handler}"})
 
       {:error, _reason} ->
         send(self(), {:flash, :error, "Failed to insert job"})
@@ -618,6 +646,18 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   # Helpers
+
+  # Decorated jobs are labeled by their handler in the jobs views, the same way the decorator
+  # itself marks jobs it builds.
+  defp run_now_meta(cron) do
+    meta = %{cron: true, cron_expr: cron.expression, cron_name: cron.name}
+
+    if cron.decorated? do
+      Map.merge(meta, %{decorated: true, decorated_name: cron.handler})
+    else
+      meta
+    end
+  end
 
   defp assign_seed(socket, cron) do
     form = Form.seed(cron)

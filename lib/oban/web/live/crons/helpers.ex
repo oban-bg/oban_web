@@ -51,6 +51,6 @@ defmodule Oban.Web.Crons.Helpers do
 
   def maybe_to_unix(_timestamp), do: ""
 
-  def show_name?(%{dynamic?: true, name: name, worker: worker}), do: name != worker
+  def show_name?(%{dynamic?: true, name: name, handler: handler}), do: name != handler
   def show_name?(_cron), do: false
 end

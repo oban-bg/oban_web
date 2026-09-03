@@ -203,7 +203,7 @@ defmodule Oban.Web.CronsPage do
       cron ->
         {:noreply,
          socket
-         |> assign(detailed: cron, show_new_form: false, page_title: page_title(cron.worker))
+         |> assign(detailed: cron, show_new_form: false, page_title: page_title(cron.handler))
          |> assign(params: params)}
     end
   end

@@ -476,6 +476,13 @@ defmodule Oban.Workers.ArticleSummarizer do
   def summarize(_id, _team) do
     Generator.random_perform(500, 5_000)
   end
+
+  # Annotation discovery only scans compiled applications, so the cron entry for this function
+  # is declared directly in the Pro Cron crontab below.
+  @job true
+  def digest do
+    Generator.random_perform(500, 5_000)
+  end
 end
 
 # Cron Workers
@@ -1037,7 +1044,10 @@ oban_opts = [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
        {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
        {"*/15 * * * *", Oban.Workers.DormantLocker},
-       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]}
+       {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
+       {"*/10 * * * *", Oban.Pro.Decorator,
+        name: "Oban.Workers.ArticleSummarizer.digest/0",
+        args: %{mod: "Oban.Workers.ArticleSummarizer", fun: "digest", arg: []}}
      ],
      sync_mode: :automatic},
     {Oban.Cron,

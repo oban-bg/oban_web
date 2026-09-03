@@ -73,10 +73,11 @@ defmodule Oban.Web.CronQuery do
   end
 
   defp suggest_workers(frag, conf) do
-    conf.name
-    |> Met.crontab()
-    |> Enum.map(&elem(&1, 1))
-    |> Enum.map(&to_string/1)
+    conf
+    |> static_crontab()
+    |> Kernel.++(dynamic_crontab(conf))
+    |> Enum.map(fn {_expr, worker, opts, _name, _dynamic?, _paused?} -> handler(worker, opts) end)
+    |> Enum.uniq()
     |> Search.restrict_suggestions(frag)
   end
 
@@ -191,11 +192,15 @@ defmodule Oban.Web.CronQuery do
     jobs = Map.get(history, name, [])
     last_job = List.last(jobs)
 
+    decorated_name = Cron.decorated_name(worker, opts)
+
     fields = [
       name: name,
       expression: expr,
       worker: worker,
+      handler: decorated_name || worker,
       opts: opts,
+      decorated?: is_binary(decorated_name),
       dynamic?: dynamic?,
       paused?: paused?,
       next_at: next_at(expr),
@@ -206,6 +211,8 @@ defmodule Oban.Web.CronQuery do
 
     struct!(Cron, fields)
   end
+
+  defp handler(worker, opts), do: Cron.decorated_name(worker, opts) || worker
 
   defp last_at_from_job(nil), do: nil
   defp last_at_from_job(%{finished_at: at}) when not is_nil(at), do: at
@@ -292,13 +299,13 @@ defmodule Oban.Web.CronQuery do
   def order(%{name: name}, :name), do: name
   def order(%{next_at: next_at}, :next_run), do: next_at
   def order(%{expression: expression}, :schedule), do: expression
-  def order(%{worker: worker}, :worker), do: worker
+  def order(%{handler: handler}, :worker), do: handler
 
   # Filtering
 
   @impl Queryable
   def filter(cron, {:names, names}), do: cron.name in names
-  def filter(cron, {:workers, workers}), do: cron.worker in workers
+  def filter(cron, {:workers, workers}), do: cron.handler in workers or cron.worker in workers
   def filter(cron, {:states, states}), do: cron.last_state in states
 
   def filter(cron, {:modes, modes}) do
