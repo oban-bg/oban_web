@@ -63,6 +63,31 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     assert html =~ ~s(id="detail-delete" type="button" disabled)
   end
 
+  test "restricting action buttons based on access" do
+    job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{}, state: "retryable"}
+
+    html = render_component(Component, assigns(job, access: :read_only), router: Router)
+
+    assert has_fragment?(html, "#detail-cancel[disabled]")
+    assert has_fragment?(html, "#detail-retry[disabled]")
+    assert has_fragment?(html, "#detail-delete[disabled]")
+    assert has_fragment?(html, "#detail-edit[disabled]")
+
+    html = render_component(Component, assigns(job, access: [retry_jobs: true]), router: Router)
+
+    assert has_fragment?(html, "#detail-cancel[disabled]")
+    refute has_fragment?(html, "#detail-retry[disabled]")
+    assert has_fragment?(html, "#detail-delete[disabled]")
+    assert has_fragment?(html, "#detail-edit[disabled]")
+
+    html = render_component(Component, assigns(job, access: :all), router: Router)
+
+    refute has_fragment?(html, "#detail-cancel[disabled]")
+    refute has_fragment?(html, "#detail-retry[disabled]")
+    refute has_fragment?(html, "#detail-delete[disabled]")
+    refute has_fragment?(html, "#detail-edit[disabled]")
+  end
+
   test "customizing args formatting with a resolver" do
     job = %Oban.Job{id: 1, worker: "MyApp.Worker", args: %{"secret" => "sauce"}}
 

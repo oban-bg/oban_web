@@ -123,7 +123,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Cancel"
             color="yellow"
             tooltip="Cancel this job"
-            disabled={not cancelable?(@job)}
+            disabled={not cancelable?(@job) or not can?(:cancel_jobs, @access)}
             phx-target={@myself}
             phx-click="cancel"
           />
@@ -134,7 +134,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Retry"
             color="blue"
             tooltip="Retry this job"
-            disabled={not (runnable?(@job) or retryable?(@job))}
+            disabled={not (runnable?(@job) or retryable?(@job)) or not can?(:retry_jobs, @access)}
             phx-target={@myself}
             phx-click="retry"
           />
@@ -145,7 +145,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Delete"
             color="red"
             tooltip="Delete this job"
-            disabled={not deletable?(@job)}
+            disabled={not deletable?(@job) or not can?(:delete_jobs, @access)}
             confirm="Are you sure you want to delete this job?"
             phx-target={@myself}
             phx-click="delete"
@@ -157,7 +157,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Edit"
             color="violet"
             tooltip="Edit this job"
-            disabled={executing?(@job)}
+            disabled={executing?(@job) or not can?(:update_jobs, @access)}
             phx-click={scroll_to_edit()}
           />
         </div>
