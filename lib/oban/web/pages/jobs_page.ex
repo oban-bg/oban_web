@@ -445,10 +445,14 @@ defmodule Oban.Web.JobsPage do
           |> put_flash_with_clear(:info, "Job updated successfully")
           |> assign(detailed: updated_job)
 
+        send_update(DetailComponent, id: "detail", reseed: true)
+
         {:noreply, socket}
 
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to update job")}
+      {:error, reason} ->
+        send_update(DetailComponent, id: "detail", failure: reason)
+
+        {:noreply, socket}
     end
   end
 

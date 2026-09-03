@@ -2,7 +2,7 @@ defmodule Oban.Web.Crons.Form do
   @moduledoc false
 
   import Oban.Web.FormComponents,
-    only: [changeset_errors: 1, parse_int: 1, parse_string: 1, parse_tags: 1]
+    only: [changeset_errors: 1, decode_json: 1, parse_int: 1, parse_string: 1, parse_tags: 1]
 
   alias Oban.Cron.Expression
 
@@ -94,18 +94,14 @@ defmodule Oban.Web.Crons.Form do
   end
 
   defp parse_args(value) do
-    case parse_string(value) do
-      nil ->
-        {:ok, nil}
+    json = parse_string(value)
 
-      json ->
-        case Oban.JSON.decode!(json) do
-          args when is_map(args) -> {:ok, args}
-          _other -> {:error, {:args, "Args must be a JSON object"}}
-        end
+    case decode_json(json) do
+      {:ok, args} when is_map(args) -> {:ok, args}
+      {:ok, _other} -> {:error, {:args, "Args must be a JSON object"}}
+      :error when is_nil(json) -> {:ok, nil}
+      :error -> {:error, {:args, "Args must be valid JSON"}}
     end
-  rescue
-    _error -> {:error, {:args, "Args must be a JSON object"}}
   end
 
   defp put_present(opts, _key, nil), do: opts

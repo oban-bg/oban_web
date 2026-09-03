@@ -501,18 +501,6 @@ defmodule Oban.Web.Pruners.DetailComponent do
     assign(socket, baseline: form, errors: [], form: form, seeded: rule.name)
   end
 
-  defp merge_fresh(form, baseline, fresh) do
-    Map.new(fresh, fn {key, fresh_value} ->
-      form_value = Map.fetch!(form, key)
-
-      if form_value == Map.fetch!(baseline, key) do
-        {key, fresh_value}
-      else
-        {key, form_value}
-      end
-    end)
-  end
-
   # Rules without a state match prune all prunable states, but the jobs page shows one state at a
   # time, so completed stands in as the state with the most jobs to show.
   defp jobs_path(rule) do

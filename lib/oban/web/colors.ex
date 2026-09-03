@@ -32,10 +32,10 @@ defmodule Oban.Web.Colors do
       {"border-indigo-400", "bg-indigo-400/10", "text-indigo-600 dark:text-indigo-400"},
     "available" => {"border-blue-400", "bg-blue-400/10", "text-blue-600 dark:text-blue-400"},
     "retryable" =>
-      {"border-yellow-400", "bg-yellow-400/10", "text-yellow-600 dark:text-yellow-400"},
+      {"border-yellow-400", "bg-yellow-400/10", "text-yellow-700 dark:text-yellow-400"},
     "executing" =>
-      {"border-emerald-400", "bg-emerald-400/10", "text-emerald-600 dark:text-emerald-400"},
-    "completed" => {"border-cyan-400", "bg-cyan-400/10", "text-cyan-600 dark:text-cyan-400"},
+      {"border-emerald-400", "bg-emerald-400/10", "text-emerald-700 dark:text-emerald-400"},
+    "completed" => {"border-cyan-400", "bg-cyan-400/10", "text-cyan-700 dark:text-cyan-400"},
     "cancelled" =>
       {"border-violet-400", "bg-violet-400/10", "text-violet-600 dark:text-violet-400"},
     "discarded" => {"border-rose-400", "bg-rose-400/10", "text-rose-600 dark:text-rose-400"}

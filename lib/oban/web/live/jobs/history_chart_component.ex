@@ -8,7 +8,9 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
       <button
         id="history-toggle"
         type="button"
-        class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+        class="flex items-center w-full space-x-2 px-2 py-1.5 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+        aria-controls="history-content"
+        aria-expanded="true"
         phx-click={toggle_section()}
       >
         <Icons.icon
@@ -23,6 +25,8 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
         <div
           id="job-history-chart"
           class="h-48 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
+          role="img"
+          aria-label={"Wait and execution times for recent #{@job.worker} jobs"}
           phx-hook="JobHistoryChart"
           phx-update="ignore"
           data-current-job-id={@job.id}
@@ -30,7 +34,8 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
         </div>
         <.link
           navigate={all_jobs_path(@job)}
-          class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+          data-confirm={@confirm_leave}
+          class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-opacity"
         >
           View all jobs <Icons.icon name="icon-arrow-right" class="w-3 h-3" />
         </.link>
@@ -42,6 +47,7 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
   defp toggle_section do
     %JS{}
     |> JS.toggle(to: "#history-content", in: "fade-in-scale", out: "fade-out-scale")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#history-toggle")
     |> JS.add_class("rotate-90", to: "#history-chevron:not(.rotate-90)")
     |> JS.remove_class("rotate-90", to: "#history-chevron.rotate-90")
   end
@@ -56,6 +62,7 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
     socket =
       socket
       |> assign(assigns)
+      |> assign_new(:confirm_leave, fn -> nil end)
       |> push_chart_data()
 
     {:ok, socket}

@@ -61,6 +61,19 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
 
     # Executing jobs cannot be deleted (button is disabled)
     assert html =~ ~s(id="detail-delete" type="button" disabled)
+
+    # Disabled buttons explain why
+    assert has_fragment?(
+             html,
+             ~s(#detail-retry-tip[data-title="Executing jobs can't be retried"])
+           )
+
+    assert has_fragment?(
+             html,
+             ~s(#detail-delete-tip[data-title="Executing jobs can't be deleted"])
+           )
+
+    assert has_fragment?(html, ~s(#detail-edit-tip[data-title="Executing jobs can't be edited"]))
   end
 
   test "restricting action buttons based on access" do
@@ -72,6 +85,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     assert has_fragment?(html, "#detail-retry[disabled]")
     assert has_fragment?(html, "#detail-delete[disabled]")
     assert has_fragment?(html, "#detail-edit[disabled]")
+    refute has_fragment?(html, "#detail-save")
 
     html = render_component(Component, assigns(job, access: [retry_jobs: true]), router: Router)
 
@@ -86,6 +100,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
     refute has_fragment?(html, "#detail-retry[disabled]")
     refute has_fragment?(html, "#detail-delete[disabled]")
     refute has_fragment?(html, "#detail-edit[disabled]")
+    assert has_fragment?(html, "#detail-save")
   end
 
   test "customizing args formatting with a resolver" do
@@ -214,7 +229,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
 
       html = render_component(Component, assigns(job), router: Router)
 
-      assert html =~ "No Recording Yet"
+      assert html =~ "No output recorded yet"
       refute html =~ ~s(id="copy-recorded")
       refute html =~ ~s(id="load-recorded")
     end

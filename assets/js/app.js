@@ -70,6 +70,7 @@ window.addEventListener("phx:scroll-top", () => {
 
 window.addEventListener("phx:copy-to-clipboard", (event) => {
   const text = event.detail.text;
+  const button = event.target;
 
   // The navigator.clipboard API is only available in secure contexts and will be undefined
   // otherwise. Provide a fallback when serving over plain HTTP so copying still works in dev
@@ -90,6 +91,19 @@ window.addEventListener("phx:copy-to-clipboard", (event) => {
     } finally {
       document.body.removeChild(textarea);
     }
+  }
+
+  // Confirm the copy through the button's own tooltip, then restore the original hint.
+  if (button && button._tippy) {
+    const original = button.getAttribute("data-title");
+
+    button._tippy.setContent("Copied");
+    button._tippy.show();
+
+    setTimeout(() => {
+      button._tippy.setContent(original);
+      button._tippy.hide();
+    }, 1500);
   }
 });
 

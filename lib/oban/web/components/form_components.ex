@@ -16,6 +16,7 @@ defmodule Oban.Web.FormComponents do
   attr :rows, :integer, default: 2
   attr :min, :integer, default: nil
   attr :max, :integer, default: nil
+  attr :step, :integer, default: nil
 
   def form_field(assigns) do
     ~H"""
@@ -62,6 +63,7 @@ defmodule Oban.Web.FormComponents do
           value={@value}
           min={@min}
           max={@max}
+          step={@step}
           disabled={@disabled}
           placeholder={@placeholder}
           required={@required}
@@ -217,6 +219,17 @@ defmodule Oban.Web.FormComponents do
   end
 
   @doc """
+  Decodes a JSON string into any term, returning `:error` for blank or malformed input.
+  """
+  def decode_json(json) when is_binary(json) and json != "" do
+    {:ok, Oban.JSON.decode!(json)}
+  rescue
+    _error -> :error
+  end
+
+  def decode_json(_json), do: :error
+
+  @doc """
   Parses a JSON string into a map, returning nil for empty or invalid values.
   """
   def parse_json(nil), do: nil
@@ -265,5 +278,39 @@ defmodule Oban.Web.FormComponents do
     queues
     |> Enum.map(fn %{name: name} -> {name, name} end)
     |> Enum.sort_by(&elem(&1, 0))
+  end
+
+  @doc """
+  Builds queue options that always include the current queue.
+
+  Only running queues are known, so a queue that isn't running still has to appear as an option.
+  Otherwise the browser selects the first option and a save would silently change it.
+  """
+  def queue_options(queues, current) do
+    options = queue_options(queues)
+
+    if current in [nil, ""] or Enum.any?(options, &(elem(&1, 1) == current)) do
+      options
+    else
+      [{current, current} | options]
+    end
+  end
+
+  @doc """
+  Merges a freshly seeded form over the one being edited, field by field.
+
+  An untouched field, one that still matches the baseline it was seeded from, tracks the fresh
+  value. A field with edits in progress keeps them.
+  """
+  def merge_fresh(form, baseline, fresh) do
+    Map.new(fresh, fn {key, fresh_value} ->
+      form_value = Map.fetch!(form, key)
+
+      if form_value == Map.fetch!(baseline, key) do
+        {key, fresh_value}
+      else
+        {key, form_value}
+      end
+    end)
   end
 end

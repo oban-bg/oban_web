@@ -132,7 +132,7 @@ A disciplined neutral gray field carrying eight luminous state hues, one interac
 - **Well** (gray-100 light / gray-950 dark): inset chips and hover fills within panels.
 
 ### Named Rules
-**The 400 Rule.** State color appears at the 400 level for the hue itself — borders (`border-{hue}-400`), tinted fills (`bg-{hue}-400/10`), chart strokes and sparkline bars. Text shifts to the 600 level in light mode and back to 400 in dark mode for contrast. Never render state color at other weights.
+**The 400 Rule.** State color appears at the 400 level for the hue itself — borders (`border-{hue}-400`), tinted fills (`bg-{hue}-400/10`), chart strokes and sparkline bars. Text shifts to the 600 level in light mode and back to 400 in dark mode for contrast, except yellow, cyan, and emerald, which need 700 in light mode to clear 4.5:1. Never render state color at other weights.
 
 **The Two Accents Rule.** Blue means interaction (selection, focus, checked); violet means brand (sidebar, badges, spinner). They are never interchangeable, and neither is ever used to represent a job state's meaning outside the state palette.
 

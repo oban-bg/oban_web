@@ -24,6 +24,25 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     assert page_title(live) =~ "WorkerA (#{job.id})"
   end
 
+  test "naming controls and section state for assistive tech", %{live: live} do
+    job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+    open_state(live, "available")
+    open_details(live, job)
+
+    assert has_element?(live, "h2 #back-link")
+
+    assert has_element?(
+             live,
+             "#job-data-toggle[aria-expanded=true][aria-controls=job-data-content]"
+           )
+
+    assert has_element?(live, "#errors-toggle[aria-expanded=false][aria-controls=errors-content]")
+    assert has_element?(live, "#edit-toggle[aria-expanded=true][aria-controls=edit-content]")
+    assert has_element?(live, "#copy-args[aria-label]")
+    assert has_element?(live, "#job-history-chart[role=img][aria-label]")
+  end
+
   test "viewing details for a job that was deleted falls back", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
@@ -164,6 +183,145 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
       refute render(live) =~ "Job updated successfully"
     end
 
+    @tag oban_opts: [queues: [alpha: 1]]
+    test "keeping the current queue selectable when it isn't running", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA, queue: "dormant")
+
+      flush_reporter()
+      open_state(live, "available")
+      open_details(live, job)
+
+      assert has_element?(live, "#queue option[selected]", "dormant")
+
+      live
+      |> form("#job-edit-form", %{"priority" => "3"})
+      |> render_submit()
+
+      with_backoff(fn ->
+        assert %{priority: 3, queue: "dormant"} = Repo.reload!(job)
+      end)
+    end
+
+    test "reporting invalid input without saving", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA, priority: 0)
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"args" => "not json", "priority" => "3"})
+      |> render_submit()
+
+      assert has_element?(live, "#job-form-errors", "Args must be valid JSON")
+      assert has_element?(live, ~s|#args[aria-invalid="true"]|)
+      assert has_element?(live, "#job-edit-form", "not json")
+
+      assert %{priority: 0} = Repo.reload!(job)
+
+      live
+      |> form("#job-edit-form", %{"args" => "{}", "priority" => "11"})
+      |> render_submit()
+
+      assert has_element?(live, "#job-form-errors", "Priority must be a number from 0 to 9")
+      assert has_element?(live, ~s|#priority[aria-invalid="true"]|)
+      refute has_element?(live, ~s|#args[aria-invalid="true"]|)
+
+      assert %{priority: 0} = Repo.reload!(job)
+    end
+
+    test "surfacing rejections from the engine", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      Repo.delete!(job)
+
+      live
+      |> form("#job-edit-form", %{"priority" => "3"})
+      |> render_submit()
+
+      assert has_element?(live, "#job-form-errors", "no longer exists")
+    end
+
+    test "accepting a scheduled time without seconds", %{live: live} do
+      job = insert_job!([ref: 1], state: "scheduled", worker: WorkerA)
+
+      open_state(live, "scheduled")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"scheduled_at" => "2030-01-02T03:04"})
+      |> render_submit()
+
+      with_backoff(fn ->
+        assert %{scheduled_at: scheduled_at} = Repo.reload!(job)
+        assert DateTime.compare(scheduled_at, ~U[2030-01-02 03:04:00Z]) == :eq
+      end)
+    end
+
+    test "confirming before leaving with unsaved changes", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      refute has_element?(live, "#back-link[data-confirm-back]")
+      refute has_element?(live, "#queue-link[data-confirm]")
+
+      live
+      |> form("#job-edit-form", %{"priority" => "3"})
+      |> render_change()
+
+      assert has_element?(live, "#back-link[data-confirm-back]")
+      assert has_element?(live, "#queue-link[data-confirm]")
+
+      live
+      |> element("#detail-discard")
+      |> render_click()
+
+      refute has_element?(live, "#back-link[data-confirm-back]")
+      assert has_element?(live, ~s|#priority[value="0"]|)
+    end
+
+    test "tracking live changes to untouched fields while editing", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA)
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"priority" => "3"})
+      |> render_change()
+
+      assert {:ok, _job} =
+               Oban.update_job(Oban, job.id, %{scheduled_at: ~U[2030-01-02 03:04:05Z]})
+
+      send(live.pid, :refresh)
+
+      assert has_element?(live, ~s|#scheduled_at[value="2030-01-02T03:04:05"]|)
+      assert has_element?(live, ~s|#priority[value="3"]|)
+      assert has_element?(live, "#detail-save:not([disabled])")
+    end
+
+    test "reseeding from the stored job after saving", %{live: live} do
+      job = insert_job!([ref: 1], state: "available", worker: WorkerA, tags: [])
+
+      open_state(live, "available")
+      open_details(live, job)
+
+      live
+      |> form("#job-edit-form", %{"tags" => " alpha ,, beta "})
+      |> render_submit()
+
+      with_backoff(fn ->
+        assert %{tags: ["alpha", "beta"]} = Repo.reload!(job)
+      end)
+
+      assert has_element?(live, ~s|#tags[value="alpha, beta"]|)
+      assert has_element?(live, "#detail-save[disabled]")
+    end
+
     test "updating unrelated fields does not change scheduled_at", %{live: live} do
       scheduled_at = DateTime.utc_now() |> DateTime.add(3600) |> DateTime.truncate(:second)
 
@@ -283,7 +441,7 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     open_state(live, "available")
     open_details(live, comp)
 
-    assert has_element?(live, "#origin-job-link", "Rolls Back")
+    assert has_element?(live, "dt", "Rolls Back")
     assert has_element?(live, "#origin-job-link", "charge")
     refute has_element?(live, "#compensating-job-link")
   end
@@ -297,7 +455,7 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     open_state(live, "completed")
     open_details(live, saga.jobs["charge"])
 
-    assert has_element?(live, "#compensating-job-link", "Rollback")
+    assert has_element?(live, "dt", "Rollback")
     assert has_element?(live, "#compensating-job-link", "completed")
   end
 

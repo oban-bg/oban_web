@@ -427,7 +427,7 @@ defmodule Oban.Web.Pages.Crons.DetailTest do
       |> form("#cron-form", %{"args" => "{not json"})
       |> render_submit()
 
-      assert live |> element("#cron-form-errors") |> render() =~ "Args must be a JSON object"
+      assert live |> element("#cron-form-errors") |> render() =~ "Args must be valid JSON"
     end
 
     test "rejecting an expression that can't be parsed" do

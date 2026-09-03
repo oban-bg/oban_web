@@ -86,7 +86,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
           {@state}
         </span>
       </div>
-      <span class={"hidden sm:inline text-xs tabular-nums whitespace-nowrap #{@text_color}"}>
+      <span class={"hidden sm:inline text-xs tabular whitespace-nowrap #{@text_color}"}>
         {@timestamp || "—"}
       </span>
     </div>

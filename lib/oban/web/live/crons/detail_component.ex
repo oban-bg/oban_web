@@ -436,21 +436,11 @@ defmodule Oban.Web.Crons.DetailComponent do
   end
 
   # A blank timezone defers to Pro Cron's configured timezone, and a blank queue to the worker's
-  # queue. A queue that isn't running still has to appear as an option, otherwise the browser
-  # selects the first option and a save would silently change it.
+  # queue.
   defp queue_options(queues, current, default) do
-    options = queue_options(queues)
-
-    options =
-      if current == "" or Enum.any?(options, &(elem(&1, 1) == current)) do
-        options
-      else
-        [{current, current} | options]
-      end
-
     label = if default, do: "worker default (#{default})", else: "worker default"
 
-    [{label, ""} | options]
+    [{label, ""} | queue_options(queues, current)]
   end
 
   # Placeholders show what the worker itself would use, so leaving a field blank isn't a guess.
@@ -633,18 +623,6 @@ defmodule Oban.Web.Crons.DetailComponent do
     form = Form.seed(cron)
 
     assign(socket, baseline: form, errors: [], form: form, invalid: [], seeded: cron.name)
-  end
-
-  defp merge_fresh(form, baseline, fresh) do
-    Map.new(fresh, fn {key, fresh_value} ->
-      form_value = Map.fetch!(form, key)
-
-      if form_value == Map.fetch!(baseline, key) do
-        {key, fresh_value}
-      else
-        {key, form_value}
-      end
-    end)
   end
 
   # The jobs page needs a state to filter on, and the cron's own last state is the one worth
