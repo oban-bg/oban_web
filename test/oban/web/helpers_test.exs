@@ -1,7 +1,7 @@
 defmodule Oban.Web.HelpersTest do
   use ExUnit.Case, async: true
 
-  alias Oban.Web.Helpers
+  alias Oban.Web.{AccessError, Helpers}
 
   describe "encode_params/1" do
     import Helpers, only: [encode_params: 1]
@@ -51,6 +51,21 @@ defmodule Oban.Web.HelpersTest do
       assert Helpers.can?(:pause_queues, pause_queues: true)
       refute Helpers.can?(:pause_queues, pause_queues: false)
       refute Helpers.can?(:pause_queues, scale_queues: false)
+    end
+  end
+
+  describe "enforce_access!/2" do
+    test "raising a descriptive error when access is denied" do
+      assert :ok = Helpers.enforce_access!(:pause_queues, :all)
+      assert :ok = Helpers.enforce_access!(:pause_queues, pause_queues: true)
+
+      error =
+        assert_raise AccessError, fn ->
+          Helpers.enforce_access!(:pause_queues, pause_queues: false)
+        end
+
+      assert error.action == :pause_queues
+      assert Exception.message(error) =~ ":pause_queues action isn't allowed"
     end
   end
 

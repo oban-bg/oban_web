@@ -205,7 +205,7 @@ defmodule Oban.Web.Helpers do
   Enforce access by raising an error if access isn't allowed.
   """
   def enforce_access!(action, opts) do
-    unless can?(action, opts), do: raise(AccessError)
+    unless can?(action, opts), do: raise(AccessError, action: action)
 
     :ok
   end
