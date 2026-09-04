@@ -231,8 +231,23 @@ defmodule Oban.Web.Components.Core do
   def status_badge(assigns) do
     color_classes =
       case assigns.color do
-        "violet" -> "bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200"
-        "amber" -> "bg-amber-100 text-amber-700 dark:bg-amber-700/70 dark:text-amber-200"
+        "violet" ->
+          "bg-violet-100 text-violet-700 dark:bg-violet-700/70 dark:text-violet-200"
+
+        "amber" ->
+          "bg-amber-100 text-amber-700 dark:bg-amber-700/70 dark:text-amber-200"
+
+        "cyan" ->
+          "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300"
+
+        "emerald" ->
+          "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+
+        "rose" ->
+          "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"
+
+        "gray" ->
+          "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
       end
 
     assigns = assign(assigns, :color_classes, color_classes)
@@ -257,8 +272,23 @@ defmodule Oban.Web.Components.Core do
     """
   end
 
+  defp badge_icon(%{name: "arrow_path_rounded"} = assigns),
+    do: ~H[<Icons.icon name="icon-arrow-path-rounded" class="h-4 w-4 shrink-0" />]
+
   defp badge_icon(%{name: "camera"} = assigns),
     do: ~H[<Icons.icon name="icon-camera" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "check_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-check-circle" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "minus_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-minus-circle" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "play_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-play-circle" class="h-4 w-4 shrink-0" />]
+
+  defp badge_icon(%{name: "x_circle"} = assigns),
+    do: ~H[<Icons.icon name="icon-x-circle" class="h-4 w-4 shrink-0" />]
 
   defp badge_icon(%{name: "command_line"} = assigns),
     do: ~H[<Icons.icon name="icon-command-line" class="h-4 w-4 shrink-0" />]

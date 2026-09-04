@@ -47,6 +47,7 @@ defmodule Oban.Web.WorkflowsPage do
               module={DetailComponent}
               pro_available?={@pro_available?}
               workflow={@workflow}
+              workflow_id={@detail}
               parent_workflow={@parent_workflow}
               origin_workflow={@origin_workflow}
               compensation={@compensation}
@@ -289,18 +290,19 @@ defmodule Oban.Web.WorkflowsPage do
     {:noreply, handle_refresh(socket)}
   end
 
-  def handle_info({:cancel_workflow, workflow_id}, socket) do
+  def handle_info({:cancel_workflow, workflow_id, name}, socket) do
     enforce_access!(:cancel_workflows, socket.assigns.access)
 
     socket =
       if Utils.has_pro?() do
-        Telemetry.action(:cancel_workflow, socket, [workflow_id: workflow_id], fn ->
-          Workflow.cancel_jobs(socket.assigns.conf.name, workflow_id)
-        end)
+        {:ok, count} =
+          Telemetry.action(:cancel_workflow, socket, [workflow_id: workflow_id], fn ->
+            Workflow.cancel_jobs(socket.assigns.conf.name, workflow_id)
+          end)
 
         socket
         |> handle_refresh()
-        |> put_flash_with_clear(:info, "Workflow jobs cancelled")
+        |> put_flash_with_clear(:info, cancel_notice(count, name))
       else
         put_flash_with_clear(socket, :error, "Cancel requires Oban Pro")
       end
@@ -308,18 +310,19 @@ defmodule Oban.Web.WorkflowsPage do
     {:noreply, socket}
   end
 
-  def handle_info({:retry_workflow, workflow_id}, socket) do
+  def handle_info({:retry_workflow, workflow_id, name}, socket) do
     enforce_access!(:retry_workflows, socket.assigns.access)
 
     socket =
       if Utils.has_pro?() do
-        Telemetry.action(:retry_workflow, socket, [workflow_id: workflow_id], fn ->
-          Workflow.retry_jobs(socket.assigns.conf.name, workflow_id)
-        end)
+        {:ok, count} =
+          Telemetry.action(:retry_workflow, socket, [workflow_id: workflow_id], fn ->
+            Workflow.retry_jobs(socket.assigns.conf.name, workflow_id)
+          end)
 
         socket
         |> handle_refresh()
-        |> put_flash_with_clear(:info, "Workflow jobs retried")
+        |> put_flash_with_clear(:info, retry_notice(count, name))
       else
         put_flash_with_clear(socket, :error, "Retry requires Oban Pro")
       end
@@ -330,6 +333,15 @@ defmodule Oban.Web.WorkflowsPage do
   def handle_info(_event, socket) do
     {:noreply, socket}
   end
+
+  defp cancel_notice(0, name), do: "Nothing left to cancel in #{name}"
+  defp cancel_notice(count, name), do: "Cancelled #{count_phrase(count, "job")} in #{name}"
+
+  defp retry_notice(0, name), do: "Nothing to retry in #{name}"
+  defp retry_notice(count, name), do: "Retried #{count_phrase(count, "job")} in #{name}"
+
+  defp count_phrase(1, noun), do: "1 #{noun}"
+  defp count_phrase(count, noun), do: "#{count} #{noun}s"
 
   defp assign_detail(socket, workflow_id) do
     conf = socket.assigns.conf

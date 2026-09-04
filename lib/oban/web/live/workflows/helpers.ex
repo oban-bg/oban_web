@@ -51,6 +51,38 @@ defmodule Oban.Web.Workflows.Helpers do
   def compensation_label(:unknown), do: "Unknown"
   def compensation_label(_status), do: "None"
 
+  def compensation_description(status, policy \\ [])
+
+  def compensation_description(:armed, policy) do
+    "Completed steps roll back if any job ends up #{Enum.join(policy, " or ")}"
+  end
+
+  def compensation_description(:pending, _policy) do
+    "The workflow failed and its rollback is waiting to start"
+  end
+
+  def compensation_description(:executing, _policy) do
+    "Completed steps are being rolled back"
+  end
+
+  def compensation_description(:completed, _policy) do
+    "Every completed step was rolled back"
+  end
+
+  def compensation_description(:failed, _policy) do
+    "At least one rollback step failed and can be retried"
+  end
+
+  def compensation_description(:not_needed, _policy) do
+    "The workflow resolved without triggering a rollback"
+  end
+
+  def compensation_description(:unknown, _policy) do
+    "A compensation workflow was created but can't be loaded"
+  end
+
+  def compensation_description(_status, _policy), do: "No compensation policy"
+
   # Forward jobs don't record whether they were rolled back, so the compensation's own steps are
   # folded back onto the graph nodes they reverse.
   def put_compensated_states(graph_data, []), do: graph_data

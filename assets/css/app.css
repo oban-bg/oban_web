@@ -122,3 +122,38 @@ select:-moz-focusring {
   --spacing-84: 21rem;
   --spacing-96: 24rem;
 }
+
+/* Workflow graph */
+
+.workflow-graph-canvas {
+  background-color: #f9fafb;
+  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.dark .workflow-graph-canvas {
+  background-color: #111827;
+  background-image: radial-gradient(circle, #374151 1px, transparent 1px);
+}
+
+.workflow-graph-canvas .workflow-node {
+  outline: none;
+  transition: filter 0.15s ease;
+}
+
+.workflow-graph-canvas .workflow-node:hover {
+  filter: brightness(1.08) drop-shadow(0 2px 4px rgb(0 0 0 / 0.15));
+}
+
+.workflow-graph-canvas .workflow-node:focus-visible > rect,
+.workflow-graph-canvas .workflow-action:focus-visible > circle {
+  stroke: #3b82f6;
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-graph-canvas .workflow-node {
+    transition: none;
+  }
+}

@@ -9,6 +9,15 @@ const ICON_SIZE = 20;
 const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25];
 const DEFAULT_ZOOM_INDEX = 2;
 
+const FIT_PADDING = 24;
+const MIN_HEIGHT = 192;
+const MAX_HEIGHT = 480;
+
+const DIRECTION_LABELS = {
+  LR: "Lay out top to bottom",
+  TB: "Lay out left to right",
+};
+
 const WorkflowGraph = {
   mounted() {
     this.pan = { x: 0, y: 0 };
@@ -17,16 +26,17 @@ const WorkflowGraph = {
     this.startMouse = { x: 0, y: 0 };
     this.graphData = null;
     this.zoomIndex = DEFAULT_ZOOM_INDEX;
-    this.needsInitialCenter = true;
+    this.needsFit = true;
+    this.userAdjusted = false;
+    this.fitsEntirely = true;
     this.trackActiveNode = true;
     this.lastTrackedNodeId = null;
     this.direction = "LR";
     this.expandedSubWorkflows = new Map();
     this.loadingSubWorkflows = new Set();
 
-    this.applyDotGridBackground();
     this.setupPanning();
-    this.createControls();
+    this.bindControls();
 
     this.handleEvent("graph-data", (data) => {
       this.graphData = data;
@@ -52,34 +62,35 @@ const WorkflowGraph = {
       this.render();
     });
 
+    // Node fills are computed per theme, so the SVG is rebuilt when the theme class flips.
     this.themeObserver = new MutationObserver(() => {
-      this.applyDotGridBackground();
-      this.updateControlColors();
       if (this.graphData) this.render();
     });
     this.themeObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ["class"],
     });
+
+    // Refit when the panel resizes unless the reader has taken over the view.
+    this.resizeObserver = new ResizeObserver(() => {
+      if (!this.bounds) return;
+
+      if (this.userAdjusted) {
+        this.viewSize = { width: this.el.clientWidth, height: this.el.clientHeight };
+        this.updateViewBox();
+      } else {
+        this.needsFit = true;
+        this.render();
+      }
+    });
+    this.resizeObserver.observe(this.el);
   },
 
   destroyed() {
     this.removePanningListeners();
-    if (this.themeObserver) {
-      this.themeObserver.disconnect();
-    }
-    if (this.panAnimation) {
-      cancelAnimationFrame(this.panAnimation);
-    }
-  },
-
-  applyDotGridBackground() {
-    const isDark = this.isDarkMode();
-    const bgColor = isDark ? "#111827" : "#f9fafb";
-    const dotColor = isDark ? "#374151" : "#d1d5db";
-    this.el.style.backgroundColor = bgColor;
-    this.el.style.backgroundImage = `radial-gradient(circle, ${dotColor} 1px, transparent 1px)`;
-    this.el.style.backgroundSize = "20px 20px";
+    if (this.themeObserver) this.themeObserver.disconnect();
+    if (this.resizeObserver) this.resizeObserver.disconnect();
+    if (this.panAnimation) cancelAnimationFrame(this.panAnimation);
   },
 
   isDarkMode() {
@@ -93,6 +104,15 @@ const WorkflowGraph = {
     const bgColor = isDark ? bg.dark : bg.light;
 
     return { border: borderColor, bg: bgColor };
+  },
+
+  textColors() {
+    const isDark = this.isDarkMode();
+
+    return {
+      text: isDark ? "#e5e7eb" : "#374151",
+      dim: isDark ? "#d1d5db" : "#4b5563",
+    };
   },
 
   render() {
@@ -216,26 +236,35 @@ const WorkflowGraph = {
     const graphHeight = maxY - minY + 40;
 
     const svg = container.querySelector("svg");
-    const containerRect = container.getBoundingClientRect();
-    const viewWidth = containerRect.width;
-    const viewHeight = containerRect.height;
 
     this.bounds = { minX: minX - 30, minY: minY - 20, width: graphWidth, height: graphHeight };
-    this.viewSize = { width: viewWidth, height: viewHeight };
 
-    if (this.needsInitialCenter) {
-      this.centerGraph();
-      this.needsInitialCenter = false;
+    if (this.needsFit) {
+      this.fitGraph();
+      this.needsFit = false;
+      this.justFitted = true;
+      this.lastTrackedNodeId = null;
+    } else {
+      this.viewSize = { width: container.clientWidth, height: container.clientHeight };
+      this.updateFitState();
     }
 
-    if (this.trackActiveNode) {
-      this.centerOnActiveNode(graph);
+    // Following the active step only matters once the graph overflows the view.
+    if (this.trackActiveNode && !this.fitsEntirely) {
+      this.centerOnActiveNode(graph, !this.justFitted);
     }
+    this.justFitted = false;
 
     const svgContent = this.buildSvgContent(graph, minX - 30, minY - 20, expandedSubWorkflowData);
 
+    // The SVG is rebuilt on every refresh, so keyboard focus has to be carried across renders.
+    const focused = this.focusedNodeSelector(svg);
+
     svg.innerHTML = svgContent;
+    svg.setAttribute("aria-label", this.graphLabel(jobs, subWorkflows));
     this.updateViewBox();
+
+    if (focused) svg.querySelector(focused)?.focus({ preventScroll: true });
 
     this.currentGraph = graph;
 
@@ -247,7 +276,63 @@ const WorkflowGraph = {
       this.pendingCenterOnNode = null;
     }
 
-    this.setupClickHandlers(svg);
+    this.setupNodeHandlers(svg);
+  },
+
+  focusedNodeSelector(svg) {
+    const active = document.activeElement;
+    if (!active || !svg.contains(active)) return null;
+
+    for (const key of ["jobId", "workflowId", "expandWorkflow", "collapseWorkflow"]) {
+      if (active.dataset[key] !== undefined) {
+        const attr = key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+        return `[data-${attr}="${active.dataset[key]}"]`;
+      }
+    }
+
+    return null;
+  },
+
+  updateFitState() {
+    const zoom = ZOOM_LEVELS[this.zoomIndex];
+
+    this.fitsEntirely =
+      this.bounds.width * zoom <= this.viewSize.width &&
+      this.bounds.height * zoom <= this.viewSize.height;
+  },
+
+  graphLabel(jobs, subWorkflows) {
+    const steps = `${jobs.length} ${jobs.length === 1 ? "step" : "steps"}`;
+    const subs = subWorkflows.length > 0 ? `, ${subWorkflows.length} sub-workflows` : "";
+
+    return `Workflow graph with ${steps}${subs}. Each step is a button that opens the job.`;
+  },
+
+  // Graphs render at full size so labels stay legible. The canvas is sized to the content and
+  // the graph is centered when it fits; otherwise it starts at its leading edge and the
+  // interesting node is brought into view by tracking.
+  fitGraph() {
+    const viewWidth = this.el.clientWidth;
+
+    this.zoomIndex = DEFAULT_ZOOM_INDEX;
+    const zoom = ZOOM_LEVELS[DEFAULT_ZOOM_INDEX];
+
+    const height = Math.round(
+      Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, this.bounds.height * zoom + FIT_PADDING * 2))
+    );
+
+    this.el.style.height = `${height}px`;
+    this.viewSize = { width: viewWidth, height };
+
+    const scaledWidth = viewWidth / zoom;
+    const scaledHeight = height / zoom;
+    const fitsWidth = this.bounds.width <= scaledWidth;
+    const fitsHeight = this.bounds.height <= scaledHeight;
+
+    this.updateFitState();
+
+    this.pan.x = fitsWidth ? (scaledWidth - this.bounds.width) / 2 : FIT_PADDING;
+    this.pan.y = fitsHeight ? (scaledHeight - this.bounds.height) / 2 : FIT_PADDING;
   },
 
   centerOnNode(node) {
@@ -266,8 +351,9 @@ const WorkflowGraph = {
   renderEmpty(container) {
     const svg = container.querySelector("svg");
     const isDark = this.isDarkMode();
-    const textColor = isDark ? "#6b7280" : "#9ca3af";
+    const textColor = isDark ? "#9ca3af" : "#6b7280";
 
+    svg.setAttribute("aria-label", "Workflow graph with no jobs to display");
     svg.innerHTML = `
       <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"
             fill="${textColor}" font-size="14">
@@ -300,7 +386,7 @@ const WorkflowGraph = {
       ? "…" + worker.slice(-(maxWorkerLen - 1))
       : worker;
 
-    return { name: truncatedName, worker: truncatedWorker };
+    return { name: truncatedName, worker: truncatedWorker, fullName: name, fullWorker: worker };
   },
 
   truncateWorkflowId(workflowId) {
@@ -372,14 +458,6 @@ const WorkflowGraph = {
 
     content += `
       <defs>
-        <style>
-          .workflow-node {
-            transition: filter 0.15s ease;
-          }
-          .workflow-node:hover {
-            filter: brightness(1.08) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-          }
-        </style>
         <symbol id="icon-ellipsis" viewBox="0 0 24 24">
           <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                 d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
@@ -387,6 +465,14 @@ const WorkflowGraph = {
         <symbol id="icon-check" viewBox="0 0 24 24">
           <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
                 d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </symbol>
+        <symbol id="icon-x" viewBox="0 0 24 24">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+        </symbol>
+        <symbol id="icon-exclamation" viewBox="0 0 24 24">
+          <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/>
         </symbol>
         <symbol id="icon-spinner" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.25"/>
@@ -482,12 +568,22 @@ const WorkflowGraph = {
     return content;
   },
 
+  jobLabel(job, displayName) {
+    const parts = [`${displayName.fullName}, ${job.state}`];
+
+    if (job.meta?.compensated) {
+      parts.push(`rolled back (${job.meta.compensated})`);
+    } else if (job.meta?.compensate) {
+      parts.push("reversible");
+    }
+
+    return `${parts.join(", ")}. Open job.`;
+  },
+
   renderJobNode(node, nodeX, nodeY, nodeId) {
     const job = node.job;
     const colors = this.getStateColors(job.state);
-    const isDark = this.isDarkMode();
-    const textColor = isDark ? "#e5e7eb" : "#374151";
-    const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+    const { text: textColor, dim: dimTextColor } = this.textColors();
     const iconX = nodeX + 12 + ICON_SIZE / 2;
     const iconY = nodeY + node.height / 2;
     const textX = nodeX + 12 + ICON_SIZE + 8;
@@ -495,7 +591,9 @@ const WorkflowGraph = {
     const isContextJob = job.meta?.name === "context" && job.meta?.context === true;
 
     return `
-      <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button">
+      <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button" tabindex="0"
+         aria-label="${this.escapeHtml(this.jobLabel(job, displayName))}">
+        <title>${this.escapeHtml(displayName.fullWorker)}</title>
         <rect x="${nodeX}" y="${nodeY}" width="${node.width}" height="${node.height}"
               rx="8" fill="${colors.bg}" stroke="${colors.border}" stroke-width="2" />
         ${this.renderCompensateMarker(job, nodeX + node.width - 22, nodeY + node.height / 2)}
@@ -515,9 +613,7 @@ const WorkflowGraph = {
   renderSubWorkflowNode(node, nodeX, nodeY, nodeId) {
     const sub = node.subWorkflow;
     const colors = this.getStateColors(sub.state);
-    const isDark = this.isDarkMode();
-    const textColor = isDark ? "#e5e7eb" : "#374151";
-    const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+    const { text: textColor, dim: dimTextColor } = this.textColors();
     const iconX = nodeX + 12 + ICON_SIZE / 2;
     const iconY = nodeY + node.height / 2;
     const textX = nodeX + 12 + ICON_SIZE + 8;
@@ -529,7 +625,7 @@ const WorkflowGraph = {
     const expandButtonY = nodeY + node.height / 2;
 
     const loadingSpinner = node.isLoading ? `
-      <g transform="translate(${expandButtonX - 8}, ${expandButtonY - 8})">
+      <g transform="translate(${expandButtonX - 8}, ${expandButtonY - 8})" aria-hidden="true">
         <circle cx="8" cy="8" r="6" fill="none" stroke="${dimTextColor}" stroke-width="1.5" opacity="0.25"/>
         <path fill="none" stroke="${dimTextColor}" stroke-width="1.5" stroke-linecap="round"
               d="M8 2a6 6 0 0 1 6 6">
@@ -537,7 +633,8 @@ const WorkflowGraph = {
         </path>
       </g>
     ` : `
-      <g data-expand-workflow="${sub.workflow_id}" class="cursor-pointer" role="button">
+      <g data-expand-workflow="${sub.workflow_id}" class="cursor-pointer workflow-action" role="button" tabindex="0"
+         aria-label="${this.escapeHtml(`Expand the ${primaryLabel} sub-workflow`)}">
         <circle cx="${expandButtonX}" cy="${expandButtonY}" r="12" fill="transparent" />
         <use href="#icon-plus-circle" x="${expandButtonX - 10}" y="${expandButtonY - 10}" width="20" height="20"
              style="color: ${dimTextColor}" />
@@ -545,7 +642,9 @@ const WorkflowGraph = {
     `;
 
     return `
-      <g data-workflow-id="${sub.workflow_id}" class="cursor-pointer workflow-node" role="button">
+      <g data-workflow-id="${sub.workflow_id}" class="cursor-pointer workflow-node" role="button" tabindex="0"
+         aria-label="${this.escapeHtml(`Sub-workflow ${primaryLabel}, ${sub.state}. Open workflow.`)}">
+        <title>${this.escapeHtml(sub.workflow_id)}</title>
         <rect x="${nodeX}" y="${nodeY}" width="${node.width}" height="${node.height}"
               rx="8" fill="${colors.bg}" stroke="${colors.border}" stroke-width="2" stroke-dasharray="6 3" />
         ${this.renderStateIcon(sub.state, iconX, iconY)}
@@ -566,8 +665,7 @@ const WorkflowGraph = {
     const sub = node.subWorkflow;
     const colors = this.getStateColors(sub.state);
     const isDark = this.isDarkMode();
-    const textColor = isDark ? "#e5e7eb" : "#374151";
-    const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
+    const { text: textColor, dim: dimTextColor } = this.textColors();
     const warningColor = isDark ? "#fbbf24" : "#d97706";
     const containerBg = isDark ? "rgba(17, 24, 39, 0.5)" : "rgba(249, 250, 251, 0.5)";
     const headerHeight = 32;
@@ -647,7 +745,8 @@ const WorkflowGraph = {
           ${this.escapeHtml(primaryLabel)}
         </text>
         ${truncationWarning}
-        <g data-collapse-workflow="${sub.workflow_id}" class="cursor-pointer" role="button">
+        <g data-collapse-workflow="${sub.workflow_id}" class="cursor-pointer workflow-action" role="button" tabindex="0"
+           aria-label="${this.escapeHtml(`Collapse the ${primaryLabel} sub-workflow`)}">
           <circle cx="${collapseButtonX}" cy="${collapseButtonY}" r="12" fill="transparent" />
           <use href="#icon-minus-circle" x="${collapseButtonX - 10}" y="${collapseButtonY - 10}" width="20" height="20"
                style="color: ${dimTextColor}" />
@@ -693,7 +792,6 @@ const WorkflowGraph = {
       const n = innerGraph.node(id);
       const job = n.job;
       const jobColors = this.getStateColors(job.state);
-      const dimTextColor = isDark ? "#9ca3af" : "#6b7280";
       const jx = n.x + contentOffsetX - n.width / 2;
       const jy = n.y + contentOffsetY - n.height / 2;
       const iconX = jx + 12 + ICON_SIZE / 2;
@@ -702,7 +800,9 @@ const WorkflowGraph = {
       const isContextJob = job.meta?.name === "context" && job.meta?.context === true;
 
       content += `
-        <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button">
+        <g data-job-id="${job.id}" class="cursor-pointer workflow-node" role="button" tabindex="0"
+           aria-label="${this.escapeHtml(this.jobLabel(job, n.displayName))}">
+          <title>${this.escapeHtml(n.displayName.fullWorker)}</title>
           <rect x="${jx}" y="${jy}" width="${n.width}" height="${n.height}"
                 rx="8" fill="${jobColors.bg}" stroke="${jobColors.border}" stroke-width="2" />
           ${isContextJob ? this.renderContextIcon(iconX, iconY, jobColors.border) : this.renderStateIcon(job.state, iconX, iconY)}
@@ -728,9 +828,11 @@ const WorkflowGraph = {
       case "retryable":
         return "icon-arrow-path";
       case "completed":
-      case "cancelled":
-      case "discarded":
         return "icon-check";
+      case "cancelled":
+        return "icon-x";
+      case "discarded":
+        return "icon-exclamation";
       default:
         return "icon-ellipsis";
     }
@@ -780,39 +882,43 @@ const WorkflowGraph = {
   escapeHtml(text) {
     const div = document.createElement("div");
     div.textContent = text;
-    return div.innerHTML;
+    return div.innerHTML.replace(/"/g, "&quot;");
   },
 
-  setupClickHandlers(svg) {
+  // Nodes are SVG groups, so Enter and Space have to be wired up by hand to match a button.
+  activate(element, handler) {
+    element.addEventListener("click", (event) => {
+      event.stopPropagation();
+      handler();
+    });
+
+    element.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      handler();
+    });
+  },
+
+  setupNodeHandlers(svg) {
     svg.querySelectorAll("[data-expand-workflow]").forEach((element) => {
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const workflowId = element.dataset.expandWorkflow;
-        this.expandSubWorkflow(workflowId);
-      });
+      this.activate(element, () => this.expandSubWorkflow(element.dataset.expandWorkflow));
     });
 
     svg.querySelectorAll("[data-collapse-workflow]").forEach((element) => {
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const workflowId = element.dataset.collapseWorkflow;
-        this.collapseSubWorkflow(workflowId);
-      });
+      this.activate(element, () => this.collapseSubWorkflow(element.dataset.collapseWorkflow));
     });
 
     svg.querySelectorAll("[data-job-id]").forEach((element) => {
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const jobId = element.dataset.jobId;
-        this.pushEventTo(this.el, "navigate-to-job", { job_id: jobId });
+      this.activate(element, () => {
+        this.pushEventTo(this.el, "navigate-to-job", { job_id: element.dataset.jobId });
       });
     });
 
     svg.querySelectorAll("[data-workflow-id]").forEach((element) => {
-      element.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const workflowId = element.dataset.workflowId;
-        this.pushEventTo(this.el, "navigate-to-workflow", { workflow_id: workflowId });
+      this.activate(element, () => {
+        this.pushEventTo(this.el, "navigate-to-workflow", { workflow_id: element.dataset.workflowId });
       });
     });
   },
@@ -835,7 +941,7 @@ const WorkflowGraph = {
     const svg = this.el.querySelector("svg");
 
     this.onMouseDown = (event) => {
-      if (event.target.closest(".workflow-node")) return;
+      if (event.target.closest(".workflow-node, .workflow-action")) return;
 
       this.isPanning = true;
       this.startPan = { ...this.pan };
@@ -853,6 +959,7 @@ const WorkflowGraph = {
 
       this.pan.x = this.startPan.x + deltaX;
       this.pan.y = this.startPan.y + deltaY;
+      this.userAdjusted = true;
 
       this.updateViewBox();
     };
@@ -889,27 +996,10 @@ const WorkflowGraph = {
     svg.style.height = "100%";
   },
 
-  centerGraph() {
-    if (!this.bounds || !this.viewSize) return;
-
-    const zoom = ZOOM_LEVELS[this.zoomIndex];
-    const scaledWidth = this.viewSize.width / zoom;
-    const scaledHeight = this.viewSize.height / zoom;
-
-    if (this.direction === "TB") {
-      // Top-bottom: center horizontally, start at top
-      this.pan.x = (scaledWidth - this.bounds.width) / 2;
-      this.pan.y = 20;
-    } else {
-      // Left-right: start at left, center vertically
-      this.pan.x = 20;
-      this.pan.y = (scaledHeight - this.bounds.height) / 2;
-    }
-  },
-
   zoomIn() {
     if (this.zoomIndex < ZOOM_LEVELS.length - 1) {
       this.zoomIndex++;
+      this.userAdjusted = true;
       this.updateViewBox();
     }
   },
@@ -917,32 +1007,34 @@ const WorkflowGraph = {
   zoomOut() {
     if (this.zoomIndex > 0) {
       this.zoomIndex--;
+      this.userAdjusted = true;
       this.updateViewBox();
     }
   },
 
   resetView() {
-    this.zoomIndex = DEFAULT_ZOOM_INDEX;
-    this.centerGraph();
-    this.updateViewBox();
+    this.userAdjusted = false;
+    this.needsFit = true;
+    if (this.graphData) this.render();
   },
 
   toggleTracking() {
     this.trackActiveNode = !this.trackActiveNode;
-    this.updateTrackingButtonState();
+    this.updateTrackingButton();
 
-    if (this.trackActiveNode && this.currentGraph) {
+    if (this.trackActiveNode && this.currentGraph && !this.fitsEntirely) {
       this.lastTrackedNodeId = null;
       this.centerOnActiveNode(this.currentGraph, false);
       this.updateViewBox();
     }
   },
 
-  centerOnActiveNode(graph, animate = true) {
-    if (!this.bounds || !this.viewSize) return;
+  // The node worth looking at: the step that is running, or failing that, the first step that
+  // failed, so a finished saga opens on the discarded job rather than the context step.
+  findActiveNode(graph) {
+    let executing = null;
+    let failed = null;
 
-    let activeNode = null;
-    let activeNodeId = null;
     graph.nodes().forEach((nodeId) => {
       const node = graph.node(nodeId);
       let state;
@@ -951,13 +1043,25 @@ const WorkflowGraph = {
       } else if (node.type === "sub_workflow" || node.type === "sub_workflow_expanded") {
         state = node.subWorkflow?.state;
       }
+
       if (state === "executing") {
-        activeNode = node;
-        activeNodeId = nodeId;
+        executing = { node, nodeId };
+      } else if (!failed && (state === "retryable" || state === "discarded")) {
+        failed = { node, nodeId };
       }
     });
 
-    if (!activeNode || activeNodeId === this.lastTrackedNodeId) return;
+    return executing || failed;
+  },
+
+  centerOnActiveNode(graph, animate = true) {
+    if (!this.bounds || !this.viewSize) return;
+
+    const active = this.findActiveNode(graph);
+
+    if (!active || active.nodeId === this.lastTrackedNodeId) return;
+
+    const { node: activeNode, nodeId: activeNodeId } = active;
 
     this.lastTrackedNodeId = activeNodeId;
 
@@ -979,6 +1083,15 @@ const WorkflowGraph = {
   animatePanTo(targetX, targetY) {
     if (this.panAnimation) {
       cancelAnimationFrame(this.panAnimation);
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion) {
+      this.pan.x = targetX;
+      this.pan.y = targetY;
+      this.updateViewBox();
+      return;
     }
 
     const startX = this.pan.x;
@@ -1007,123 +1120,58 @@ const WorkflowGraph = {
     this.panAnimation = requestAnimationFrame(animate);
   },
 
-  updateTrackingButtonState() {
-    this.updateControlColors();
+  // The controls are rendered by the template so Tailwind compiles their classes; the hook only
+  // wires behaviour and keeps their pressed state and labels in sync.
+  bindControls() {
+    const control = (id) => this.el.querySelector(`#${id}`);
+
+    control("zoom-in")?.addEventListener("click", () => this.zoomIn());
+    control("zoom-out")?.addEventListener("click", () => this.zoomOut());
+    control("reset-view")?.addEventListener("click", () => this.resetView());
+    control("toggle-tracking")?.addEventListener("click", () => this.toggleTracking());
+    control("toggle-direction")?.addEventListener("click", () => this.toggleDirection());
+
+    this.updateTrackingButton();
+    this.updateDirectionButton();
   },
 
-  createControls() {
-    const controls = document.createElement("div");
-    controls.className = "absolute bottom-3 right-3 flex flex-col gap-1";
-    controls.id = "graph-controls";
+  updateTrackingButton() {
+    const button = this.el.querySelector("#toggle-tracking");
+    if (!button) return;
 
-    const buttonClass = "w-8 h-8 flex items-center justify-center rounded-md border transition-colors";
-
-    controls.innerHTML = `
-      <button id="zoom-in" class="${buttonClass}" title="Zoom in">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
-        </svg>
-      </button>
-      <button id="zoom-out" class="${buttonClass}" title="Zoom out">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
-        </svg>
-      </button>
-      <button id="reset-view" class="${buttonClass}" title="Reset view">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
-        </svg>
-      </button>
-      <button id="toggle-tracking" class="${buttonClass}" title="Track active node">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 0 0-6 0" />
-        </svg>
-      </button>
-      <button id="toggle-direction" class="${buttonClass}" title="Toggle layout direction"></button>
-    `;
-
-    this.el.style.position = "relative";
-    this.el.appendChild(controls);
-    this.updateControlColors();
-
-    controls.querySelector("#zoom-in").addEventListener("click", () => this.zoomIn());
-    controls.querySelector("#zoom-out").addEventListener("click", () => this.zoomOut());
-    controls.querySelector("#reset-view").addEventListener("click", () => this.resetView());
-    controls.querySelector("#toggle-tracking").addEventListener("click", () => this.toggleTracking());
-    controls.querySelector("#toggle-direction").addEventListener("click", () => this.toggleDirection());
-
-    this.updateDirectionIcon();
+    button.setAttribute("aria-pressed", String(this.trackActiveNode));
   },
 
   toggleDirection() {
     this.direction = this.direction === "LR" ? "TB" : "LR";
-    this.needsInitialCenter = true;
-    this.updateDirectionIcon();
+    this.userAdjusted = false;
+    this.needsFit = true;
+    this.updateDirectionButton();
     if (this.graphData) this.render();
   },
 
-  updateDirectionIcon() {
-    const btn = this.el.querySelector("#toggle-direction");
-    if (!btn) return;
+  updateDirectionButton() {
+    const button = this.el.querySelector("#toggle-direction");
+    if (!button) return;
 
-    const icon = this.direction === "LR"
-      ? `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-         </svg>`
-      : `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-           <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5 7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
-         </svg>`;
+    const label = DIRECTION_LABELS[this.direction];
+    button.title = label;
+    button.setAttribute("aria-label", label);
 
-    btn.innerHTML = icon;
-    btn.title = this.direction === "LR" ? "Layout: left to right" : "Layout: top to bottom";
+    button.querySelectorAll("[data-direction]").forEach((icon) => {
+      icon.classList.toggle("hidden", icon.dataset.direction !== this.direction);
+    });
   },
 
   updateTruncationWarning(truncated, jobCount) {
-    const existingWarning = this.el.querySelector("#truncation-warning");
-    if (existingWarning) {
-      existingWarning.remove();
-    }
+    const warning = this.el.querySelector("#truncation-warning");
+    if (!warning) return;
 
-    if (!truncated) return;
+    const count = warning.querySelector("[data-job-count]");
+    if (count) count.textContent = String(jobCount);
 
-    const isDark = this.isDarkMode();
-    const warning = document.createElement("div");
-    warning.id = "truncation-warning";
-    warning.className = `absolute top-3 left-3 right-3 px-3 py-2 rounded-md text-sm flex items-center gap-2 ${
-      isDark
-        ? "bg-yellow-900/80 text-yellow-200 border border-yellow-700"
-        : "bg-yellow-50 text-yellow-800 border border-yellow-200"
-    }`;
-    warning.innerHTML = `
-      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-      </svg>
-      <span>Showing first ${jobCount} jobs. This workflow has more jobs than can be displayed.</span>
-    `;
-
-    this.el.appendChild(warning);
-  },
-
-  updateControlColors() {
-    const controls = this.el.querySelector("#graph-controls");
-    if (!controls) return;
-
-    const isDark = this.isDarkMode();
-    const bgColor = isDark ? "bg-gray-800" : "bg-white";
-    const borderColor = isDark ? "border-gray-600" : "border-gray-300";
-    const textColor = isDark ? "text-gray-300" : "text-gray-600";
-    const hoverBg = isDark ? "hover:bg-gray-700" : "hover:bg-gray-100";
-
-    controls.querySelectorAll("button").forEach((btn) => {
-      if (btn.id === "toggle-tracking" && this.trackActiveNode) {
-        const activeBg = isDark ? "bg-blue-900" : "bg-blue-100";
-        const activeBorder = isDark ? "border-blue-500" : "border-blue-400";
-        const activeText = isDark ? "text-blue-400" : "text-blue-600";
-        btn.className = `w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${activeBg} ${activeBorder} ${activeText}`;
-      } else {
-        btn.className = `w-8 h-8 flex items-center justify-center rounded-md border transition-colors cursor-pointer ${bgColor} ${borderColor} ${textColor} ${hoverBg}`;
-      }
-    });
+    warning.classList.toggle("hidden", !truncated);
+    warning.classList.toggle("flex", Boolean(truncated));
   },
 };
 

@@ -217,7 +217,7 @@ The command surface of the control room: a recessed well (`shadow-inner`, inset 
 Each row is a link with a 4px transparent left border: active rows snap the border to violet-500 and bolden; hover previews violet-400. Counts sit right-aligned in tabular muted text. Sections collapse via a rotating chevron with a `fade-in-scale` transition. The sidebar's right edge carries a grab handle — a gray pill that glows violet on hover — for drag-resizing.
 
 ### Status Badges
-Violet pill (violet-100 fill / violet-700 text light; violet-700/70 fill / violet-200 text dark), 36px tall, icon-first, expanding a label on hover exactly like icon buttons. Used for connectivity, access, and instance status in the header.
+Violet pill (violet-100 fill / violet-700 text light; violet-700/70 fill / violet-200 text dark), 36px tall, icon-first, expanding a label on hover exactly like icon buttons. Used for connectivity, access, and instance status in the header. When a badge carries a job or workflow state rather than a brand fact, it takes that state's hue instead (`{hue}-100` fill / `{hue}-700` text light; `{hue}-500/20` fill / `{hue}-300` text dark), as the workflow detail header does for executing, completed, cancelled, and discarded.
 
 ### Sparklines & Charts (signature)
 Inline SVG sparklines: cyan (#22d3ee) 4px bars with 1px gaps and 1px radius over gray-200/gray-700 placeholder stubs, tooltip on hover. Full charts (Chart.js) stroke series in the state palette's 400-level hexes — this is where the luminous half of the identity earns its keep.
