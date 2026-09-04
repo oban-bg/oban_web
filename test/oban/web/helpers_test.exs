@@ -44,6 +44,33 @@ defmodule Oban.Web.HelpersTest do
     end
   end
 
+  describe "chunk helpers" do
+    import Helpers, only: [chunk_count: 1, chunk_leader?: 1, chunk_leader_id: 1]
+
+    alias Oban.Job
+
+    test "identifying siblings by the marker a leader leaves in attempted_by" do
+      assert 123 == chunk_leader_id(%Job{attempted_by: ["web.1", "uuid", "chunk-123"]})
+      assert is_nil(chunk_leader_id(%Job{attempted_by: ["web.1", "uuid"]}))
+      assert is_nil(chunk_leader_id(%Job{attempted_by: ["web.1", "uuid", "chunk-abc"]}))
+      assert is_nil(chunk_leader_id(%Job{attempted_by: []}))
+    end
+
+    test "identifying leaders as attempted chunk jobs without a marker" do
+      meta = %{"chunk" => true}
+
+      assert chunk_leader?(%Job{meta: meta, attempted_by: ["web.1", "uuid"]})
+      refute chunk_leader?(%Job{meta: meta, attempted_by: ["web.1", "uuid", "chunk-123"]})
+      refute chunk_leader?(%Job{meta: meta, attempted_by: []})
+      refute chunk_leader?(%Job{meta: %{}, attempted_by: ["web.1", "uuid"]})
+    end
+
+    test "reading the chunk size from the leader's meta" do
+      assert 10 == chunk_count(%Job{meta: %{"chunk_count" => 10}})
+      assert is_nil(chunk_count(%Job{meta: %{"chunk" => true}}))
+    end
+  end
+
   describe "can?/2" do
     test "checking actions against access control lists" do
       assert Helpers.can?(:pause_queues, :all)

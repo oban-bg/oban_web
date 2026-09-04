@@ -459,6 +459,106 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     assert has_element?(live, "#compensating-job-link", "completed")
   end
 
+  describe "chunks" do
+    @chunk_meta %{chunk: true, chunk_id: "abc", chunk_count: 4}
+
+    test "linking a leader to its chunk members by state", %{live: live} do
+      leader = insert_chunk_job!(1, "completed", LeaderWorker)
+      marker = "chunk-#{leader.id}"
+
+      insert_chunk_job!(2, "completed", SiblingWorker, marker)
+      insert_chunk_job!(3, "completed", SiblingWorker, marker)
+      retryable = insert_chunk_job!(4, "retryable", SiblingWorker, marker)
+
+      open_state(live, "completed")
+      open_details(live, leader)
+
+      assert has_element?(live, "dt", "Chunk")
+      assert has_element?(live, "#chunk-members #chunk-completed-link", "3 completed")
+      assert has_element?(live, "#chunk-members #chunk-retryable-link", "1 retryable")
+
+      live
+      |> element("#chunk-retryable-link")
+      |> render_click()
+
+      assert has_element?(live, "#jobs-table #job-#{retryable.id}")
+      refute has_element?(live, "#jobs-table #job-#{leader.id}")
+    end
+
+    test "sizing a running chunk from the leader's meta", %{live: live} do
+      leader = insert_chunk_job!(1, "executing", LeaderWorker)
+
+      open_state(live, "executing")
+      open_details(live, leader)
+
+      assert has_element?(live, "#chunk-members #chunk-executing-link", "4 executing")
+    end
+
+    test "noting a leader that is still waiting for a full chunk", %{live: live} do
+      meta = Map.delete(@chunk_meta, :chunk_count)
+      leader = insert_chunk_job!(1, "executing", LeaderWorker, nil, meta)
+
+      open_state(live, "executing")
+      open_details(live, leader)
+
+      assert has_element?(live, "#chunk-members", "Waiting for a full chunk")
+      refute has_element?(live, "#chunk-executing-link")
+    end
+
+    test "linking a sibling to the job that led its chunk", %{live: live} do
+      leader = insert_chunk_job!(1, "completed", LeaderWorker)
+      sibling = insert_chunk_job!(2, "completed", SiblingWorker, "chunk-#{leader.id}")
+
+      open_state(live, "completed")
+      open_details(live, sibling)
+
+      assert has_element?(live, "dt", "Chunk Leader")
+      assert has_element?(live, "#chunk-leader-link", "LeaderWorker")
+      assert has_element?(live, "#chunk-leader-link #chunk-leader-state[data-title=completed]")
+      refute has_element?(live, "#chunk-members")
+
+      live
+      |> element("#chunk-leader-link")
+      |> render_click()
+
+      assert page_title(live) =~ "LeaderWorker (#{leader.id})"
+    end
+
+    test "noting a sibling whose leader was deleted", %{live: live} do
+      sibling = insert_chunk_job!(2, "completed", SiblingWorker, "chunk-999999")
+
+      open_state(live, "completed")
+      open_details(live, sibling)
+
+      assert has_element?(live, "#chunk-leader-missing", "Job 999999")
+      refute has_element?(live, "#chunk-leader-link")
+    end
+
+    test "omitting chunk rows for ordinary jobs", %{live: live} do
+      job = insert_job!([ref: 1], state: "completed", worker: WorkerA, attempted_by: ~w(web-1 a))
+
+      open_state(live, "completed")
+      open_details(live, job)
+
+      refute has_element?(live, "#chunk-members")
+      refute has_element?(live, "#chunk-leader-link")
+    end
+
+    defp insert_chunk_job!(ref, state, worker, marker \\ nil, meta \\ @chunk_meta) do
+      now = DateTime.utc_now()
+      attempted_by = Enum.reject(["web-1", "aaaa-aaaa", marker], &is_nil/1)
+
+      insert_job!([ref: ref],
+        state: state,
+        worker: worker,
+        meta: meta,
+        attempted_at: now,
+        completed_at: now,
+        attempted_by: attempted_by
+      )
+    end
+  end
+
   test "omitting compensation links for ordinary jobs", %{live: live} do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 

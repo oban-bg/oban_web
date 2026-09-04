@@ -32,6 +32,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       import JobQuery, only: [parse: 1]
 
       test "splitting multiple values" do
+        assert %{chunks: [123]} = parse("chunks:123")
         assert %{nodes: ["worker-1"]} = parse("nodes:worker-1")
         assert %{queues: ["alpha", "gamma"]} = parse("queues:alpha,gamma")
         assert %{workers: ["My.A", "My.B"]} = parse("workers:My.A,My.B")
@@ -269,6 +270,39 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [] = filter_refs(ids: ~w(12345))
       end
 
+      @tag skip: repo != Oban.Web.Repo
+      test "filtering by chunk leader" do
+        leader = insert!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
+        marker = "chunk-#{leader.id}"
+
+        insert!(%{ref: 2}, attempted_by: ["worker.1", "abc-123", marker])
+        insert!(%{ref: 3}, attempted_by: ["worker.1", "abc-123", marker])
+        insert!(%{ref: 4}, attempted_by: ["worker.1", "abc-123", "chunk-0"])
+        insert!(%{ref: 5}, attempted_by: ["worker.1", "abc-123"])
+
+        assert [1, 2, 3] = filter_refs(chunks: [leader.id])
+        assert [4] = filter_refs(chunks: [0])
+        assert [] = filter_refs(chunks: [999_999])
+      end
+
+      @tag skip: repo != Oban.Web.Repo
+      test "folding chunk siblings into their leader while executing" do
+        leader = insert!(%{ref: 1}, state: "executing", attempted_by: ["worker.1", "abc-123"])
+        marker = "chunk-#{leader.id}"
+
+        sibling =
+          insert!(%{ref: 2}, state: "executing", attempted_by: ["worker.1", "abc-123", marker])
+
+        insert!(%{ref: 3}, state: "executing", attempted_by: ["worker.2", "abc-123"])
+        insert!(%{ref: 4}, state: "executing")
+        insert!(%{ref: 5}, state: "completed", attempted_by: ["worker.1", "abc-123", marker])
+
+        assert [1, 3, 4] = filter_refs(state: "executing")
+        assert [1, 2] = filter_refs(state: "executing", chunks: [leader.id])
+        assert [2] = filter_refs(state: "executing", ids: [sibling.id])
+        assert [5] = filter_refs(state: "completed")
+      end
+
       test "filtering by node" do
         insert!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
         insert!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"])
@@ -393,6 +427,45 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
         assert [0, 1, 2] = filter_refs(%{state: "executing"}, resolver: JobResolver)
         assert [4, 5] = filter_refs(%{state: "completed"}, resolver: JobResolver)
+      end
+    end
+
+    describe "chunk_counts/2" do
+      @describetag skip: repo != Oban.Web.Repo
+
+      test "counting a leader's chunk members by state, including the leader" do
+        meta = %{chunk: true, chunk_id: "abc", chunk_count: 4}
+        leader = insert!(%{ref: 1}, state: "completed", meta: meta, attempted_by: ~w(web.1 uuid))
+        marker = "chunk-#{leader.id}"
+
+        insert!(%{ref: 2},
+          state: "completed",
+          meta: meta,
+          attempted_by: ["web.1", "uuid", marker]
+        )
+
+        insert!(%{ref: 3},
+          state: "completed",
+          meta: meta,
+          attempted_by: ["web.1", "uuid", marker]
+        )
+
+        insert!(%{ref: 4},
+          state: "retryable",
+          meta: meta,
+          attempted_by: ["web.1", "uuid", marker]
+        )
+
+        insert!(%{ref: 5}, state: "completed", meta: meta, attempted_by: ["web.1", "uuid"])
+        insert!(%{ref: 6}, state: "completed", meta: %{chunk_id: "xyz"}, attempted_by: ~w(a b))
+
+        assert %{"completed" => 3, "retryable" => 1} == JobQuery.chunk_counts(@conf, leader)
+      end
+
+      test "counting nothing for jobs outside of a chunk" do
+        job = insert!(%{ref: 1}, state: "completed")
+
+        assert %{} == JobQuery.chunk_counts(@conf, job)
       end
     end
 

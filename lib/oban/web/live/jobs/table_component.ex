@@ -129,6 +129,26 @@ defmodule Oban.Web.Jobs.TableComponent do
             data-title="Orphaned, host node shut down"
           />
 
+          <Icons.icon
+            :if={chunk_sibling?(@job)}
+            name="icon-user-group"
+            class="h-5 w-5 text-gray-500 dark:text-gray-300"
+            id={"job-chunk-#{@job.id}"}
+            phx-hook="Tippy"
+            data-title={"In a chunk led by job #{chunk_leader_id(@job)}"}
+          />
+
+          <span
+            :if={chunk_leader?(@job)}
+            id={"job-chunk-#{@job.id}"}
+            class="flex items-center space-x-1 py-1.5 px-2 tabular text-xs rounded-md bg-gray-100 dark:bg-gray-950"
+            phx-hook="Tippy"
+            data-title={chunk_tooltip(@job)}
+          >
+            <Icons.icon name="icon-user-group" class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+            <span :if={chunk_count(@job)}>{chunk_count(@job)}</span>
+          </span>
+
           <span class="py-1.5 px-2 tabular truncate text-xs rounded-md bg-gray-100 dark:bg-gray-950">
             {@job.queue}
           </span>
@@ -197,6 +217,19 @@ defmodule Oban.Web.Jobs.TableComponent do
     resolver
     |> Resolver.call_with_fallback(:format_job_args, [job])
     |> truncate(0..98)
+  end
+
+  # Chunk Helpers
+
+  defp chunk_tooltip(job) do
+    case {chunk_count(job), job.state} do
+      {nil, "executing"} -> "Waiting for a full chunk"
+      {nil, _state} -> "Led a chunk"
+      {1, "executing"} -> "Leading a chunk of 1 job"
+      {count, "executing"} -> "Leading a chunk of #{count} jobs"
+      {1, _state} -> "Led a chunk of 1 job"
+      {count, _state} -> "Led a chunk of #{count} jobs"
+    end
   end
 
   # Time Helpers

@@ -277,6 +277,52 @@ defmodule Oban.Web.Helpers do
   def attempted_by(%Job{attempted_by: [node | _]}), do: node
   def attempted_by(%Job{}), do: "Not Attempted"
 
+  # Chunk Helpers
+
+  @doc """
+  The id of the leader that fetched a job into its chunk, or nil when the job wasn't a sibling.
+
+  Pro appends a `chunk-<id>` marker to a sibling's `attempted_by` when the leader fetches it.
+  """
+  @spec chunk_leader_id(Job.t()) :: pos_integer() | nil
+  def chunk_leader_id(%Job{attempted_by: [_ | _] = attempted_by}) do
+    with "chunk-" <> id <- List.last(attempted_by),
+         {leader_id, ""} <- Integer.parse(id) do
+      leader_id
+    else
+      _ -> nil
+    end
+  end
+
+  def chunk_leader_id(_job), do: nil
+
+  @doc """
+  Whether the job was fetched into a chunk by a leader on its latest attempt.
+  """
+  @spec chunk_sibling?(Job.t()) :: boolean()
+  def chunk_sibling?(%Job{} = job), do: is_integer(chunk_leader_id(job))
+
+  @doc """
+  Whether the job led a chunk on its latest attempt.
+
+  Every chunk job carries `chunk: true` in meta, so leadership is determined by the job having
+  been attempted directly, rather than fetched by another leader.
+  """
+  @spec chunk_leader?(Job.t()) :: boolean()
+  def chunk_leader?(%Job{meta: %{"chunk" => true}, attempted_by: [_ | _]} = job) do
+    not chunk_sibling?(job)
+  end
+
+  def chunk_leader?(_job), do: false
+
+  @doc """
+  The number of jobs in a leader's chunk, including the leader, or nil while it's still
+  waiting for a full chunk.
+  """
+  @spec chunk_count(Job.t()) :: pos_integer() | nil
+  def chunk_count(%Job{meta: %{"chunk_count" => count}}) when is_integer(count), do: count
+  def chunk_count(_job), do: nil
+
   @doc """
   Format job tags using a delimiter.
   """

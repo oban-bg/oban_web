@@ -67,6 +67,16 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
+  defmacrop chunk_sibling(field) do
+    quote do
+      fragment(
+        "coalesce(?[array_length(?, 1)], '') LIKE 'chunk-%'",
+        unquote(field),
+        unquote(field)
+      )
+    end
+  end
+
   defmacrop mysql_kv_table(field) do
     quote do
       fragment(
@@ -151,6 +161,7 @@ defmodule Oban.Web.JobQuery do
         suggest: &suggest_args_vals/4,
         suggest_keys: &suggest_args_keys/3
       ],
+      chunks: [desc: "chunk leader job id", example: "chunks:123", parse: :ints],
       ids: [desc: "one or more job ids", example: "ids:1,2,3", parse: :ints],
       meta: [
         kind: :path,
@@ -361,7 +372,7 @@ defmodule Oban.Web.JobQuery do
 
   def all_jobs(params, conf, opts \\ []) do
     params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
+    conditions = conditions(params, conf)
 
     query =
       params.state
@@ -376,7 +387,7 @@ defmodule Oban.Web.JobQuery do
 
   def all_job_ids(params, conf, opts \\ []) do
     params = params_with_defaults(params)
-    conditions = Enum.reduce(params, true, &filter(&1, &2, conf))
+    conditions = conditions(params, conf)
     limit = bulk_action_limit(params.state, opts)
 
     query =
@@ -389,6 +400,29 @@ defmodule Oban.Web.JobQuery do
 
     Repo.all(conf, query)
   end
+
+  defp conditions(params, conf) do
+    params
+    |> Enum.reduce(true, &filter(&1, &2, conf))
+    |> fold_chunk_siblings(params, conf)
+  end
+
+  # A running chunk is one unit of work, so the executing list shows only its leader. Siblings
+  # stay visible when a search asks for jobs by id or by chunk, and in every other state, where
+  # each job has an outcome of its own.
+  defp fold_chunk_siblings(conditions, _params, conf) when is_mysql(conf) or is_sqlite(conf) do
+    conditions
+  end
+
+  defp fold_chunk_siblings(conditions, %{state: "executing"} = params, _conf) do
+    if Map.has_key?(params, :ids) or Map.has_key?(params, :chunks) do
+      conditions
+    else
+      dynamic([j], ^conditions and not chunk_sibling(j.attempted_by))
+    end
+  end
+
+  defp fold_chunk_siblings(conditions, _params, _conf), do: conditions
 
   defp params_with_defaults(params) do
     @defaults
@@ -476,6 +510,30 @@ defmodule Oban.Web.JobQuery do
     |> Enum.reverse()
   end
 
+  @doc """
+  Count the jobs in a leader's chunk by state, including the leader itself.
+
+  Members share the leader's partition `chunk_id`, which narrows the scan to the partition
+  through the meta index before matching the `chunk-<id>` marker in `attempted_by`.
+  """
+  def chunk_counts(conf, _job) when is_mysql(conf) or is_sqlite(conf), do: %{}
+
+  def chunk_counts(%Config{} = conf, %Job{id: id, meta: %{"chunk_id" => chunk_id}} = job) do
+    query =
+      Job
+      |> where([j], fragment("? @> ?", j.meta, ^%{chunk_id: chunk_id}))
+      |> where([j], fragment("? @> ?", j.attempted_by, ^["chunk-#{id}"]))
+      |> group_by([j], j.state)
+      |> select([j], {j.state, count(j.id)})
+
+    conf
+    |> Repo.all(query)
+    |> Map.new()
+    |> Map.update(job.state, 1, &(&1 + 1))
+  end
+
+  def chunk_counts(_conf, _job), do: %{}
+
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))
 
@@ -519,6 +577,16 @@ defmodule Oban.Web.JobQuery do
 
   defp filter({:args, [path, term]}, condition, _conf) do
     dynamic([j], ^condition and fragment("? @> ?", j.args, ^gen_map(path, term)))
+  end
+
+  defp filter({:chunks, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do
+    dynamic([j], ^condition and j.id in ^ids)
+  end
+
+  defp filter({:chunks, ids}, condition, _conf) do
+    markers = Enum.map(ids, &"chunk-#{&1}")
+
+    dynamic([j], ^condition and (j.id in ^ids or fragment("? && ?", j.attempted_by, ^markers)))
   end
 
   defp filter({:ids, ids}, condition, _conf) do

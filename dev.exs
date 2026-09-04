@@ -19,6 +19,7 @@ defmodule WebDev.Generator do
     Oban.Workers.AvatarProcessor,
     Oban.Workers.BotCleaner,
     Oban.Workers.DigestMailer,
+    Oban.Workers.EventAggregator,
     Oban.Workers.ExportGenerator,
     Oban.Workers.MailingListSyncer,
     Oban.Workers.PaymentAuthorizer,
@@ -195,6 +196,29 @@ defmodule Oban.Workers.DigestMailer do
   def process(_job), do: Generator.random_perform(100, 5_000)
 end
 
+defmodule Oban.Workers.EventAggregator do
+  @moduledoc false
+
+  use Oban.Pro.Chunk, queue: :events, size: 8, timeout: :timer.seconds(20)
+
+  alias Faker.Internet
+  alias WebDev.Generator
+
+  def gen(opts \\ []) do
+    new(%{event: Enum.random(~w(click view purchase signup)), ip: Internet.ip_v4_address()}, opts)
+  end
+
+  @impl Oban.Pro.Chunk
+  def process_chunk([_ | _] = jobs) do
+    Generator.random_perform(2_000, 15_000)
+
+    case Enum.split_with(jobs, &(&1.args["event"] == "purchase")) do
+      {[], _rest} -> :ok
+      {purchases, _rest} -> {:error, "unable to record purchases", purchases}
+    end
+  end
+end
+
 defmodule Oban.Workers.ExportGenerator do
   @moduledoc false
 
@@ -220,7 +244,7 @@ end
 defmodule Oban.Workers.MailingListSyncer do
   @moduledoc false
 
-  use Oban.Pro.Worker, queue: :events, tags: ["notification"]
+  use Oban.Pro.Worker, queue: :mailers, tags: ["notification"]
 
   alias Faker.{Address, Date, Internet, Person}
   alias WebDev.Generator
@@ -301,7 +325,7 @@ end
 defmodule Oban.Workers.PushNotifier do
   @moduledoc false
 
-  use Oban.Pro.Worker, queue: :events, max_attempts: 10
+  use Oban.Pro.Worker, queue: :notifications, max_attempts: 10
 
   alias Faker.{Team, UUID}
   alias WebDev.Generator
@@ -1011,7 +1035,7 @@ oban_opts = [
     analysis: 30,
     default: 30,
     etl: 10,
-    events: 20,
+    events: 3,
     exports: [global_limit: 8],
     fulfillment: 15,
     health: [global_limit: 1],

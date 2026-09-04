@@ -3,8 +3,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   import Oban.Web.FormComponents
 
+  alias Oban.Web.{Colors, Resolver, Timing}
   alias Oban.Web.Jobs.{Form, HistoryChartComponent, Recorded, TimelineComponent}
-  alias Oban.Web.{Resolver, Timing}
 
   @hidden_meta ~w(return signal storage size safe_decode)
 
@@ -34,6 +34,8 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:errors, fn -> [] end)
       |> assign_new(:invalid, fn -> [] end)
       |> assign_new(:queues, fn -> [] end)
+      |> assign_new(:chunk_counts, fn -> %{} end)
+      |> assign_new(:chunk_leader, fn -> nil end)
       |> assign_new(:compensating_job, fn -> nil end)
       |> assign_new(:diagnostics_open?, fn -> false end)
       |> assign_recorded()
@@ -339,6 +341,78 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 Priority
               </dt>
               <dd class="text-base text-gray-800 dark:text-gray-200 tabular">{@job.priority}</dd>
+            </div>
+
+            <div :if={chunk_leader?(@job)} class="flex flex-col col-span-3 min-w-0">
+              <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Chunk
+              </dt>
+              <dd
+                id="chunk-members"
+                class="flex items-center flex-wrap text-base text-gray-800 dark:text-gray-200"
+              >
+                <Icons.icon name="icon-user-group" class="w-4 h-4 mr-1.5 shrink-0 text-violet-500" />
+                <span :if={@chunk_counts == %{}} class="text-gray-500 dark:text-gray-400">
+                  Waiting for a full chunk
+                </span>
+                <span
+                  :for={{{state, count}, index} <- Enum.with_index(chunk_states(@chunk_counts))}
+                  class="flex items-center"
+                >
+                  <span :if={index > 0} class="mx-1.5 text-gray-400 dark:text-gray-500">·</span>
+                  <.link
+                    id={"chunk-#{state}-link"}
+                    patch={oban_path(:jobs, %{state: state, chunks: [@job.id]})}
+                    data-confirm={@confirm_leave}
+                    class={[
+                      "tabular rounded hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+                      state_text_classes(state)
+                    ]}
+                    data-title={"View the #{state} jobs in this chunk"}
+                    phx-hook="Tippy"
+                  >
+                    {count} {state}
+                  </.link>
+                </span>
+              </dd>
+            </div>
+
+            <div :if={chunk_sibling?(@job)} class="flex flex-col col-span-3 min-w-0">
+              <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+                Chunk Leader
+              </dt>
+              <dd>
+                <.link
+                  :if={@chunk_leader}
+                  id="chunk-leader-link"
+                  patch={oban_path([:jobs, chunk_leader_id(@job)])}
+                  data-confirm={@confirm_leave}
+                  class="inline-flex items-center max-w-full text-base text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-400 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+                  data-title="View the job that led this chunk"
+                  phx-hook="Tippy"
+                >
+                  <Icons.icon name="icon-user-group" class="w-4 h-4 mr-1.5 shrink-0 text-violet-500" />
+                  <span class="truncate">{job_title(@chunk_leader)}</span>
+                  <span
+                    id="chunk-leader-state"
+                    class={[
+                      "ml-2 w-2 h-2 rounded-full shrink-0",
+                      Colors.state_bg_class(@chunk_leader.state)
+                    ]}
+                    data-title={@chunk_leader.state}
+                    phx-hook="Tippy"
+                  />
+                </.link>
+                <span
+                  :if={is_nil(@chunk_leader)}
+                  id="chunk-leader-missing"
+                  class="inline-flex items-center text-base text-gray-800 dark:text-gray-200"
+                >
+                  <Icons.icon name="icon-user-group" class="w-4 h-4 mr-1.5 shrink-0 text-violet-500" />
+                  <span class="tabular">Job {chunk_leader_id(@job)}</span>
+                  <span class="ml-1.5 shrink-0 text-gray-500 dark:text-gray-400">deleted</span>
+                </span>
+              </dd>
             </div>
 
             <div :if={@job.meta["workflow_id"]} class="flex flex-col col-span-3 min-w-0">
@@ -1297,6 +1371,20 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp workflow_display_name(job) do
     job.meta["workflow_name"] || job.meta["workflow_id"]
+  end
+
+  @state_order ~w(executing available scheduled suspended retryable cancelled discarded completed)
+
+  defp chunk_states(counts) do
+    Enum.sort_by(counts, fn {state, _count} ->
+      Enum.find_index(@state_order, &(&1 == state)) || length(@state_order)
+    end)
+  end
+
+  defp state_text_classes(state) do
+    state
+    |> Colors.state_classes()
+    |> elem(2)
   end
 
   defp toggle_edit do

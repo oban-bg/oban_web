@@ -70,6 +70,8 @@ defmodule Oban.Web.JobsPage do
               diagnostics_at={@diagnostics_at}
               history={@history}
               init_state={@init_state}
+              chunk_counts={@chunk_counts}
+              chunk_leader={@chunk_leader}
               compensating_job={@compensating_job}
               job={@detailed}
               module={DetailComponent}
@@ -204,7 +206,10 @@ defmodule Oban.Web.JobsPage do
     """
   end
 
-  @keep_on_mount ~w(compensating_job default_params detailed jobs nodes params queues selected states)a
+  @keep_on_mount ~w(
+    chunk_counts chunk_leader compensating_job default_params
+    detailed jobs nodes params queues selected states
+  )a
 
   @impl Page
   def handle_mount(socket) do
@@ -215,6 +220,8 @@ defmodule Oban.Web.JobsPage do
     assigns = Map.drop(socket.assigns, @keep_on_mount)
 
     %{socket | assigns: assigns}
+    |> assign_new(:chunk_counts, fn -> %{} end)
+    |> assign_new(:chunk_leader, fn -> nil end)
     |> assign_new(:compensating_job, fn -> nil end)
     |> assign_new(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
@@ -268,6 +275,8 @@ defmodule Oban.Web.JobsPage do
     diagnostics_at = socket.assigns.diagnostics_at
 
     assign(socket,
+      chunk_counts: chunk_counts(conf, detailed, socket),
+      chunk_leader: chunk_leader(conf, detailed),
       compensating_job: compensating_job(conf, detailed),
       detailed: detailed,
       diagnostics: diagnostics,
@@ -308,6 +317,8 @@ defmodule Oban.Web.JobsPage do
         {:noreply,
          socket
          |> assign(detailed: job, show_new_form: false, page_title: page_title(job))
+         |> assign(chunk_counts: chunk_counts(conf, job, socket))
+         |> assign(chunk_leader: chunk_leader(conf, job))
          |> assign(compensating_job: compensating_job(conf, job))
          |> assign(diagnostics: nil, diagnostics_at: nil)
          |> assign(history: history)
@@ -618,4 +629,39 @@ defmodule Oban.Web.JobsPage do
   end
 
   defp compensating_job(_conf, _job), do: nil
+
+  defp chunk_leader(conf, %Oban.Job{} = job) do
+    case chunk_leader_id(job) do
+      nil -> nil
+      leader_id -> JobQuery.refresh_job(conf, leader_id)
+    end
+  end
+
+  defp chunk_leader(_conf, _job), do: nil
+
+  # Members of a running chunk are all executing, so their count comes straight from the
+  # leader's meta. Counting a finished chunk's members scans the leader's partition, so those
+  # counts refresh when the leader changes state rather than on every tick.
+  defp chunk_counts(conf, %Oban.Job{} = job, socket) do
+    %{chunk_counts: previous_counts, detailed: previous} = socket.assigns
+
+    cond do
+      not chunk_leader?(job) ->
+        %{}
+
+      job.state == "executing" ->
+        case chunk_count(job) do
+          nil -> %{}
+          count -> %{"executing" => count}
+        end
+
+      is_struct(previous) and previous.id == job.id and previous.state == job.state ->
+        previous_counts
+
+      true ->
+        JobQuery.chunk_counts(conf, job)
+    end
+  end
+
+  defp chunk_counts(_conf, _job, _socket), do: %{}
 end
