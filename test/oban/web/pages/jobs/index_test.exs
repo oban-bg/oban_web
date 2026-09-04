@@ -133,56 +133,6 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_element?(live, "#job-orphaned-#{job_2.id}")
     end
 
-    test "folding executing chunk siblings into their leader", %{live: live} do
-      now = DateTime.utc_now()
-      meta = %{chunk: true, chunk_id: "abc", chunk_count: 3}
-
-      leader =
-        insert_job!([ref: 1],
-          state: "executing",
-          worker: LeaderWorker,
-          meta: meta,
-          attempted_at: now,
-          attempted_by: ["web-1", "aaaa-aaaa"]
-        )
-
-      marker = "chunk-#{leader.id}"
-
-      sibling =
-        insert_job!([ref: 2],
-          state: "executing",
-          worker: SiblingWorker,
-          meta: meta,
-          attempted_at: now,
-          attempted_by: ["web-1", "aaaa-aaaa", marker]
-        )
-
-      finished =
-        insert_job!([ref: 3],
-          state: "completed",
-          worker: FinishedWorker,
-          meta: meta,
-          attempted_at: now,
-          completed_at: now,
-          attempted_by: ["web-1", "aaaa-aaaa", marker]
-        )
-
-      click_state(live, "executing")
-
-      assert has_element?(live, "#job-#{leader.id}")
-      assert has_element?(live, "#job-chunk-#{leader.id}", "3")
-      refute has_element?(live, "#job-#{sibling.id}")
-
-      click_state(live, "completed")
-
-      assert has_element?(live, "#job-#{finished.id}")
-
-      assert has_element?(
-               live,
-               "#job-chunk-#{finished.id}[data-title='In a chunk led by job #{leader.id}']"
-             )
-    end
-
     test "viewing available or scheduled clears the node filter", %{live: live} do
       gossip(node: "web-1", queue: "alpha")
 

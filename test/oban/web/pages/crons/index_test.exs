@@ -1,18 +1,11 @@
-defmodule Oban.Workers.CronA do
+defmodule Oban.Workers.StaticCronA do
   use Oban.Worker
 
   @impl true
   def perform(_job), do: :ok
 end
 
-defmodule Oban.Workers.CronB do
-  use Oban.Worker
-
-  @impl true
-  def perform(_job), do: :ok
-end
-
-defmodule Oban.Workers.CronC do
+defmodule Oban.Workers.StaticCronB do
   use Oban.Worker
 
   @impl true
@@ -22,30 +15,23 @@ end
 defmodule Oban.Web.Pages.Crons.IndexTest do
   use Oban.Web.Case
 
-  alias Oban.Pro.Cron
-
-  @moduletag :pro
+  alias Oban.Web.Utils
+  alias Oban.Workers.{StaticCronA, StaticCronB}
 
   setup do
-    static_crontab = [
-      {"* * * * *", Oban.Workers.CronA},
-      {"0 * * * *", Oban.Workers.CronA, args: %{special: true}},
-      {"0 0 * * *", Oban.Workers.CronB, priority: 3}
+    crontab = [
+      {"* * * * *", StaticCronA},
+      {"0 0 * * *", StaticCronB, priority: 3}
     ]
 
-    start_supervised_oban!(
-      plugins: [
-        {Oban.Cron, crontab: static_crontab},
-        {Cron, crontab: []}
-      ]
-    )
+    start_supervised_oban!(plugins: [{Oban.Cron, crontab: crontab}])
 
     {:ok, live, _html} = live(build_conn(), "/oban/crons")
 
     {:ok, live: live}
   end
 
-  test "viewing statically and dynamically configured crons", %{live: live} do
+  test "viewing statically configured crons", %{live: live} do
     refresh(live)
 
     table =
@@ -53,45 +39,9 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
       |> element("#crons-table")
       |> render()
 
-    assert table =~ ~r/Oban.Workers.CronA/
-    assert table =~ ~r/Oban.Workers.CronB/
-  end
-
-  test "viewing dynamically configured crons", %{live: live} do
-    Cron.insert([
-      {"* 1 * * *", Oban.Workers.CronB},
-      {"0 0 * * *", Oban.Workers.CronC}
-    ])
-
-    refresh(live)
-
-    table =
-      live
-      |> element("#crons-table")
-      |> render()
-
-    assert table =~ ~r/Oban.Workers.CronB/
-    assert table =~ ~r/Oban.Workers.CronC/
-  end
-
-  test "viewing decorated crons by their handler", %{live: live} do
-    args = %{mod: "Oban.Workers.Reports", fun: "digest", arg: []}
-
-    Cron.insert([
-      {"0 * * * *", Oban.Pro.Decorator, name: "Oban.Workers.Reports.digest/0", args: args}
-    ])
-
-    refresh(live)
-
-    table =
-      live
-      |> element("#crons-table")
-      |> render()
-
-    assert table =~ "Oban.Workers.Reports.digest/0"
-    assert table =~ "decorated"
-    refute table =~ "Oban.Pro.Decorator"
-    refute table =~ ~s("fun" => "digest")
+    assert table =~ "Oban.Workers.StaticCronA"
+    assert table =~ "Oban.Workers.StaticCronB"
+    assert table =~ "0 0 * * *"
   end
 
   test "sorting crons by different properties", %{live: live} do
@@ -100,143 +50,32 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     assert has_element?(live, "#crons-sort")
 
     for mode <- ~w(worker last_run next_run schedule) do
-      change_sort(live, mode)
+      live
+      |> element("a#sort-#{mode}")
+      |> render_click()
 
-      assert_patch(live, crons_path(limit: 20, sort_by: mode, sort_dir: "asc"))
+      assert_patch(
+        live,
+        "/oban/crons?#{URI.encode_query(limit: 20, sort_by: mode, sort_dir: "asc")}"
+      )
     end
   end
 
-  describe "new cron" do
-    test "opens drawer and creates a cron with required fields", %{live: live} do
-      refresh(live)
+  test "opening a cron's details from the table", %{live: live} do
+    refresh(live)
 
-      # Click the New link to open the drawer
-      live
-      |> element("#new-cron-button")
-      |> render_click()
+    name = Utils.cron_entry_name({"* * * * *", StaticCronA, []})
 
-      assert_patch(live, "/oban/crons/new")
-
-      # Fill in required fields
-      live
-      |> form("#new-cron-form", %{
-        "worker" => "Oban.Workers.CronA",
-        "name" => "my-new-cron",
-        "expression" => "*/5 * * * *"
-      })
-      |> render_submit()
-
-      # Should redirect to crons list
-      assert_patch(live, "/oban/crons")
-
-      # Verify cron was created
-      assert [entry] = Cron.all(Oban) |> Enum.filter(&(&1.name == "my-new-cron"))
-      assert entry.expression == "*/5 * * * *"
-      assert entry.worker == "Oban.Workers.CronA"
-    end
-
-    test "creates a cron with all options including guaranteed", %{live: live} do
-      refresh(live)
-
-      live
-      |> element("#new-cron-button")
-      |> render_click()
-
-      assert_patch(live, "/oban/crons/new")
-
-      live
-      |> form("#new-cron-form", %{
-        "worker" => "Oban.Workers.CronB",
-        "name" => "full-options-cron",
-        "expression" => "0 0 * * *",
-        "timezone" => "America/Chicago",
-        "priority" => "2",
-        "max_attempts" => "5",
-        "tags" => "tag1, tag2",
-        "guaranteed" => "true",
-        "args" => ~s({"key": "value"})
-      })
-      |> render_submit()
-
-      assert_patch(live, "/oban/crons")
-
-      assert [entry] = Enum.filter(Cron.all(), &(&1.name == "full-options-cron"))
-      assert entry.expression == "0 0 * * *"
-      assert entry.worker == "Oban.Workers.CronB"
-      assert entry.opts["timezone"] == "America/Chicago"
-      assert entry.opts["priority"] == 2
-      assert entry.opts["max_attempts"] == 5
-      assert entry.opts["tags"] == ["tag1", "tag2"]
-      assert entry.opts["guaranteed"] == true
-      assert entry.opts["args"] == %{"key" => "value"}
-    end
-
-    test "auto-generates name from worker", %{live: live} do
-      refresh(live)
-
-      live
-      |> element("#new-cron-button")
-      |> render_click()
-
-      html =
-        live
-        |> element("#new-cron-form")
-        |> render_change(%{"worker" => "MyApp.Workers.SendEmail", "name" => ""})
-
-      assert html =~ ~r/name="name"[^>]*value="send-email"/
-    end
-
-    test "closes drawer on escape key", %{live: live} do
-      refresh(live)
-
-      live
-      |> element("#new-cron-button")
-      |> render_click()
-
-      assert_patch(live, "/oban/crons/new")
-
-      live
-      |> element("#new-cron")
-      |> render_keydown(%{"key" => "Escape"})
-
-      assert_patch(live, "/oban/crons")
-    end
-  end
-
-  describe "pagination" do
-    test "clicking Show More increases the limit", %{live: live} do
-      crons = Enum.map(1..25, &{"#{&1} * * * *", Oban.Workers.CronA, name: "cron-#{&1}"})
-
-      Cron.insert(crons)
-
-      refresh(live)
-
-      live
-      |> element("button", "Show More")
-      |> render_click()
-
-      assert_patch(live, crons_path(limit: 40))
-    end
-
-    test "hides pagination buttons when all crons fit within limit", %{live: live} do
-      refresh(live)
-
-      refute has_element?(live, "button", "Show More")
-      refute has_element?(live, "button", "Show Less")
-    end
-  end
-
-  defp change_sort(live, mode) do
     live
-    |> element("a#sort-#{mode}")
+    |> element("#cron-#{name} a")
     |> render_click()
-  end
 
-  defp crons_path(params) do
-    "/oban/crons?#{URI.encode_query(params)}"
+    assert_patch(live, "/oban/crons/#{URI.encode_www_form(name)}")
   end
 
   defp refresh(live) do
     send(live.pid, :refresh)
+
+    render(live)
   end
 end

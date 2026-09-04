@@ -91,10 +91,12 @@ Oban.Web.Endpoint.start_link()
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.MyXQLRepo, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 
-# Automatically exclude :pro tagged tests if Oban Pro is not available
+# Pro tests are tagged with :pro through Oban.Web.ProCase and are only run when Pro is loaded.
+# The test files themselves are also wrapped in `Code.ensure_loaded?(Oban.Pro)`, see the ProCase
+# docs for the full strategy.
 exclude_tags =
   if Code.ensure_loaded?(Oban.Pro) do
-    if Code.ensure_loaded?(Oban.Web.StorageMock), do: Oban.Web.StorageMock.setup()
+    Oban.Web.StorageMock.setup()
 
     [:skip]
   else

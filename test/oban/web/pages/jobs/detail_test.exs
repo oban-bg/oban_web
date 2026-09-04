@@ -3,16 +3,12 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
 
   import Phoenix.LiveViewTest
 
-  alias Oban.Web.CompensationFixture
-
-  @compile {:no_warn_undefined, Oban.Web.CompensationFixture}
-
   setup context do
-    name = start_supervised_oban!(Map.get(context, :oban_opts, []))
+    start_supervised_oban!(Map.get(context, :oban_opts, []))
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, conf: Oban.config(name), live: live}
+    {:ok, live: live}
   end
 
   test "viewing job details", %{live: live} do
@@ -348,215 +344,14 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     end
   end
 
-  describe "external recorded output" do
-    @describetag :pro
-
-    test "loading output from a storage backend on demand", %{live: live} do
-      payload = encode_term(%{total: 42})
-      job = insert_recorded_job(live, payload, [])
-
-      open_details(live, job)
-
-      refute render(live) =~ "total: 42"
-      assert has_element?(live, "#load-recorded")
-
-      live
-      |> element("#load-recorded")
-      |> render_click()
-
-      assert render_async(live) =~ "total: 42"
-      assert has_element?(live, "#copy-recorded")
-    end
-
-    test "reporting output the backend no longer has", %{live: live} do
-      job = insert_recorded_job(live, nil, [])
-
-      open_details(live, job)
-
-      live
-      |> element("#load-recorded")
-      |> render_click()
-
-      assert render_async(live) =~ "Stored output is no longer available"
-      assert has_element?(live, "#load-recorded", "Try Again")
-    end
-
-    test "reporting an unreachable backend without leaking the reason", %{live: live} do
-      job = insert_recorded_job(live, encode_term(%{}), error: "s3://bucket?X-Amz-Signature=sec")
-
-      open_details(live, job)
-
-      live
-      |> element("#load-recorded")
-      |> render_click()
-
-      html = render_async(live)
-
-      assert html =~ "Unable to reach the storage backend"
-      refute html =~ "X-Amz-Signature"
-    end
-
-    test "keeping loaded output across refresh ticks", %{live: live} do
-      job = insert_recorded_job(live, encode_term(%{total: 42}), [])
-
-      open_details(live, job)
-
-      live
-      |> element("#load-recorded")
-      |> render_click()
-
-      assert render_async(live) =~ "total: 42"
-
-      send(live.pid, :refresh)
-
-      assert render(live) =~ "total: 42"
-      refute has_element?(live, "#load-recorded")
-    end
-  end
-
-  defp insert_recorded_job(live, payload, storage_opts) do
-    key = Ecto.UUID.generate()
-
-    if payload, do: Oban.Web.StorageMock.store(key, payload)
-
-    meta = %{
-      "recorded" => true,
-      "return" => key,
-      "storage" => Oban.Pro.Storage.encode(Oban.Web.StorageMock, storage_opts)
-    }
-
-    job = insert_job!([ref: 1], state: "completed", worker: WorkerA, meta: meta)
+  test "omitting chunk rows for ordinary jobs", %{live: live} do
+    job = insert_job!([ref: 1], state: "completed", worker: WorkerA, attempted_by: ~w(web-1 a))
 
     open_state(live, "completed")
+    open_details(live, job)
 
-    job
-  end
-
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
-  test "linking a compensating job to the job it rolls back", %{conf: conf, live: live} do
-    saga = CompensationFixture.insert_compensated_saga!(conf)
-
-    [comp] = CompensationFixture.compensation_steps(conf, saga)
-
-    open_state(live, "available")
-    open_details(live, comp)
-
-    assert has_element?(live, "dt", "Rolls Back")
-    assert has_element?(live, "#origin-job-link", "charge")
-    refute has_element?(live, "#compensating-job-link")
-  end
-
-  @tag pro: true, oban_opts: [engine: Oban.Pro.Engine]
-  test "linking a compensated job to the job rolling it back", %{conf: conf, live: live} do
-    saga = CompensationFixture.insert_compensated_saga!(conf)
-
-    CompensationFixture.finish_compensation!(conf, saga, "completed")
-
-    open_state(live, "completed")
-    open_details(live, saga.jobs["charge"])
-
-    assert has_element?(live, "dt", "Rollback")
-    assert has_element?(live, "#compensating-job-link", "completed")
-  end
-
-  describe "chunks" do
-    @chunk_meta %{chunk: true, chunk_id: "abc", chunk_count: 4}
-
-    test "linking a leader to its chunk members by state", %{live: live} do
-      leader = insert_chunk_job!(1, "completed", LeaderWorker)
-      marker = "chunk-#{leader.id}"
-
-      insert_chunk_job!(2, "completed", SiblingWorker, marker)
-      insert_chunk_job!(3, "completed", SiblingWorker, marker)
-      retryable = insert_chunk_job!(4, "retryable", SiblingWorker, marker)
-
-      open_state(live, "completed")
-      open_details(live, leader)
-
-      assert has_element?(live, "dt", "Chunk")
-      assert has_element?(live, "#chunk-members #chunk-completed-link", "3 completed")
-      assert has_element?(live, "#chunk-members #chunk-retryable-link", "1 retryable")
-
-      live
-      |> element("#chunk-retryable-link")
-      |> render_click()
-
-      assert has_element?(live, "#jobs-table #job-#{retryable.id}")
-      refute has_element?(live, "#jobs-table #job-#{leader.id}")
-    end
-
-    test "sizing a running chunk from the leader's meta", %{live: live} do
-      leader = insert_chunk_job!(1, "executing", LeaderWorker)
-
-      open_state(live, "executing")
-      open_details(live, leader)
-
-      assert has_element?(live, "#chunk-members #chunk-executing-link", "4 executing")
-    end
-
-    test "noting a leader that is still waiting for a full chunk", %{live: live} do
-      meta = Map.delete(@chunk_meta, :chunk_count)
-      leader = insert_chunk_job!(1, "executing", LeaderWorker, nil, meta)
-
-      open_state(live, "executing")
-      open_details(live, leader)
-
-      assert has_element?(live, "#chunk-members", "Waiting for a full chunk")
-      refute has_element?(live, "#chunk-executing-link")
-    end
-
-    test "linking a sibling to the job that led its chunk", %{live: live} do
-      leader = insert_chunk_job!(1, "completed", LeaderWorker)
-      sibling = insert_chunk_job!(2, "completed", SiblingWorker, "chunk-#{leader.id}")
-
-      open_state(live, "completed")
-      open_details(live, sibling)
-
-      assert has_element?(live, "dt", "Chunk Leader")
-      assert has_element?(live, "#chunk-leader-link", "LeaderWorker")
-      assert has_element?(live, "#chunk-leader-link #chunk-leader-state[data-title=completed]")
-      refute has_element?(live, "#chunk-members")
-
-      live
-      |> element("#chunk-leader-link")
-      |> render_click()
-
-      assert page_title(live) =~ "LeaderWorker (#{leader.id})"
-    end
-
-    test "noting a sibling whose leader was deleted", %{live: live} do
-      sibling = insert_chunk_job!(2, "completed", SiblingWorker, "chunk-999999")
-
-      open_state(live, "completed")
-      open_details(live, sibling)
-
-      assert has_element?(live, "#chunk-leader-missing", "Job 999999")
-      refute has_element?(live, "#chunk-leader-link")
-    end
-
-    test "omitting chunk rows for ordinary jobs", %{live: live} do
-      job = insert_job!([ref: 1], state: "completed", worker: WorkerA, attempted_by: ~w(web-1 a))
-
-      open_state(live, "completed")
-      open_details(live, job)
-
-      refute has_element?(live, "#chunk-members")
-      refute has_element?(live, "#chunk-leader-link")
-    end
-
-    defp insert_chunk_job!(ref, state, worker, marker \\ nil, meta \\ @chunk_meta) do
-      now = DateTime.utc_now()
-      attempted_by = Enum.reject(["web-1", "aaaa-aaaa", marker], &is_nil/1)
-
-      insert_job!([ref: ref],
-        state: state,
-        worker: worker,
-        meta: meta,
-        attempted_at: now,
-        completed_at: now,
-        attempted_by: attempted_by
-      )
-    end
+    refute has_element?(live, "#chunk-members")
+    refute has_element?(live, "#chunk-leader-link")
   end
 
   test "omitting compensation links for ordinary jobs", %{live: live} do

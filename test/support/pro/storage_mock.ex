@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Oban.Pro.Storage) do
+if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.StorageMock do
     @moduledoc false
 
@@ -14,30 +14,25 @@ if Code.ensure_loaded?(Oban.Pro.Storage) do
       :ok
     end
 
-    def store(key, payload) do
-      :ets.insert(@table, {key, payload})
+    def break(reason), do: :ets.insert(@table, {:error, reason})
 
-      key
-    end
+    def reset, do: :ets.delete_all_objects(@table)
 
     @impl Oban.Pro.Storage
     def init(opts), do: Map.new(opts)
 
     @impl Oban.Pro.Storage
     def put(key, payload, _conf) do
-      store(key, payload)
+      :ets.insert(@table, {key, payload})
 
       :ok
     end
 
     @impl Oban.Pro.Storage
-    def fetch_all(keys, conf) do
-      if sleep = conf[:sleep], do: Process.sleep(sleep)
-
-      case conf do
-        %{error: reason} -> {:error, reason}
-        %{raise: message} -> raise message
-        _conf -> {:ok, take(keys)}
+    def fetch_all(keys, _conf) do
+      case :ets.lookup(@table, :error) do
+        [{:error, reason}] -> {:error, reason}
+        [] -> {:ok, take(keys)}
       end
     end
 
