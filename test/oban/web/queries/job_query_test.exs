@@ -1,6 +1,8 @@
 for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
   defmodule Module.concat(repo, JobQueryTest) do
-    use Oban.Web.Case, async: true
+    # The SQLite modules share one file database that is cleared after each test, so they can't
+    # overlap with each other.
+    use Oban.Web.Case, async: true, group: if(repo == Oban.Web.SQLiteRepo, do: :sqlite)
 
     alias Oban.Config
     alias Oban.Web.JobQuery
@@ -431,8 +433,9 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
           |> JobQuery.all_job_ids(@conf, opts)
         end
 
-        assert [job_1.id, job_2.id, job_3.id] == all_job_ids.(%{}, [])
-        assert [job_2.id, job_3.id] == all_job_ids.(%{workers: ~w(MyApp.VideoB)}, [])
+        # Ids come back in the table's sort order, which ties for jobs inserted together.
+        assert [job_1.id, job_2.id, job_3.id] == Enum.sort(all_job_ids.(%{}, []))
+        assert [job_2.id, job_3.id] == Enum.sort(all_job_ids.(%{workers: ~w(MyApp.VideoB)}, []))
       end
     end
 

@@ -1,6 +1,8 @@
 for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
   defmodule Module.concat(repo, CronQueryTest) do
-    use Oban.Web.Case, async: true
+    # The SQLite modules share one file database that is cleared after each test, so they can't
+    # overlap with each other.
+    use Oban.Web.Case, async: true, group: if(repo == Oban.Web.SQLiteRepo, do: :sqlite)
 
     alias Oban.Config
     alias Oban.Web.CronQuery

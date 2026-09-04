@@ -112,6 +112,8 @@ Oban.Web.Endpoint.start_link()
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.MyXQLRepo, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 
+Oban.Web.Case.attach_auto_allow()
+
 # Pro tests are tagged with :pro through Oban.Web.ProCase and are only run when Pro is loaded.
 # The test files themselves are also wrapped in `Code.ensure_loaded?(Oban.Pro)`, see the comment
 # on ProCase for the full strategy.

@@ -1,9 +1,10 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Pruners.IndexTest do
-    # Pruner rules are keyed by name and the plugin inserts its configured rules on start. Tests in
-    # different modules insert the same names, and inserts of the same key from concurrent sandbox
-    # transactions block until the other test finishes, so the pruner modules run serially.
-    use Oban.Web.ProCase, async: false
+    # Pruner rules are keyed by name and the plugin always inserts the default rule on start.
+    # Inserts of the same key from concurrent sandbox transactions block until the other test
+    # finishes, so the pruner modules run serially with each other while still running
+    # concurrently with everything else.
+    use Oban.Web.ProCase, async: true, group: :pruners
 
     alias Oban.Pro.Pruner
 

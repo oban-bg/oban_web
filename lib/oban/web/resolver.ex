@@ -539,6 +539,10 @@ defmodule Oban.Web.Resolver do
   def decode_signal(bin, opts \\ [:safe]), do: decode_recorded(bin, opts)
 
   @doc false
+  def call_with_fallback(nil, fun, args) when is_atom(fun) and is_list(args) do
+    apply(__MODULE__, fun, args)
+  end
+
   def call_with_fallback(resolver, fun, args) when is_atom(fun) and is_list(args) do
     resolver =
       if Code.ensure_loaded?(resolver) and function_exported?(resolver, fun, length(args)) do

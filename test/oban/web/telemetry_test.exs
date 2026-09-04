@@ -1,5 +1,6 @@
 defmodule Oban.Web.TelemetryTest do
-  use ExUnit.Case, async: true
+  # The default logger is attached globally, so actions from concurrent tests would be logged too.
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 

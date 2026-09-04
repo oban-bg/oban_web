@@ -1,9 +1,10 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Pruners.FormTest do
-    # Pruner rules are keyed by name and the plugin inserts its configured rules on start. Tests in
-    # different modules insert the same names, and inserts of the same key from concurrent sandbox
-    # transactions block until the other test finishes, so the pruner modules run serially.
-    use Oban.Web.ProCase, async: false
+    # Pruner rules are keyed by name and the plugin always inserts the default rule on start.
+    # Inserts of the same key from concurrent sandbox transactions block until the other test
+    # finishes, so the pruner modules run serially with each other while still running
+    # concurrently with everything else.
+    use Oban.Web.ProCase, async: true, group: :pruners
 
     alias Oban.Pro.Pruner
 
@@ -203,7 +204,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         %{live: live, oban: oban} =
           start_pruner_live!(
             path: "/oban/pruners/media",
-            rules: [[name: "media", queue: "media", max_age: {7, :days}]]
+            rules: [[name: "media", queue: "media", max_age: {7, :days}]],
+            refresh: false
           )
 
         assert {:ok, _rule} = Pruner.update(oban, "media", limit: 9_000)
@@ -243,6 +245,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     defp start_pruner_live!(opts) do
       {path, opts} = Keyword.pop(opts, :path, "/oban/pruners/new")
+      {refresh, opts} = Keyword.pop(opts, :refresh, true)
 
       oban = start_supervised_oban!(plugins: [{Pruner, opts}])
 
@@ -250,9 +253,17 @@ if Code.ensure_loaded?(Oban.Pro) do
       |> Oban.Registry.whereis({:plugin, Pruner})
       |> :sys.get_state()
 
-      {:ok, live, _html} = live(build_conn(), path)
+      {:ok, live, _html} = live(build_conn(refresh), path)
 
       %{live: live, oban: oban}
+    end
+
+    # The browser restores the refresh rate through connect params, so a paused refresh keeps the
+    # page from picking up changes made behind its back before a test acts on them.
+    defp build_conn(true), do: build_conn()
+
+    defp build_conn(false) do
+      put_connect_params(build_conn(), %{"init_state" => %{"oban:refresh" => -1}})
     end
   end
 end

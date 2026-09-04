@@ -62,6 +62,8 @@ config :logger, :console, format: "[$level] $message\n"
 
 config :phoenix, stacktrace_depth: 20
 
-config :phoenix_live_view,
-  debug_heex_annotations: true,
-  debug_attributes: true
+if config_env() == :dev do
+  config :phoenix_live_view,
+    debug_heex_annotations: true,
+    debug_attributes: true
+end

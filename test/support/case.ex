@@ -76,7 +76,8 @@ defmodule Oban.Web.Case do
       peer: Oban.Peers.Isolated,
       repo: Repo,
       stage_interval: :infinity,
-      shutdown_grace_period: 250
+      # Jobs still executing at the end of a test are abandoned, so there's no reason to wait.
+      shutdown_grace_period: 10
     ]
 
     opts =
@@ -87,7 +88,7 @@ defmodule Oban.Web.Case do
     name = Keyword.fetch!(opts, :name)
     repo = Keyword.fetch!(opts, :repo)
 
-    attach_auto_allow(repo, name)
+    register_sandbox_owner(repo, name)
     register_oban_instance(name)
 
     opts
@@ -112,30 +113,40 @@ defmodule Oban.Web.Case do
   end
 
   # Oban's processes query through the sandbox, but only the test process owns a connection when
-  # running async. Allow each process the instance starts as it announces itself, exactly as Oban
-  # and Pro do in their own suites.
-  defp attach_auto_allow(repo, name) when repo in [Repo, MyXQLRepo] do
-    telemetry_name = "oban-web-auto-allow-#{inspect(name)}"
+  # running async. Allow each process the instance starts as it announces itself, as Oban and Pro
+  # do in their own suites. A single handler is attached for the whole suite because every
+  # telemetry attach and detach rewrites a persistent term, which stalls all processes.
+  @allow_table :oban_web_sandbox_owners
 
-    auto_allow = fn _event, _measure, %{conf: conf}, {name, repo, test_pid} ->
-      if conf.name == name, do: Sandbox.allow(repo, test_pid, self())
-    end
+  def attach_auto_allow do
+    :ets.new(@allow_table, [:named_table, :public, read_concurrency: true])
 
     :telemetry.attach_many(
-      telemetry_name,
+      "oban-web-auto-allow",
       [
         [:oban, :engine, :init, :start],
         [:oban, :peer, :election, :start],
         [:oban, :plugin, :init]
       ],
-      auto_allow,
-      {name, repo, self()}
+      &__MODULE__.auto_allow/4,
+      nil
     )
-
-    on_exit(fn -> :telemetry.detach(telemetry_name) end)
   end
 
-  defp attach_auto_allow(_repo, _name), do: :ok
+  def auto_allow(_event, _measure, %{conf: conf}, _config) do
+    case :ets.lookup(@allow_table, conf.name) do
+      [{_name, repo, test_pid}] -> Sandbox.allow(repo, test_pid, self())
+      [] -> :ok
+    end
+  end
+
+  defp register_sandbox_owner(repo, name) when repo in [Repo, MyXQLRepo] do
+    :ets.insert(@allow_table, {name, repo, self()})
+
+    on_exit(fn -> :ets.delete(@allow_table, name) end)
+  end
+
+  defp register_sandbox_owner(_repo, _name), do: :ok
 
   def flush_reporter(oban_name) do
     Notifier.listen(oban_name, :metrics)
