@@ -12,42 +12,41 @@ defmodule Oban.Web.Queues.DetailComponentTest do
   setup do
     Process.put(:routing, :nowhere)
 
-    start_supervised_oban!()
-
-    :ok
+    {:ok, oban: start_supervised_oban!()}
   end
 
-  test "restricting actions based on access" do
-    conf = %{Config.new(repo: Repo) | engine: Oban.Pro.Engine}
+  test "restricting actions based on access", %{oban: oban} do
+    conf = %{Config.new(name: oban, repo: Repo) | engine: Oban.Pro.Engine}
 
-    html = render_component(Component, assigns(access: :read_only, conf: conf), router: Router)
+    html =
+      render_component(Component, assigns(oban, access: :read_only, conf: conf), router: Router)
 
     assert has_fragment?(html, "[name=local_limit][disabled]")
     assert has_fragment?(html, "[name=global_allowed][disabled]")
     assert has_fragment?(html, "[name=rate_allowed][disabled]")
 
-    html = render_component(Component, assigns(access: :all, conf: conf), router: Router)
+    html = render_component(Component, assigns(oban, access: :all, conf: conf), router: Router)
 
     refute has_fragment?(html, "[name=local_limit][disabled]")
   end
 
-  test "listing all queue instances" do
+  test "listing all queue instances", %{oban: oban} do
     checks = [
       build_gossip(queue: @queue, node: "web.1", name: "Oban"),
       build_gossip(queue: @queue, node: "web.1", name: "Private"),
       build_gossip(queue: @queue, node: "web.2", name: "Oban")
     ]
 
-    html = render_component(Component, assigns(checks: checks), router: Router)
+    html = render_component(Component, assigns(oban, checks: checks), router: Router)
 
     assert html =~ "web.1/oban"
     assert html =~ "web.1/private"
     assert html =~ "web.2/oban"
   end
 
-  test "disabling advanced features when the Pro engine isn't available" do
-    conf = Config.new(engine: Basic, repo: Repo)
-    html = render_component(Component, assigns(conf: conf), router: Router)
+  test "disabling advanced features when the Pro engine isn't available", %{oban: oban} do
+    conf = Config.new(engine: Basic, name: oban, repo: Repo)
+    html = render_component(Component, assigns(oban, conf: conf), router: Router)
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
     assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
@@ -56,26 +55,26 @@ defmodule Oban.Web.Queues.DetailComponentTest do
 
     # Engines other than the Pro engine can't apply global or rate limits
     conf = %{conf | engine: FakeEngine}
-    html = render_component(Component, assigns(conf: conf), router: Router)
+    html = render_component(Component, assigns(oban, conf: conf), router: Router)
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
     assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
   end
 
-  test "enabling advanced features for the Pro engine, new and legacy names" do
+  test "enabling advanced features for the Pro engine, new and legacy names", %{oban: oban} do
     for engine <- [Oban.Pro.Engine, Oban.Pro.Engines.Smart] do
-      conf = %{Config.new(engine: Basic, repo: Repo) | engine: engine}
-      html = render_component(Component, assigns(conf: conf), router: Router)
+      conf = %{Config.new(engine: Basic, name: oban, repo: Repo) | engine: engine}
+      html = render_component(Component, assigns(oban, conf: conf), router: Router)
 
       refute has_fragment?(html, "#global-form [rel=requires-pro]")
       refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
     end
   end
 
-  test "displaying status badges based on queue state" do
+  test "displaying status badges based on queue state", %{oban: oban} do
     # Paused badge when all nodes are paused
     checks = [build_gossip(queue: @queue, paused: true)]
-    html = render_component(Component, assigns(checks: checks), router: Router)
+    html = render_component(Component, assigns(oban, checks: checks), router: Router)
 
     assert has_fragment?(html, "#status-paused")
     refute has_fragment?(html, "#status-partial")
@@ -87,39 +86,39 @@ defmodule Oban.Web.Queues.DetailComponentTest do
       build_gossip(queue: @queue, node: "web.2", paused: false)
     ]
 
-    html = render_component(Component, assigns(checks: checks), router: Router)
+    html = render_component(Component, assigns(oban, checks: checks), router: Router)
 
     refute has_fragment?(html, "#status-paused")
     assert has_fragment?(html, "#status-partial")
 
     # Terminating badge when shutdown has started
     checks = [build_gossip(queue: @queue, shutdown_started_at: DateTime.utc_now())]
-    html = render_component(Component, assigns(checks: checks), router: Router)
+    html = render_component(Component, assigns(oban, checks: checks), router: Router)
 
     assert has_fragment?(html, "#status-terminating")
   end
 
-  test "showing header action buttons" do
-    html = render_component(Component, assigns([]), router: Router)
+  test "showing header action buttons", %{oban: oban} do
+    html = render_component(Component, assigns(oban, []), router: Router)
 
     assert has_fragment?(html, "#detail-pause-resume")
     assert has_fragment?(html, "#detail-stop")
   end
 
-  test "restricting header actions based on access" do
-    html = render_component(Component, assigns(access: :read_only), router: Router)
+  test "restricting header actions based on access", %{oban: oban} do
+    html = render_component(Component, assigns(oban, access: :read_only), router: Router)
 
     assert has_fragment?(html, "#detail-pause-resume[disabled]")
     assert has_fragment?(html, "#detail-stop[disabled]")
 
-    html = render_component(Component, assigns(access: :all), router: Router)
+    html = render_component(Component, assigns(oban, access: :all), router: Router)
 
     refute has_fragment?(html, "#detail-pause-resume[disabled]")
     refute has_fragment?(html, "#detail-stop[disabled]")
   end
 
-  defp assigns(opts) do
-    [access: :all, conf: Config.new(repo: Repo), id: :detail, queue: @queue]
+  defp assigns(oban, opts) do
+    [access: :all, conf: Config.new(name: oban, repo: Repo), id: :detail, queue: @queue]
     |> Keyword.put(:counts, [counts()])
     |> Keyword.put(:checks, [build_gossip(queue: @queue)])
     |> Keyword.merge(opts)

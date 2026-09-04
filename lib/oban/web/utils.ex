@@ -72,10 +72,12 @@ defmodule Oban.Web.Utils do
   defp has_table?(_table_name, %{engine: Oban.Engines.Dolphin}), do: false
   defp has_table?(_table_name, %{engine: Oban.Engines.Lite}), do: false
 
+  # Schema checks are cached by repo and prefix rather than instance name, since that's what
+  # determines the answer and instances that share a database can share the result.
   defp has_table?(table_name, conf) do
-    %{name: oban_name, prefix: prefix} = conf
+    %{repo: repo, prefix: prefix} = conf
 
-    persistent_cache({:table?, oban_name, table_name}, fn ->
+    persistent_cache({:table?, repo, prefix, table_name}, fn ->
       query =
         from("tables")
         |> put_query_prefix("information_schema")
@@ -87,9 +89,9 @@ defmodule Oban.Web.Utils do
   end
 
   defp has_column?(table_name, column_name, conf) do
-    %{name: oban_name, prefix: prefix} = conf
+    %{repo: repo, prefix: prefix} = conf
 
-    persistent_cache({:column?, oban_name, table_name, column_name}, fn ->
+    persistent_cache({:column?, repo, prefix, table_name, column_name}, fn ->
       query =
         from("columns")
         |> put_query_prefix("information_schema")

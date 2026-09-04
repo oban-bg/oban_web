@@ -21,7 +21,7 @@ if Code.ensure_loaded?(Oban.Pro) do
   end
 
   defmodule Oban.Web.Pro.Pages.Crons.IndexTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     alias Oban.Pro.Cron
 
@@ -32,16 +32,17 @@ if Code.ensure_loaded?(Oban.Pro) do
         {"0 0 * * *", Oban.Workers.CronB, priority: 3}
       ]
 
-      start_supervised_oban!(
-        plugins: [
-          {Oban.Cron, crontab: static_crontab},
-          {Cron, crontab: []}
-        ]
-      )
+      oban =
+        start_supervised_oban!(
+          plugins: [
+            {Oban.Cron, crontab: static_crontab},
+            {Cron, crontab: []}
+          ]
+        )
 
       {:ok, live, _html} = live(build_conn(), "/oban/crons")
 
-      {:ok, live: live}
+      {:ok, live: live, oban: oban}
     end
 
     test "viewing statically and dynamically configured crons", %{live: live} do
@@ -56,8 +57,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert table =~ ~r/Oban.Workers.CronB/
     end
 
-    test "viewing dynamically configured crons", %{live: live} do
-      Cron.insert([
+    test "viewing dynamically configured crons", %{live: live, oban: oban} do
+      Cron.insert(oban, [
         {"* 1 * * *", Oban.Workers.CronB},
         {"0 0 * * *", Oban.Workers.CronC}
       ])
@@ -73,8 +74,10 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert table =~ ~r/Oban.Workers.CronC/
     end
 
-    test "viewing decorated crons by their handler", %{live: live} do
-      Cron.insert([decorated_cron_entry("0 * * * *", name: decorated_cron_name())])
+    test "viewing decorated crons by their handler", %{live: live, oban: oban} do
+      Cron.insert(oban, [
+        decorated_cron_entry("0 * * * *", fun: "cleanup", name: decorated_cron_name("cleanup"))
+      ])
 
       refresh(live)
 
@@ -83,14 +86,14 @@ if Code.ensure_loaded?(Oban.Pro) do
         |> element("#crons-table")
         |> render()
 
-      assert table =~ decorated_cron_name()
+      assert table =~ decorated_cron_name("cleanup")
       assert table =~ "decorated"
       refute table =~ "Oban.Pro.Decorator"
       refute table =~ ~s("fun" => "digest")
     end
 
     describe "new cron" do
-      test "opens drawer and creates a cron with required fields", %{live: live} do
+      test "opens drawer and creates a cron with required fields", %{live: live, oban: oban} do
         refresh(live)
 
         # Click the New link to open the drawer
@@ -113,12 +116,12 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert_patch(live, "/oban/crons")
 
         # Verify cron was created
-        assert [entry] = Cron.all(Oban) |> Enum.filter(&(&1.name == "my-new-cron"))
+        assert [entry] = Cron.all(oban) |> Enum.filter(&(&1.name == "my-new-cron"))
         assert entry.expression == "*/5 * * * *"
         assert entry.worker == "Oban.Workers.CronA"
       end
 
-      test "creates a cron with all options including guaranteed", %{live: live} do
+      test "creates a cron with all options including guaranteed", %{live: live, oban: oban} do
         refresh(live)
 
         live
@@ -143,7 +146,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
         assert_patch(live, "/oban/crons")
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == "full-options-cron"))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == "full-options-cron"))
         assert entry.expression == "0 0 * * *"
         assert entry.worker == "Oban.Workers.CronB"
         assert entry.opts["timezone"] == "America/Chicago"
@@ -187,10 +190,10 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "pagination" do
-      test "clicking Show More increases the limit", %{live: live} do
+      test "clicking Show More increases the limit", %{live: live, oban: oban} do
         crons = Enum.map(1..25, &{"#{&1} * * * *", Oban.Workers.CronA, name: "cron-#{&1}"})
 
-        Cron.insert(crons)
+        Cron.insert(oban, crons)
 
         refresh(live)
 

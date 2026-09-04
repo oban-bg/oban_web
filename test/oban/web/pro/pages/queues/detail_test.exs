@@ -1,11 +1,11 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Queues.DetailTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     setup [:start_supervised_oban!, :attach_signals, :stub_routing]
 
-    test "rejecting invalid global and rate limits" do
-      gossip(local_limit: 5, queue: "alpha")
+    test "rejecting invalid global and rate limits", %{oban: oban} do
+      gossip(oban, local_limit: 5, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -34,8 +34,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       refute_receive {:action, %{action: :scale_queue}}
     end
 
-    test "exposing names and disclosure state to assistive technology" do
-      gossip(local_limit: 5, node: "web-1", queue: "alpha")
+    test "exposing names and disclosure state to assistive technology", %{oban: oban} do
+      gossip(oban, local_limit: 5, node: "web-1", queue: "alpha")
 
       live = render_details("alpha")
 
@@ -67,8 +67,8 @@ if Code.ensure_loaded?(Oban.Pro) do
              )
     end
 
-    test "setting the global limit across all nodes" do
-      gossip(local_limit: 5, global_limit: nil, queue: "alpha")
+    test "setting the global limit across all nodes", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: nil, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -96,8 +96,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "configuring global partitioning" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+    test "configuring global partitioning", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -127,8 +127,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "configuring global partitioning with meta fields" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+    test "configuring global partitioning with meta fields", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -162,8 +162,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "enabling burst mode for partitioned global limits" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+    test "enabling burst mode for partitioned global limits", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -186,8 +186,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "scaling global limits by node count" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
+    test "scaling global limits by node count", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -215,8 +215,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "preserving per node scaling while changing other global limit options" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
+    test "preserving per node scaling while changing other global limit options", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -248,8 +248,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "disabling per node scaling for a global limit" do
-      gossip(local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
+    test "disabling per node scaling for a global limit", %{oban: oban} do
+      gossip(oban, local_limit: 5, global_limit: %{allowed: 10, per_node: true}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -268,8 +268,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "setting the rate limit across all nodes" do
-      gossip(local_limit: 5, queue: "alpha")
+    test "setting the rate limit across all nodes", %{oban: oban} do
+      gossip(oban, local_limit: 5, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -297,8 +297,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
-    test "configuring rate limit partitioning" do
-      gossip(local_limit: 5, rate_limit: %{allowed: 10, period: 1}, queue: "alpha")
+    test "configuring rate limit partitioning", %{oban: oban} do
+      gossip(oban, local_limit: 5, rate_limit: %{allowed: 10, period: 1}, queue: "alpha")
 
       live = render_details("alpha")
 
@@ -335,23 +335,29 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     # Helpers
 
-    defp attach_signals(_context) do
-      :ok = Oban.Notifier.listen([:signal])
+    defp attach_signals(%{oban: oban}) do
+      :ok = Oban.Notifier.listen(oban, [:signal])
+
+      handler_id = {__MODULE__, oban}
 
       :telemetry.attach(
-        __MODULE__,
+        handler_id,
         [:oban_web, :action, :stop],
         &__MODULE__.handle_event/4,
-        self()
+        {self(), oban}
       )
 
-      on_exit(fn -> :telemetry.detach(__MODULE__) end)
+      on_exit(fn -> :telemetry.detach(handler_id) end)
 
       :ok
     end
 
-    def handle_event([:oban_web, :action, _event], _measure, meta, pid) do
-      send(pid, {:action, meta})
+    # Actions from concurrently running tests fire the same event, only forward our instance's.
+    def handle_event([:oban_web, :action, _event], _measure, meta, {pid, oban}) do
+      case meta do
+        %{config: %{name: ^oban}} -> send(pid, {:action, meta})
+        _ -> :ok
+      end
     end
 
     defp stub_routing(_context) do

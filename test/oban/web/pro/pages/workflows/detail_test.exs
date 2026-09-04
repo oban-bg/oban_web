@@ -1,11 +1,9 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Workflows.DetailTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     setup do
-      start_supervised_oban!()
-
-      :ok
+      {:ok, oban: start_supervised_oban!()}
     end
 
     test "displays not found for missing workflow" do
@@ -14,9 +12,10 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert refresh(live) =~ "Workflow not found"
     end
 
-    test "displays workflow details" do
+    test "displays workflow details", %{oban: oban} do
       # Five steps complete and five snooze, leaving them scheduled
       run_workflow!(
+        oban,
         [
           workflow_id: "wf-detail",
           workflow_name: "my-workflow",
@@ -39,8 +38,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#workflow-stats", "beta")
     end
 
-    test "displays sub-workflow relationships" do
-      insert_workflow!(
+    test "displays sub-workflow relationships", %{oban: oban} do
+      insert_workflow!(oban,
         workflow_id: "wf-parent",
         workflow_name: "parent-workflow",
         subs: [[workflow_id: "wf-child", workflow_name: "child-workflow"]]
@@ -62,8 +61,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(child_live, "#workflow-details", "parent-workflow")
     end
 
-    test "has cancel and retry buttons" do
-      insert_workflow!(workflow_id: "wf-buttons")
+    test "has cancel and retry buttons", %{oban: oban} do
+      insert_workflow!(oban, workflow_id: "wf-buttons")
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/wf-buttons")
 
@@ -73,8 +72,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#detail-retry")
     end
 
-    test "displaying compensation status on a failed workflow" do
-      saga = run_failed_saga!(workflow_name: "order-fulfillment")
+    test "displaying compensation status on a failed workflow", %{oban: oban} do
+      saga = run_failed_saga!(oban, workflow_name: "order-fulfillment")
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
 
@@ -87,8 +86,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#compensation-link")
     end
 
-    test "showing an armed policy before the workflow fails" do
-      saga = insert_saga!()
+    test "showing an armed policy before the workflow fails", %{oban: oban} do
+      saga = insert_saga!(oban)
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
 
@@ -98,8 +97,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       refute has_element?(live, "#compensation-link")
     end
 
-    test "omitting the compensation section without a policy" do
-      run_workflow!(workflow_id: "wf-plain")
+    test "omitting the compensation section without a policy", %{oban: oban} do
+      run_workflow!(oban, workflow_id: "wf-plain")
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/wf-plain")
 
@@ -108,8 +107,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       refute has_element?(live, "#comp-toggle")
     end
 
-    test "linking a compensation workflow back to its origin" do
-      saga = run_failed_saga!(workflow_name: "order-fulfillment")
+    test "linking a compensation workflow back to its origin", %{oban: oban} do
+      saga = run_failed_saga!(oban, workflow_name: "order-fulfillment")
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.compensation_id}")
 
@@ -120,10 +119,10 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#origin-breadcrumb", "order-fulfillment")
     end
 
-    test "enabling retry only for a failed compensation" do
+    test "enabling retry only for a failed compensation", %{oban: oban} do
       saga =
-        [charge_args: %{refund: "error"}]
-        |> run_failed_saga!()
+        oban
+        |> run_failed_saga!(charge_args: %{refund: "error"})
         |> compensate_saga!()
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
@@ -135,8 +134,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#comp-cancel[disabled]")
     end
 
-    test "listing compensation steps with the workers they roll back" do
-      saga = run_failed_saga!()
+    test "listing compensation steps with the workers they roll back", %{oban: oban} do
+      saga = run_failed_saga!(oban)
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
 
@@ -146,8 +145,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert has_element?(live, "#compensation-detail", "ChargeCard")
     end
 
-    test "marking graph nodes that were rolled back" do
-      saga = compensate_saga!(run_failed_saga!())
+    test "marking graph nodes that were rolled back", %{oban: oban} do
+      saga = compensate_saga!(run_failed_saga!(oban))
 
       {:ok, live, _html} = live(build_conn(), "/oban/workflows/#{saga.id}")
 

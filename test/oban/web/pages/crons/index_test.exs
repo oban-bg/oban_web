@@ -13,7 +13,7 @@ defmodule Oban.Workers.StaticCronB do
 end
 
 defmodule Oban.Web.Pages.Crons.IndexTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   alias Oban.Web.Utils
   alias Oban.Workers.{StaticCronA, StaticCronB}

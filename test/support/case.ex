@@ -4,7 +4,8 @@ defmodule Oban.Web.Case do
   use ExUnit.CaseTemplate
 
   alias Ecto.Adapters.SQL.Sandbox
-  alias Oban.{Job, Notifier}
+  alias Oban.{Job, Notifier, Registry}
+  alias Oban.Met.Examiner
   alias Oban.Web.{MyXQLRepo, Repo, SQLiteRepo}
 
   using do
@@ -50,16 +51,27 @@ defmodule Oban.Web.Case do
   def start_supervised_oban!(opts_or_context \\ [])
 
   def start_supervised_oban!(context) when is_map(context) do
-    opts = Map.get(context, :oban_opts, [])
+    name =
+      context
+      |> Map.get(:oban_opts, [])
+      |> start_supervised_oban!()
 
-    start_supervised_oban!(opts)
-
-    :ok
+    %{oban: name, conf: Oban.config(name)}
   end
 
-  def start_supervised_oban!(opts) do
+  def start_supervised_oban!(opts) when is_list(opts) do
+    opts = prepare_oban_opts(opts)
+
+    start_supervised!({Oban, opts})
+
+    Keyword.fetch!(opts, :name)
+  end
+
+  # Build the options for an isolated instance and register it for the test, without starting
+  # it. Used directly by tests that need to control when the instance starts.
+  def prepare_oban_opts(opts \\ []) do
     base_opts = [
-      name: Oban,
+      name: unique_oban_name(),
       notifier: Oban.Notifiers.Isolated,
       peer: Oban.Peers.Isolated,
       repo: Repo,
@@ -73,17 +85,63 @@ defmodule Oban.Web.Case do
       |> Keyword.update(:plugins, [Oban.Met], &[Oban.Met | &1])
 
     name = Keyword.fetch!(opts, :name)
+    repo = Keyword.fetch!(opts, :repo)
 
-    start_supervised!({Oban, opts})
+    attach_auto_allow(repo, name)
+    register_oban_instance(name)
+
+    opts
+  end
+
+  # Names are atoms rather than refs because the dashboard inspects them for display and rebuilds
+  # them with `Module.safe_concat/1` when switching instances.
+  def unique_oban_name do
+    Module.concat(Oban.Web.Test, "I#{System.unique_integer([:positive])}")
+  end
+
+  # Dashboard tests mount at shared routes, so the test resolver looks up instances started by the
+  # current test in the process dictionary. See Oban.Web.Test.Resolver in test_helper.exs.
+  def register_oban_instance(name) do
+    instances = Process.get(:oban_web_instances, [])
+
+    unless name in instances do
+      Process.put(:oban_web_instances, instances ++ [name])
+    end
 
     name
   end
 
-  def flush_reporter(oban_name \\ Oban) do
+  # Oban's processes query through the sandbox, but only the test process owns a connection when
+  # running async. Allow each process the instance starts as it announces itself, exactly as Oban
+  # and Pro do in their own suites.
+  defp attach_auto_allow(repo, name) when repo in [Repo, MyXQLRepo] do
+    telemetry_name = "oban-web-auto-allow-#{inspect(name)}"
+
+    auto_allow = fn _event, _measure, %{conf: conf}, {name, repo, test_pid} ->
+      if conf.name == name, do: Sandbox.allow(repo, test_pid, self())
+    end
+
+    :telemetry.attach_many(
+      telemetry_name,
+      [
+        [:oban, :engine, :init, :start],
+        [:oban, :peer, :election, :start],
+        [:oban, :plugin, :init]
+      ],
+      auto_allow,
+      {name, repo, self()}
+    )
+
+    on_exit(fn -> :telemetry.detach(telemetry_name) end)
+  end
+
+  defp attach_auto_allow(_repo, _name), do: :ok
+
+  def flush_reporter(oban_name) do
     Notifier.listen(oban_name, :metrics)
 
     oban_name
-    |> Oban.Registry.whereis(Oban.Met.Reporter)
+    |> Registry.whereis(Oban.Met.Reporter)
     |> send(:checkpoint)
 
     receive do
@@ -92,20 +150,24 @@ defmodule Oban.Web.Case do
 
         :ok
     after
-      250 -> raise "reporter failed to flush"
+      1_000 -> raise "reporter failed to flush"
     end
   end
 
   # Factory Helpers
 
   def build_gossip(meta_opts) do
-    name = Keyword.get(meta_opts, :name, Oban)
+    name =
+      case Keyword.get(meta_opts, :name, "Oban") do
+        name when is_binary(name) -> name
+        name -> inspect(name)
+      end
 
     iso_now = DateTime.to_iso8601(DateTime.utc_now())
 
     meta_opts
     |> Map.new()
-    |> Map.put_new(:name, inspect(name))
+    |> Map.put(:name, name)
     |> Map.put_new(:node, "localhost")
     |> Map.put_new(:local_limit, 1)
     |> Map.put_new(:global_limit, nil)
@@ -119,12 +181,21 @@ defmodule Oban.Web.Case do
     |> Oban.JSON.decode!()
   end
 
-  def gossip(meta_opts) do
-    name = Keyword.get(meta_opts, :name, Oban)
+  def gossip(oban_name, meta_opts) do
+    check = build_gossip(Keyword.put(meta_opts, :name, oban_name))
 
-    Notifier.notify(name, :gossip, %{checks: [build_gossip(meta_opts)]})
+    Notifier.notify(oban_name, :gossip, %{checks: [check]})
 
-    Process.sleep(5)
+    # Gossip is delivered asynchronously, wait until the examiner has stored the check.
+    with_backoff(fn ->
+      stored =
+        oban_name
+        |> Registry.via(Examiner)
+        |> Examiner.all_checks()
+        |> Enum.any?(&(&1["uuid"] == check["uuid"]))
+
+      ExUnit.Assertions.assert(stored, "gossip was never stored by the examiner")
+    end)
   end
 
   def insert_job!(args, opts \\ []) do

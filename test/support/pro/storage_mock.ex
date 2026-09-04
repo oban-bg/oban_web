@@ -14,9 +14,12 @@ if Code.ensure_loaded?(Oban.Pro) do
       :ok
     end
 
-    def break(reason), do: :ets.insert(@table, {:error, reason})
+    # Failures and forgotten payloads are scoped to a job's storage key so that concurrent tests
+    # sharing this table can't see each other's breakage.
+    def break(%{meta: %{"return" => key}}, reason),
+      do: :ets.insert(@table, {{:error, key}, reason})
 
-    def reset, do: :ets.delete_all_objects(@table)
+    def forget(%{meta: %{"return" => key}}), do: :ets.delete(@table, key)
 
     @impl Oban.Pro.Storage
     def init(opts), do: Map.new(opts)
@@ -30,9 +33,9 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     @impl Oban.Pro.Storage
     def fetch_all(keys, _conf) do
-      case :ets.lookup(@table, :error) do
-        [{:error, reason}] -> {:error, reason}
-        [] -> {:ok, take(keys)}
+      case Enum.find_value(keys, &List.first(:ets.lookup(@table, {:error, &1}))) do
+        {{:error, _key}, reason} -> {:error, reason}
+        nil -> {:ok, take(keys)}
       end
     end
 

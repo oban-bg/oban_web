@@ -1,18 +1,15 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Pruners.IndexTest do
-    use Oban.Web.ProCase
+    # Pruner rules are keyed by name and the plugin inserts its configured rules on start. Tests in
+    # different modules insert the same names, and inserts of the same key from concurrent sandbox
+    # transactions block until the other test finishes, so the pruner modules run serially.
+    use Oban.Web.ProCase, async: false
 
     alias Oban.Pro.Pruner
 
-    setup do
-      start_supervised_oban!()
+    test "displaying an empty state without any rules" do
+      {_oban, live} = start_unconfigured_live!()
 
-      {:ok, live, _html} = live(build_conn(), "/oban/pruners")
-
-      {:ok, live: live}
-    end
-
-    test "displaying an empty state without any rules", %{live: live} do
       html = refresh(live)
 
       assert html =~ "No pruning rules"
@@ -98,9 +95,9 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "showing rules as stored when no pruner is configured" do
-      assert {:ok, _rule} = Pruner.insert(name: "media", queue: "media", max_len: 500)
+      {oban, live} = start_unconfigured_live!()
 
-      {:ok, live, _html} = live(build_conn(), "/oban/pruners")
+      assert {:ok, _rule} = Pruner.insert(oban, name: "media", queue: "media", max_len: 500)
 
       refresh(live)
 
@@ -122,9 +119,9 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "warning when no pruner is configured" do
-      assert {:ok, _rule} = Pruner.insert(name: "media", queue: "media", max_len: 500)
+      {oban, live} = start_unconfigured_live!()
 
-      {:ok, live, _html} = live(build_conn(), "/oban/pruners")
+      assert {:ok, _rule} = Pruner.insert(oban, name: "media", queue: "media", max_len: 500)
 
       refresh(live)
 
@@ -320,7 +317,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "navigating to pruners from other pages" do
-      {:ok, live, _html} = live(build_conn(), "/oban/jobs")
+      {_oban, live} = start_unconfigured_live!("/oban/jobs")
 
       assert live |> element("#nav-pruners") |> has_element?()
 
@@ -332,13 +329,21 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "redirecting unknown rule paths back to the index" do
+      start_supervised_oban!()
+
       assert {:error, {:live_redirect, %{to: "/oban/pruners"}}} =
                live(build_conn(), "/oban/pruners/missing")
     end
 
-    defp start_pruner!(opts) do
-      stop_supervised!(Oban)
+    defp start_unconfigured_live!(path \\ "/oban/pruners") do
+      oban = start_supervised_oban!()
 
+      {:ok, live, _html} = live(build_conn(), path)
+
+      {oban, live}
+    end
+
+    defp start_pruner!(opts) do
       name = start_supervised_oban!(plugins: [{Pruner, opts}])
 
       name

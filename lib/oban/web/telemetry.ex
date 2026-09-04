@@ -161,7 +161,7 @@ defmodule Oban.Web.Telemetry do
     level = Keyword.fetch!(opts, :level)
 
     Logger.log(level, fn ->
-      {conf, meta} = Map.pop(meta, :conf)
+      {conf, meta} = Map.pop(meta, :config)
       {user, meta} = Map.pop(meta, :user)
 
       output =

@@ -34,6 +34,7 @@ if config_env() == :test do
 
   config :oban_web, Oban.Web.Repo,
     pool: Ecto.Adapters.SQL.Sandbox,
+    pool_size: System.schedulers_online() * 2,
     priv: "test/support/postgres",
     show_sensitive_data_on_connection_error: true,
     stacktrace: true,
@@ -48,6 +49,7 @@ if config_env() == :test do
   config :oban_web, Oban.Web.MyXQLRepo,
     priv: "test/support/mysql",
     pool: Ecto.Adapters.SQL.Sandbox,
+    pool_size: System.schedulers_online() * 2,
     show_sensitive_data_on_connection_error: true,
     stacktrace: true,
     url: System.get_env("MYSQL_URL") || "mysql://root@localhost:3306/oban_web_test"

@@ -1,7 +1,7 @@
 defmodule Oban.Web.DashboardLive do
   use Oban.Web, :live_view
 
-  alias Oban.Web.{CronsPage, JobsPage, PrunersPage, QueuesPage, WorkflowsPage}
+  alias Oban.Web.{CronsPage, JobsPage, PrunersPage, QueuesPage, Resolver, WorkflowsPage}
 
   @impl Phoenix.LiveView
   def mount(params, session, socket) do
@@ -36,14 +36,37 @@ defmodule Oban.Web.DashboardLive do
   end
 
   defp current_oban_instance(session, socket) do
-    stashed = restore_state(socket, "instance")
-    default = List.first(oban_instances())
+    %{"oban" => configured, "resolver" => resolver, "user" => user} = session
 
-    case stashed || session["oban"] || default || Oban do
-      name when is_binary(name) -> name |> String.split(".") |> Module.safe_concat()
-      name -> name
+    allowed = Resolver.call_with_fallback(resolver, :resolve_instances, [user])
+    stashed = normalize_instance(restore_state(socket, "instance"))
+
+    cond do
+      stashed && instance_allowed?(stashed, allowed) -> stashed
+      configured -> configured
+      true -> default_instance(allowed)
     end
   end
+
+  # Without a configured instance the first running instance is used. A resolver that names
+  # instances explicitly gets its first choice even if it isn't running yet, so that mounting waits
+  # for it the same way it waits for a configured instance.
+  defp default_instance(:all), do: List.first(oban_instances()) || Oban
+
+  defp default_instance(allowed) do
+    running = oban_instances()
+
+    Enum.find(allowed, &(&1 in running)) || List.first(allowed) || Oban
+  end
+
+  defp normalize_instance(name) when is_binary(name) do
+    name |> String.split(".") |> Module.safe_concat()
+  end
+
+  defp normalize_instance(name), do: name
+
+  defp instance_allowed?(_name, :all), do: true
+  defp instance_allowed?(name, allowed), do: name in allowed
 
   defp init_state(socket) do
     case get_connect_params(socket) do

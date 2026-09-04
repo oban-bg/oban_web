@@ -1,6 +1,9 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.PrunerQueryTest do
-    use Oban.Web.ProCase
+    # Pruner rules are keyed by name and the plugin inserts its configured rules on start. Tests in
+    # different modules insert the same names, and inserts of the same key from concurrent sandbox
+    # transactions block until the other test finishes, so the pruner modules run serially.
+    use Oban.Web.ProCase, async: false
 
     alias Oban.Config
     alias Oban.Pro.Pruner

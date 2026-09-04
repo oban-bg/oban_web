@@ -1,20 +1,20 @@
 defmodule Oban.Web.Pages.Queues.IndexTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   import Phoenix.LiveViewTest
 
   setup do
-    start_supervised_oban!()
+    oban = start_supervised_oban!()
 
     {:ok, live, _html} = live(build_conn(), "/oban/queues")
 
-    {:ok, live: live}
+    {:ok, live: live, oban: oban}
   end
 
-  test "viewing active queues", %{live: live} do
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.2", queue: "alpha")
-    gossip(node: "web.1", queue: "gamma")
+  test "viewing active queues", %{live: live, oban: oban} do
+    gossip(oban, node: "web.1", queue: "alpha")
+    gossip(oban, node: "web.2", queue: "alpha")
+    gossip(oban, node: "web.1", queue: "gamma")
 
     refresh(live)
 
@@ -22,7 +22,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert has_element?(live, "#queues-table li#queue-gamma")
   end
 
-  test "viewing rate-limit indicator", %{live: live} do
+  test "viewing rate-limit indicator", %{live: live, oban: oban} do
     rate_limit = %{
       allowed: 10,
       period: 60,
@@ -30,19 +30,19 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
       windows: [%{curr_count: 3, prev_count: 0}]
     }
 
-    gossip(node: "web.1", queue: "alpha", rate_limit: rate_limit)
-    gossip(node: "web.2", queue: "alpha", rate_limit: rate_limit)
+    gossip(oban, node: "web.1", queue: "alpha", rate_limit: rate_limit)
+    gossip(oban, node: "web.2", queue: "alpha", rate_limit: rate_limit)
 
     refresh(live)
 
     assert has_element?(live, "#queue-alpha #alpha-has-rate")
   end
 
-  test "pausing and resuming selected queues", %{live: live} do
+  test "pausing and resuming selected queues", %{live: live, oban: oban} do
     :telemetry_test.attach_event_handlers(self(), [[:oban_web, :action, :stop]])
 
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.2", queue: "bravo")
+    gossip(oban, node: "web.1", queue: "alpha")
+    gossip(oban, node: "web.2", queue: "bravo")
 
     refresh(live)
 
@@ -67,9 +67,9 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert_receive {_event, _ref, _timing, %{action: :resume_queues}}
   end
 
-  test "selecting all queues matching the current filters", %{live: live} do
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.2", queue: "bravo", paused: true)
+  test "selecting all queues matching the current filters", %{live: live, oban: oban} do
+    gossip(oban, node: "web.1", queue: "alpha")
+    gossip(oban, node: "web.2", queue: "bravo", paused: true)
 
     refresh(live)
 
@@ -91,7 +91,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert has_element?(live, "#selected-count", "1")
   end
 
-  test "sorting queues by different properties", %{live: live} do
+  test "sorting queues by different properties", %{live: live, oban: oban} do
     rate_limit = %{
       allowed: 10,
       period: 60,
@@ -99,8 +99,8 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
       windows: [%{curr_count: 3, prev_count: 0}]
     }
 
-    gossip(node: "web.1", queue: "alpha")
-    gossip(node: "web.1", queue: "gamma", rate_limit: rate_limit)
+    gossip(oban, node: "web.1", queue: "alpha")
+    gossip(oban, node: "web.1", queue: "gamma", rate_limit: rate_limit)
 
     refresh(live)
 

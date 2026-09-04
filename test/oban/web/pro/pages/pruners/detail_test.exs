@@ -1,11 +1,14 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.Pages.Pruners.DetailTest do
-    use Oban.Web.ProCase
+    # Pruner rules are keyed by name and the plugin inserts its configured rules on start. Tests in
+    # different modules insert the same names, and inserts of the same key from concurrent sandbox
+    # transactions block until the other test finishes, so the pruner modules run serially.
+    use Oban.Web.ProCase, async: false
 
     alias Oban.Pro.Pruner
 
     test "displaying a rule's match, retention, and evaluation order" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "media", queue: "media", state: :completed, max_len: 500, timeout: 15_000],
@@ -26,7 +29,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "linking to the jobs a rule matches" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "media", queue: "media", state: :cancelled, max_len: 500],
@@ -51,7 +54,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "listing the whole evaluation chain" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "media", queue: "media", max_len: 500],
@@ -72,7 +75,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "moving to another rule from the chain" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "media", queue: "media", max_len: 500],
@@ -99,7 +102,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "badging a rule that earlier rules already claim" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "retained", queue: "media", max_age: :infinity],
@@ -113,7 +116,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "leaving rules unmarked when earlier rules are paused or only partly overlap" do
-      live =
+      %{live: live} =
         start_pruner_live!(
           rules: [
             [name: "retained", queue: "media", max_age: :infinity, paused: true],
@@ -127,38 +130,38 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "pausing and resuming a rule from the drawer" do
-      live =
+      %{live: live, oban: oban} =
         start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]], rule: "media")
 
       live |> element("#detail-pause-resume") |> render_click()
 
       assert live |> element("#status-paused") |> has_element?()
       assert render(live) =~ "Rule &quot;media&quot; paused"
-      assert %{paused: true} = Pruner.get("media")
+      assert %{paused: true} = Pruner.get(oban, "media")
 
       live |> element("#detail-pause-resume") |> render_click()
 
       refute live |> element("#status-paused") |> has_element?()
       assert render(live) =~ "Rule &quot;media&quot; resumed"
-      assert %{paused: false} = Pruner.get("media")
+      assert %{paused: false} = Pruner.get(oban, "media")
     end
 
     test "deleting a rule from the drawer" do
-      live =
+      %{live: live, oban: oban} =
         start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]], rule: "media")
 
       live |> element("#detail-delete") |> render_click()
 
       assert_patch(live, "/oban/pruners")
       assert render(live) =~ "Rule &quot;media&quot; deleted"
-      assert is_nil(Pruner.get("media"))
+      assert is_nil(Pruner.get(oban, "media"))
     end
 
     test "refusing to act on a stale copy of a rule" do
-      live =
+      %{live: live, oban: oban} =
         start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]], rule: "media")
 
-      assert {:ok, _rule} = Pruner.update("media", limit: 1_000)
+      assert {:ok, _rule} = Pruner.update(oban, "media", limit: 1_000)
 
       live |> element("#detail-pause-resume") |> render_click()
 
@@ -167,14 +170,14 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert html =~ "changed elsewhere"
       assert html =~ ~s(role="alert")
       assert html =~ "icon-exclamation-circle"
-      assert %{paused: false} = Pruner.get("media")
+      assert %{paused: false} = Pruner.get(oban, "media")
     end
 
     test "returning to the index when a rule is deleted" do
-      live =
+      %{live: live, oban: oban} =
         start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]], rule: "media")
 
-      assert {:ok, _rule} = Pruner.delete("media")
+      assert {:ok, _rule} = Pruner.delete(oban, "media")
 
       send(live.pid, :refresh)
 
@@ -183,7 +186,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     describe "read only access" do
       test "disabling every mutating control" do
-        live =
+        %{live: live} =
           start_pruner_live!(
             rules: [[name: "media", queue: "media", max_len: 500]],
             rule: "media",
@@ -210,7 +213,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
       {:ok, live, _html} = live(build_conn(), "#{prefix}/pruners/#{name}")
 
-      live
+      %{live: live, oban: oban}
     end
   end
 end

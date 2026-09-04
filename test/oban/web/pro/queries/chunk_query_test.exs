@@ -1,6 +1,6 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.ChunkQueryTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     import Oban.Web.Helpers, only: [chunk_count: 1, chunk_leader?: 1, chunk_leader_id: 1]
 
@@ -8,14 +8,12 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     describe "executing chunks" do
       setup do
-        name = start_supervised_oban!(queues: [chunks: 1], stage_interval: 10)
-
-        {:ok, conf: Oban.config(name)}
+        start_supervised_oban!(%{oban_opts: [queues: [chunks: 1], stage_interval: 10]})
       end
 
-      test "recognizing the leader and siblings of a running chunk", %{conf: conf} do
+      test "recognizing the leader and siblings of a running chunk", %{conf: conf, oban: oban} do
         {worker_pid, [leader | siblings]} =
-          start_blocked_chunk!([%{ref: 1}, %{ref: 2}, %{ref: 3}])
+          start_blocked_chunk!(oban, [%{ref: 1}, %{ref: 2}, %{ref: 3}])
 
         assert chunk_leader?(leader)
         assert 3 == chunk_count(leader)
@@ -40,16 +38,14 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     describe "all_jobs/2 with a running queue" do
       setup do
-        name = start_supervised_oban!(queues: [chunks: 1], stage_interval: 10)
-
-        {:ok, conf: Oban.config(name)}
+        start_supervised_oban!(%{oban_opts: [queues: [chunks: 1], stage_interval: 10]})
       end
 
-      test "folding chunk siblings into their leader while executing", %{conf: conf} do
-        {worker_pid, [leader, sibling]} = start_blocked_chunk!([%{ref: 1}, %{ref: 2}])
+      test "folding chunk siblings into their leader while executing", %{conf: conf, oban: oban} do
+        {worker_pid, [leader, sibling]} = start_blocked_chunk!(oban, [%{ref: 1}, %{ref: 2}])
 
         # The blocked leader fills the queue, so this chunk is only picked up by the inline drain
-        run_chunk!([%{ref: 4}, %{ref: 5}])
+        run_chunk!(oban, [%{ref: 4}, %{ref: 5}])
 
         insert_job!(%{ref: 3}, state: "executing", attempted_by: ["worker.2", "abc-123"])
 
@@ -63,14 +59,12 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "all_jobs/2" do
-      setup do
-        {:ok, conf: Oban.config(start_supervised_oban!())}
-      end
+      setup :start_supervised_oban!
 
-      test "filtering by chunk leader", %{conf: conf} do
-        [leader | _siblings] = run_chunk!([%{ref: 1}, %{ref: 2}, %{ref: 3}])
+      test "filtering by chunk leader", %{conf: conf, oban: oban} do
+        [leader | _siblings] = run_chunk!(oban, [%{ref: 1}, %{ref: 2}, %{ref: 3}])
 
-        run_chunk!([%{ref: 4}])
+        run_chunk!(oban, [%{ref: 4}])
         insert_job!(%{ref: 5}, state: "completed")
 
         assert [1, 2, 3] == filter_refs(conf, state: "completed", chunks: [leader.id])
@@ -79,16 +73,17 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "chunk_counts/2" do
-      setup do
-        {:ok, conf: Oban.config(start_supervised_oban!())}
-      end
+      setup :start_supervised_oban!
 
-      test "counting a leader's chunk members by state, including the leader", %{conf: conf} do
+      test "counting a leader's chunk members by state, including the leader", %{
+        conf: conf,
+        oban: oban
+      } do
         [leader | _siblings] =
-          run_chunk!([%{ref: 1}, %{ref: 2}, %{ref: 3}, %{ref: 4, result: "error"}])
+          run_chunk!(oban, [%{ref: 1}, %{ref: 2}, %{ref: 3}, %{ref: 4, result: "error"}])
 
         # Another chunk's jobs aren't counted
-        run_chunk!([%{ref: 5}])
+        run_chunk!(oban, [%{ref: 5}])
 
         assert %{"completed" => 3, "retryable" => 1} == JobQuery.chunk_counts(conf, leader)
       end

@@ -6,22 +6,20 @@ defmodule Oban.Workers.NewJobWorker do
 end
 
 defmodule Oban.Web.Pages.Jobs.IndexTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   import Phoenix.LiveViewTest
 
   setup do
-    start_supervised_oban!()
-
-    Job.states()
+    oban = start_supervised_oban!()
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, live: live}
+    {:ok, live: live, oban: oban}
   end
 
   describe "filtering" do
-    test "viewing jobs by state", %{live: live} do
+    test "viewing jobs by state", %{live: live, oban: oban} do
       now = DateTime.utc_now()
 
       changesets = [
@@ -33,9 +31,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
         Job.new(%{ref: 6}, worker: CompletedWorker, state: "completed", completed_at: now)
       ]
 
-      Oban.insert_all(changesets)
+      Oban.insert_all(oban, changesets)
 
-      flush_reporter()
+      flush_reporter(oban)
 
       for state <- ~w(available scheduled retryable cancelled discarded completed) do
         title = String.capitalize(state)
@@ -46,12 +44,12 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       end
     end
 
-    test "filtering jobs by node", %{live: live} do
+    test "filtering jobs by node", %{live: live, oban: oban} do
       web_1 = ["web-1", "aaaa-aaaa"]
       web_2 = ["web-2", "bbbb-bbbb"]
 
-      gossip(node: "web-1", queue: "alpha")
-      gossip(node: "web-2", queue: "alpha")
+      gossip(oban, node: "web-1", queue: "alpha")
+      gossip(oban, node: "web-2", queue: "alpha")
 
       insert_job!([ref: 1], queue: "alpha", worker: AlphaWorker, attempted_by: web_1)
       insert_job!([ref: 2], queue: "alpha", worker: DeltaWorker, attempted_by: web_2)
@@ -100,13 +98,13 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_element?(live, "#job-rescued-#{job_2.id}")
     end
 
-    test "indicating orphaned jobs", %{live: live} do
+    test "indicating orphaned jobs", %{live: live, oban: oban} do
       now = DateTime.utc_now()
 
       web_1 = ["web-1", "aaaa-aaaa"]
       web_2 = ["web-1", "bbbb-bbbb"]
 
-      gossip(node: "web-1", queue: "alpha", uuid: "bbbb-bbbb")
+      gossip(oban, node: "web-1", queue: "alpha", uuid: "bbbb-bbbb")
 
       job_1 =
         insert_job!([ref: 1],
@@ -133,8 +131,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_element?(live, "#job-orphaned-#{job_2.id}")
     end
 
-    test "viewing available or scheduled clears the node filter", %{live: live} do
-      gossip(node: "web-1", queue: "alpha")
+    test "viewing available or scheduled clears the node filter", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
 
       click_state(live, "executing")
       click_node(live, "web-1")
@@ -144,10 +142,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(nodes: "web-1", state: "available"))
     end
 
-    test "filtering jobs by queue", %{live: live} do
-      gossip(node: "web-1", queue: "alpha")
-      gossip(node: "web-1", queue: "delta")
-      gossip(node: "web-1", queue: "gamma")
+    test "filtering jobs by queue", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
+      gossip(oban, node: "web-1", queue: "delta")
+      gossip(oban, node: "web-1", queue: "gamma")
 
       changesets = [
         Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
@@ -155,9 +153,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
         Job.new(%{ref: 3}, queue: "gamma", worker: GammaWorker)
       ]
 
-      Oban.insert_all(changesets)
+      Oban.insert_all(oban, changesets)
 
-      flush_reporter()
+      flush_reporter(oban)
 
       click_state(live, "available")
       click_queue(live, "delta")
@@ -174,10 +172,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_job?(live, "GammaWorker")
     end
 
-    test "filtering through the autocomplete toolbar", %{live: live} do
-      gossip(node: "web-1", queue: "alpha")
-      gossip(node: "web-1", queue: "delta")
-      gossip(node: "web-1", queue: "gamma")
+    test "filtering through the autocomplete toolbar", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
+      gossip(oban, node: "web-1", queue: "delta")
+      gossip(oban, node: "web-1", queue: "gamma")
 
       changesets = [
         Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
@@ -185,9 +183,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
         Job.new(%{ref: 3}, queue: "gamma", worker: GammaWorker)
       ]
 
-      Oban.insert_all(changesets)
+      Oban.insert_all(oban, changesets)
 
-      flush_reporter()
+      flush_reporter(oban)
 
       click_state(live, "available")
 
@@ -224,9 +222,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   end
 
   describe "bulk operations" do
-    test "cancelling selected jobs", %{live: live} do
+    test "cancelling selected jobs", %{live: live, oban: oban} do
       [job_1, _job, job_3] =
-        Oban.insert_all([
+        Oban.insert_all(oban, [
           Job.new(%{ref: 1}, state: "available", worker: WorkerA),
           Job.new(%{ref: 2}, state: "available", worker: WorkerB),
           Job.new(%{ref: 3}, state: "available", worker: WorkerC)
@@ -240,9 +238,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       hidden_job?(live, job_3)
     end
 
-    test "deleting selected jobs", %{live: live} do
+    test "deleting selected jobs", %{live: live, oban: oban} do
       [job_1, _job, job_3] =
-        Oban.insert_all([
+        Oban.insert_all(oban, [
           Job.new(%{ref: 1}, state: "available", worker: WorkerA),
           Job.new(%{ref: 2}, state: "available", worker: WorkerB),
           Job.new(%{ref: 3}, state: "available", worker: WorkerC)
@@ -327,9 +325,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_element?(live, "#new-job-button[aria-disabled]")
     end
 
-    test "creates a job with all options", %{live: live} do
-      gossip(node: "web-1", queue: "alpha")
-      gossip(node: "web-1", queue: "gamma")
+    test "creates a job with all options", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
+      gossip(oban, node: "web-1", queue: "gamma")
 
       refresh(live)
 

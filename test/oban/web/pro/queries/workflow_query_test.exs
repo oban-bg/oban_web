@@ -1,39 +1,37 @@
 if Code.ensure_loaded?(Oban.Pro) do
   defmodule Oban.Web.Pro.WorkflowQueryTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     alias Oban.Web.{Workflow, WorkflowQuery}
     alias Oban.Web.Workflows.Helpers
 
     setup context do
-      name = start_supervised_oban!(Map.get(context, :oban_opts, []))
-
-      {:ok, conf: Oban.config(name), oban: name}
+      start_supervised_oban!(context)
     end
 
     describe "all_workflows/2 filtering" do
-      test "filtering by workflow id", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-alpha", steps: [[worker: "WorkerA"]])
-        insert_workflow!(workflow_id: "wf-gamma", steps: [[worker: "WorkerB"]])
+      test "filtering by workflow id", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-alpha", steps: [[worker: "WorkerA"]])
+        insert_workflow!(oban, workflow_id: "wf-gamma", steps: [[worker: "WorkerB"]])
 
         assert ["wf-alpha"] == workflow_ids(conf, ids: ~w(wf-alpha))
         assert ["wf-gamma"] == workflow_ids(conf, ids: ~w(wf-gamma))
         assert [] == workflow_ids(conf, ids: ~w(wf-unknown))
       end
 
-      test "filtering by workflow name", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-1", workflow_name: "order-fulfillment")
-        insert_workflow!(workflow_id: "wf-2", workflow_name: "data-migration")
-        insert_workflow!(workflow_id: "wf-3")
+      test "filtering by workflow name", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-1", workflow_name: "order-fulfillment")
+        insert_workflow!(oban, workflow_id: "wf-2", workflow_name: "data-migration")
+        insert_workflow!(oban, workflow_id: "wf-3")
 
         assert ["wf-1"] == workflow_ids(conf, names: ~w(order-fulfillment))
         assert ["wf-2"] == workflow_ids(conf, names: ~w(data-migration))
         assert [] == workflow_ids(conf, names: ~w(unknown-workflow))
       end
 
-      test "filtering by queue", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-media", steps: [[queue: "media"]])
-        insert_workflow!(workflow_id: "wf-default", steps: [[queue: "default"]])
+      test "filtering by queue", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-media", steps: [[queue: "media"]])
+        insert_workflow!(oban, workflow_id: "wf-default", steps: [[queue: "default"]])
 
         assert ["wf-media"] == workflow_ids(conf, queues: ~w(media))
         assert ["wf-default"] == workflow_ids(conf, queues: ~w(default))
@@ -41,17 +39,17 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert [] == workflow_ids(conf, queues: ~w(unknown))
       end
 
-      test "filtering by worker", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-video", steps: [[worker: "VideoProcessor"]])
-        insert_workflow!(workflow_id: "wf-audio", steps: [[worker: "AudioProcessor"]])
+      test "filtering by worker", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-video", steps: [[worker: "VideoProcessor"]])
+        insert_workflow!(oban, workflow_id: "wf-audio", steps: [[worker: "AudioProcessor"]])
 
         assert ["wf-video"] == workflow_ids(conf, workers: ~w(VideoProcessor))
         assert ["wf-audio"] == workflow_ids(conf, workers: ~w(AudioProcessor))
         assert [] == workflow_ids(conf, workers: ~w(UnknownWorker))
       end
 
-      test "filtering by kind", %{conf: conf} do
-        saga = run_failed_saga!()
+      test "filtering by kind", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban)
 
         assert [saga.compensation_id] == workflow_ids(conf, kinds: ["compensation"])
         assert [saga.id] == workflow_ids(conf, kinds: ["standard"])
@@ -60,9 +58,9 @@ if Code.ensure_loaded?(Oban.Pro) do
                  workflow_ids(conf, kinds: ["compensation", "standard"])
       end
 
-      test "filtering by state", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-exec")
-        run_workflow!(workflow_id: "wf-done")
+      test "filtering by state", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-exec")
+        run_workflow!(oban, workflow_id: "wf-done")
 
         assert ["wf-exec"] == workflow_ids(conf, states: ~w(executing))
         assert ["wf-done"] == workflow_ids(conf, states: ~w(completed))
@@ -70,10 +68,9 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "custom prefix" do
-      @tag oban_opts: [name: ObanPrivate, prefix: "private"]
+      @tag oban_opts: [prefix: "private"]
       test "all_workflows aggregates with the configured prefix", %{conf: conf, oban: oban} do
-        insert_workflow!(
-          oban: oban,
+        insert_workflow!(oban,
           workflow_id: "parent-private",
           steps: [[worker: "ParentWorker"]],
           subs: [
@@ -88,13 +85,12 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert workflow.total == 3
       end
 
-      @tag oban_opts: [name: ObanPrivate, prefix: "private"]
+      @tag oban_opts: [prefix: "private"]
       test "get_workflow_graph resolves dependencies with the configured prefix", %{
         conf: conf,
         oban: oban
       } do
-        insert_workflow!(
-          oban: oban,
+        insert_workflow!(oban,
           workflow_id: "graph-parent",
           steps: [[name: :parent_step]],
           subs: [[workflow_id: "graph-sub", deps: [:parent_step]]]
@@ -109,8 +105,8 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "get_workflow_graph/3 sub-workflow parent deps" do
-      test "resolves parent_dep for every sub-workflow", %{conf: conf} do
-        insert_workflow!(
+      test "resolves parent_dep for every sub-workflow", %{conf: conf, oban: oban} do
+        insert_workflow!(oban,
           workflow_id: "parent",
           steps: [[name: :step_a], [name: :step_b]],
           subs: [
@@ -128,8 +124,8 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "get_sub_workflows/3" do
-      test "returns sub-workflows for a parent workflow", %{conf: conf} do
-        insert_workflow!(
+      test "returns sub-workflows for a parent workflow", %{conf: conf, oban: oban} do
+        insert_workflow!(oban,
           workflow_id: "parent-wf",
           workflow_name: "parent",
           subs: [
@@ -143,8 +139,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert ["sub-wf-1", "sub-wf-2"] == subs |> Enum.map(& &1.id) |> Enum.sort()
       end
 
-      test "respects the limit parameter", %{conf: conf} do
-        insert_workflow!(
+      test "respects the limit parameter", %{conf: conf, oban: oban} do
+        insert_workflow!(oban,
           workflow_id: "parent-wf",
           subs: [[workflow_id: "sub-1"], [workflow_id: "sub-2"], [workflow_id: "sub-3"]]
         )
@@ -154,16 +150,16 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert length(subs) == 2
       end
 
-      test "returns empty list when no sub-workflows exist", %{conf: conf} do
-        insert_workflow!(workflow_id: "lonely-wf")
+      test "returns empty list when no sub-workflows exist", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "lonely-wf")
 
         assert [] == WorkflowQuery.get_sub_workflows(conf, "lonely-wf")
       end
     end
 
     describe "get_workflow_graph/3 compensation metadata" do
-      test "including the compensate declaration on forward jobs", %{conf: conf} do
-        saga = run_failed_saga!()
+      test "including the compensate declaration on forward jobs", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban)
 
         %{jobs: jobs} = WorkflowQuery.get_workflow_graph(conf, saga.id)
 
@@ -174,8 +170,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute ship.meta["compensate"]
       end
 
-      test "including origin links on compensating jobs", %{conf: conf} do
-        saga = run_failed_saga!()
+      test "including origin links on compensating jobs", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban)
         charge = saga.jobs["charge"]
 
         %{jobs: [job]} = WorkflowQuery.get_workflow_graph(conf, saga.compensation_id)
@@ -195,8 +191,11 @@ if Code.ensure_loaded?(Oban.Pro) do
                  WorkflowQuery.suggest("kinds:", conf)
       end
 
-      test "omitting compensation workflows from name and worker suggestions", %{conf: conf} do
-        run_failed_saga!(workflow_name: "order-fulfillment")
+      test "omitting compensation workflows from name and worker suggestions", %{
+        conf: conf,
+        oban: oban
+      } do
+        run_failed_saga!(oban, workflow_name: "order-fulfillment")
 
         names = suggestions(WorkflowQuery.suggest("names:", conf))
         workers = suggestions(WorkflowQuery.suggest("workers:", conf))
@@ -209,8 +208,8 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "get_compensation_steps/3" do
-      test "pairing compensating jobs with the workers they roll back", %{conf: conf} do
-        saga = run_failed_saga!()
+      test "pairing compensating jobs with the workers they roll back", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban)
         charge = saga.jobs["charge"]
 
         assert [step] = WorkflowQuery.get_compensation_steps(conf, saga.compensation_id)
@@ -220,8 +219,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert step.meta["origin_worker"] =~ "ChargeCard"
       end
 
-      test "tolerating a compensating job whose origin was pruned", %{conf: conf} do
-        saga = run_failed_saga!()
+      test "tolerating a compensating job whose origin was pruned", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban)
 
         Repo.delete!(saga.jobs["charge"])
 
@@ -233,8 +232,8 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "compensation linking" do
-      test "linking an origin and its compensation in both directions", %{conf: conf} do
-        saga = run_failed_saga!(workflow_name: "order-fulfillment")
+      test "linking an origin and its compensation in both directions", %{conf: conf, oban: oban} do
+        saga = run_failed_saga!(oban, workflow_name: "order-fulfillment")
 
         %{id: origin_id, compensation_id: comp_id} = saga
 
@@ -247,10 +246,10 @@ if Code.ensure_loaded?(Oban.Pro) do
                  WorkflowQuery.get_origin(conf, compensation)
       end
 
-      test "returning nil for a workflow without compensation links", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-plain")
+      test "returning nil for a workflow without compensation links", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wq-plain")
 
-        workflow = WorkflowQuery.get_workflow(conf, "wf-plain")
+        workflow = WorkflowQuery.get_workflow(conf, "wq-plain")
 
         assert nil == WorkflowQuery.get_compensation(conf, workflow)
         assert nil == WorkflowQuery.get_origin(conf, workflow)
@@ -258,16 +257,16 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "get_root_workflow/3" do
-      test "returning a root workflow unchanged", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-root")
+      test "returning a root workflow unchanged", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-root")
 
         workflow = WorkflowQuery.get_workflow(conf, "wf-root")
 
         assert %{id: "wf-root"} = WorkflowQuery.get_root_workflow(conf, workflow)
       end
 
-      test "walking up nested sub-workflows to the family root", %{conf: conf} do
-        insert_workflow!(
+      test "walking up nested sub-workflows to the family root", %{conf: conf, oban: oban} do
+        insert_workflow!(oban,
           workflow_id: "wf-root",
           workflow_name: "family",
           subs: [[workflow_id: "wf-mid", subs: [[workflow_id: "wf-leaf"]]]]
@@ -278,8 +277,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert %{id: "wf-root", name: "family"} = WorkflowQuery.get_root_workflow(conf, leaf)
       end
 
-      test "stopping at a workflow whose parent is missing", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-gone", subs: [[workflow_id: "wf-orphan"]])
+      test "stopping at a workflow whose parent is missing", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-gone", subs: [[workflow_id: "wf-orphan"]])
 
         # Pruning removed the parent, leaving the sub-workflow behind
         Repo.delete_all(where(Workflow, id: "wf-gone"))
@@ -289,12 +288,12 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert %{id: "wf-orphan"} = WorkflowQuery.get_root_workflow(conf, orphan)
       end
 
-      test "stopping once the ancestor depth is exhausted", %{conf: conf} do
-        insert_workflow!(workflow_id: "wf-root", subs: [[workflow_id: "wf-child"]])
+      test "stopping once the ancestor depth is exhausted", %{conf: conf, oban: oban} do
+        insert_workflow!(oban, workflow_id: "wf-root", subs: [[workflow_id: "wq-child"]])
 
-        child = WorkflowQuery.get_workflow(conf, "wf-child")
+        child = WorkflowQuery.get_workflow(conf, "wq-child")
 
-        assert %{id: "wf-child"} = WorkflowQuery.get_root_workflow(conf, child, 0)
+        assert %{id: "wq-child"} = WorkflowQuery.get_root_workflow(conf, child, 0)
       end
     end
 

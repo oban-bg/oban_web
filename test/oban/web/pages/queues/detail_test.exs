@@ -1,5 +1,5 @@
 defmodule Oban.Web.Pages.Queues.DetailTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   import Phoenix.LiveViewTest
 
@@ -9,16 +9,16 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     {:error, {:live_redirect, %{to: "/oban/queues"}}} = live(build_conn(), "/oban/queues/omicron")
   end
 
-  test "viewing details for a queue with a slash in the name" do
-    gossip(local_limit: 5, queue: "foo/bar.baz")
+  test "viewing details for a queue with a slash in the name", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "foo/bar.baz")
 
     live = render_details("foo/bar.baz")
 
     assert has_element?(live, "[name=local_limit][value=\"5\"]")
   end
 
-  test "linking each state count to the jobs filtered by queue and state" do
-    gossip(local_limit: 5, queue: "alpha")
+  test "linking each state count to the jobs filtered by queue and state", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha")
 
     live = render_details("alpha")
 
@@ -31,8 +31,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert has_element?(live, "#queue-limits dd.tabular", "5")
   end
 
-  test "scaling the local limit across all nodes" do
-    gossip(local_limit: 5, queue: "alpha")
+  test "scaling the local limit across all nodes", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha")
 
     live = render_details("alpha")
 
@@ -47,8 +47,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_signal(%{"action" => "scale", "limit" => 10, "queue" => "alpha"})
   end
 
-  test "showing a new limit as pending until the node reports it" do
-    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+  test "showing a new limit as pending until the node reports it", %{oban: oban} do
+    gossip(oban, local_limit: 5, node: "web-1", queue: "alpha")
 
     live = render_details("alpha")
 
@@ -61,15 +61,15 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert has_element?(live, "#web-1-pending", "10")
     refute has_element?(live, "#web-1-limit [phx-mounted]")
 
-    gossip(local_limit: 10, node: "web-1", queue: "alpha")
+    gossip(oban, local_limit: 10, node: "web-1", queue: "alpha")
     send(live.pid, :refresh)
 
     refute has_element?(live, "#web-1-pending")
     assert has_element?(live, "#web-1-limit [phx-mounted]", "10")
   end
 
-  test "rejecting an invalid local limit for all nodes" do
-    gossip(local_limit: 5, queue: "alpha")
+  test "rejecting an invalid local limit for all nodes", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha")
 
     live = render_details("alpha")
 
@@ -89,8 +89,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_signal(%{"action" => "scale", "limit" => 3, "queue" => "alpha"})
   end
 
-  test "rejecting an invalid limit for a single instance" do
-    gossip(local_limit: 5, queue: "alpha", node: "web-1")
+  test "rejecting an invalid limit for a single instance", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha", node: "web-1")
 
     live = render_details("alpha")
 
@@ -107,12 +107,12 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     refute_receive {:action, %{action: :scale_queue}}
   end
 
-  test "leaving the details when the queue stops running on every node" do
-    gossip(local_limit: 5, queue: "alpha")
+  test "leaving the details when the queue stops running on every node", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha")
 
     live = render_details("alpha")
 
-    Oban.Met.Examiner.purge(Oban.Registry.via(Oban, Oban.Met.Examiner), 1)
+    Oban.Met.Examiner.purge(Oban.Registry.via(oban, Oban.Met.Examiner), 1)
 
     send(live.pid, :refresh)
 
@@ -120,9 +120,9 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_notice(live, "The alpha queue is no longer running on any node")
   end
 
-  test "pausing and resuming the queue on every node" do
-    gossip(local_limit: 5, node: "web-1", queue: "alpha")
-    gossip(local_limit: 5, node: "web-2", queue: "alpha")
+  test "pausing and resuming the queue on every node", %{oban: oban} do
+    gossip(oban, local_limit: 5, node: "web-1", queue: "alpha")
+    gossip(oban, local_limit: 5, node: "web-2", queue: "alpha")
 
     live = render_details("alpha")
 
@@ -143,8 +143,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     refute has_element?(live, "#status-paused")
   end
 
-  test "pausing the queue on a single node" do
-    gossip(local_limit: 5, node: "web-1", queue: "alpha")
+  test "pausing the queue on a single node", %{oban: oban} do
+    gossip(oban, local_limit: 5, node: "web-1", queue: "alpha")
 
     live = render_details("alpha")
 
@@ -156,8 +156,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_notice(live, "Paused the alpha queue on web-1")
   end
 
-  test "stopping the queue on every node" do
-    gossip(local_limit: 5, node: "web-1", queue: "alpha", running: [1, 2])
+  test "stopping the queue on every node", %{oban: oban} do
+    gossip(oban, local_limit: 5, node: "web-1", queue: "alpha", running: [1, 2])
 
     live = render_details("alpha")
 
@@ -174,8 +174,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     assert_notice(live, "Stopped the alpha queue on 1 node")
   end
 
-  test "reporting a limit the engine rejects instead of crashing" do
-    gossip(local_limit: 5, queue: "alpha")
+  test "reporting a limit the engine rejects instead of crashing", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha")
 
     live = render_details("alpha")
 
@@ -185,9 +185,9 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     refute_receive {:action, %{action: :scale_queue}}
   end
 
-  test "scaling the limit for a single instance" do
-    gossip(local_limit: 5, queue: "alpha", node: "web-1")
-    gossip(local_limit: 6, queue: "alpha", node: "web-2")
+  test "scaling the limit for a single instance", %{oban: oban} do
+    gossip(oban, local_limit: 5, queue: "alpha", node: "web-1")
+    gossip(oban, local_limit: 6, queue: "alpha", node: "web-2")
 
     live = render_details("alpha")
 
@@ -230,23 +230,29 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
 
   # Helpers
 
-  defp attach_signals(_context) do
-    :ok = Oban.Notifier.listen([:signal])
+  defp attach_signals(%{oban: oban}) do
+    :ok = Oban.Notifier.listen(oban, [:signal])
+
+    handler_id = {__MODULE__, oban}
 
     :telemetry.attach(
-      __MODULE__,
+      handler_id,
       [:oban_web, :action, :stop],
       &__MODULE__.handle_event/4,
-      self()
+      {self(), oban}
     )
 
-    on_exit(fn -> :telemetry.detach(__MODULE__) end)
+    on_exit(fn -> :telemetry.detach(handler_id) end)
 
     :ok
   end
 
-  def handle_event([:oban_web, :action, _event], _measure, meta, pid) do
-    send(pid, {:action, meta})
+  # Actions from concurrently running tests fire the same event, only forward our instance's.
+  def handle_event([:oban_web, :action, _event], _measure, meta, {pid, oban}) do
+    case meta do
+      %{config: %{name: ^oban}} -> send(pid, {:action, meta})
+      _ -> :ok
+    end
   end
 
   defp stub_routing(_context) do

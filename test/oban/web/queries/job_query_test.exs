@@ -25,7 +25,7 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
 
     defmodule JobResolver do
       def jobs_query_limit(:completed), do: 1
-      def jobs_query_limit(:executing), do: 10
+      def jobs_query_limit(:executing), do: 1_000
     end
 
     describe "parse/1" do
@@ -241,7 +241,13 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         insert!(%{}, queue: :gamma, worker: MyApp.Gamma)
         insert!(%{}, queue: :delta, worker: MyApp.Delta)
 
-        assert [_, _] = suggest("workers:", resolver: HintResolver)
+        # Limits are id windows below the newest job. Concurrent tests leave gaps in the id
+        # sequence, so a window of one holds the newest job and maybe the one before it.
+        workers = suggest("workers:", resolver: HintResolver)
+
+        assert Enum.any?(workers, &match?({"MyApp.Delta", _, _}, &1))
+        refute Enum.any?(workers, &match?({"MyApp.Alpha", _, _}, &1))
+
         assert [_, _, _] = suggest("queues:", resolver: HintResolver)
       end
     end
@@ -393,7 +399,13 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         insert!(%{ref: 5}, state: "completed")
 
         assert [0, 1, 2] = filter_refs(%{state: "executing"}, resolver: JobResolver)
-        assert [4, 5] = filter_refs(%{state: "completed"}, resolver: JobResolver)
+
+        # Limits are id windows below the newest job. Concurrent tests leave gaps in the id
+        # sequence, so a window of one holds the newest job and maybe the one before it.
+        completed = filter_refs(%{state: "completed"}, resolver: JobResolver)
+
+        assert 5 in completed
+        refute 3 in completed
       end
     end
 

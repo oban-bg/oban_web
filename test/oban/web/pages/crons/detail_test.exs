@@ -6,7 +6,7 @@ defmodule Oban.Workers.StaticDetailCron do
 end
 
 defmodule Oban.Web.Pages.Crons.DetailTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   alias Oban.Web.Utils
   alias Oban.Workers.StaticDetailCron

@@ -21,11 +21,30 @@ defmodule Oban.Web.ErrorHTML do
   end
 end
 
+defmodule Oban.Web.Test.Resolver do
+  @behaviour Oban.Web.Resolver
+
+  # Every test runs its own uniquely named Oban instance, but dashboards mount at shared routes.
+  # The dead render happens in the test process, so the instances registered there by
+  # `start_supervised_oban!` are stashed on the user and used to scope the dashboard.
+  @impl Oban.Web.Resolver
+  def resolve_user(_conn), do: %{instances: Process.get(:oban_web_instances, [])}
+
+  @impl Oban.Web.Resolver
+  def resolve_instances(%{instances: [_ | _] = instances}), do: instances
+  def resolve_instances(_user), do: :all
+end
+
 defmodule PrivateResolver do
   @behaviour Oban.Web.Resolver
 
   @impl Oban.Web.Resolver
-  def resolve_instances(_user), do: [ObanPrivate]
+  defdelegate resolve_user(conn), to: Oban.Web.Test.Resolver
+
+  # Only the first instance a test starts is allowed, so a second one can exercise scoping.
+  @impl Oban.Web.Resolver
+  def resolve_instances(%{instances: [first | _]}), do: [first]
+  def resolve_instances(_user), do: :all
 end
 
 defmodule LimitedResolver do
@@ -41,6 +60,12 @@ end
 
 defmodule ReadOnlyResolver do
   @behaviour Oban.Web.Resolver
+
+  @impl Oban.Web.Resolver
+  defdelegate resolve_user(conn), to: Oban.Web.Test.Resolver
+
+  @impl Oban.Web.Resolver
+  defdelegate resolve_instances(user), to: Oban.Web.Test.Resolver
 
   @impl Oban.Web.Resolver
   def resolve_access(_user), do: :read_only
@@ -59,14 +84,10 @@ defmodule Oban.Web.Test.Router do
   scope "/", ThisWontBeUsed, as: :this_wont_be_used do
     pipe_through :browser
 
-    oban_dashboard "/oban"
+    oban_dashboard "/oban", resolver: Oban.Web.Test.Resolver
     oban_dashboard "/oban-limited", as: :oban_limited, resolver: LimitedResolver
     oban_dashboard "/oban-readonly", as: :oban_readonly, resolver: ReadOnlyResolver
-
-    oban_dashboard "/oban-private",
-      as: :oban_private,
-      oban_name: ObanPrivate,
-      resolver: PrivateResolver
+    oban_dashboard "/oban-private", as: :oban_private, resolver: PrivateResolver
   end
 end
 
@@ -92,8 +113,8 @@ Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.MyXQLRepo, :manual)
 Ecto.Adapters.SQL.Sandbox.mode(Oban.Web.Repo, :manual)
 
 # Pro tests are tagged with :pro through Oban.Web.ProCase and are only run when Pro is loaded.
-# The test files themselves are also wrapped in `Code.ensure_loaded?(Oban.Pro)`, see the ProCase
-# docs for the full strategy.
+# The test files themselves are also wrapped in `Code.ensure_loaded?(Oban.Pro)`, see the comment
+# on ProCase for the full strategy.
 exclude_tags =
   if Code.ensure_loaded?(Oban.Pro) do
     Oban.Web.StorageMock.setup()
@@ -103,4 +124,4 @@ exclude_tags =
     [:skip, :pro]
   end
 
-ExUnit.start(assert_receive_timeout: 500, refute_receive_timeout: 50, exclude: exclude_tags)
+ExUnit.start(assert_receive_timeout: 1_000, refute_receive_timeout: 50, exclude: exclude_tags)

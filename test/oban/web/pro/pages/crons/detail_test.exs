@@ -14,26 +14,27 @@ if Code.ensure_loaded?(Oban.Pro) do
   end
 
   defmodule Oban.Web.Pro.Pages.Crons.DetailTest do
-    use Oban.Web.ProCase
+    use Oban.Web.ProCase, async: true
 
     alias Oban.Pro.Cron
     alias Oban.Web.Utils
     alias Oban.Workers.{DefaultsCronWorker, DetailCronWorker}
 
     setup do
-      start_supervised_oban!(
-        plugins: [
-          {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-          {Cron, crontab: []}
-        ]
-      )
+      oban =
+        start_supervised_oban!(
+          plugins: [
+            {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
+            {Cron, crontab: []}
+          ]
+        )
 
-      :ok
+      {:ok, oban: oban}
     end
 
     describe "cron detail view" do
-      test "displays timezone from opts or defaults to Etc/UTC" do
-        Cron.insert([
+      test "displays timezone from opts or defaults to Etc/UTC", %{oban: oban} do
+        Cron.insert(oban, [
           {"0 * * * *", DetailCronWorker, name: "with-tz", timezone: "America/Chicago"},
           {"0 * * * *", DetailCronWorker, name: "without-tz"}
         ])
@@ -50,8 +51,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute html =~ ~s(value="Etc/UTC" selected)
       end
 
-      test "displays last status with correct state" do
-        Cron.insert([{"*/5 * * * *", DetailCronWorker, name: "status-test"}])
+      test "displays last status with correct state", %{oban: oban} do
+        Cron.insert(oban, [{"*/5 * * * *", DetailCronWorker, name: "status-test"}])
 
         insert_job!(
           [ref: 1],
@@ -65,8 +66,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert refresh(live) =~ "Completed"
       end
 
-      test "displays schedule with human-readable description" do
-        Cron.insert([{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
+      test "displays schedule with human-readable description", %{oban: oban} do
+        Cron.insert(oban, [{"*/15 * * * *", DetailCronWorker, name: "schedule-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/schedule-test")
 
@@ -78,8 +79,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "h2 #back-link")
       end
 
-      test "describing the stored schedule rather than edits in progress" do
-        Cron.insert([{"*/15 * * * *", DetailCronWorker, name: "describe-test"}])
+      test "describing the stored schedule rather than edits in progress", %{oban: oban} do
+        Cron.insert(oban, [{"*/15 * * * *", DetailCronWorker, name: "describe-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/describe-test")
 
@@ -93,8 +94,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute description =~ "Monday"
       end
 
-      test "labeling timezones with their current offset" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "offset-test"}])
+      test "labeling timezones with their current offset", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "offset-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/offset-test")
 
@@ -102,8 +103,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, ~s(#timezone option[value="America/Chicago"]), "(UTC-0")
       end
 
-      test "showing the worker's own defaults as placeholders" do
-        Cron.insert([
+      test "showing the worker's own defaults as placeholders", %{oban: oban} do
+        Cron.insert(oban, [
           {"0 * * * *", DetailCronWorker, name: "plain-worker"},
           {"0 * * * *", DefaultsCronWorker, name: "custom-worker"},
           {"0 * * * *", "Python.Worker", name: "foreign-worker"}
@@ -126,16 +127,16 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute has_element?(live, "#queue option", "worker default (")
       end
 
-      test "sizing the history window in the heading" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "window-test"}])
+      test "sizing the history window in the heading", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "window-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/window-test")
 
         assert live |> element("#cron-history-window") |> render() =~ "no runs yet"
       end
 
-      test "shows dynamic badge only for dynamic crons" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "dynamic-cron"}])
+      test "shows dynamic badge only for dynamic crons", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "dynamic-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/dynamic-cron")
 
@@ -151,8 +152,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "#status-static")
       end
 
-      test "pause button toggles cron pause state" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "pause-test"}])
+      test "pause button toggles cron pause state", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "pause-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/pause-test")
 
@@ -168,7 +169,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "button", "Resume")
         refute has_element?(live, "button", "Pause")
         assert has_element?(live, "#status-paused")
-        assert [%{paused: true}] = Cron.all()
+        assert [%{paused: true}] = Cron.all(oban)
 
         html = refresh(live)
 
@@ -177,15 +178,6 @@ if Code.ensure_loaded?(Oban.Pro) do
       end
 
       test "edit form is disabled for static crons" do
-        stop_supervised!(Oban)
-
-        start_supervised_oban!(
-          plugins: [
-            {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-            {Cron, crontab: []}
-          ]
-        )
-
         static_name = Utils.cron_entry_name({"* * * * *", DetailCronWorker, []})
         {:ok, live, _html} = live(build_conn(), "/oban/crons/#{static_name}")
 
@@ -197,17 +189,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute has_element?(live, "#detail-save")
       end
 
-      test "edit form is enabled for dynamic crons" do
-        stop_supervised!(Oban)
-
-        start_supervised_oban!(
-          plugins: [
-            {Oban.Cron, crontab: [{"* * * * *", DetailCronWorker}]},
-            {Cron, crontab: []}
-          ]
-        )
-
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "editable-cron"}])
+      test "edit form is enabled for dynamic crons", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "editable-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/editable-cron")
 
@@ -227,8 +210,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "#detail-discard:not([disabled])")
       end
 
-      test "discarding edits restores the stored values" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "discard-cron", priority: 1}])
+      test "discarding edits restores the stored values", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "discard-cron", priority: 1}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/discard-cron")
 
@@ -249,8 +232,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "#detail-save[disabled]")
       end
 
-      test "keeping edits in progress while refreshes replace the cron" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "fresh-cron", priority: 1}])
+      test "keeping edits in progress while refreshes replace the cron", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "fresh-cron", priority: 1}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/fresh-cron")
 
@@ -258,7 +241,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         |> element("#cron-form")
         |> render_change(%{"tags" => "urgent"})
 
-        assert {:ok, _entry} = Cron.update("fresh-cron", priority: 3)
+        assert {:ok, _entry} = Cron.update(oban, "fresh-cron", priority: 3)
 
         html = refresh(live)
 
@@ -266,8 +249,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert html =~ ~s(name="tags" value="urgent")
       end
 
-      test "run now button inserts a job for the cron" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "run-now-test"}])
+      test "run now button inserts a job for the cron", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "run-now-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-test")
 
@@ -285,8 +268,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert %{"cron_expr" => "0 * * * *", "cron_name" => "run-now-test"} = job.meta
       end
 
-      test "run now builds the job through the worker's new/2 when available" do
-        Cron.insert([{"0 * * * *", DefaultsCronWorker, name: "run-now-defaults"}])
+      test "run now builds the job through the worker's new/2 when available", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DefaultsCronWorker, name: "run-now-defaults"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/run-now-defaults")
 
@@ -302,8 +285,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert job.tags == ["from-worker"]
       end
 
-      test "delete button removes dynamic cron and redirects to list" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "delete-test"}])
+      test "delete button removes dynamic cron and redirects to list", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "delete-test"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/delete-test")
 
@@ -322,11 +305,11 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert_patch(live, "/oban/crons")
 
         # Cron should be deleted
-        assert [] = Cron.all(Oban)
+        assert [] = Cron.all(oban)
       end
 
-      test "editing and saving a dynamic cron" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "edit-cron"}])
+      test "editing and saving a dynamic cron", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "edit-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/edit-cron")
 
@@ -342,7 +325,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         })
         |> render_submit()
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == "edit-cron"))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == "edit-cron"))
         assert entry.expression == "*/30 * * * *"
         assert entry.opts["timezone"] == "America/New_York"
         assert entry.opts["priority"] == 3
@@ -352,8 +335,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert entry.opts["guaranteed"] == true
       end
 
-      test "removing all dynamic cron tags" do
-        Cron.insert([
+      test "removing all dynamic cron tags", %{oban: oban} do
+        Cron.insert(oban, [
           {"0 * * * *", DetailCronWorker, name: "clear-tags-cron", tags: ["important", "nightly"]}
         ])
 
@@ -369,12 +352,12 @@ if Code.ensure_loaded?(Oban.Pro) do
         |> form("#cron-form", %{"tags" => ""})
         |> render_submit()
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == "clear-tags-cron"))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == "clear-tags-cron"))
         refute Map.has_key?(entry.opts, "tags")
       end
 
-      test "clearing the queue and timezone falls back to the defaults" do
-        Cron.insert([
+      test "clearing the queue and timezone falls back to the defaults", %{oban: oban} do
+        Cron.insert(oban, [
           {"0 * * * *", DetailCronWorker,
            name: "clear-opts-cron", queue: "media", timezone: "America/Chicago", meta: %{"x" => 1}}
         ])
@@ -387,12 +370,12 @@ if Code.ensure_loaded?(Oban.Pro) do
         |> form("#cron-form", %{"queue" => "", "timezone" => ""})
         |> render_submit()
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == "clear-opts-cron"))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == "clear-opts-cron"))
         assert entry.opts == %{"meta" => %{"x" => 1}}
       end
 
-      test "rejecting args that aren't a JSON object" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "bad-args-cron"}])
+      test "rejecting args that aren't a JSON object", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "bad-args-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/bad-args-cron")
 
@@ -409,8 +392,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert live |> element("#cron-form-errors") |> render() =~ "Args must be valid JSON"
       end
 
-      test "rejecting an expression that can't be parsed" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "bad-expr-cron"}])
+      test "rejecting an expression that can't be parsed", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "bad-expr-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/bad-expr-cron")
 
@@ -420,12 +403,12 @@ if Code.ensure_loaded?(Oban.Pro) do
 
         assert live |> element("#cron-form-errors") |> render() =~ "valid cron expression"
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == "bad-expr-cron"))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == "bad-expr-cron"))
         assert entry.expression == "0 * * * *"
       end
 
-      test "guarding the jobs link while there are unsaved edits" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "guard-cron"}])
+      test "guarding the jobs link while there are unsaved edits", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "guard-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/guard-cron")
 
@@ -439,8 +422,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert has_element?(live, "#cron-view-jobs[data-confirm]")
       end
 
-      test "warning about consequences that aren't visible from the fields" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "advise-cron", guaranteed: true}])
+      test "warning about consequences that aren't visible from the fields", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "advise-cron", guaranteed: true}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/advise-cron")
 
@@ -468,8 +451,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute html =~ "Saving a new schedule"
       end
 
-      test "skipping the schedule warning without guaranteed insertion" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "plain-cron"}])
+      test "skipping the schedule warning without guaranteed insertion", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "plain-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/plain-cron")
 
@@ -480,8 +463,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         refute has_element?(live, "#cron-form-advisories")
       end
 
-      test "renaming a cron reopens it at the new address" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "old-name"}])
+      test "renaming a cron reopens it at the new address", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "old-name"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/old-name")
 
@@ -493,15 +476,15 @@ if Code.ensure_loaded?(Oban.Pro) do
 
         assert render(live) =~ ~s(name="name" value="new-name")
         assert has_element?(live, "#detail-save[disabled]")
-        assert [%{name: "new-name"}] = Cron.all()
+        assert [%{name: "new-name"}] = Cron.all(oban)
       end
     end
 
     describe "decorated crons" do
-      setup do
+      setup %{oban: oban} do
         handler = decorated_cron_name()
 
-        Cron.insert([decorated_cron_entry("0 * * * *", name: handler, tags: ["digest"])])
+        Cron.insert(oban, [decorated_cron_entry("0 * * * *", name: handler, tags: ["digest"])])
 
         {:ok, live, _html} = live(build_conn(), "/oban/crons/#{URI.encode_www_form(handler)}")
 
@@ -546,12 +529,16 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert job.tags == ["digest"]
       end
 
-      test "editing the schedule leaves the handler untouched", %{handler: handler, live: live} do
+      test "editing the schedule leaves the handler untouched", %{
+        handler: handler,
+        live: live,
+        oban: oban
+      } do
         live
         |> form("#cron-form", %{"expression" => "*/30 * * * *", "priority" => "2"})
         |> render_submit()
 
-        assert [entry] = Enum.filter(Cron.all(), &(&1.name == handler))
+        assert [entry] = Enum.filter(Cron.all(oban), &(&1.name == handler))
         assert entry.worker == "Oban.Pro.Decorator"
         assert entry.expression == "*/30 * * * *"
         assert entry.opts["priority"] == 2
@@ -560,8 +547,8 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     describe "read only access" do
-      test "disabling every mutating control" do
-        Cron.insert([{"0 * * * *", DetailCronWorker, name: "readonly-cron"}])
+      test "disabling every mutating control", %{oban: oban} do
+        Cron.insert(oban, [{"0 * * * *", DetailCronWorker, name: "readonly-cron"}])
 
         {:ok, live, _html} = live(build_conn(), "/oban-readonly/crons/readonly-cron")
 

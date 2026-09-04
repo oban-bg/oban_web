@@ -26,11 +26,12 @@ if Code.ensure_loaded?(Oban.Pro) do
     def start_supervised_oban!(opts_or_context \\ [])
 
     def start_supervised_oban!(context) when is_map(context) do
-      context
-      |> Map.get(:oban_opts, [])
-      |> start_supervised_oban!()
+      name =
+        context
+        |> Map.get(:oban_opts, [])
+        |> start_supervised_oban!()
 
-      :ok
+      %{oban: name, conf: Oban.config(name)}
     end
 
     def start_supervised_oban!(opts) when is_list(opts) do
@@ -39,19 +40,23 @@ if Code.ensure_loaded?(Oban.Pro) do
       |> Oban.Web.Case.start_supervised_oban!()
     end
 
-    def run_workflow(workflow, opts \\ []), do: Testing.run_workflow(workflow, with_oban(opts))
+    def run_workflow(oban, workflow, opts \\ []) do
+      Testing.run_workflow(workflow, Keyword.put(opts, :oban, oban))
+    end
 
-    def run_chunk(changesets, opts \\ []), do: Testing.run_chunk(changesets, with_oban(opts))
+    def run_chunk(oban, changesets, opts \\ []) do
+      Testing.run_chunk(changesets, Keyword.put(opts, :oban, oban))
+    end
 
-    def run_jobs(changesets, opts \\ []), do: Testing.run_jobs(changesets, with_oban(opts))
+    def run_jobs(oban, changesets, opts \\ []) do
+      Testing.run_jobs(changesets, Keyword.put(opts, :oban, oban))
+    end
 
-    def drain_jobs(opts \\ []) do
+    def drain_jobs(oban, opts \\ []) do
       opts
-      |> with_oban()
+      |> Keyword.put(:oban, oban)
       |> Keyword.put_new(:queue, :all)
       |> Testing.drain_jobs()
     end
-
-    defp with_oban(opts), do: Keyword.put_new(opts, :oban, Oban)
   end
 end

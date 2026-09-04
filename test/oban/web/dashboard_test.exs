@@ -1,7 +1,5 @@
 defmodule Oban.Web.DashboardTest do
-  use Oban.Web.Case
-
-  import Phoenix.LiveViewTest
+  use Oban.Web.Case, async: true
 
   test "forbidding mount using a resolver callback" do
     assert {:error, {:redirect, redirect}} = live(build_conn(), "/oban-limited")
@@ -9,14 +7,14 @@ defmodule Oban.Web.DashboardTest do
   end
 
   test "waiting for oban config while mounting during a restart" do
+    opts = prepare_oban_opts()
+
+    # Start the instance after the mount begins, and keep it alive until the mount finishes.
     task =
       Task.async(fn ->
         Process.sleep(25)
 
-        {:ok, _} =
-          Oban.start_link(repo: Repo, peer: Oban.Peers.Global, notifier: Oban.Notifiers.PG)
-
-        {:ok, _} = Oban.Met.start_link(conf: Oban.config())
+        {:ok, _pid} = Oban.start_link(opts)
 
         receive do
           :mounted -> :ok
@@ -25,7 +23,7 @@ defmodule Oban.Web.DashboardTest do
         end
       end)
 
-    assert {:ok, _, _} = live(build_conn(), "/oban")
+    assert {:ok, _live, _html} = live(build_conn(), "/oban")
 
     send(task.pid, :mounted)
 
@@ -33,16 +31,16 @@ defmodule Oban.Web.DashboardTest do
   end
 
   describe "isolation" do
-    test "viewing available jobs for a custom oban supervisor" do
-      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+    test "viewing available jobs for an instance with a custom prefix" do
+      oban = start_supervised_oban!(prefix: "private")
 
-      {:ok, live, _html} = live(build_conn(), "/oban-private")
+      {:ok, live, _html} = live(build_conn(), "/oban")
 
       job_1 = Job.new(%{}, worker: AlphaWorker)
       job_2 = Job.new(%{}, worker: DeltaWorker)
       job_3 = Job.new(%{}, worker: GammaWorker)
 
-      Oban.insert_all(ObanPrivate, [job_1, job_2, job_3])
+      Oban.insert_all(oban, [job_1, job_2, job_3])
 
       html = click_state(live, "available")
 
@@ -52,45 +50,62 @@ defmodule Oban.Web.DashboardTest do
     end
 
     test "routing to the configured path for a mount point" do
-      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+      start_supervised_oban!()
 
       assert {:error, {:live_redirect, %{to: "/oban-private/queues"}}} =
                live(build_conn(), "/oban-private/queues/omicron")
     end
 
     test "switching between actively running instances" do
-      start_supervised_oban!(name: Oban)
-      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+      oban_1 = start_supervised_oban!()
+      oban_2 = start_supervised_oban!()
 
       {:ok, live, _html} = live(build_conn(), "/oban")
 
-      assert has_element?(live, "#instance-select button[phx-value-name=Oban]")
-      assert has_element?(live, "#instance-select button[phx-value-name=ObanPrivate]")
+      assert has_element?(live, instance_option(oban_1))
+      assert has_element?(live, instance_option(oban_2))
 
-      change_instance(live, "ObanPrivate")
+      change_instance(live, oban_2)
 
-      assert has_element?(live, "#instance-select-menu-toggle", "ObanPrivate")
+      assert has_element?(live, "#instance-select-menu-toggle", inspect(oban_2))
     end
 
     test "disallowing switching to unresolved instances" do
-      start_supervised_oban!(name: Oban)
-      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+      oban_1 = start_supervised_oban!()
+      oban_2 = start_supervised_oban!()
 
       {:ok, live, _html} = live(build_conn(), "/oban-private")
 
-      refute has_element?(live, "#instance-select button[phx-value-name=Oban]")
+      refute has_element?(live, instance_option(oban_2))
       refute has_element?(live, "#instance-select-menu-toggle")
-      assert has_element?(live, "#instance-select", "ObanPrivate")
+      assert has_element?(live, "#instance-select", inspect(oban_1))
     end
 
-    test "defaulting to the first found running instance" do
-      start_supervised_oban!(name: ObanPrivate, prefix: "private")
+    test "defaulting to the first allowed running instance" do
+      oban_1 = start_supervised_oban!()
+      _oban_2 = start_supervised_oban!()
 
-      {:ok, live, _html} = live(build_conn(), "/oban")
+      {:ok, live, _html} = live(build_conn(), "/oban-private")
 
-      refute has_element?(live, "#instance-select button[phx-value-name=Oban]")
-      refute has_element?(live, "#instance-select-menu-toggle")
-      assert has_element?(live, "#instance-select", "ObanPrivate")
+      assert has_element?(live, "#instance-select", inspect(oban_1))
+    end
+
+    test "restoring a stashed instance the resolver allows" do
+      _oban_1 = start_supervised_oban!()
+      oban_2 = start_supervised_oban!()
+
+      {:ok, live, _html} = live(stash_instance(build_conn(), oban_2), "/oban")
+
+      assert has_element?(live, "#instance-select-menu-toggle", inspect(oban_2))
+    end
+
+    test "ignoring a stashed instance the resolver doesn't allow" do
+      oban_1 = start_supervised_oban!()
+      oban_2 = start_supervised_oban!()
+
+      {:ok, live, _html} = live(stash_instance(build_conn(), oban_2), "/oban-private")
+
+      assert has_element?(live, "#instance-select", inspect(oban_1))
     end
   end
 
@@ -102,9 +117,18 @@ defmodule Oban.Web.DashboardTest do
     render(live)
   end
 
-  defp change_instance(live, name) do
+  defp change_instance(live, oban) do
     live
-    |> element("#instance-select button[role=menuitemradio]", name)
+    |> element("#instance-select button[role=menuitemradio]", inspect(oban))
     |> render_click()
+  end
+
+  defp instance_option(oban) do
+    ~s(#instance-select button[phx-value-name="#{inspect(oban)}"])
+  end
+
+  # The browser restores the last selected instance through connect params.
+  defp stash_instance(conn, oban) do
+    put_connect_params(conn, %{"init_state" => %{"oban:instance" => inspect(oban)}})
   end
 end

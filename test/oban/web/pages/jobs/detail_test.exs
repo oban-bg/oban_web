@@ -1,14 +1,14 @@
 defmodule Oban.Web.Pages.Jobs.DetailTest do
-  use Oban.Web.Case
+  use Oban.Web.Case, async: true
 
   import Phoenix.LiveViewTest
 
   setup context do
-    start_supervised_oban!(Map.get(context, :oban_opts, []))
+    %{oban: oban} = start_supervised_oban!(context)
 
     {:ok, live, _html} = live(build_conn(), "/oban")
 
-    {:ok, live: live}
+    {:ok, live: live, oban: oban}
   end
 
   test "viewing job details", %{live: live} do
@@ -180,10 +180,10 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     end
 
     @tag oban_opts: [queues: [alpha: 1]]
-    test "keeping the current queue selectable when it isn't running", %{live: live} do
+    test "keeping the current queue selectable when it isn't running", %{live: live, oban: oban} do
       job = insert_job!([ref: 1], state: "available", worker: WorkerA, queue: "dormant")
 
-      flush_reporter()
+      flush_reporter(oban)
       open_state(live, "available")
       open_details(live, job)
 
@@ -280,7 +280,7 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
       assert has_element?(live, ~s|#priority[value="0"]|)
     end
 
-    test "tracking live changes to untouched fields while editing", %{live: live} do
+    test "tracking live changes to untouched fields while editing", %{live: live, oban: oban} do
       job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
       open_state(live, "available")
@@ -291,7 +291,7 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
       |> render_change()
 
       assert {:ok, _job} =
-               Oban.update_job(Oban, job.id, %{scheduled_at: ~U[2030-01-02 03:04:05Z]})
+               Oban.update_job(oban, job.id, %{scheduled_at: ~U[2030-01-02 03:04:05Z]})
 
       send(live.pid, :refresh)
 
