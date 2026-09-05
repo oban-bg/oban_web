@@ -8,7 +8,8 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
 
     live = open_job(job)
 
-    assert page_title(live) =~ "WorkerA (#{job.id})"
+    assert page_title(live) =~ "WorkerA Job (#{job.id})"
+    assert has_element?(live, "h2 #back-link", "WorkerA Job")
   end
 
   test "naming controls and section state for assistive tech" do

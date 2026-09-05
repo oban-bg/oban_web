@@ -116,7 +116,7 @@ defmodule Oban.Web.Pruners.DetailComponent do
         >
           <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
           <span class="text-lg font-bold ml-2 truncate">
-            {@rule.name} <span class="font-normal text-gray-500 dark:text-gray-400">Pruner</span>
+            {@rule.name} <span class="font-normal text-gray-500 dark:text-gray-400">Rule</span>
           </span>
         </button>
       </h2>

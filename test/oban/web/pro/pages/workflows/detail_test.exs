@@ -32,7 +32,8 @@ if Code.ensure_loaded?(Oban.Pro) do
 
       refresh(live)
 
-      assert has_element?(live, "h2 #back-link", "my-workflow")
+      assert has_element?(live, "h2 #back-link", "my-workflow Workflow")
+      assert page_title(live) =~ "my-workflow Workflow"
       assert has_element?(live, "#status-state", "Executing")
       assert has_element?(live, "#workflow-progress", "50% Complete")
       assert has_element?(live, "#workflow-progress", "5/10 jobs")

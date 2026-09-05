@@ -278,7 +278,7 @@ defmodule Oban.Web.QueuesPage do
 
   @impl Page
   def handle_params(%{"id" => queue}, _uri, socket) do
-    title = "#{String.capitalize(queue)} Queue"
+    title = "#{queue} Queue"
 
     if Enum.any?(socket.assigns.checks, &(&1["queue"] == queue)) do
       {:noreply, assign(socket, detail: queue, page_title: page_title(title))}

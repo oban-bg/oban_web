@@ -76,7 +76,8 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert html =~ "Every 15 minutes"
         assert html =~ "*/15 * * * *"
 
-        assert has_element?(live, "h2 #back-link")
+        assert has_element?(live, "h2 #back-link", "DetailCronWorker Cron")
+        assert page_title(live) =~ "DetailCronWorker Cron"
       end
 
       test "describing the stored schedule rather than edits in progress", %{oban: oban} do

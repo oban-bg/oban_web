@@ -223,7 +223,7 @@ defmodule Oban.Web.WorkflowsPage do
 
     title =
       case socket.assigns.workflow do
-        %Oban.Web.Workflow{} = workflow -> Helpers.display_name(workflow)
+        %Oban.Web.Workflow{} = workflow -> "#{Helpers.display_name(workflow)} Workflow"
         _workflow -> "Workflow"
       end
 

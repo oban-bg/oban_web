@@ -60,7 +60,7 @@ if Code.ensure_loaded?(Oban.Pro) do
       |> element("#chunk-leader-link")
       |> render_click()
 
-      assert page_title(live) =~ "#{inspect(ChunkWorker)} (#{leader.id})"
+      assert page_title(live) =~ "#{inspect(ChunkWorker)} Job (#{leader.id})"
     end
 
     test "noting a sibling whose leader was deleted", %{oban: oban} do

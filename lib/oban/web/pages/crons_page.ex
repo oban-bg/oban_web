@@ -190,7 +190,7 @@ defmodule Oban.Web.CronsPage do
 
     {:noreply,
      socket
-     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Cron"))
+     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Dynamic Cron"))
      |> assign(params: params)}
   end
 
@@ -208,7 +208,11 @@ defmodule Oban.Web.CronsPage do
       cron ->
         {:noreply,
          socket
-         |> assign(detailed: cron, show_new_form: false, page_title: page_title(cron.handler))
+         |> assign(
+           detailed: cron,
+           show_new_form: false,
+           page_title: page_title("#{cron.handler} Cron")
+         )
          |> assign(params: params)}
     end
   end

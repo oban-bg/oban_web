@@ -211,7 +211,7 @@ defmodule Oban.Web.PrunersPage do
     if pro_available? and has_pruners? and can?(:insert_pruners, access) do
       socket =
         socket
-        |> assign(detail: nil, page_title: page_title("New Rule"), show_new_form: true)
+        |> assign(detail: nil, page_title: page_title("New Pruning Rule"), show_new_form: true)
         |> assign_params(params)
         |> handle_refresh()
 
@@ -224,7 +224,7 @@ defmodule Oban.Web.PrunersPage do
   def handle_params(%{"id" => name} = params, _uri, socket) do
     socket =
       socket
-      |> assign(detail: name, page_title: page_title(name), show_new_form: false)
+      |> assign(detail: name, page_title: page_title("#{name} Rule"), show_new_form: false)
       |> assign_params(params)
       |> handle_refresh()
 

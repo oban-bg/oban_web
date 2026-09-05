@@ -133,7 +133,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
             type="button"
           >
             <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
-            <span class="text-lg font-bold ml-2 truncate">{job_title(@job)}</span>
+            <span class="text-lg font-bold ml-2 truncate">
+              {job_title(@job)} <span class="font-normal text-gray-500 dark:text-gray-400">Job</span>
+            </span>
           </button>
         </h2>
 

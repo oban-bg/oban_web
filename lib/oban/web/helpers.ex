@@ -196,7 +196,7 @@ defmodule Oban.Web.Helpers do
 
   # Title Helpers
 
-  def page_title(%Job{id: id, worker: worker}), do: page_title("#{worker} (#{id})")
+  def page_title(%Job{id: id, worker: worker}), do: page_title("#{worker} Job (#{id})")
   def page_title(prefix), do: "#{prefix} • Oban"
 
   # Authorization Helpers

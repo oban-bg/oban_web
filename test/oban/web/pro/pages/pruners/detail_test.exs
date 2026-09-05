@@ -26,7 +26,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert html =~ ~s(name="timeout" value="15000")
       assert html =~ "1 of 2"
 
-      assert has_element?(live, "h2 #back-link")
+      assert has_element?(live, "h2 #back-link", "media Rule")
+      assert page_title(live) =~ "media Rule"
     end
 
     test "linking to the jobs a rule matches" do

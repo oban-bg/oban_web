@@ -15,6 +15,8 @@ defmodule Oban.Web.Pages.Queues.DetailTest do
     live = render_details("foo/bar.baz")
 
     assert has_element?(live, "[name=local_limit][value=\"5\"]")
+    assert has_element?(live, "h2 #back-link", "foo/bar.baz Queue")
+    assert page_title(live) =~ "foo/bar.baz Queue"
   end
 
   test "linking each state count to the jobs filtered by queue and state", %{oban: oban} do
