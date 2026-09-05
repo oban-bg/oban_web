@@ -167,6 +167,16 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
+  defmacrop origin_name(prefix, meta) do
+    quote do
+      fragment(
+        "(SELECT name FROM ?.oban_workflows WHERE id = ?->>'origin_id')",
+        identifier(^unquote(prefix)),
+        unquote(meta)
+      )
+    end
+  end
+
   defmacrop sub_workflow_states(prefix, parent_id) do
     quote do
       fragment(
@@ -267,12 +277,9 @@ defmodule Oban.Web.WorkflowQuery do
     |> apply_filters(params)
     |> apply_sort(sort_by, dir)
     |> limit(^limit)
-    |> join(:left, [wf], origin in Workflow,
-      on: fragment("?->>'origin_id'", wf.meta) == origin.id
-    )
     |> select(
-      [wf, origin],
-      {struct(wf, ^fields), sub_workflow_states(prefix, wf.id), origin.name}
+      [wf],
+      {struct(wf, ^fields), sub_workflow_states(prefix, wf.id), origin_name(prefix, wf.meta)}
     )
     |> then(&Repo.all(conf, &1))
     |> Enum.map(&build_workflow/1)
