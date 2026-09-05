@@ -344,23 +344,17 @@ defmodule Oban.Web.WorkflowQuery do
   end
 
   defp build_workflow({%Workflow{} = wf, sub_states, origin_name}) do
-    pending = wf.available + wf.scheduled + wf.retryable
-    finished = wf.completed + wf.cancelled + wf.discarded
-    sub_activity = count_sub_activity(sub_states)
+    activity = Enum.reduce(sub_states, workflow_activity(wf), &count_sub_state/2)
     origin_label = origin_name || Helpers.origin_id(wf)
 
     %{
       id: wf.id,
       name: wf.name,
-      state: String.to_existing_atom(wf.state),
+      status: status(wf.state, activity),
       compensation?: Helpers.compensation?(wf),
-      total: wf.suspended + pending + wf.executing + finished + length(sub_states),
-      activity: %{
-        suspended: wf.suspended + sub_activity.suspended,
-        pending: pending + sub_activity.pending,
-        executing: wf.executing + sub_activity.executing,
-        finished: finished + sub_activity.finished
-      },
+      total: activity |> Map.values() |> Enum.sum(),
+      activity: activity,
+      attention: attention(activity),
       started_at: wf.started_at,
       completed_at: wf.completed_at,
       queues: Map.get(wf.meta, "queues", []),
@@ -368,22 +362,45 @@ defmodule Oban.Web.WorkflowQuery do
     }
   end
 
-  defp count_sub_activity(states) do
-    Enum.reduce(states, %{suspended: 0, pending: 0, executing: 0, finished: 0}, fn state, acc ->
+  defp workflow_activity(wf) do
+    %{
+      suspended: wf.suspended,
+      pending: wf.available + wf.scheduled,
+      retryable: wf.retryable,
+      executing: wf.executing,
+      completed: wf.completed,
+      cancelled: wf.cancelled,
+      discarded: wf.discarded
+    }
+  end
+
+  # Pro marks a workflow as executing from the moment it is inserted. Until a job actually
+  # runs there is nothing in flight, so the index reports it as pending instead.
+  defp status("executing", %{executing: 0, completed: 0, cancelled: 0, discarded: 0}) do
+    :pending
+  end
+
+  defp status(state, _activity), do: String.to_existing_atom(state)
+
+  # Counts, not the aggregate state, decide whether a row needs a person: a workflow can be
+  # "executing" while every remaining job is retrying, and "completed" with nothing left.
+  defp attention(%{discarded: discarded}) when discarded > 0, do: :discarded
+  defp attention(%{retryable: retryable}) when retryable > 0, do: :retryable
+  defp attention(_activity), do: nil
+
+  defp count_sub_state(state, activity) do
+    bucket =
       case state do
-        "suspended" ->
-          %{acc | suspended: acc.suspended + 1}
-
-        "executing" ->
-          %{acc | executing: acc.executing + 1}
-
-        state when state in ~w(completed cancelled discarded) ->
-          %{acc | finished: acc.finished + 1}
-
-        _ ->
-          %{acc | pending: acc.pending + 1}
+        "suspended" -> :suspended
+        "retryable" -> :retryable
+        "executing" -> :executing
+        "completed" -> :completed
+        "cancelled" -> :cancelled
+        "discarded" -> :discarded
+        _ -> :pending
       end
-    end)
+
+    Map.update!(activity, bucket, &(&1 + 1))
   end
 
   def get_workflow(conf, workflow_id) do

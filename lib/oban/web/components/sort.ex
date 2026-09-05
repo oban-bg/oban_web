@@ -10,14 +10,15 @@ defmodule Oban.Web.SortComponent do
     ~H"""
     <div id={@id} class="w-28 relative">
       <button
-        aria-expanded="true"
+        aria-controls="sort-menu"
+        aria-expanded="false"
         aria-haspopup="listbox"
         class="w-full flex justify-left items-center cursor-pointer rounded-md bg-white
         dark:bg-gray-900 py-2.5 px-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800
         dark:hover:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:outline-none focus:ring-blue-500"
         data-title="Change sort order"
         id="sort-menu-button"
-        phx-click={JS.toggle(to: "#sort-menu")}
+        phx-click={toggle_menu()}
         phx-hook="Tippy"
         type="button"
       >
@@ -66,8 +67,8 @@ defmodule Oban.Web.SortComponent do
       class="block w-full flex items-center py-1 px-2 cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30"
       id={"sort-#{@value}"}
       patch={@link}
-      phx-click-away={JS.hide(to: "#sort-menu")}
-      phx-click={JS.hide(to: "#sort-menu")}
+      phx-click-away={hide_menu()}
+      phx-click={hide_menu()}
       role="option"
     >
       <%= if @value == @selected do %>
@@ -80,5 +81,15 @@ defmodule Oban.Web.SortComponent do
       </span>
     </.link>
     """
+  end
+
+  defp toggle_menu do
+    JS.toggle(to: "#sort-menu")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#sort-menu-button")
+  end
+
+  defp hide_menu do
+    JS.hide(to: "#sort-menu")
+    |> JS.set_attribute({"aria-expanded", "false"}, to: "#sort-menu-button")
   end
 end

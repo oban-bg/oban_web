@@ -63,7 +63,7 @@ defmodule Oban.Web.WorkflowsPage do
               class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
             >
               <div class="flex-none flex items-center px-3">
-                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Workflows</h2>
+                <h2 class="text-base font-semibold dark:text-gray-200">Workflows</h2>
               </div>
 
               <.live_component
@@ -86,14 +86,35 @@ defmodule Oban.Web.WorkflowsPage do
               </div>
             </div>
 
-            <.live_component id="workflows-table" module={TableComponent} workflows={@workflows} />
+            <.live_component
+              id="workflows-table"
+              module={TableComponent}
+              workflows={@workflows}
+              filtered?={filtered?(@params, @default_params)}
+            />
 
             <div
               :if={@show_less? or @show_more?}
-              class="py-6 flex items-center justify-center space-x-6 border-t border-gray-200 dark:border-gray-700"
+              class="py-6 flex flex-col items-center border-t border-gray-200 dark:border-gray-700"
             >
-              <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
-              <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
+              <div class="flex items-center justify-center space-x-6">
+                <.load_button
+                  label="Show Less"
+                  click="load-less"
+                  active={@show_less?}
+                  myself={@myself}
+                />
+                <.load_button
+                  label="Show More"
+                  click="load-more"
+                  active={@show_more?}
+                  myself={@myself}
+                />
+              </div>
+
+              <p :if={@capped?} class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Showing the first {@max_limit} workflows for this sort. Add filters to find the rest.
+              </p>
             </div>
         <% end %>
       </div>
@@ -111,6 +132,7 @@ defmodule Oban.Web.WorkflowsPage do
     <button
       type="button"
       class={"font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 #{loader_class(@active)}"}
+      disabled={not @active}
       phx-target={@myself}
       phx-click={@click}
     >
@@ -128,54 +150,39 @@ defmodule Oban.Web.WorkflowsPage do
 
   defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
 
+  defp filtered?(params, defaults) do
+    filters =
+      params
+      |> without_defaults(defaults)
+      |> Map.drop(~w(limit sort_by sort_dir)a)
+
+    map_size(filters) > 0
+  end
+
   defp pro_promo(assigns) do
     ~H"""
-    <div class="flex flex-col items-center justify-center py-16 px-6">
-      <div class="flex items-center justify-center w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 mb-6">
-        <Icons.icon name="icon-rectangle-group" class="w-8 h-8 text-violet-500 dark:text-violet-400" />
-      </div>
-
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-        Workflows
+    <div class="py-16 px-6 text-center">
+      <Icons.icon
+        name="icon-rectangle-group"
+        class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+      />
+      <h2 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
+        Workflows require Oban Pro
       </h2>
-
-      <p class="text-center text-gray-600 dark:text-gray-400 max-w-3xl mb-6">
-        Orchestrate jobs with dependencies for sequential execution, fan-out parallelization, and
-        fan-in convergence. Build fault-tolerant processing pipelines that scale horizontally
-        across all nodes.
+      <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+        Workflows coordinate jobs with dependencies. Steps run in sequence, fan out in parallel,
+        and fan back in, with context carried between steps and sub-workflows nested inside.
       </p>
-
-      <ul class="text-left text-gray-600 dark:text-gray-400 space-y-3 mb-8">
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Fully Distributed</span>
-            — high availability and scalability across your infrastructure
-          </span>
-        </li>
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Cascading Context</span>
-            — pass cumulative context between jobs for seamless data flow
-          </span>
-        </li>
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Nested Sub-Workflows</span>
-            — compose hierarchically for better organization and reusability
-          </span>
-        </li>
-      </ul>
-
-      <.link
-        href="https://oban.pro"
-        target="_blank"
-        class="inline-flex items-center px-5 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-medium transition-colors"
-      >
-        Learn about Oban Pro <Icons.icon name="icon-arrow-top-right-on-square" class="w-4 h-4 ml-2" />
-      </.link>
+      <div class="mt-4">
+        <a
+          href="https://oban.pro"
+          target="_blank"
+          rel="noopener"
+          class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+        >
+          Learn about Oban Pro <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
     </div>
     """
   end
@@ -203,6 +210,8 @@ defmodule Oban.Web.WorkflowsPage do
     |> assign_new(:show_more?, fn -> false end)
     |> assign_new(:workflow, fn -> nil end)
     |> assign_new(:workflows, fn -> [] end)
+    |> assign_new(:capped?, fn -> false end)
+    |> assign(:max_limit, @max_limit)
   end
 
   @impl Page
@@ -223,7 +232,8 @@ defmodule Oban.Web.WorkflowsPage do
         assign(socket,
           workflows: workflows,
           show_less?: limit > @min_limit,
-          show_more?: limit < @max_limit and length(workflows) == limit
+          show_more?: limit < @max_limit and length(workflows) == limit,
+          capped?: limit >= @max_limit and length(workflows) == limit
         )
     end
   end

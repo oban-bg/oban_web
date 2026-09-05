@@ -9,18 +9,33 @@ defmodule Oban.Web.Workflows.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="workflows-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-        <.header label="name" class="pl-3 w-1/3 text-left" />
-        <div class="ml-auto flex items-center space-x-6">
-          <.header label="progress" class="w-64 text-center" />
-          <.header label="activity" class="w-44 text-center" />
+      <div class="flex items-center border-b border-l-4 border-transparent border-b-gray-200 dark:border-b-gray-700 text-gray-400 dark:text-gray-500">
+        <.header label="name" class="pl-3 flex-1 min-w-0 text-left" />
+        <div class="flex items-center space-x-6">
+          <.header label="progress" class="w-88 text-left" />
+          <.header label="activity" class="w-48 text-left" />
           <.header label="duration" class="w-24 text-right" />
           <.header label="started" class="w-24 text-right" />
           <.header label="status" class="w-16 pr-4 text-right" />
         </div>
-      </ul>
+      </div>
 
-      <div :if={Enum.empty?(@workflows)} class="py-16 px-6 text-center">
+      <div
+        :if={Enum.empty?(@workflows) and @filtered?}
+        class="py-12 px-6 text-center text-lg text-gray-600 dark:text-gray-300"
+      >
+        <div class="flex items-center justify-center space-x-2">
+          <Icons.icon name="icon-no-symbol" /> <span>No workflows match the current filters.</span>
+        </div>
+        <.link
+          patch={oban_path(:workflows)}
+          class="inline-block mt-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+        >
+          Clear filters
+        </.link>
+      </div>
+
+      <div :if={Enum.empty?(@workflows) and not @filtered?} class="py-16 px-6 text-center">
         <Icons.icon
           name="icon-rectangle-group"
           class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
@@ -66,22 +81,36 @@ defmodule Oban.Web.Workflows.TableComponent do
     <li id={"workflow-#{@workflow.id}"}>
       <.link
         patch={oban_path([:workflows, @workflow.id])}
-        class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30"
+        class={[
+          "flex items-center border-l-4 hover:bg-gray-50 dark:hover:bg-gray-950/30",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500",
+          attention_class(@workflow.attention)
+        ]}
+        data-attention={@workflow.attention}
       >
-        <div class="pl-3 py-3.5 flex flex-grow items-center">
-          <div class="w-1/3">
-            <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
+        <div class="pl-3 py-3.5 flex flex-grow items-center min-w-0">
+          <div class="flex-1 min-w-0">
+            <span
+              class="block font-semibold text-sm text-gray-700 dark:text-gray-300 truncate"
+              title={@workflow.display_name}
+            >
               {@workflow.display_name}
             </span>
 
-            <span
-              :if={@workflow.compensation?}
-              class="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300"
+            <div
+              :if={@workflow.compensation? or Enum.any?(@workflow.queues)}
+              class="flex flex-wrap items-center gap-1.5 mt-1"
             >
-              Compensation
-            </span>
+              <span
+                :if={@workflow.compensation?}
+                id={"workflow-comp-#{@workflow.id}"}
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                data-title={"Rolls back the completed steps of #{@workflow.display_name}"}
+                phx-hook="Tippy"
+              >
+                <Icons.icon name="icon-arrow-path-rounded" class="w-3.5 h-3.5" /> compensation
+              </span>
 
-            <div :if={Enum.any?(@workflow.queues)} class="flex flex-wrap items-center gap-1.5 mt-1">
               <span
                 :for={queue <- @workflow.queues}
                 class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
@@ -91,7 +120,7 @@ defmodule Oban.Web.Workflows.TableComponent do
             </div>
           </div>
 
-          <div class="ml-auto flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
+          <div class="flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
             <.progress_bar workflow={@workflow} />
 
             <.activity_counts workflow={@workflow} />
@@ -101,7 +130,7 @@ defmodule Oban.Web.Workflows.TableComponent do
             <.started_at workflow={@workflow} />
 
             <div class="w-16 pr-4 flex justify-end">
-              <.status_indicator id={@workflow.id} state={@workflow.state} />
+              <.status_indicator id={@workflow.id} state={@workflow.status} />
             </div>
           </div>
         </div>
@@ -110,72 +139,134 @@ defmodule Oban.Web.Workflows.TableComponent do
     """
   end
 
+  # The bar segment, the count dot, and the status icon already carry the state color at full
+  # strength, so the edge is a pale cue for scanning rather than a fourth alarm.
+  defp attention_class(:discarded), do: "border-rose-200 dark:border-rose-900"
+  defp attention_class(:retryable), do: "border-yellow-200 dark:border-yellow-900"
+  defp attention_class(_attention), do: "border-transparent"
+
+  # Terminal states fill the bar first, then in-flight states, so the rose and violet
+  # segments read as "done, but not successfully" rather than as progress.
+  @segments [
+    {:completed, "bg-cyan-400"},
+    {:cancelled, "bg-violet-400"},
+    {:discarded, "bg-rose-400"},
+    {:executing, "bg-emerald-400"},
+    {:retryable, "bg-yellow-400"}
+  ]
+
+  @buckets [
+    {:suspended, "bg-gray-400", "Suspended", "waiting on dependencies"},
+    {:pending, "bg-blue-400", "Pending", "available or scheduled to run"},
+    {:retryable, "bg-yellow-400", "Retryable", "failed and waiting to retry"},
+    {:executing, "bg-emerald-400", "Executing", "running now"},
+    {:completed, "bg-cyan-400", "Completed", "finished successfully"},
+    {:cancelled, "bg-violet-400", "Cancelled", "stopped deliberately"},
+    {:discarded, "bg-rose-400", "Discarded", "failed permanently"}
+  ]
+
   attr :workflow, :map, required: true
 
   defp progress_bar(assigns) do
-    activity = assigns.workflow.activity
-    total = assigns.workflow.total
-    finished = activity.finished
-    percent = if total > 0, do: min(round(finished / total * 100), 100), else: 0
+    %{id: id, activity: activity, total: total, display_name: name} = assigns.workflow
 
-    assigns = assign(assigns, finished: finished, total: total, percent: percent)
-
-    ~H"""
-    <div class="w-64 flex items-center">
-      <div class="w-48 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div class="h-full rounded-full bg-cyan-400" style={"width: #{@percent}%"} />
-      </div>
-      <span class="w-14 text-left tabular pl-2 text-sm">{@finished}/{@total}</span>
-    </div>
-    """
-  end
-
-  attr :workflow, :map, required: true
-
-  defp activity_counts(assigns) do
-    activity = assigns.workflow.activity
-    id = assigns.workflow.id
+    segments =
+      for {state, class} <- @segments, count = Map.fetch!(activity, state), count > 0 do
+        {state, class, Float.round(count / total * 100, 2)}
+      end
 
     assigns =
       assign(assigns,
         id: id,
-        suspended: activity.suspended,
-        pending: activity.pending,
-        executing: activity.executing,
-        finished: activity.finished
+        name: name,
+        completed: activity.completed,
+        total: total,
+        segments: segments,
+        summary: activity_summary(activity, total)
       )
 
     ~H"""
-    <div class="w-44 flex items-center justify-end text-sm">
-      <.state_count id={"#{@id}-susp"} count={@suspended} color="gray" title="Suspended" />
-      <.state_count id={"#{@id}-pend"} count={@pending} color="blue" title="Pending" />
-      <.state_count id={"#{@id}-exec"} count={@executing} color="emerald" title="Executing" />
-      <.state_count id={"#{@id}-fin"} count={@finished} color="cyan" title="Finished" />
+    <div class="w-88 flex items-center">
+      <div
+        id={"wf-progress-#{@id}"}
+        class="w-64 h-2 flex bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-label={"Progress of #{@name}"}
+        aria-valuemin="0"
+        aria-valuemax={@total}
+        aria-valuenow={@completed}
+        aria-valuetext={@summary}
+      >
+        <div
+          :for={{state, class, width} <- @segments}
+          class={["h-full shrink-0", class]}
+          style={"width: #{width}%"}
+          data-state={state}
+        />
+      </div>
+      <span class="w-24 text-left tabular pl-2 text-sm truncate">{@completed}/{@total}</span>
+    </div>
+    """
+  end
+
+  defp activity_summary(activity, total) do
+    parts =
+      for {state, _class, label, _hint} <- @buckets,
+          count = Map.fetch!(activity, state),
+          count > 0 do
+        "#{count} #{String.downcase(label)}"
+      end
+
+    case parts do
+      [] -> "No jobs"
+      parts -> "#{Enum.join(parts, ", ")} of #{total}"
+    end
+  end
+
+  attr :workflow, :map, required: true
+
+  # Only buckets with jobs in them are shown; the bar already carries the shape of the
+  # workflow, so a row of zeros adds nothing but noise.
+  defp activity_counts(assigns) do
+    buckets =
+      for {state, class, label, hint} <- @buckets,
+          count = Map.fetch!(assigns.workflow.activity, state),
+          count > 0,
+          do: {state, class, label, hint, count}
+
+    assigns = assign(assigns, buckets: buckets)
+
+    ~H"""
+    <div class="w-48 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+      <.state_count
+        :for={{state, class, label, hint, count} <- @buckets}
+        id={"#{@workflow.id}-#{state}"}
+        count={count}
+        dot_class={class}
+        title={label}
+        hint={hint}
+      />
     </div>
     """
   end
 
   attr :id, :string, required: true
   attr :count, :integer, required: true
-  attr :color, :string, required: true
+  attr :dot_class, :string, required: true
   attr :title, :string, required: true
+  attr :hint, :string, required: true
 
   defp state_count(assigns) do
-    bg_class =
-      case {assigns.count, assigns.color} do
-        {0, _} -> "bg-gray-300 dark:bg-gray-600"
-        {_, "gray"} -> "bg-gray-400"
-        {_, "blue"} -> "bg-blue-400"
-        {_, "emerald"} -> "bg-emerald-400"
-        {_, "cyan"} -> "bg-cyan-400"
-      end
-
-    assigns = assign(assigns, bg_class: bg_class)
-
     ~H"""
-    <span class="w-11 flex items-center space-x-1.5" data-title={@title} id={@id} phx-hook="Tippy">
-      <span class="flex-1 text-right">{integer_to_estimate(@count)}</span>
-      <span class={["w-2 h-2 rounded-full", @bg_class]} />
+    <span
+      class="flex items-center space-x-1"
+      data-title={"#{@title}: #{@hint}"}
+      id={@id}
+      phx-hook="Tippy"
+    >
+      <span>{integer_to_estimate(@count)}</span>
+      <span class="sr-only">{@title}</span>
+      <span class={["w-2 h-2 rounded-full shrink-0", @dot_class]} />
     </span>
     """
   end
@@ -183,9 +274,9 @@ defmodule Oban.Web.Workflows.TableComponent do
   attr :workflow, :map, required: true
 
   defp started_at(assigns) do
-    activity = assigns.workflow.activity
-    executed? = activity.executing + activity.finished > 0
-    started = if executed?, do: assigns.workflow.started_at
+    %{status: status, started_at: started_at} = assigns.workflow
+
+    started = if status != :pending, do: started_at
 
     assigns = assign(assigns, started: started)
 
@@ -210,7 +301,7 @@ defmodule Oban.Web.Workflows.TableComponent do
 
   defp format_duration(assigns) do
     wf = assigns.workflow
-    executing? = wf.state == :executing
+    executing? = wf.status == :executing
     started? = not is_nil(wf.started_at)
 
     duration =
@@ -255,27 +346,52 @@ defmodule Oban.Web.Workflows.TableComponent do
   attr :state, :atom, required: true
 
   defp status_indicator(assigns) do
+    {icon, class, hint} = status_glyph(assigns.state)
+
+    assigns =
+      assign(assigns, icon: icon, class: class, hint: hint, title: status_title(assigns.state))
+
     ~H"""
-    <span data-title={status_title(@state)} id={"workflow-state-#{@id}"} phx-hook="Tippy">
-      <%= case @state do %>
-        <% :executing -> %>
-          <Icons.icon name="icon-play-circle" class="w-5 h-5 text-emerald-400" />
-        <% :completed -> %>
-          <Icons.icon name="icon-check-circle" class="w-5 h-5 text-cyan-400" />
-        <% :cancelled -> %>
-          <Icons.icon name="icon-x-circle" class="w-5 h-5 text-violet-400" />
-        <% :discarded -> %>
-          <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-rose-400" />
-        <% _ -> %>
-          <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400" />
-      <% end %>
+    <span
+      data-title={"#{@title}: #{@hint}"}
+      id={"workflow-state-#{@id}"}
+      phx-hook="Tippy"
+    >
+      <Icons.icon name={@icon} class={["w-5 h-5", @class]} />
+      <span class="sr-only">{@title}</span>
     </span>
     """
   end
 
-  defp status_title(:executing), do: "Executing"
-  defp status_title(:completed), do: "Completed"
-  defp status_title(:cancelled), do: "Cancelled"
-  defp status_title(:discarded), do: "Discarded"
-  defp status_title(_), do: "Unknown"
+  defp status_glyph(:executing) do
+    {"icon-play-circle", "text-emerald-600 dark:text-emerald-400", "jobs are still running"}
+  end
+
+  defp status_glyph(:retryable) do
+    {"icon-arrow-path", "text-yellow-700 dark:text-yellow-400",
+     "jobs failed and are waiting to retry"}
+  end
+
+  defp status_glyph(:completed) do
+    {"icon-check-circle", "text-cyan-600 dark:text-cyan-400", "every job finished successfully"}
+  end
+
+  defp status_glyph(:cancelled) do
+    {"icon-x-circle", "text-violet-600 dark:text-violet-400", "jobs were cancelled"}
+  end
+
+  defp status_glyph(:discarded) do
+    {"icon-exclamation-circle", "text-rose-600 dark:text-rose-400",
+     "at least one job was discarded"}
+  end
+
+  defp status_glyph(:pending) do
+    {"icon-clock", "text-gray-500 dark:text-gray-400", "no job has started yet"}
+  end
+
+  defp status_glyph(_state) do
+    {"icon-minus-circle", "text-gray-500 dark:text-gray-400", "state not recognized"}
+  end
+
+  defp status_title(state), do: state |> to_string() |> String.capitalize()
 end
