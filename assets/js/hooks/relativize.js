@@ -41,35 +41,61 @@ function toWords(timestamp) {
   return distance
 }
 
-const Relavitize = {
-  destroyed() {
-    clearInterval(this.interval)
+// Every relative timestamp on a page shares one ticker rather than owning an interval. A table
+// of a hundred rows would otherwise run a hundred timers, each reading localStorage and rewriting
+// text that rarely changes.
+const hooks = new Set()
+
+let ticker = null
+
+function tick() {
+  if (load("refresh") > 0) {
+    for (const hook of hooks) hook.render()
+  }
+}
+
+function subscribe(hook) {
+  hooks.add(hook)
+
+  if (ticker === null) ticker = window.setInterval(tick, 1000)
+}
+
+function unsubscribe(hook) {
+  hooks.delete(hook)
+
+  if (hooks.size === 0) {
+    window.clearInterval(ticker)
+    ticker = null
+  }
+}
+
+const Relativize = {
+  render() {
+    const text = this.mode === "words" ? toWords(this.timestamp) : toDuration(this.timestamp)
+
+    if (this.el.textContent !== text) this.el.textContent = text
   },
 
-  startTimer() {
-    clearInterval(this.interval)
+  configure() {
+    this.timestamp = this.el.getAttribute("data-timestamp")
+    this.mode = this.el.getAttribute("data-relative-mode") || "words"
 
-    const timestamp = this.el.getAttribute("data-timestamp")
-    const mode = this.el.getAttribute("data-relative-mode") || "words"
-
-    const setter = () => {
-      this.el.textContent = mode === "words" ? toWords(timestamp) : toDuration(timestamp)
-    }
-
-    setter()
-
-    this.interval = window.setInterval(() => {
-      if (load("refresh") > 0) setter()
-    }, 1000)
+    this.render()
   },
 
   mounted() {
-    this.startTimer()
+    this.configure()
+
+    subscribe(this)
   },
 
   updated() {
-    this.startTimer()
+    this.configure()
   },
-};
 
-export default Relavitize
+  destroyed() {
+    unsubscribe(this)
+  },
+}
+
+export default Relativize
