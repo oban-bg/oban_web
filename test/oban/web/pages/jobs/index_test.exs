@@ -248,6 +248,71 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
   end
 
+  describe "bulk safety" do
+    test "bulk actions ask for confirmation naming the selection", %{oban: oban} do
+      [job_1, job_2] =
+        Oban.insert_all(oban, [
+          Job.new(%{ref: 1}, state: "available", queue: "alpha", worker: WorkerA),
+          Job.new(%{ref: 2}, state: "available", queue: "alpha", worker: WorkerB)
+        ])
+
+      {:ok, live, _html} = live(build_conn(), jobs_path(state: "available", queues: "alpha"))
+
+      select_jobs(live, [job_1])
+
+      assert has_element?(
+               live,
+               "#bulk-actions #delete-jobs[data-confirm*='Delete 1 available job matching queues:alpha?']"
+             )
+
+      select_jobs(live, [job_2])
+
+      assert has_element?(
+               live,
+               "#bulk-actions #cancel-jobs[data-confirm*='Cancel 2 available jobs matching queues:alpha?']"
+             )
+
+      assert has_element?(live, "#selected-count", "2 selected")
+      refute has_element?(live, "#selected-limit")
+      assert has_element?(live, "#search #search-filter-queues", "queues:alpha")
+    end
+
+    test "selection survives loading more but not changing filters", %{live: live, oban: oban} do
+      [job] = Oban.insert_all(oban, [Job.new(%{ref: 1}, state: "available", worker: WorkerA)])
+
+      click_state(live, "available")
+      select_jobs(live, [job])
+
+      live
+      |> element("#jobs-table button", "Show More")
+      |> render_click()
+
+      assert has_element?(live, "#selected-count", "1 selected")
+
+      click_state(live, "scheduled")
+
+      refute has_element?(live, "#bulk-actions")
+    end
+
+    test "select all reports when the bulk action limit is reached", %{oban: oban} do
+      Oban.insert_all(oban, [
+        Job.new(%{ref: 1}, state: "available", worker: WorkerA),
+        Job.new(%{ref: 2}, state: "available", worker: WorkerB),
+        Job.new(%{ref: 3}, state: "available", worker: WorkerC)
+      ])
+
+      {:ok, live, _html} = live(build_conn(), "/oban-capped/jobs?state=available")
+
+      live
+      |> element("#toggle-select")
+      |> render_click()
+
+      assert has_element?(live, "#selected-count", "3 selected")
+      assert has_element?(live, "#selected-limit", "limit reached")
+      assert has_element?(live, "#selected-limit[data-title*='stops at 2 jobs']")
+    end
+  end
+
   defp click_node(live, node) do
     live
     |> element("#sidebar #nodes #filter-#{node}")

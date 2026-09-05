@@ -172,6 +172,18 @@ defmodule Oban.Web.Helpers do
     |> Map.new()
   end
 
+  @scope_only_params ~w(limit sort_by sort_dir)a
+
+  @doc """
+  Check whether two sets of params select the same records, ignoring paging and ordering.
+
+  A selection made under one set of filters shouldn't survive into another, but it should
+  survive loading more rows or changing the sort.
+  """
+  def same_scope?(old_params, new_params) do
+    Map.drop(old_params, @scope_only_params) == Map.drop(new_params, @scope_only_params)
+  end
+
   @doc """
   Check whether any of a queryable's filters are present in the params.
   """

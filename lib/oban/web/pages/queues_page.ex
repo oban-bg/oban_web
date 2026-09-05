@@ -45,45 +45,7 @@ defmodule Oban.Web.QueuesPage do
                 <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
               </div>
 
-              <div
-                :if={Enum.any?(@selected)}
-                id="bulk-actions"
-                class="ml-6 flex items-center space-x-3"
-              >
-                <Core.action_button
-                  :if={can?(:pause_queues, @access)}
-                  label="Pause"
-                  click="pause-queues"
-                  target={@myself}
-                >
-                  <:icon><Icons.icon name="icon-pause-circle" class="w-5 h-5" /></:icon>
-                  <:title>Pause Queues</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={can?(:pause_queues, @access)}
-                  label="Resume"
-                  click="resume-queues"
-                  target={@myself}
-                >
-                  <:icon><Icons.icon name="icon-play-circle" class="w-5 h-5" /></:icon>
-                  <:title>Resume Queues</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={can?(:stop_queues, @access)}
-                  label="Stop"
-                  click="stop-queues"
-                  target={@myself}
-                  danger={true}
-                >
-                  <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
-                  <:title>Stop Queues</:title>
-                </Core.action_button>
-              </div>
-
               <.live_component
-                :if={Enum.empty?(@selected)}
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
@@ -93,14 +55,51 @@ defmodule Oban.Web.QueuesPage do
                 resolver={@resolver}
               />
 
-              <div class="pl-3 ml-auto">
-                <span
+              <div class="pl-3 ml-auto flex items-center">
+                <div
                   :if={Enum.any?(@selected)}
-                  id="selected-count"
-                  class="block text-sm font-semibold mr-3"
+                  id="bulk-actions"
+                  class="h-10 flex items-center space-x-3"
                 >
-                  {MapSet.size(@selected)} Selected
-                </span>
+                  <span
+                    id="selected-count"
+                    class="tabular text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap"
+                  >
+                    {MapSet.size(@selected)} selected
+                  </span>
+
+                  <Core.action_button
+                    :if={can?(:pause_queues, @access)}
+                    label="Pause"
+                    click="pause-queues"
+                    target={@myself}
+                  >
+                    <:icon><Icons.icon name="icon-pause-circle" class="w-5 h-5" /></:icon>
+                    <:title>Pause Queues</:title>
+                  </Core.action_button>
+
+                  <Core.action_button
+                    :if={can?(:pause_queues, @access)}
+                    label="Resume"
+                    click="resume-queues"
+                    target={@myself}
+                  >
+                    <:icon><Icons.icon name="icon-play-circle" class="w-5 h-5" /></:icon>
+                    <:title>Resume Queues</:title>
+                  </Core.action_button>
+
+                  <Core.action_button
+                    :if={can?(:stop_queues, @access)}
+                    label="Stop"
+                    click="stop-queues"
+                    confirm={stop_confirm(@selected)}
+                    target={@myself}
+                    danger={true}
+                  >
+                    <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
+                    <:title>Stop Queues</:title>
+                  </Core.action_button>
+                </div>
 
                 <SortComponent.select
                   :if={Enum.empty?(@selected)}
@@ -264,6 +263,17 @@ defmodule Oban.Web.QueuesPage do
     |> Map.merge(Map.take(params, [:sort_by, :sort_dir]))
   end
 
+  defp stop_confirm(selected) do
+    queues =
+      case Enum.sort(selected) do
+        [name] -> "the #{name} queue"
+        names when length(names) <= 3 -> "the #{Enum.join(names, ", ")} queues"
+        names -> "#{length(names)} queues"
+      end
+
+    "Stop #{queues} on every node? Stopped queues can't be restarted from the dashboard."
+  end
+
   defp select_mode(checks, selected) do
     total = checks |> Enum.uniq_by(&Map.get(&1, "queue")) |> Enum.count()
 
@@ -292,11 +302,17 @@ defmodule Oban.Web.QueuesPage do
       params
       |> Map.take(@known_params)
       |> decode_params(QueueQuery)
+      |> then(&Map.merge(socket.assigns.default_params, &1))
+
+    selected =
+      if same_scope?(socket.assigns.params, params),
+        do: socket.assigns.selected,
+        else: MapSet.new()
 
     socket =
       socket
       |> assign(page_title: page_title("Queues"))
-      |> assign(detail: nil, params: Map.merge(socket.assigns.default_params, params))
+      |> assign(detail: nil, params: params, selected: selected)
       |> handle_refresh()
 
     {:noreply, socket}

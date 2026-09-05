@@ -71,6 +71,20 @@ defmodule ReadOnlyResolver do
   def resolve_access(_user), do: :read_only
 end
 
+defmodule CappedResolver do
+  @behaviour Oban.Web.Resolver
+
+  @impl Oban.Web.Resolver
+  defdelegate resolve_user(conn), to: Oban.Web.Test.Resolver
+
+  @impl Oban.Web.Resolver
+  defdelegate resolve_instances(user), to: Oban.Web.Test.Resolver
+
+  # Small enough that a handful of inserted jobs exceeds it.
+  @impl Oban.Web.Resolver
+  def bulk_action_limit(_state), do: 2
+end
+
 defmodule Oban.Web.Test.Router do
   use Phoenix.Router
 
@@ -86,6 +100,7 @@ defmodule Oban.Web.Test.Router do
 
     oban_dashboard "/oban", resolver: Oban.Web.Test.Resolver
     oban_dashboard "/oban-limited", as: :oban_limited, resolver: LimitedResolver
+    oban_dashboard "/oban-capped", as: :oban_capped, resolver: CappedResolver
     oban_dashboard "/oban-readonly", as: :oban_readonly, resolver: ReadOnlyResolver
     oban_dashboard "/oban-private", as: :oban_private, resolver: PrivateResolver
   end

@@ -53,6 +53,31 @@ defmodule Oban.Web.Search do
   end
 
   @doc """
+  Describe the active filters in params as chip text, e.g. `["queues:default", "workers:Foo"]`.
+  """
+  def describe(params, qualifiers) do
+    params
+    |> Map.take(filterable(qualifiers))
+    |> Enum.sort()
+    |> Enum.map(fn {name, terms} -> format_filter(name, terms) end)
+  end
+
+  @doc """
+  Format a single qualifier and its terms the way a filter chip displays them.
+  """
+  def format_filter(param, [path, term]) when is_list(path) do
+    "#{param}.#{Enum.join(path, ".")}:#{term}"
+  end
+
+  def format_filter(param, term) when is_list(term) do
+    "#{param}:#{Enum.join(term, ",")}"
+  end
+
+  def format_filter(param, term) do
+    "#{param}:#{term}"
+  end
+
+  @doc """
   Parse a string of qualifiers and values into structured search terms.
   """
   def parse(terms, qualifiers) when is_binary(terms) and is_list(qualifiers) do

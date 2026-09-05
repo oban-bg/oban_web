@@ -10,6 +10,8 @@ defmodule Oban.Web.JobsPage do
     Metrics,
     Page,
     QueueQuery,
+    Resolver,
+    Search,
     SearchComponent,
     SortComponent,
     Telemetry,
@@ -92,55 +94,7 @@ defmodule Oban.Web.JobsPage do
                 <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
               </div>
 
-              <div
-                :if={Enum.any?(@selected)}
-                id="bulk-actions"
-                class="pt-1 flex items-center space-x-3"
-              >
-                <Core.action_button
-                  :if={cancelable?(@jobs, @access)}
-                  label="Cancel"
-                  click="cancel-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
-                  <:title>Cancel Jobs</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={retryable?(@jobs, @access)}
-                  label="Retry"
-                  click="retry-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
-                  <:title>Retry Jobs</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={runnable?(@jobs, @access)}
-                  label="Run Now"
-                  click="retry-jobs"
-                  target={@myself}
-                >
-                  <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
-                  <:title>Run Jobs Now</:title>
-                </Core.action_button>
-
-                <Core.action_button
-                  :if={deletable?(@jobs, @access)}
-                  label="Delete"
-                  click="delete-jobs"
-                  target={@myself}
-                  danger={true}
-                >
-                  <:icon><Icons.icon name="icon-trash" class="w-5 h-5" /></:icon>
-                  <:title>Delete Jobs</:title>
-                </Core.action_button>
-              </div>
-
               <.live_component
-                :if={Enum.empty?(@selected)}
                 conf={@conf}
                 id="search"
                 module={SearchComponent}
@@ -151,9 +105,61 @@ defmodule Oban.Web.JobsPage do
               />
 
               <div class="pl-3 ml-auto flex items-center">
-                <span :if={Enum.any?(@selected)} class="block py-2 text-sm font-semibold">
-                  {MapSet.size(@selected)} Selected
-                </span>
+                <div
+                  :if={Enum.any?(@selected)}
+                  id="bulk-actions"
+                  class="h-10 flex items-center space-x-3"
+                >
+                  <.selection_count
+                    count={MapSet.size(@selected)}
+                    limit={bulk_limit(@resolver, @params)}
+                  />
+
+                  <Core.action_button
+                    :if={cancelable?(@jobs, @access)}
+                    label="Cancel"
+                    click="cancel-jobs"
+                    confirm={bulk_confirm(:cancel, @selected, @params)}
+                    target={@myself}
+                  >
+                    <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
+                    <:title>Cancel Jobs</:title>
+                  </Core.action_button>
+
+                  <Core.action_button
+                    :if={retryable?(@jobs, @access)}
+                    label="Retry"
+                    click="retry-jobs"
+                    confirm={bulk_confirm(:retry, @selected, @params)}
+                    target={@myself}
+                  >
+                    <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
+                    <:title>Retry Jobs</:title>
+                  </Core.action_button>
+
+                  <Core.action_button
+                    :if={runnable?(@jobs, @access)}
+                    label="Run Now"
+                    click="retry-jobs"
+                    confirm={bulk_confirm(:run, @selected, @params)}
+                    target={@myself}
+                  >
+                    <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
+                    <:title>Run Jobs Now</:title>
+                  </Core.action_button>
+
+                  <Core.action_button
+                    :if={deletable?(@jobs, @access)}
+                    label="Delete"
+                    click="delete-jobs"
+                    confirm={bulk_confirm(:delete, @selected, @params)}
+                    target={@myself}
+                    danger={true}
+                  >
+                    <:icon><Icons.icon name="icon-trash" class="w-5 h-5" /></:icon>
+                    <:title>Delete Jobs</:title>
+                  </Core.action_button>
+                </div>
 
                 <SortComponent.select
                   :if={Enum.empty?(@selected)}
@@ -203,6 +209,32 @@ defmodule Oban.Web.JobsPage do
         queues={@queues}
       />
     </div>
+    """
+  end
+
+  attr :count, :integer, required: true
+  attr :limit, :any, required: true
+
+  defp selection_count(assigns) do
+    ~H"""
+    <span
+      id="selected-count"
+      class="tabular text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap"
+    >
+      {integer_to_delimited(@count)} selected
+    </span>
+
+    <span
+      :if={is_integer(@limit) and @count >= @limit}
+      id="selected-limit"
+      class="flex items-center space-x-1 rounded-md text-xs font-medium text-amber-700 dark:text-amber-400 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+      data-title={"Select all stops at #{integer_to_delimited(@limit)} jobs. Act on these, then select all again for the rest."}
+      phx-hook="Tippy"
+      tabindex="0"
+    >
+      <Icons.icon name="icon-exclamation-circle" class="w-4 h-4 text-amber-500 dark:text-amber-400" />
+      <span>limit reached</span>
+    </span>
     """
   end
 
@@ -333,12 +365,17 @@ defmodule Oban.Web.JobsPage do
 
     params = params_with_defaults(params, socket)
 
+    selected =
+      if same_scope?(socket.assigns.params, params),
+        do: socket.assigns.selected,
+        else: MapSet.new()
+
     socket =
       socket
       |> assign(detailed: nil, show_new_form: false, page_title: page_title("Jobs"))
       |> assign(diagnostics: nil, diagnostics_at: nil)
       |> assign(history: [])
-      |> assign(params: params)
+      |> assign(params: params, selected: selected)
       |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
       |> assign(nodes: nodes(conf))
       |> assign(
@@ -539,7 +576,7 @@ defmodule Oban.Web.JobsPage do
         local_set = MapSet.new(socket.assigns.jobs, & &1.id)
 
         socket.assigns.params
-        |> JobQuery.all_job_ids(socket.assigns.conf)
+        |> JobQuery.all_job_ids(socket.assigns.conf, resolver: socket.assigns.resolver)
         |> MapSet.new()
         |> MapSet.union(local_set)
       end
@@ -566,6 +603,47 @@ defmodule Oban.Web.JobsPage do
     jobs = for job <- jobs, do: Map.put(job, :hidden?, MapSet.member?(selected, job.id))
 
     assign(socket, jobs: jobs, selected: MapSet.new())
+  end
+
+  # Bulk Helpers
+
+  defp bulk_limit(resolver, params) do
+    state = String.to_existing_atom(params.state)
+
+    Resolver.call_with_fallback(resolver, :bulk_action_limit, [state])
+  end
+
+  defp bulk_confirm(action, selected, params) do
+    count = MapSet.size(selected)
+
+    jobs =
+      "#{integer_to_delimited(count)} #{params.state} #{if count == 1, do: "job", else: "jobs"}"
+
+    scope =
+      case Search.describe(params, JobQuery.qualifiers()) do
+        [] -> ""
+        filters -> " matching #{Enum.join(filters, " ")}"
+      end
+
+    case {action, params.state} do
+      {:cancel, "executing"} ->
+        "Cancel #{jobs}#{scope}? Running jobs are killed and marked cancelled."
+
+      {:cancel, _state} ->
+        "Cancel #{jobs}#{scope}? Cancelled jobs can be retried later."
+
+      {:delete, _state} ->
+        "Delete #{jobs}#{scope}? Deleted jobs can't be recovered."
+
+      {:run, _state} ->
+        "Run #{jobs}#{scope} now? They'll skip their scheduled time."
+
+      {:retry, "completed"} ->
+        "Run #{jobs}#{scope} again? Everything they did will happen again."
+
+      {:retry, _state} ->
+        "Retry #{jobs}#{scope}? They'll run again as soon as a queue picks them up."
+    end
   end
 
   # State Helpers

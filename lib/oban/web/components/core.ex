@@ -2,6 +2,7 @@ defmodule Oban.Web.Components.Core do
   use Oban.Web, :html
 
   attr :click, :string, required: true
+  attr :confirm, :string, default: nil
   attr :danger, :boolean, default: false
   attr :disabled, :boolean, default: false
   attr :label, :string, required: true
@@ -27,6 +28,7 @@ defmodule Oban.Web.Components.Core do
     ~H"""
     <button
       class={["flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm", @class]}
+      data-confirm={@confirm}
       data-title={render_slot(@title)}
       disabled={@disabled}
       id={@click}

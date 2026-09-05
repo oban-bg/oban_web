@@ -128,7 +128,7 @@ defmodule Oban.Web.SearchComponent do
     ~H"""
     <div class="my-1.5 flex items-center text-sm font-medium" id={"search-filter-#{@param}"}>
       <span class="pl-1.5 pr-0.5 py-1 text-gray-700 dark:text-violet-950 bg-violet-100 dark:bg-violet-300 rounded-s-md whitespace-nowrap">
-        {format_filter(@param, @terms)}
+        {Oban.Web.Search.format_filter(@param, @terms)}
       </span>
 
       <button
@@ -143,18 +143,6 @@ defmodule Oban.Web.SearchComponent do
       </button>
     </div>
     """
-  end
-
-  defp format_filter(param, [path, term]) when is_list(path) do
-    "#{param}.#{Enum.join(path, ".")}:#{term}"
-  end
-
-  defp format_filter(param, term) when is_list(term) do
-    "#{param}:#{Enum.join(term, ",")}"
-  end
-
-  defp format_filter(param, term) do
-    "#{param}:#{term}"
   end
 
   attr :buff, :string

@@ -67,6 +67,34 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert_receive {_event, _ref, _timing, %{action: :resume_queues}}
   end
 
+  test "stopping selected queues asks for confirmation", %{live: live, oban: oban} do
+    gossip(oban, node: "web.1", queue: "alpha")
+    gossip(oban, node: "web.2", queue: "bravo")
+
+    refresh(live)
+
+    live
+    |> element("#queue-alpha button[rel=check]")
+    |> render_click()
+
+    assert has_element?(live, "#search")
+    assert has_element?(live, "#selected-count", "1 selected")
+
+    assert has_element?(
+             live,
+             "#bulk-actions #stop-queues[data-confirm*='Stop the alpha queue on every node?']"
+           )
+
+    live
+    |> element("#queue-bravo button[rel=check]")
+    |> render_click()
+
+    assert has_element?(
+             live,
+             "#bulk-actions #stop-queues[data-confirm*='Stop the alpha, bravo queues on every node?']"
+           )
+  end
+
   test "selecting all queues matching the current filters", %{live: live, oban: oban} do
     gossip(oban, node: "web.1", queue: "alpha")
     gossip(oban, node: "web.2", queue: "bravo", paused: true)
