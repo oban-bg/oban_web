@@ -20,41 +20,26 @@ defmodule Oban.Web.Workflows.TableComponent do
         </div>
       </div>
 
-      <div
+      <Core.no_matches
         :if={Enum.empty?(@workflows) and @filtered?}
-        class="py-12 px-6 text-center text-lg text-gray-600 dark:text-gray-300"
-      >
-        <div class="flex items-center justify-center space-x-2">
-          <Icons.icon name="icon-no-symbol" /> <span>No workflows match the current filters.</span>
-        </div>
-        <.link
-          patch={oban_path(:workflows)}
-          class="inline-block mt-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
-        >
-          Clear filters
-        </.link>
-      </div>
+        id="workflows-no-matches"
+        label="No workflows match the current filters."
+        clear={oban_path(:workflows)}
+      />
 
-      <div :if={Enum.empty?(@workflows) and not @filtered?} class="py-16 px-6 text-center">
-        <Icons.icon
-          name="icon-rectangle-group"
-          class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
-        />
-        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No workflows</h3>
-        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Workflows coordinate jobs with dependencies. They'll appear here once jobs with workflow metadata are enqueued.
-        </p>
-        <div class="mt-4">
-          <a
-            href="https://oban.pro/docs/pro/Oban.Pro.Workflow.html"
-            target="_blank"
-            rel="noopener"
-            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
-          >
-            Learn about workflows <span aria-hidden="true">&rarr;</span>
-          </a>
-        </div>
-      </div>
+      <Core.empty_state
+        :if={Enum.empty?(@workflows) and not @filtered?}
+        icon="icon-rectangle-group"
+        title="No workflows"
+      >
+        Workflows coordinate jobs with dependencies. They'll appear here once jobs with workflow
+        metadata are enqueued.
+        <:actions>
+          <Core.learn_link href="https://oban.pro/docs/pro/Oban.Pro.Workflow.html">
+            Learn about workflows
+          </Core.learn_link>
+        </:actions>
+      </Core.empty_state>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.workflow_row :for={workflow <- @workflows} workflow={workflow} />

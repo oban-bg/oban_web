@@ -15,9 +15,20 @@ defmodule Oban.Web.PrunersPage do
       <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
         <%= cond do %>
           <% not @pro_available? -> %>
-            <.pro_promo />
+            <Core.pro_promo feature="Pruners" icon="icon-trash">
+              Pruners control which completed, cancelled, and discarded jobs are retained, and for
+              how long. Rules match on queue, worker, and state to retain by age or count, or
+              archive jobs instead of deleting them.
+            </Core.pro_promo>
           <% not @has_pruners? -> %>
-            <.migration_prompt conf={@conf} />
+            <Core.migration_prompt
+              id="pruners-migration-prompt"
+              conf={@conf}
+              docs="https://oban.pro/docs/pro/Oban.Pro.Pruner.html"
+              feature="Pruners"
+              table="oban_pruners"
+              version="v1.8"
+            />
           <% @rule -> %>
             <.live_component
               id="detail"
@@ -79,7 +90,7 @@ defmodule Oban.Web.PrunersPage do
               id="pruners-table"
               access={@access}
               chain={@rules}
-              filtered?={filtered?(@params)}
+              filtered?={filtered?(@params, PrunerQuery)}
               module={TableComponent}
               orderable?={orderable?(@params)}
               rules={@listed}
@@ -147,104 +158,6 @@ defmodule Oban.Web.PrunersPage do
   # With no rules at all the empty state already says so, and a missing default is not the
   # interesting part of that.
   defp missing_default?(rules), do: rules != [] and not Enum.any?(rules, &(&1.name == "default"))
-
-  defp pro_promo(assigns) do
-    ~H"""
-    <div class="flex flex-col items-center justify-center py-16 px-6">
-      <div class="flex items-center justify-center w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 mb-6">
-        <Icons.icon name="icon-trash" class="w-8 h-8 text-violet-500 dark:text-violet-400" />
-      </div>
-
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-        Pruners
-      </h2>
-
-      <p class="text-center text-gray-600 dark:text-gray-400 max-w-3xl mb-6">
-        Control exactly which completed, cancelled, and discarded jobs are retained, and for how
-        long. Rules are matched in order, so a broad default can coexist with narrow exceptions for
-        the queues and workers that need them.
-      </p>
-
-      <ul class="text-left text-gray-600 dark:text-gray-400 space-y-3 mb-8">
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Targeted Retention</span>
-            — match on queue, worker, and state to retain by age or by count
-          </span>
-        </li>
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Archiving</span>
-            — copy jobs into an archive table instead of discarding them entirely
-          </span>
-        </li>
-        <li class="flex items-start">
-          <Icons.icon name="icon-check" class="w-5 h-5 text-violet-500 mr-2 mt-0.5 shrink-0" />
-          <span>
-            <span class="font-medium text-gray-700 dark:text-gray-300">Persistent Rules</span>
-            — stored in the database and editable at runtime, without a deploy
-          </span>
-        </li>
-      </ul>
-
-      <.link
-        href="https://oban.pro"
-        target="_blank"
-        class="inline-flex items-center px-5 py-2.5 rounded-md bg-violet-600 hover:bg-violet-700 text-white font-medium transition-colors"
-      >
-        Learn about Oban Pro <Icons.icon name="icon-arrow-top-right-on-square" class="w-4 h-4 ml-2" />
-      </.link>
-    </div>
-    """
-  end
-
-  attr :conf, :any, required: true
-
-  defp migration_prompt(assigns) do
-    postgres? = assigns.conf.repo.__adapter__() == Ecto.Adapters.Postgres
-
-    assigns = assign(assigns, :postgres?, postgres?)
-
-    ~H"""
-    <div id="pruners-migration-prompt" class="flex flex-col items-center justify-center py-16 px-6">
-      <div class="flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-6">
-        <Icons.icon name="icon-table-cells" class="w-8 h-8 text-gray-500 dark:text-gray-400" />
-      </div>
-
-      <%= if @postgres? do %>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-          Migration Required
-        </h2>
-
-        <p class="text-center text-gray-600 dark:text-gray-400 max-w-xl">
-          There isn't an <code class="font-mono">oban_pruners</code>
-          table in this database yet. Run the Oban Pro v1.8 migration to add it.
-        </p>
-
-        <div class="mt-4">
-          <a
-            href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html"
-            target="_blank"
-            rel="noopener"
-            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
-          >
-            See migration instructions <span aria-hidden="true">&rarr;</span>
-          </a>
-        </div>
-      <% else %>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-          PostgreSQL Required
-        </h2>
-
-        <p class="text-center text-gray-600 dark:text-gray-400 max-w-xl">
-          Pruners require PostgreSQL and aren't available for this database.
-        </p>
-      <% end %>
-    </div>
-    """
-  end
 
   @impl Page
   def handle_mount(socket) do
@@ -349,14 +262,10 @@ defmodule Oban.Web.PrunersPage do
     |> Map.merge(Map.take(params, [:sort_by, :sort_dir]))
   end
 
-  defp filtered?(params) do
-    Enum.any?(PrunerQuery.filterable(), &Map.has_key?(params, &1))
-  end
-
   # Moving a rule up or down only lines up with the evaluation chain while the table shows the
   # whole chain, in order.
   defp orderable?(params) do
-    params.sort_by == "order" and params.sort_dir == "asc" and not filtered?(params)
+    params.sort_by == "order" and params.sort_dir == "asc" and not filtered?(params, PrunerQuery)
   end
 
   @impl Page

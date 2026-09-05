@@ -47,17 +47,19 @@ defmodule Oban.Web.Jobs.TableComponent do
         <.header label="time" class="w-20 pr-3 text-right" />
       </ul>
 
-      <div :if={Enum.empty?(@jobs)} class="text-lg text-center py-12">
-        <div class="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-300">
-          <Icons.icon name="icon-no-symbol" /> <span>No jobs match the current set of filters.</span>
-        </div>
+      <Core.no_matches
+        :if={Enum.empty?(@jobs)}
+        id="jobs-no-matches"
+        label="No jobs match the current filters."
+        clear={oban_path(:jobs)}
+      >
         <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Filtering limited to latest {integer_to_delimited(@query_limit)} jobs. See <a
             class="underline"
             href="https://oban.pro/docs/web/filtering.html"
           >filtering docs</a>.
         </p>
-      </div>
+      </Core.no_matches>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.job_row

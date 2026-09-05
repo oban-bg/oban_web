@@ -76,7 +76,12 @@ defmodule Oban.Web.CronsPage do
             </div>
           </div>
 
-          <.live_component id="crons-table" module={TableComponent} crontab={@crontab} />
+          <.live_component
+            id="crons-table"
+            module={TableComponent}
+            crontab={@crontab}
+            filtered?={filtered?(@params, CronQuery)}
+          />
 
           <div
             :if={@show_less? or @show_more?}

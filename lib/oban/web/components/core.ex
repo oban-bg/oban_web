@@ -544,4 +544,125 @@ defmodule Oban.Web.Components.Core do
     </svg>
     """
   end
+
+  # Empty States
+
+  attr :heading, :string, default: "h3"
+  attr :icon, :string, required: true
+  attr :id, :string, default: nil
+  attr :title, :string, required: true
+  slot :inner_block, required: true
+  slot :actions
+
+  def empty_state(assigns) do
+    ~H"""
+    <div id={@id} class="py-16 px-6 text-center">
+      <Icons.icon name={@icon} class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+      <.dynamic_tag
+        tag_name={@heading}
+        class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100"
+      >
+        {@title}
+      </.dynamic_tag>
+      <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+        {render_slot(@inner_block)}
+      </p>
+      <div :if={@actions != []} class="mt-4 flex items-center justify-center gap-5">
+        {render_slot(@actions)}
+      </div>
+    </div>
+    """
+  end
+
+  attr :href, :string, required: true
+  slot :inner_block, required: true
+
+  def learn_link(assigns) do
+    ~H"""
+    <a
+      href={@href}
+      target="_blank"
+      rel="noopener"
+      class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
+    >
+      {render_slot(@inner_block)} <span aria-hidden="true">&rarr;</span>
+    </a>
+    """
+  end
+
+  attr :clear, :string, default: nil
+  attr :id, :string, default: nil
+  attr :label, :string, required: true
+  slot :inner_block
+
+  def no_matches(assigns) do
+    ~H"""
+    <div id={@id} class="py-12 px-6 text-center text-lg text-gray-600 dark:text-gray-300">
+      <div class="flex items-center justify-center space-x-2">
+        <Icons.icon name="icon-no-symbol" /> <span>{@label}</span>
+      </div>
+      {render_slot(@inner_block)}
+      <.link
+        :if={@clear}
+        patch={@clear}
+        class="inline-block mt-3 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400 focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+      >
+        Clear filters
+      </.link>
+    </div>
+    """
+  end
+
+  attr :feature, :string, required: true
+  attr :icon, :string, required: true
+  slot :inner_block, required: true
+
+  def pro_promo(assigns) do
+    ~H"""
+    <.empty_state heading="h2" icon={@icon} title={"#{@feature} require Oban Pro"}>
+      {render_slot(@inner_block)}
+      <:actions>
+        <.learn_link href="https://oban.pro">Learn about Oban Pro</.learn_link>
+      </:actions>
+    </.empty_state>
+    """
+  end
+
+  attr :conf, :any, required: true
+  attr :docs, :string, required: true
+  attr :feature, :string, required: true
+  attr :id, :string, default: nil
+  attr :table, :string, required: true
+  attr :version, :string, required: true
+
+  def migration_prompt(assigns) do
+    postgres? = assigns.conf.repo.__adapter__() == Ecto.Adapters.Postgres
+
+    assigns = assign(assigns, :postgres?, postgres?)
+
+    ~H"""
+    <.empty_state
+      :if={@postgres?}
+      id={@id}
+      heading="h2"
+      icon="icon-table-cells"
+      title="Migration required"
+    >
+      There isn't an <code class="font-mono">{@table}</code>
+      table in this database yet. Run the Oban Pro {@version} migration to add it.
+      <:actions>
+        <.learn_link href={@docs}>See migration instructions</.learn_link>
+      </:actions>
+    </.empty_state>
+    <.empty_state
+      :if={not @postgres?}
+      id={@id}
+      heading="h2"
+      icon="icon-table-cells"
+      title="PostgreSQL required"
+    >
+      {@feature} require PostgreSQL and aren't available for this database.
+    </.empty_state>
+    """
+  end
 end

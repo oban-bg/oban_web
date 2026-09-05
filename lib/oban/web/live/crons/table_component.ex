@@ -25,23 +25,26 @@ defmodule Oban.Web.Crons.TableComponent do
         </div>
       </ul>
 
-      <div :if={Enum.empty?(@crontab)} class="py-16 px-6 text-center">
-        <Icons.icon name="icon-clock" class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No crons</h3>
-        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Crons run jobs on a schedule. Configure them in your Oban supervisor or create them dynamically.
-        </p>
-        <div class="mt-4">
-          <a
-            href="https://hexdocs.pm/oban/periodic_jobs.html"
-            target="_blank"
-            rel="noopener"
-            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
-          >
-            Learn about crons <span aria-hidden="true">&rarr;</span>
-          </a>
-        </div>
-      </div>
+      <Core.no_matches
+        :if={Enum.empty?(@crontab) and @filtered?}
+        id="crons-no-matches"
+        label="No crons match the current filters."
+        clear={oban_path(:crons)}
+      />
+
+      <Core.empty_state
+        :if={Enum.empty?(@crontab) and not @filtered?}
+        icon="icon-clock"
+        title="No crons"
+      >
+        Crons run jobs on a schedule. Configure them in your Oban supervisor or create them
+        dynamically.
+        <:actions>
+          <Core.learn_link href="https://hexdocs.pm/oban/periodic_jobs.html">
+            Learn about crons
+          </Core.learn_link>
+        </:actions>
+      </Core.empty_state>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} />

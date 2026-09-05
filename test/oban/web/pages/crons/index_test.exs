@@ -44,6 +44,22 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     assert table =~ "0 0 * * *"
   end
 
+  test "distinguishing an empty filter match from having no crons", %{live: live} do
+    render_patch(live, "/oban/crons?names=missing")
+
+    html = refresh(live)
+
+    assert html =~ "No crons match the current filters"
+    refute html =~ "Crons run jobs on a schedule"
+
+    live
+    |> element("#crons-no-matches a", "Clear filters")
+    |> render_click()
+
+    assert_patch(live, "/oban/crons")
+    assert refresh(live) =~ "StaticCronA"
+  end
+
   test "sorting crons by different properties", %{live: live} do
     refresh(live)
 

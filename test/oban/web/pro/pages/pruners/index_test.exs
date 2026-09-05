@@ -224,7 +224,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert ~w(media audit) = listed(live, names: "media,audit")
 
         assert [] = listed(live, queues: "missing")
-        assert live |> element("#pruners-no-matches") |> render() =~ "No matching rules"
+        assert live |> element("#pruners-no-matches") |> render() =~ "No pruning rules match"
       end
 
       test "clearing filters from the toolbar" do

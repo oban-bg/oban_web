@@ -20,31 +20,21 @@ defmodule Oban.Web.Pruners.TableComponent do
         </div>
       </div>
 
-      <div
+      <Core.no_matches
         :if={Enum.empty?(@rules) and @filtered?}
         id="pruners-no-matches"
-        class="py-16 px-6 text-center"
-      >
-        <Icons.icon
-          name="icon-magnifying-glass"
-          class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
-        />
-        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
-          No matching rules
-        </h3>
-        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          No pruning rules match the current filters.
-        </p>
-      </div>
+        label="No pruning rules match the current filters."
+        clear={oban_path(:pruners)}
+      />
 
-      <div :if={Enum.empty?(@rules) and not @filtered?} class="py-16 px-6 text-center">
-        <Icons.icon name="icon-trash" class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-        <h3 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">No pruning rules</h3>
-        <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Nothing is being pruned. Rules are created from configuration when the pruner starts, or
-          added here at runtime.
-        </p>
-        <div class="mt-6 flex items-center justify-center gap-5">
+      <Core.empty_state
+        :if={Enum.empty?(@rules) and not @filtered?}
+        icon="icon-trash"
+        title="No pruning rules"
+      >
+        Nothing is being pruned. Rules are created from configuration when the pruner starts, or
+        added here at runtime.
+        <:actions>
           <.link
             :if={can?(:insert_pruners, @access)}
             id="empty-new-rule"
@@ -54,16 +44,11 @@ defmodule Oban.Web.Pruners.TableComponent do
             <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> Create a rule
           </.link>
 
-          <a
-            href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html"
-            target="_blank"
-            rel="noopener"
-            class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
-          >
-            Learn about pruners <span aria-hidden="true">&rarr;</span>
-          </a>
-        </div>
-      </div>
+          <Core.learn_link href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html">
+            Learn about pruners
+          </Core.learn_link>
+        </:actions>
+      </Core.empty_state>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.rule_row

@@ -37,8 +37,21 @@ defmodule Oban.Web.WorkflowsPage do
     <div id="workflows-page" class="w-full my-6">
       <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
         <%= cond do %>
+          <% not @pro_available? -> %>
+            <Core.pro_promo feature="Workflows" icon="icon-rectangle-group">
+              Workflows coordinate jobs with dependencies. Steps run in sequence, fan out in
+              parallel, and fan back in, with context carried between steps and sub-workflows
+              nested inside.
+            </Core.pro_promo>
           <% not @has_workflows? -> %>
-            <.pro_promo />
+            <Core.migration_prompt
+              id="workflows-migration-prompt"
+              conf={@conf}
+              docs="https://oban.pro/docs/pro/Oban.Pro.Workflow.html"
+              feature="Workflows"
+              table="oban_workflows"
+              version="v1.7"
+            />
           <% @detail -> %>
             <.live_component
               id="detail"
@@ -90,7 +103,7 @@ defmodule Oban.Web.WorkflowsPage do
               id="workflows-table"
               module={TableComponent}
               workflows={@workflows}
-              filtered?={filtered?(@params, @default_params)}
+              filtered?={filtered?(@params, WorkflowQuery)}
             />
 
             <div
@@ -149,43 +162,6 @@ defmodule Oban.Web.WorkflowsPage do
   end
 
   defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-
-  defp filtered?(params, defaults) do
-    filters =
-      params
-      |> without_defaults(defaults)
-      |> Map.drop(~w(limit sort_by sort_dir)a)
-
-    map_size(filters) > 0
-  end
-
-  defp pro_promo(assigns) do
-    ~H"""
-    <div class="py-16 px-6 text-center">
-      <Icons.icon
-        name="icon-rectangle-group"
-        class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
-      />
-      <h2 class="mt-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
-        Workflows require Oban Pro
-      </h2>
-      <p class="mt-2 text-base text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-        Workflows coordinate jobs with dependencies. Steps run in sequence, fan out in parallel,
-        and fan back in, with context carried between steps and sub-workflows nested inside.
-      </p>
-      <div class="mt-4">
-        <a
-          href="https://oban.pro"
-          target="_blank"
-          rel="noopener"
-          class="text-base font-medium text-violet-600 hover:text-violet-500 dark:text-violet-400 dark:hover:text-violet-300"
-        >
-          Learn about Oban Pro <span aria-hidden="true">&rarr;</span>
-        </a>
-      </div>
-    </div>
-    """
-  end
 
   @impl Page
   def handle_mount(socket) do

@@ -172,6 +172,13 @@ defmodule Oban.Web.Helpers do
     |> Map.new()
   end
 
+  @doc """
+  Check whether any of a queryable's filters are present in the params.
+  """
+  def filtered?(params, queryable) do
+    Enum.any?(queryable.filterable(), &Map.has_key?(params, &1))
+  end
+
   # Job Helpers
 
   @doc """
