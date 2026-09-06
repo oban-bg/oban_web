@@ -21,6 +21,35 @@
   animation-timing-function: linear;
 }
 
+/* Disclosure transitions used by JS.toggle/JS.show/JS.hide across sidebar sections,
+   charts, and detail panels. LiveView applies the class for the 200ms default. */
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-out-scale {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+.fade-in-scale {
+  transform-origin: top;
+  animation: 200ms cubic-bezier(0.16, 1, 0.3, 1) fade-in-scale;
+}
+
+.fade-out-scale {
+  transform-origin: top;
+  animation: 200ms ease-in fade-out-scale forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-scale,
+  .fade-out-scale {
+    animation: none;
+  }
+}
+
 /* A node reported a new limit; flash the value once and fade back to rest. */
 @keyframes limit-settle {
   from { background-color: rgb(59 130 246 / 0.25); }

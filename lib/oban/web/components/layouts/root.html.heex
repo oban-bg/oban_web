@@ -28,7 +28,7 @@
       }
 
       // Apply sidebar width before page renders to prevent flash
-      const sidebarWidth = JSON.parse(localStorage.getItem("oban:sidebar_width")) || 320;
+      const sidebarWidth = Math.max(320, JSON.parse(localStorage.getItem("oban:sidebar_width")) || 320);
       document.documentElement.style.setProperty("--sidebar-width", sidebarWidth + "px");
     </script>
 

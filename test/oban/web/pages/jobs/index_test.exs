@@ -38,12 +38,12 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
 
     test "naming the state on the panel and in the time column", %{live: live} do
-      assert has_element?(live, "#jobs-header #jobs-state", "Executing")
+      assert has_element?(live, "#jobs-header #jobs-state", "executing")
       assert has_element?(live, "#jobs-table", "running")
 
       render_patch(live, "/oban/jobs?state=retryable")
 
-      assert has_element?(live, "#jobs-header #jobs-state", "Retryable")
+      assert has_element?(live, "#jobs-header #jobs-state", "retryable")
       assert has_element?(live, "#jobs-table", "next retry")
     end
 

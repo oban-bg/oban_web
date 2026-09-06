@@ -231,7 +231,7 @@ defmodule Oban.Web.JobsPage do
       class={["ml-2 flex items-center space-x-1.5 text-sm font-medium", @text_class]}
     >
       <span aria-hidden="true" class={["w-2 h-2 rounded-full", Colors.state_bg_class(@state)]}></span>
-      <span>{String.capitalize(@state)}</span>
+      <span>{@state}</span>
     </span>
     """
   end

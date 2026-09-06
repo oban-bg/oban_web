@@ -58,6 +58,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
           >
             <Icons.icon
               name="icon-chevron-right"
+              id="chart-chevron"
               class={[
                 "w-5 h-5 mr-2 transition-transform",
                 if(@visible, do: "rotate-90")
@@ -373,8 +374,8 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp toggle_chart(target) do
     %JS{}
     |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
-    |> JS.add_class("rotate-90", to: "#chart-toggle svg:not(.rotate-90)")
-    |> JS.remove_class("rotate-90", to: "#chart-toggle svg.rotate-90")
+    |> JS.add_class("rotate-90", to: "#chart-chevron:not(.rotate-90)")
+    |> JS.remove_class("rotate-90", to: "#chart-chevron.rotate-90")
     |> JS.push("toggle-visible", target: target)
   end
 end
