@@ -123,6 +123,13 @@ select:-moz-focusring {
   --spacing-96: 24rem;
 }
 
+/* Search */
+
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* Workflow graph */
 
 .workflow-graph-canvas {

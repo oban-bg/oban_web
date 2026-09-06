@@ -185,6 +185,60 @@ defmodule Oban.Web.Components.Core do
   end
 
   @doc """
+  Paging controls below a table, with a note when the page has hit its ceiling.
+  """
+  attr :capped?, :boolean, default: false
+  attr :label, :string, required: true
+  attr :max_limit, :integer, required: true
+  attr :myself, :any, required: true
+  attr :show_less?, :boolean, required: true
+  attr :show_more?, :boolean, required: true
+
+  def load_footer(assigns) do
+    ~H"""
+    <div
+      :if={@show_less? or @show_more?}
+      class="py-6 flex flex-col items-center border-t border-gray-200 dark:border-gray-700"
+    >
+      <div class="flex items-center justify-center space-x-6">
+        <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
+        <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
+      </div>
+
+      <p :if={@capped?} class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        Showing the first {@max_limit} {@label} for this sort. Add filters to find the rest.
+      </p>
+    </div>
+    """
+  end
+
+  attr :active, :boolean, required: true
+  attr :click, :string, required: true
+  attr :label, :string, required: true
+  attr :myself, :any, required: true
+
+  defp load_button(assigns) do
+    ~H"""
+    <button
+      type="button"
+      class={[
+        "font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+        if(@active,
+          do:
+            "text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b border-gray-200 dark:border-gray-800 hover:border-gray-400",
+          else: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+        )
+      ]}
+      disabled={not @active}
+      phx-target={@myself}
+      phx-click={@click}
+    >
+      {@label}
+    </button>
+    """
+  end
+
+  @doc """
   A row selection checkbox, exposed as a named checkbox so the row it selects is announced.
   """
   attr :checked, :boolean, default: false

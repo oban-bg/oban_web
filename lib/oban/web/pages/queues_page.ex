@@ -42,7 +42,7 @@ defmodule Oban.Web.QueuesPage do
                   myself={@myself}
                 />
 
-                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Queues</h2>
+                <h2 class="text-base font-semibold dark:text-gray-200">Queues</h2>
               </div>
 
               <.live_component
@@ -123,13 +123,14 @@ defmodule Oban.Web.QueuesPage do
               selected={@selected}
             />
 
-            <div
-              :if={@show_less? or @show_more?}
-              class="py-6 flex items-center justify-center space-x-6 border-t border-gray-200 dark:border-gray-700"
-            >
-              <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
-              <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
-            </div>
+            <Core.load_footer
+              capped?={@capped?}
+              label="queues"
+              max_limit={@max_limit}
+              myself={@myself}
+              show_less?={@show_less?}
+              show_more?={@show_more?}
+            />
           <% end %>
         </div>
       </div>
@@ -156,6 +157,8 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:selected, &MapSet.new/0)
     |> assign_new(:show_less?, fn -> false end)
     |> assign_new(:show_more?, fn -> false end)
+    |> assign_new(:capped?, fn -> false end)
+    |> assign(:max_limit, @max_limit)
   end
 
   @impl Page
@@ -183,7 +186,8 @@ defmodule Oban.Web.QueuesPage do
       node_history: node_history,
       queues: queues,
       show_less?: limit > @min_limit,
-      show_more?: limit < @max_limit and length(queues) == limit
+      show_more?: limit < @max_limit and length(queues) == limit,
+      capped?: limit >= @max_limit and length(queues) == limit
     )
     |> leave_vanished_detail()
   end
@@ -230,33 +234,6 @@ defmodule Oban.Web.QueuesPage do
     end)
     |> Map.new(fn {group, data} -> {group, Map.new(data)} end)
   end
-
-  attr :active, :boolean, required: true
-  attr :click, :string, required: true
-  attr :label, :string, required: true
-  attr :myself, :any, required: true
-
-  defp load_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      class={"font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 #{loader_class(@active)}"}
-      phx-target={@myself}
-      phx-click={@click}
-    >
-      {@label}
-    </button>
-    """
-  end
-
-  defp loader_class(true) do
-    """
-    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
-    border-gray-200 dark:border-gray-800 hover:border-gray-400
-    """
-  end
-
-  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
 
   defp stop_confirm(selected) do
     queues =

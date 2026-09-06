@@ -286,7 +286,7 @@ defmodule Oban.Web.SearchComponent do
      socket
      |> assign(buffer: "", loading: false, suggestions: suggestions)
      |> push_event("completed", %{buffer: ""})
-     |> push_patch(to: oban_path(socket.assigns.page))}
+     |> push_patch(to: oban_path(socket.assigns.page), replace: true)}
   end
 
   def handle_event("append", %{"choice" => choice}, socket) do
@@ -317,7 +317,7 @@ defmodule Oban.Web.SearchComponent do
   def handle_event("remove-filter", %{"param" => param, "terms" => _}, socket) do
     params = Map.delete(socket.assigns.params, String.to_existing_atom(param))
 
-    {:noreply, push_patch(socket, to: oban_path(socket.assigns.page, params))}
+    {:noreply, push_patch(socket, to: oban_path(socket.assigns.page, params), replace: true)}
   end
 
   # The completed event keeps the input in sync because LiveView leaves a focused input's value
@@ -336,7 +336,7 @@ defmodule Oban.Web.SearchComponent do
        socket
        |> assign(buffer: "", loading: false, suggestions: suggestions)
        |> push_event("completed", %{buffer: ""})
-       |> push_patch(to: oban_path(socket.assigns.page, params))}
+       |> push_patch(to: oban_path(socket.assigns.page, params), replace: true)}
     end
   end
 

@@ -21,7 +21,9 @@ defmodule Oban.Web.Jobs.TableComponent do
       |> assign(query_limit: query_limit(assigns.resolver, assigns.params))
       |> assign(producers: producers, resolver: assigns.resolver, selected: assigns.selected)
       |> assign(show_less?: assigns.params.limit > @min_limit)
-      |> assign(show_more?: assigns.params.limit < @max_limit)
+      |> assign(show_more?: assigns.params.limit < @max_limit and full_page?(assigns))
+      |> assign(capped?: assigns.params.limit >= @max_limit and full_page?(assigns))
+      |> assign(max_limit: @max_limit)
 
     {:ok, socket}
   end
@@ -61,10 +63,14 @@ defmodule Oban.Web.Jobs.TableComponent do
         />
       </ul>
 
-      <div class="py-6 flex items-center justify-center space-x-6">
-        <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
-        <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
-      </div>
+      <Core.load_footer
+        capped?={@capped?}
+        label="jobs"
+        max_limit={@max_limit}
+        myself={@myself}
+        show_less?={@show_less?}
+        show_more?={@show_more?}
+      />
     </div>
     """
   end
@@ -142,7 +148,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         </div>
 
         <div
-          class="w-20 pr-3 text-sm text-right tabular text-gray-500 dark:text-gray-300 dark:group-hover:text-gray-100"
+          class="w-20 pr-3 text-sm text-right tabular text-gray-500 dark:text-gray-300"
           data-timestamp={timestamp(@job)}
           data-relative-mode={relative_mode(@job)}
           id={"job-ts-#{@job.id}"}
@@ -169,19 +175,6 @@ defmodule Oban.Web.Jobs.TableComponent do
     """
   end
 
-  defp load_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      class={"font-semibold text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 #{loader_class(@active)}"}
-      phx-target={@myself}
-      phx-click={@click}
-    >
-      {@label}
-    </button>
-    """
-  end
-
   @impl Phoenix.LiveComponent
   def handle_event("toggle-select", %{"id" => id}, socket) do
     send(self(), {:toggle_select, String.to_integer(id)})
@@ -204,6 +197,10 @@ defmodule Oban.Web.Jobs.TableComponent do
 
     {:noreply, socket}
   end
+
+  # A short page means there is nothing more to load, so the controls stay hidden until the
+  # rows fill the current limit.
+  defp full_page?(assigns), do: length(assigns.jobs) == assigns.params.limit
 
   # Resolver Helpers
 
@@ -269,13 +266,4 @@ defmodule Oban.Web.Jobs.TableComponent do
 
   defp hidden_class(%{hidden?: true}), do: "opacity-25 pointer-events-none"
   defp hidden_class(_job), do: ""
-
-  defp loader_class(true) do
-    """
-    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
-    border-gray-200 dark:border-gray-800 hover:border-gray-400
-    """
-  end
-
-  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
 end

@@ -291,7 +291,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
 
     test "selection survives loading more but not changing filters", %{live: live, oban: oban} do
-      [job] = Oban.insert_all(oban, [Job.new(%{ref: 1}, state: "available", worker: WorkerA)])
+      changesets = Enum.map(1..21, &Job.new(%{ref: &1}, state: "available", worker: WorkerA))
+
+      [job | _rest] = Oban.insert_all(oban, changesets)
 
       click_state(live, "available")
       select_jobs(live, [job])

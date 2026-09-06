@@ -183,7 +183,7 @@ defmodule Oban.Web.Crons.TableComponent do
             <.sparkline id={"sparkline-#{@cron.name}"} history={@cron.history} />
           </div>
 
-          <span class="w-32 text-right font-mono text-sm">
+          <span class="w-32 text-right font-mono text-xs">
             {@cron.expression}
           </span>
 

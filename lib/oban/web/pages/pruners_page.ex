@@ -44,7 +44,7 @@ defmodule Oban.Web.PrunersPage do
               class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
             >
               <div class="flex-none flex items-center px-3">
-                <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Pruners</h2>
+                <h2 class="text-base font-semibold dark:text-gray-200">Pruners</h2>
               </div>
 
               <.live_component

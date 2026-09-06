@@ -35,7 +35,7 @@ defmodule Oban.Web.CronsPage do
             class="pr-3 py-3 flex items-center border-b border-gray-200 dark:border-gray-700"
           >
             <div class="flex-none flex items-center px-3">
-              <h2 class="text-lg dark:text-gray-200 leading-4 font-bold">Crons</h2>
+              <h2 class="text-base font-semibold dark:text-gray-200">Crons</h2>
             </div>
 
             <.live_component
@@ -84,13 +84,14 @@ defmodule Oban.Web.CronsPage do
             filtered?={filtered?(@params, CronQuery)}
           />
 
-          <div
-            :if={@show_less? or @show_more?}
-            class="py-6 flex items-center justify-center space-x-6"
-          >
-            <.load_button label="Show Less" click="load-less" active={@show_less?} myself={@myself} />
-            <.load_button label="Show More" click="load-more" active={@show_more?} myself={@myself} />
-          </div>
+          <Core.load_footer
+            capped?={@capped?}
+            label="crons"
+            max_limit={@max_limit}
+            myself={@myself}
+            show_less?={@show_less?}
+            show_more?={@show_more?}
+          />
         <% end %>
       </div>
 
@@ -108,33 +109,6 @@ defmodule Oban.Web.CronsPage do
 
   # Components
 
-  attr :active, :boolean, required: true
-  attr :click, :string, required: true
-  attr :label, :string, required: true
-  attr :myself, :any, required: true
-
-  defp load_button(assigns) do
-    ~H"""
-    <button
-      type="button"
-      class={"font-semibold text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 #{loader_class(@active)}"}
-      phx-target={@myself}
-      phx-click={@click}
-    >
-      {@label}
-    </button>
-    """
-  end
-
-  defp loader_class(true) do
-    """
-    text-gray-700 dark:text-gray-300 cursor-pointer transition ease-in-out duration-200 border-b
-    border-gray-200 dark:border-gray-800 hover:border-gray-400
-    """
-  end
-
-  defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-
   @impl Page
   def handle_mount(socket) do
     default = %{limit: @min_limit, sort_by: "worker", sort_dir: "asc"}
@@ -146,6 +120,8 @@ defmodule Oban.Web.CronsPage do
     |> assign_new(:crontab, fn -> [] end)
     |> assign_new(:show_less?, fn -> false end)
     |> assign_new(:show_more?, fn -> false end)
+    |> assign_new(:capped?, fn -> false end)
+    |> assign(:max_limit, @max_limit)
   end
 
   @impl Phoenix.LiveComponent
@@ -168,7 +144,8 @@ defmodule Oban.Web.CronsPage do
     assign(socket,
       crontab: crons,
       show_less?: limit > @min_limit,
-      show_more?: limit < @max_limit and length(crons) == limit
+      show_more?: limit < @max_limit and length(crons) == limit,
+      capped?: limit >= @max_limit and length(crons) == limit
     )
   end
 
