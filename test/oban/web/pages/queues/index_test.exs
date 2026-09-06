@@ -169,7 +169,7 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
 
   defp change_sort(live, mode) do
     live
-    |> element("a#sort-#{mode}")
+    |> element("#sort-#{mode}")
     |> render_click()
   end
 

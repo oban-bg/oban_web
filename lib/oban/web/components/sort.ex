@@ -3,93 +3,86 @@ defmodule Oban.Web.SortComponent do
 
   attr :id, :string, default: "job-sort"
   attr :by, :list, required: true
+  attr :defaults, :map, default: %{}
   attr :page, :atom, default: :jobs
   attr :params, :map, required: true
 
   def select(assigns) do
+    # Sorting layers on top of whatever is filtered, so the links keep the filters while
+    # dropping any defaults that would otherwise leak into the URL.
+    params =
+      assigns.params
+      |> without_defaults(assigns.defaults)
+      |> Map.merge(Map.take(assigns.params, [:sort_by, :sort_dir]))
+
+    assigns = assign(assigns, params: params, flipped: flip(params.sort_dir))
+
     ~H"""
-    <div id={@id} class="w-28 relative">
-      <button
-        aria-controls="sort-menu"
-        aria-expanded="false"
-        aria-haspopup="listbox"
-        class="w-full flex justify-left items-center cursor-pointer rounded-md bg-white
-        dark:bg-gray-900 py-2.5 px-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800
-        dark:hover:text-gray-200 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 focus:outline-none focus:ring-blue-500"
-        data-title="Change sort order"
-        id="sort-menu-button"
-        phx-click={toggle_menu()}
+    <div
+      id={@id}
+      class="h-10 flex items-stretch rounded-md bg-white dark:bg-gray-900 ring-1 ring-inset ring-gray-300 dark:ring-gray-700 text-sm text-gray-500 dark:text-gray-400"
+    >
+      <Core.dropdown_menu
+        id={"#{@id}-by"}
+        aria_label={"Sort by #{label(@params.sort_by)}"}
+        menu_class="w-40 overflow-hidden"
+        title="Sort by"
+        toggle_class="h-full w-32 pl-3 pr-2 flex items-center justify-between rounded-r-none hover:text-gray-800 dark:hover:text-gray-200"
+      >
+        <:toggle>
+          <span class="truncate">{label(@params.sort_by)}</span>
+          <Icons.icon name="icon-chevron-down" class="w-4 h-4 shrink-0" />
+        </:toggle>
+
+        <Core.menu_option
+          :for={value <- @by}
+          id={"sort-#{value}"}
+          selected={value == @params.sort_by}
+          phx-click={
+            @page
+            |> oban_path(Map.put(@params, :sort_by, value))
+            |> JS.patch()
+            |> Core.close_menu("#{@id}-by")
+            |> JS.focus(to: "##{@id}-by-menu-toggle")
+          }
+        >
+          <%= if value == @params.sort_by do %>
+            <Icons.icon name="icon-check" class="w-4 h-4 shrink-0 text-blue-500" />
+          <% else %>
+            <span class="block w-4 h-4 shrink-0"></span>
+          <% end %>
+          <span class="text-gray-800 dark:text-gray-200">{label(value)}</span>
+        </Core.menu_option>
+      </Core.dropdown_menu>
+
+      <.link
+        aria-label={"Sorted #{direction(@params.sort_dir)}, switch to #{direction(@flipped)}"}
+        class="px-2 flex items-center rounded-r-md border-l border-gray-300 dark:border-gray-700 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+        data-title={"Switch to #{direction(@flipped)}"}
+        id={"#{@id}-dir"}
+        patch={oban_path(@page, Map.put(@params, :sort_dir, @flipped))}
         phx-hook="Tippy"
-        type="button"
       >
         <%= if @params.sort_dir == "asc" do %>
-          <Icons.icon name="icon-bars-arrow-down" class="w-4 h-4" />
+          <Icons.icon name="icon-bars-arrow-down" class="w-5 h-5" />
         <% else %>
-          <Icons.icon name="icon-bars-arrow-up" class="w-4 h-4" />
+          <Icons.icon name="icon-bars-arrow-up" class="w-5 h-5" />
         <% end %>
-        <span class="ml-1 block capitalize">
-          {String.replace(@params.sort_by, "_", " ")}
-        </span>
-      </button>
-
-      <nav
-        class="hidden absolute z-10 mt-1 w-full text-sm font-semibold overflow-auto rounded-md bg-white
-        dark:bg-gray-800 shadow-lg ring-1 ring-black/5 focus:outline-none"
-        id="sort-menu"
-        role="listbox"
-        tabindex="-1"
-      >
-        <.option
-          :for={value <- @by}
-          link={oban_path(@page, Map.put(@params, :sort_by, value))}
-          selected={@params.sort_by}
-          value={value}
-        />
-        <hr class="w-full border-0 border-b border-gray-200 dark:border-gray-700 my-2" />
-        <.option
-          :for={value <- ~w(asc desc)}
-          link={oban_path(@page, Map.put(@params, :sort_dir, value))}
-          selected={@params.sort_dir}
-          value={value}
-        />
-      </nav>
+      </.link>
     </div>
     """
   end
 
-  attr :link, :any, required: true
-  attr :selected, :string, required: true
-  attr :value, :string, required: true
+  defp flip("asc"), do: "desc"
+  defp flip("desc"), do: "asc"
 
-  defp option(assigns) do
-    ~H"""
-    <.link
-      class="block w-full flex items-center py-1 px-2 cursor-pointer select-none space-x-2 hover:bg-gray-50 hover:dark:bg-gray-600/30"
-      id={"sort-#{@value}"}
-      patch={@link}
-      phx-click-away={hide_menu()}
-      phx-click={hide_menu()}
-      role="option"
-    >
-      <%= if @value == @selected do %>
-        <Icons.icon name="icon-check" class="w-4 h-4 text-blue-500" />
-      <% else %>
-        <span class="block w-4 h-4"></span>
-      <% end %>
-      <span class="capitalize text-gray-800 dark:text-gray-200">
-        {String.replace(@value, "_", " ")}
-      </span>
-    </.link>
-    """
-  end
+  defp direction("asc"), do: "ascending"
+  defp direction("desc"), do: "descending"
 
-  defp toggle_menu do
-    JS.toggle(to: "#sort-menu")
-    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#sort-menu-button")
-  end
-
-  defp hide_menu do
-    JS.hide(to: "#sort-menu")
-    |> JS.set_attribute({"aria-expanded", "false"}, to: "#sort-menu-button")
-  end
+  # Sort keys are abbreviated in the URL, but the menu spells them out the way the columns do.
+  defp label("avail"), do: "Available"
+  defp label("exec"), do: "Executing"
+  defp label("local"), do: "Local limit"
+  defp label("global"), do: "Global limit"
+  defp label(value), do: value |> String.replace("_", " ") |> String.capitalize()
 end

@@ -105,8 +105,9 @@ defmodule Oban.Web.QueuesPage do
                   :if={Enum.empty?(@selected)}
                   id="queues-sort"
                   by={~w(name nodes avail exec local global rate_limit started)}
+                  defaults={@default_params}
                   page={:queues}
-                  params={sort_params(@params, @default_params)}
+                  params={@params}
                 />
               </div>
             </div>
@@ -256,12 +257,6 @@ defmodule Oban.Web.QueuesPage do
   end
 
   defp loader_class(_), do: "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-
-  defp sort_params(params, default_params) do
-    params
-    |> without_defaults(default_params)
-    |> Map.merge(Map.take(params, [:sort_by, :sort_dir]))
-  end
 
   defp stop_confirm(selected) do
     queues =

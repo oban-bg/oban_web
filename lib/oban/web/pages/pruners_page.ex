@@ -61,8 +61,9 @@ defmodule Oban.Web.PrunersPage do
                 <SortComponent.select
                   id="pruners-sort"
                   by={~w(order name retention limit)}
+                  defaults={@default_params}
                   page={:pruners}
-                  params={sort_params(@params, @default_params)}
+                  params={@params}
                 />
 
                 <.link
@@ -253,13 +254,6 @@ defmodule Oban.Web.PrunersPage do
 
   defp index_path(socket) do
     oban_path(:pruners, without_defaults(socket.assigns.params, socket.assigns.default_params))
-  end
-
-  # Sorting is applied on top of the filters, so both are kept in the sort menu's links.
-  defp sort_params(params, default_params) do
-    params
-    |> without_defaults(default_params)
-    |> Map.merge(Map.take(params, [:sort_by, :sort_dir]))
   end
 
   # Moving a rule up or down only lines up with the evaluation chain while the table shows the

@@ -208,9 +208,22 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
         assert_patch(
           live,
-          jobs_path(limit: 20, sort_by: mode, sort_dir: "asc", state: "available")
+          jobs_path(sort_by: mode, sort_dir: "asc", state: "available")
         )
       end
+    end
+
+    test "flipping the sort direction", %{live: live} do
+      live
+      |> element("#job-sort-dir[aria-label=\"Sorted ascending, switch to descending\"]")
+      |> render_click()
+
+      assert_patch(live, jobs_path(sort_by: "time", sort_dir: "desc"))
+
+      assert has_element?(
+               live,
+               "#job-sort-dir[aria-label=\"Sorted descending, switch to ascending\"]"
+             )
     end
   end
 

@@ -93,6 +93,7 @@ defmodule Oban.Web.WorkflowsPage do
                 <SortComponent.select
                   id="workflows-sort"
                   by={~w(inserted started duration total progress)}
+                  defaults={@default_params}
                   page={:workflows}
                   params={@params}
                 />

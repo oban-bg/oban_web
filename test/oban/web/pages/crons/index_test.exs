@@ -67,12 +67,12 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
 
     for mode <- ~w(worker last_run next_run schedule) do
       live
-      |> element("a#sort-#{mode}")
+      |> element("#sort-#{mode}")
       |> render_click()
 
       assert_patch(
         live,
-        "/oban/crons?#{URI.encode_query(limit: 20, sort_by: mode, sort_dir: "asc")}"
+        "/oban/crons?#{URI.encode_query(sort_by: mode, sort_dir: "asc")}"
       )
     end
   end

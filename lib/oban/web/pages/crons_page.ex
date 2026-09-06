@@ -52,6 +52,7 @@ defmodule Oban.Web.CronsPage do
               <SortComponent.select
                 id="crons-sort"
                 by={~w(name worker schedule last_run next_run)}
+                defaults={@default_params}
                 page={:crons}
                 params={@params}
               />

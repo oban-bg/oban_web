@@ -163,8 +163,9 @@ defmodule Oban.Web.JobsPage do
 
                 <SortComponent.select
                   :if={Enum.empty?(@selected)}
-                  params={@params}
                   by={~w(time attempt queue worker)}
+                  defaults={@default_params}
+                  params={@params}
                 />
 
                 <.link

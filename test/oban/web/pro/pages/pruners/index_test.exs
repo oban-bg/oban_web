@@ -247,7 +247,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         refresh(live)
 
         for mode <- ~w(name retention limit) do
-          live |> element("a#sort-#{mode}") |> render_click()
+          live |> element("#sort-#{mode}") |> render_click()
 
           assert_patch(live, pruners_path(sort_by: mode, sort_dir: "asc"))
         end
@@ -260,7 +260,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
         refresh(live)
 
-        live |> element("a#sort-name") |> render_click()
+        live |> element("#sort-name") |> render_click()
 
         assert_patch(live, pruners_path(modes: "age", sort_by: "name", sort_dir: "asc"))
       end
