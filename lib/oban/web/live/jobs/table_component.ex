@@ -35,7 +35,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       <Core.table_header>
         <Core.column_header label="details" class="ml-12 pl-4" />
         <Core.column_header label="queue" class="ml-auto pl-4 text-right" />
-        <Core.column_header label="time" class="w-20 pl-4 pr-3 text-right" />
+        <Core.column_header label={time_label(@params.state)} class="w-28 pl-4 pr-3 text-right" />
       </Core.table_header>
 
       <Core.no_matches
@@ -99,6 +99,10 @@ defmodule Oban.Web.Jobs.TableComponent do
             {Map.get(@job.meta, "decorated_name", @job.worker)}
           </span>
 
+          <span class="mr-2 tabular text-xs text-gray-500 dark:text-gray-400" rel="id">
+            {"#"}{@job.id}
+          </span>
+
           <span class="tabular text-xs text-gray-600 dark:text-gray-300" rel="attempts">
             {@job.attempt} ⁄ {@job.max_attempts}
           </span>
@@ -148,7 +152,7 @@ defmodule Oban.Web.Jobs.TableComponent do
         </div>
 
         <div
-          class="w-20 pr-3 text-sm text-right tabular text-gray-500 dark:text-gray-300"
+          class="w-28 pr-3 text-sm text-right tabular text-gray-500 dark:text-gray-300"
           data-timestamp={timestamp(@job)}
           data-relative-mode={relative_mode(@job)}
           id={"job-ts-#{@job.id}"}
@@ -230,6 +234,16 @@ defmodule Oban.Web.Jobs.TableComponent do
   end
 
   # Time Helpers
+
+  # The column shows a different timestamp for each state, so the header names what the value
+  # means rather than a generic "time".
+  defp time_label("available"), do: "available"
+  defp time_label("executing"), do: "running"
+  defp time_label("retryable"), do: "next retry"
+  defp time_label("completed"), do: "finished"
+  defp time_label("cancelled"), do: "cancelled"
+  defp time_label("discarded"), do: "discarded"
+  defp time_label(_state), do: "scheduled"
 
   defp timestamp(job) do
     datetime =

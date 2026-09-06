@@ -6,6 +6,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Met
 
   alias Oban.Web.{
+    Colors,
     JobQuery,
     Metrics,
     Page,
@@ -91,7 +92,9 @@ defmodule Oban.Web.JobsPage do
                   myself={@myself}
                 />
 
-                <h2 class="text-base font-semibold dark:text-gray-200">Jobs</h2>
+                <h2 class="flex items-center text-base font-semibold dark:text-gray-200">
+                  Jobs <.state_chip state={@params.state} />
+                </h2>
               </div>
 
               <.live_component
@@ -210,6 +213,26 @@ defmodule Oban.Web.JobsPage do
         queues={@queues}
       />
     </div>
+    """
+  end
+
+  attr :state, :string, required: true
+
+  # Rows never show their own state because every page is filtered to one, so the heading
+  # carries it in the state's hue where the sidebar would otherwise be the only clue.
+  defp state_chip(assigns) do
+    {_border, _background, text_class} = Colors.state_classes(assigns.state)
+
+    assigns = assign(assigns, text_class: text_class)
+
+    ~H"""
+    <span
+      id="jobs-state"
+      class={["ml-2 flex items-center space-x-1.5 text-sm font-medium", @text_class]}
+    >
+      <span aria-hidden="true" class={["w-2 h-2 rounded-full", Colors.state_bg_class(@state)]}></span>
+      <span>{String.capitalize(@state)}</span>
+    </span>
     """
   end
 
