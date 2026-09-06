@@ -38,6 +38,17 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     assert has_element?(live, "#queue-alpha #alpha-has-rate")
   end
 
+  test "pending counts and status icons are named for screen readers", %{live: live, oban: oban} do
+    gossip(oban, node: "web.1", queue: "alpha", paused: true)
+
+    refresh(live)
+
+    assert has_element?(live, "#queue-alpha #alpha-avail .sr-only", "Available")
+    assert has_element?(live, "#queue-alpha #alpha-sched .sr-only", "Scheduled")
+    assert has_element?(live, "#queue-alpha #alpha-retry .sr-only", "Retryable")
+    assert has_element?(live, "#queue-alpha #alpha-is-paused .sr-only", "All paused")
+  end
+
   test "pausing and resuming selected queues", %{live: live, oban: oban} do
     :telemetry_test.attach_event_handlers(self(), [[:oban_web, :action, :stop]])
 

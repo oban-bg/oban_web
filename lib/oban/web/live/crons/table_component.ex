@@ -214,6 +214,7 @@ defmodule Oban.Web.Crons.TableComponent do
               data-title={state_title(@cron)}
             >
               <.state_icon state={@cron.last_state} paused={@cron.paused?} />
+              <span class="sr-only">{state_title(@cron)}</span>
             </span>
           </div>
         </div>

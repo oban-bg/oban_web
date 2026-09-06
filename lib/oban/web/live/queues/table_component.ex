@@ -104,29 +104,23 @@ defmodule Oban.Web.Queues.TableComponent do
               <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
             </span>
             <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
-              <Icons.icon
+              <.limit_icon
                 :if={Queue.global_limit?(@queue)}
-                name="icon-globe"
-                class="w-4 h-4"
-                data-title="Global limit"
+                icon="icon-globe"
                 id={"#{@queue.name}-has-global"}
-                phx-hook="Tippy"
+                label="Global limit"
               />
-              <Icons.icon
+              <.limit_icon
                 :if={Queue.rate_limit?(@queue)}
-                name="icon-arrow-trending-down"
-                class="w-4 h-4"
-                data-title="Rate limit"
+                icon="icon-arrow-trending-down"
                 id={"#{@queue.name}-has-rate"}
-                phx-hook="Tippy"
+                label="Rate limit"
               />
-              <Icons.icon
+              <.limit_icon
                 :if={Queue.partitioned?(@queue)}
-                name="icon-view-columns"
-                class="w-4 h-4"
-                data-title="Partitioned"
+                icon="icon-view-columns"
                 id={"#{@queue.name}-has-partition"}
-                phx-hook="Tippy"
+                label="Partitioned"
               />
             </div>
           </div>
@@ -143,51 +137,24 @@ defmodule Oban.Web.Queues.TableComponent do
             rel="pending"
             class="w-42 flex items-center justify-end tabular text-gray-500 dark:text-gray-300"
           >
-            <span
-              class="w-14 flex items-center space-x-1.5"
-              data-title="Available"
+            <.pending_count
               id={"#{@queue.name}-avail"}
-              phx-hook="Tippy"
-            >
-              <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.available)}</span>
-              <span class={[
-                "w-2 h-2 rounded-full",
-                if(@queue.counts.available > 0,
-                  do: "bg-cyan-400",
-                  else: "bg-gray-300 dark:bg-gray-600"
-                )
-              ]} />
-            </span>
-            <span
-              class="w-14 flex items-center space-x-1.5"
-              data-title="Scheduled"
+              count={@queue.counts.available}
+              dot_class="bg-blue-400"
+              label="Available"
+            />
+            <.pending_count
               id={"#{@queue.name}-sched"}
-              phx-hook="Tippy"
-            >
-              <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.scheduled)}</span>
-              <span class={[
-                "w-2 h-2 rounded-full",
-                if(@queue.counts.scheduled > 0,
-                  do: "bg-emerald-400",
-                  else: "bg-gray-300 dark:bg-gray-600"
-                )
-              ]} />
-            </span>
-            <span
-              class="w-14 flex items-center space-x-1.5"
-              data-title="Retryable"
+              count={@queue.counts.scheduled}
+              dot_class="bg-indigo-400"
+              label="Scheduled"
+            />
+            <.pending_count
               id={"#{@queue.name}-retry"}
-              phx-hook="Tippy"
-            >
-              <span class="flex-1 text-right">{integer_to_estimate(@queue.counts.retryable)}</span>
-              <span class={[
-                "w-2 h-2 rounded-full",
-                if(@queue.counts.retryable > 0,
-                  do: "bg-yellow-400",
-                  else: "bg-gray-300 dark:bg-gray-600"
-                )
-              ]} />
-            </span>
+              count={@queue.counts.retryable}
+              dot_class="bg-yellow-400"
+              label="Retryable"
+            />
           </div>
 
           <span rel="nodes" class="w-14 text-center text-gray-500 dark:text-gray-300">
@@ -195,37 +162,83 @@ defmodule Oban.Web.Queues.TableComponent do
           </span>
 
           <div class="w-20 pr-3 flex justify-center items-center space-x-1">
-            <Icons.icon
+            <.status_icon
               :if={Queue.all_paused?(@queue)}
-              name="icon-pause-circle"
-              class="w-5 h-5"
-              data-title="All paused"
+              icon="icon-pause-circle"
               id={"#{@queue.name}-is-paused"}
-              phx-hook="Tippy"
+              label="All paused"
               rel="is-paused"
             />
-            <Icons.icon
+            <.status_icon
               :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
-              name="icon-play-pause-circle"
-              class="w-5 h-5"
-              data-title="Some paused"
+              icon="icon-play-pause-circle"
               id={"#{@queue.name}-is-some-paused"}
-              phx-hook="Tippy"
+              label="Some paused"
               rel="has-some-paused"
             />
-            <Icons.icon
+            <.status_icon
               :if={Queue.terminating?(@queue)}
-              name="icon-power"
-              class="w-5 h-5"
-              data-title="Terminating"
+              icon="icon-power"
               id={"#{@queue.name}-is-terminating"}
-              phx-hook="Tippy"
+              label="Terminating"
               rel="terminating"
             />
           </div>
         </div>
       </.link>
     </li>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :count, :integer, required: true
+  attr :dot_class, :string, required: true
+  attr :label, :string, required: true
+
+  # An empty bucket keeps its slot but drops to gray, so only queues with waiting jobs draw
+  # the eye and the dot color carries the same state meaning as everywhere else.
+  defp pending_count(assigns) do
+    ~H"""
+    <span
+      class="w-14 flex items-center space-x-1.5"
+      data-title={@label}
+      id={@id}
+      phx-hook="Tippy"
+    >
+      <span class="flex-1 text-right">{integer_to_estimate(@count)}</span>
+      <span class="sr-only">{@label}</span>
+      <span class={[
+        "w-2 h-2 rounded-full",
+        if(@count > 0, do: @dot_class, else: "bg-gray-300 dark:bg-gray-600")
+      ]} />
+    </span>
+    """
+  end
+
+  attr :icon, :string, required: true
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+
+  defp limit_icon(assigns) do
+    ~H"""
+    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
+      <Icons.icon name={@icon} class="w-4 h-4" />
+      <span class="sr-only">{@label}</span>
+    </span>
+    """
+  end
+
+  attr :icon, :string, required: true
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :rel, :string, required: true
+
+  defp status_icon(assigns) do
+    ~H"""
+    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
+      <Icons.icon name={@icon} class="w-5 h-5" rel={@rel} />
+      <span class="sr-only">{@label}</span>
+    </span>
     """
   end
 

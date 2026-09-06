@@ -103,31 +103,25 @@ defmodule Oban.Web.Jobs.TableComponent do
         </div>
 
         <div class="ml-auto flex items-center space-x-1">
-          <Icons.icon
+          <.flag_icon
             :if={Map.has_key?(@job.meta, "rescued")}
-            name="icon-life-buoy"
-            class="h-5 w-5 text-gray-500 dark:text-gray-300"
-            id={"job-rescued-#{assigns.job.id}"}
-            phx-hook="Tippy"
-            data-title="Rescued by lifeline"
+            icon="icon-life-buoy"
+            id={"job-rescued-#{@job.id}"}
+            label="Rescued by lifeline"
           />
 
-          <Icons.icon
+          <.flag_icon
             :if={orphaned?(@job, @producers)}
-            name="icon-crossbones-circle-solid"
-            class="h-5 w-5 text-gray-500 dark:text-gray-300"
-            id={"job-orphaned-#{assigns.job.id}"}
-            phx-hook="Tippy"
-            data-title="Orphaned, host node shut down"
+            icon="icon-crossbones-circle-solid"
+            id={"job-orphaned-#{@job.id}"}
+            label="Orphaned, host node shut down"
           />
 
-          <Icons.icon
+          <.flag_icon
             :if={chunk_sibling?(@job)}
-            name="icon-user-group"
-            class="h-5 w-5 text-gray-500 dark:text-gray-300"
+            icon="icon-user-group"
             id={"job-chunk-#{@job.id}"}
-            phx-hook="Tippy"
-            data-title={"In a chunk led by job #{chunk_leader_id(@job)}"}
+            label={"In a chunk led by job #{chunk_leader_id(@job)}"}
           />
 
           <span
@@ -139,6 +133,7 @@ defmodule Oban.Web.Jobs.TableComponent do
           >
             <Icons.icon name="icon-user-group" class="h-4 w-4 text-gray-500 dark:text-gray-300" />
             <span :if={chunk_count(@job)}>{chunk_count(@job)}</span>
+            <span class="sr-only">{chunk_tooltip(@job)}</span>
           </span>
 
           <span class="py-1.5 px-2 tabular truncate text-xs rounded-md bg-gray-100 dark:bg-gray-950">
@@ -158,6 +153,19 @@ defmodule Oban.Web.Jobs.TableComponent do
         </div>
       </.link>
     </li>
+    """
+  end
+
+  attr :icon, :string, required: true
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+
+  defp flag_icon(assigns) do
+    ~H"""
+    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
+      <Icons.icon name={@icon} class="h-5 w-5 text-gray-500 dark:text-gray-300" />
+      <span class="sr-only">{@label}</span>
+    </span>
     """
   end
 

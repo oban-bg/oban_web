@@ -87,7 +87,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       assert has_job?(live, "AlphaWorker")
 
-      assert has_element?(live, "#job-rescued-#{job_1.id}")
+      assert has_element?(live, "#job-rescued-#{job_1.id} .sr-only", "Rescued by lifeline")
       refute has_element?(live, "#job-rescued-#{job_2.id}")
     end
 
@@ -120,7 +120,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "GammaWorker")
 
-      assert has_element?(live, "#job-orphaned-#{job_1.id}")
+      assert has_element?(live, "#job-orphaned-#{job_1.id} .sr-only", "Orphaned")
       refute has_element?(live, "#job-orphaned-#{job_2.id}")
     end
 

@@ -77,6 +77,14 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
     end
   end
 
+  test "cron status icons are named for screen readers", %{live: live} do
+    refresh(live)
+
+    name = Utils.cron_entry_name({"* * * * *", StaticCronA, []})
+
+    assert has_element?(live, "#cron-state-icon-#{name} .sr-only", "Unknown, no previous runs")
+  end
+
   test "opening a cron's details from the table", %{live: live} do
     refresh(live)
 
