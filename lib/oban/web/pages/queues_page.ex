@@ -497,12 +497,14 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_info(:toggle_select_all, socket) do
+    %{checks: checks, conf: conf, params: params, selected: selected} = socket.assigns
+
     selected =
-      if Enum.any?(socket.assigns.selected) do
+      if select_mode(checks, selected) == :all do
         MapSet.new()
       else
-        socket.assigns.params
-        |> QueueQuery.all_queues(socket.assigns.conf)
+        params
+        |> QueueQuery.all_queues(conf)
         |> MapSet.new(& &1.name)
       end
 

@@ -84,7 +84,7 @@ defmodule Oban.Web.JobsPage do
               resolver={@resolver}
             />
           <% else %>
-            <div class="flex items-start pr-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <div class="sticky top-0 z-20 flex items-start pr-3 py-3 rounded-t-md bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
               <div id="jobs-header" class="h-10 pr-12 flex-none flex items-center">
                 <Core.all_checkbox
                   click="toggle-select-all"
@@ -390,9 +390,11 @@ defmodule Oban.Web.JobsPage do
     params = params_with_defaults(params, socket)
 
     selected =
-      if same_scope?(socket.assigns.params, params),
-        do: socket.assigns.selected,
-        else: MapSet.new()
+      if same_scope?(socket.assigns.params, params) do
+        socket.assigns.selected
+      else
+        MapSet.new()
+      end
 
     socket =
       socket
@@ -591,18 +593,24 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_info(:toggle_select_all, socket) do
-    selected =
-      if Enum.any?(socket.assigns.selected) do
-        MapSet.new()
-      else
-        # Always include the jobs we can see currently to compensate for slower refresh rates.
-        # Without this, visible jobs may not be selected and the interface looks broken.
-        local_set = MapSet.new(socket.assigns.jobs, & &1.id)
+    %{conf: conf, jobs: jobs, params: params, resolver: resolver, selected: selected} =
+      socket.assigns
 
-        socket.assigns.params
-        |> JobQuery.all_job_ids(socket.assigns.conf, resolver: socket.assigns.resolver)
-        |> MapSet.new()
-        |> MapSet.union(local_set)
+    visible = MapSet.new(jobs, & &1.id)
+
+    selected =
+      case checked_mode(jobs, selected) do
+        :all ->
+          MapSet.new()
+
+        :some ->
+          MapSet.union(selected, visible)
+
+        :none ->
+          params
+          |> JobQuery.all_job_ids(conf, resolver: resolver)
+          |> MapSet.new()
+          |> MapSet.union(visible)
       end
 
     {:noreply, assign(socket, selected: selected)}

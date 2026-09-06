@@ -319,6 +319,38 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       refute has_element?(live, "#bulk-actions")
     end
 
+    test "the header checkbox completes a partial selection before clearing it", %{
+      live: live,
+      oban: oban
+    } do
+      [job_1, job_2] =
+        Oban.insert_all(oban, [
+          Job.new(%{ref: 1}, state: "available", worker: WorkerA),
+          Job.new(%{ref: 2}, state: "available", worker: WorkerB)
+        ])
+
+      click_state(live, "available")
+
+      assert has_element?(live, "#toggle-select[aria-label='Select all']")
+
+      select_jobs(live, [job_1])
+
+      assert has_element?(
+               live,
+               "#toggle-select[aria-checked=mixed][aria-label='Select the rest']"
+             )
+
+      toggle_select_all(live)
+
+      assert has_element?(live, "#job-#{job_2.id} button[role=checkbox][aria-checked=true]")
+      assert has_element?(live, "#selected-count", "2 selected")
+      assert has_element?(live, "#toggle-select[aria-checked=true][aria-label='Clear selection']")
+
+      toggle_select_all(live)
+
+      refute has_element?(live, "#selected-count")
+    end
+
     test "select all reports when the bulk action limit is reached", %{oban: oban} do
       Oban.insert_all(oban, [
         Job.new(%{ref: 1}, state: "available", worker: WorkerA),
@@ -442,6 +474,12 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp refresh(live) do
     send(live.pid, :refresh)
+  end
+
+  defp toggle_select_all(live) do
+    live
+    |> element("#toggle-select")
+    |> render_click()
   end
 
   defp select_jobs(live, jobs) do

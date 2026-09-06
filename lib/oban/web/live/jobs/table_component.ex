@@ -76,15 +76,24 @@ defmodule Oban.Web.Jobs.TableComponent do
   end
 
   defp job_row(assigns) do
+    assigns = assign(assigns, selected?: MapSet.member?(assigns.selected, assigns.job.id))
+
     ~H"""
     <li
       id={"job-#{@job.id}"}
-      class={["flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30", hidden_class(@job)]}
+      class={[
+        "flex items-center",
+        if(@selected?,
+          do: "bg-blue-50 dark:bg-blue-500/10",
+          else: "hover:bg-gray-50 dark:hover:bg-gray-950/30"
+        ),
+        hidden_class(@job)
+      ]}
     >
       <Core.row_checkbox
         click="toggle-select"
         value={@job.id}
-        checked={MapSet.member?(@selected, @job.id)}
+        checked={@selected?}
         label={"Select job #{@job.id}"}
         myself={@myself}
       />

@@ -272,12 +272,14 @@ defmodule Oban.Web.Components.Core do
   attr :myself, :any, required: true
 
   def all_checkbox(assigns) do
+    assigns = assign(assigns, label: all_label(assigns.checked))
+
     ~H"""
     <button
       aria-checked={all_checked(@checked)}
-      aria-label="Select all"
+      aria-label={@label}
       class="p-6 group focus-visible:outline-none"
-      data-title="Select all"
+      data-title={@label}
       id="toggle-select"
       phx-click={@click}
       phx-hook="Tippy"
@@ -319,6 +321,10 @@ defmodule Oban.Web.Components.Core do
   defp all_checked(:all), do: "true"
   defp all_checked(:some), do: "mixed"
   defp all_checked(_none), do: "false"
+
+  defp all_label(:all), do: "Clear selection"
+  defp all_label(:some), do: "Select the rest"
+  defp all_label(_none), do: "Select all"
 
   @doc """
   A status badge with icon that expands to show label on hover.
