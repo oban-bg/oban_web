@@ -3,7 +3,7 @@ defmodule Oban.Web.Metrics do
 
   alias Oban.Met
 
-  @states ~w(available executing scheduled retryable)a
+  @states Oban.Job.states()
 
   @doc """
   Fetch latest metric counts with optional fallback to previous values.

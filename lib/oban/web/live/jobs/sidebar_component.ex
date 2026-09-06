@@ -4,6 +4,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   alias Oban.Web.Queue
   alias Oban.Web.SidebarComponents
 
+  attr :collapsed, :list, default: []
   attr :nodes, :list
   attr :params, :map
   attr :queues, :list
@@ -12,9 +13,22 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :width, :integer, default: 320
 
   def sidebar(assigns) do
+    {state_header, state_key} = state_column(assigns.params)
+
+    assigns =
+      assign(assigns,
+        modes?: Enum.any?(assigns.queues, &modes?/1),
+        state_header: state_header,
+        state_key: state_key
+      )
+
     ~H"""
-    <SidebarComponents.sidebar width={@width} csp_nonces={@csp_nonces}>
-      <SidebarComponents.section name="states" headers={~w(jobs)}>
+    <SidebarComponents.sidebar label="Job filters" width={@width} csp_nonces={@csp_nonces}>
+      <SidebarComponents.section
+        name="states"
+        headers={["jobs"]}
+        expanded={"states" not in @collapsed}
+      >
         <div role="group" aria-label="Filter by one state">
           <SidebarComponents.filter_row
             :for={state <- @states}
@@ -28,10 +42,18 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         </div>
       </SidebarComponents.section>
 
-      <SidebarComponents.section name="nodes" headers={~w(exec limit)}>
+      <SidebarComponents.section
+        :let={labels}
+        name="nodes"
+        headers={[%{short: "exec", label: "executing"}, "limit"]}
+        expanded={"nodes" not in @collapsed}
+      >
+        <SidebarComponents.empty_row :if={@nodes == []} text="No nodes reporting" />
+
         <SidebarComponents.filter_row
           :for={node <- @nodes}
           name={node.name}
+          labels={labels}
           active={active_filter?(@params, :nodes, node.name)}
           patch={patch_params(@params, :jobs, :nodes, node.name)}
           values={[node.count, node.limit]}
@@ -45,13 +67,26 @@ defmodule Oban.Web.Jobs.SidebarComponent do
         </SidebarComponents.filter_row>
       </SidebarComponents.section>
 
-      <SidebarComponents.section name="queues" mode_header="mode" headers={~w(limit exec avail)}>
+      <SidebarComponents.section
+        :let={labels}
+        name="queues"
+        mode_header={if(@modes?, do: %{short: "mode", label: "Limits, partitioning, and pauses"})}
+        headers={["limit", %{short: "exec", label: "executing"}, @state_header]}
+        expanded={"queues" not in @collapsed}
+      >
+        <SidebarComponents.empty_row :if={@queues == []} text="No queues running" />
+
         <SidebarComponents.filter_row
           :for={queue <- @queues}
           name={queue.name}
+          labels={labels}
           active={active_filter?(@params, :queues, queue.name)}
           patch={patch_params(@params, :jobs, :queues, queue.name)}
-          values={[Queue.total_limit(queue), queue.counts.executing, queue.counts.available]}
+          values={[
+            Queue.total_limit(queue),
+            queue.counts.executing,
+            Map.get(queue.counts, @state_key, 0)
+          ]}
         >
           <:leading>
             <.link
@@ -60,13 +95,13 @@ defmodule Oban.Web.Jobs.SidebarComponent do
               aria-label={"#{queue.name} queue details"}
               data-title="Queue details"
               phx-hook="Tippy"
-              class="flex items-center rounded-sm text-gray-400 dark:text-gray-600 hover:text-violet-500 dark:hover:text-violet-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+              class="flex items-center p-1.5 -m-1.5 rounded-sm text-gray-400 dark:text-gray-600 hover:text-violet-500 dark:hover:text-violet-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
             >
               <Icons.icon name="icon-queue-list" class="w-4 h-4" />
             </.link>
           </:leading>
 
-          <:statuses>
+          <:statuses :if={@modes?}>
             <.mode_icon
               :if={Queue.global_limit?(queue)}
               icon="icon-globe"
@@ -90,18 +125,37 @@ defmodule Oban.Web.Jobs.SidebarComponent do
               icon="icon-pause-circle"
               id={"mode-#{queue.name}-paused"}
               label="All paused"
+              class="text-amber-500 dark:text-amber-400"
             />
             <.mode_icon
               :if={Queue.any_paused?(queue) and not Queue.all_paused?(queue)}
               icon="icon-play-pause-circle"
               id={"mode-#{queue.name}-some-paused"}
               label="Some paused"
+              class="text-amber-500 dark:text-amber-400"
             />
           </:statuses>
         </SidebarComponents.filter_row>
       </SidebarComponents.section>
     </SidebarComponents.sidebar>
     """
+  end
+
+  # The third queue column follows the selected state so the sidebar answers "which queue" for
+  # whatever is being investigated. Executing already has a column, so it shows available instead.
+  defp state_column(params) do
+    case params[:state] do
+      state when state in [nil, "executing"] ->
+        {%{state: "available", label: "available"}, :available}
+
+      state ->
+        {%{state: state, label: state}, String.to_existing_atom(state)}
+    end
+  end
+
+  defp modes?(queue) do
+    Queue.global_limit?(queue) or Queue.rate_limit?(queue) or Queue.partitioned?(queue) or
+      Queue.any_paused?(queue)
   end
 
   defp state_patch(params, name) do
@@ -115,10 +169,11 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :icon, :string, required: true
   attr :id, :string, required: true
   attr :label, :string, required: true
+  attr :class, :string, default: nil
 
   defp mode_icon(assigns) do
     ~H"""
-    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
+    <span class={["flex items-center", @class]} data-title={@label} id={@id} phx-hook="Tippy">
       <Icons.icon name={@icon} class="w-4 h-4" />
       <span class="sr-only">{@label}</span>
     </span>

@@ -11,6 +11,14 @@
   font-variant-numeric: slashed-zero tabular-nums;
 }
 
+/* Collapsed sidebar sections stay hidden on the dead render until the connected render takes
+   over. The root layout sets the attribute from local storage before the first paint. */
+html[data-sidebar-collapsed~="states"] #states-rows,
+html[data-sidebar-collapsed~="nodes"] #nodes-rows,
+html[data-sidebar-collapsed~="queues"] #queues-rows {
+  display: none;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

@@ -37,6 +37,22 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       end
     end
 
+    test "naming the deep linked state before the socket connects" do
+      html =
+        build_conn()
+        |> get("/oban/jobs?state=discarded")
+        |> html_response(200)
+
+      doc = LazyHTML.from_document(html)
+
+      assert ["filter-discarded"] =
+               doc
+               |> LazyHTML.query("#sidebar #states [aria-current=true]")
+               |> LazyHTML.attribute("id")
+
+      assert doc |> LazyHTML.query("#jobs-header #jobs-state") |> LazyHTML.text() =~ "discarded"
+    end
+
     test "naming the state on the panel and in the time column", %{live: live} do
       assert has_element?(live, "#jobs-header #jobs-state", "executing")
       assert has_element?(live, "#jobs-table", "running")
@@ -173,6 +189,61 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_job?(live, "AlphaWorker")
       assert has_job?(live, "DeltaWorker")
       refute has_job?(live, "GammaWorker")
+    end
+
+    test "the third queue column follows the selected state", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
+      gossip(oban, node: "web-1", queue: "delta")
+
+      now = DateTime.utc_now()
+
+      changesets = [
+        Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
+        Job.new(%{ref: 2},
+          queue: "alpha",
+          worker: AlphaWorker,
+          state: "discarded",
+          discarded_at: now
+        ),
+        Job.new(%{ref: 3},
+          queue: "alpha",
+          worker: AlphaWorker,
+          state: "discarded",
+          discarded_at: now
+        ),
+        Job.new(%{ref: 4},
+          queue: "delta",
+          worker: DeltaWorker,
+          state: "discarded",
+          discarded_at: now
+        )
+      ]
+
+      Oban.insert_all(oban, changesets)
+
+      flush_reporter(oban)
+      refresh(live)
+
+      assert has_element?(live, "#queues-header-2[data-title=available] .sr-only", "available")
+      assert has_element?(live, "#sidebar #queues #filter-alpha .sr-only", "available")
+
+      click_state(live, "discarded")
+
+      assert has_element?(live, "#queues-header-2[data-title=discarded] .sr-only", "discarded")
+      assert has_element?(live, "#sidebar #queues #filter-alpha", ~r/discarded\s+2/)
+      assert has_element?(live, "#sidebar #queues #filter-delta", ~r/discarded\s+1/)
+    end
+
+    test "queues without limits or pauses hide the mode column", %{live: live, oban: oban} do
+      gossip(oban, node: "web-1", queue: "alpha")
+
+      refute has_element?(live, "#queues-header-mode")
+
+      gossip(oban, node: "web-1", queue: "delta", paused: true)
+      refresh(live)
+
+      assert has_element?(live, "#queues-header-mode[data-title]")
+      assert has_element?(live, "#mode-delta-paused.text-amber-500 .sr-only", "All paused")
     end
 
     test "filtering through the autocomplete toolbar", %{live: live, oban: oban} do
@@ -391,6 +462,48 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
                live,
                "#search-filter-queues button[aria-label='Remove filter queues:alpha']"
              )
+    end
+
+    test "sidebar filters are a labelled landmark with pressed and current states", %{
+      live: live,
+      oban: oban
+    } do
+      gossip(oban, node: "web-1", queue: "alpha")
+      refresh(live)
+
+      assert has_element?(live, "aside#sidebar[aria-label='Job filters']")
+      assert has_element?(live, "#sidebar #states a#filter-executing[aria-current=true]")
+      assert has_element?(live, "#sidebar #queues button#filter-alpha[aria-pressed=false]")
+      assert has_element?(live, "#sidebar #nodes button#filter-web-1 .sr-only", "executing")
+      assert has_element?(live, "#sidebar [role=separator][aria-valuetext='320 pixels']")
+
+      click_queue(live, "alpha")
+
+      assert has_element?(live, "#sidebar #queues button#filter-alpha[aria-pressed=true]")
+    end
+
+    test "collapsing a section is announced and remembered", %{live: live} do
+      assert has_element?(live, "#nodes-toggle[aria-expanded=true][aria-label='Collapse nodes']")
+
+      live
+      |> element("#nodes-toggle")
+      |> render_click()
+
+      assert_push_event(live, "update-sidebar-collapsed", %{names: ["nodes"]})
+      assert has_element?(live, "#nodes-toggle[aria-expanded=false][aria-label='Expand nodes']")
+      assert has_element?(live, "#nodes-rows.hidden")
+
+      live
+      |> element("#nodes-toggle")
+      |> render_click()
+
+      assert_push_event(live, "update-sidebar-collapsed", %{names: []})
+      refute has_element?(live, "#nodes-rows.hidden")
+    end
+
+    test "empty sections say why they are empty", %{live: live} do
+      assert has_element?(live, "#nodes-rows", "No nodes reporting")
+      assert has_element?(live, "#queues-rows", "No queues running")
     end
 
     test "row and select all checkboxes announce their state", %{live: live, oban: oban} do

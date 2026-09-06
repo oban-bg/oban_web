@@ -18,6 +18,11 @@ const SidebarResizer = {
     this.handleKeyDown = this.handleKeyDown.bind(this);
 
     this.attachHandle();
+
+    this.handleEvent("update-sidebar-collapsed", ({ names }) => {
+      store("sidebar_collapsed", names);
+      document.documentElement.dataset.sidebarCollapsed = names.join(" ");
+    });
   },
 
   updated() {
@@ -122,6 +127,7 @@ const SidebarResizer = {
 
     document.documentElement.style.setProperty("--sidebar-width", `${clampedWidth}px`);
     this.handle.setAttribute("aria-valuenow", clampedWidth);
+    this.handle.setAttribute("aria-valuetext", `${clampedWidth} pixels`);
   },
 };
 

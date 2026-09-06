@@ -13,6 +13,7 @@ defmodule Oban.Web.DashboardLive do
     refresh = restore_state(socket, "refresh", refresh)
     theme = restore_state(socket, "theme", "system")
     sidebar_width = restore_state(socket, "sidebar_width", 320)
+    sidebar_collapsed = restore_state(socket, "sidebar_collapsed", [])
     oban = current_oban_instance(session, socket)
 
     conf = await_init([oban])
@@ -28,7 +29,7 @@ defmodule Oban.Web.DashboardLive do
       |> assign(live_path: live_path, live_transport: live_transport, logo_path: logo_path)
       |> assign(access: access, csp_nonces: csp_nonces, resolver: resolver, user: user)
       |> assign(original_refresh: nil, refresh: refresh, timer: nil, theme: theme)
-      |> assign(sidebar_width: sidebar_width)
+      |> assign(sidebar_collapsed: sidebar_collapsed, sidebar_width: sidebar_width)
       |> init_schedule_refresh()
       |> page.comp.handle_mount()
 
@@ -104,6 +105,7 @@ defmodule Oban.Web.DashboardLive do
 
   @impl Phoenix.LiveView
   def handle_params(params, uri, socket) do
+    params = with_query_params(params, uri)
     page = resolve_page(params)
 
     if page == socket.assigns.page do
@@ -214,6 +216,20 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, assign(socket, sidebar_width: width)}
   end
 
+  def handle_event("toggle-section", %{"name" => name}, socket) do
+    collapsed = socket.assigns.sidebar_collapsed
+
+    collapsed =
+      if name in collapsed,
+        do: List.delete(collapsed, name),
+        else: collapsed ++ [name]
+
+    {:noreply,
+     socket
+     |> assign(sidebar_collapsed: collapsed)
+     |> push_event("update-sidebar-collapsed", %{names: collapsed})}
+  end
+
   def handle_event(event, params, socket) do
     socket.assigns.page.comp.handle_event(event, params, socket)
   end
@@ -237,6 +253,20 @@ defmodule Oban.Web.DashboardLive do
 
       pid when is_pid(pid) ->
         Oban.config(oban_name)
+    end
+  end
+
+  # A dead render only receives query params when the host endpoint parses them. The request URI
+  # always carries them, so they're merged in to keep the first paint honest for deep links.
+  defp with_query_params(params, uri) do
+    case URI.parse(uri) do
+      %URI{query: query} when is_binary(query) ->
+        query
+        |> URI.decode_query()
+        |> Map.merge(params)
+
+      _uri ->
+        params
     end
   end
 

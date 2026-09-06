@@ -30,6 +30,10 @@
       // Apply sidebar width before page renders to prevent flash
       const sidebarWidth = Math.max(320, JSON.parse(localStorage.getItem("oban:sidebar_width")) || 320);
       document.documentElement.style.setProperty("--sidebar-width", sidebarWidth + "px");
+
+      // Hide collapsed sidebar sections before the socket connects and re-renders them
+      const sidebarCollapsed = JSON.parse(localStorage.getItem("oban:sidebar_collapsed")) || [];
+      document.documentElement.dataset.sidebarCollapsed = sidebarCollapsed.join(" ");
     </script>
 
     <script nonce={@csp_nonces.script} src={asset_path(@conn, :js)} defer>

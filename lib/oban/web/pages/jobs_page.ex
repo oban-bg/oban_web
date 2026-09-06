@@ -41,6 +41,7 @@ defmodule Oban.Web.JobsPage do
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <SidebarComponent.sidebar
         :if={is_nil(@detailed)}
+        collapsed={@sidebar_collapsed}
         nodes={@nodes}
         params={without_defaults(@params, @default_params)}
         queues={@queues}
