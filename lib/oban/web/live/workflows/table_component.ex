@@ -9,16 +9,16 @@ defmodule Oban.Web.Workflows.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="workflows-table" class="min-w-full">
-      <div class="flex items-center border-b border-l-4 border-transparent border-b-gray-200 dark:border-b-gray-700 text-gray-400 dark:text-gray-500">
-        <.header label="name" class="pl-3 flex-1 min-w-0 text-left" />
+      <Core.table_header class="border-l-4 border-l-transparent">
+        <Core.column_header label="name" class="pl-3 flex-1 min-w-0 text-left" />
         <div class="flex items-center space-x-6">
-          <.header label="progress" class="w-88 text-left" />
-          <.header label="activity" class="w-48 text-left" />
-          <.header label="duration" class="w-24 text-right" />
-          <.header label="started" class="w-24 text-right" />
-          <.header label="status" class="w-16 pr-4 text-right" />
+          <Core.column_header label="progress" class="w-88 text-left" />
+          <Core.column_header label="activity" class="w-48 text-left" />
+          <Core.column_header label="duration" class="w-24 text-right" />
+          <Core.column_header label="started" class="w-24 text-right" />
+          <Core.column_header label="status" class="w-16 pr-4 text-right" />
         </div>
-      </div>
+      </Core.table_header>
 
       <Core.no_matches
         :if={Enum.empty?(@workflows) and @filtered?}
@@ -45,17 +45,6 @@ defmodule Oban.Web.Workflows.TableComponent do
         <.workflow_row :for={workflow <- @workflows} workflow={workflow} />
       </ul>
     </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :class, :string, default: ""
-
-  defp header(assigns) do
-    ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5"]}>
-      {@label}
-    </span>
     """
   end
 

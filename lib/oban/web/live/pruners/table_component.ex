@@ -7,18 +7,18 @@ defmodule Oban.Web.Pruners.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="pruners-table" class="min-w-full">
-      <div class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
+      <Core.table_header>
         <span class="w-10 shrink-0"></span>
         <div class="flex flex-grow items-center">
-          <.header label="rule" class="w-1/3 text-left" />
+          <Core.column_header label="rule" class="w-1/3 text-left" />
           <div class="ml-auto flex items-center space-x-6">
-            <.header label="match" class="w-96 text-left" />
-            <.header label="retention" class="w-32 text-right" />
-            <.header label="limit" class="w-24 text-right" />
-            <.header label="status" class="w-20 pr-4 text-right" />
+            <Core.column_header label="match" class="w-96 text-left" />
+            <Core.column_header label="retention" class="w-32 text-right" />
+            <Core.column_header label="limit" class="w-24 text-right" />
+            <Core.column_header label="status" class="w-20 pr-4 text-right" />
           </div>
         </div>
-      </div>
+      </Core.table_header>
 
       <Core.no_matches
         :if={Enum.empty?(@rules) and @filtered?}
@@ -65,17 +65,6 @@ defmodule Oban.Web.Pruners.TableComponent do
         />
       </ul>
     </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :class, :string, default: ""
-
-  defp header(assigns) do
-    ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5"]}>
-      {@label}
-    </span>
     """
   end
 

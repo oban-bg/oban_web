@@ -313,6 +313,57 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
   end
 
+  describe "keyboard and screen reader access" do
+    test "search input is a combobox with named suggestions and controls", %{live: live} do
+      assert has_element?(
+               live,
+               "#search-input[role=combobox][aria-controls=search-options][aria-expanded=false]"
+             )
+
+      assert has_element?(live, "#search-options[role=listbox] #search-option-0[role=option]")
+      assert has_element?(live, "#search-keys", "Tab")
+
+      live
+      |> form("#search")
+      |> tap(&render_change(&1, %{terms: "queues:alpha"}))
+      |> tap(&render_submit(&1, %{}))
+
+      assert has_element?(live, "#search-reset[aria-label='Clear filters']")
+
+      assert has_element?(
+               live,
+               "#search-filter-queues button[aria-label='Remove filter queues:alpha']"
+             )
+    end
+
+    test "row and select all checkboxes announce their state", %{live: live, oban: oban} do
+      [job_1, job_2] =
+        Oban.insert_all(oban, [
+          Job.new(%{ref: 1}, state: "available", worker: WorkerA),
+          Job.new(%{ref: 2}, state: "available", worker: WorkerB)
+        ])
+
+      click_state(live, "available")
+
+      assert has_element?(live, "#toggle-select[role=checkbox][aria-checked=false]")
+
+      assert has_element?(
+               live,
+               "#job-#{job_1.id} button[role=checkbox][aria-checked=false][aria-label='Select job #{job_1.id}']"
+             )
+
+      select_jobs(live, [job_1])
+
+      assert has_element?(live, "#job-#{job_1.id} button[role=checkbox][aria-checked=true]")
+      assert has_element?(live, "#job-#{job_2.id} button[role=checkbox][aria-checked=false]")
+      assert has_element?(live, "#toggle-select[aria-checked=mixed]")
+
+      select_jobs(live, [job_2])
+
+      assert has_element?(live, "#toggle-select[aria-checked=true]")
+    end
+  end
+
   defp click_node(live, node) do
     live
     |> element("#sidebar #nodes #filter-#{node}")

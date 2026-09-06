@@ -156,32 +156,59 @@ defmodule Oban.Web.Components.Core do
     |> JS.focus_first(to: "##{id}-menu")
   end
 
+  @doc """
+  A row of column labels above a table's rows.
+  """
+  attr :class, :any, default: nil
+  slot :inner_block, required: true
+
+  def table_header(assigns) do
+    ~H"""
+    <div class={[
+      "flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400",
+      @class
+    ]}>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :class, :any, default: nil
+
+  def column_header(assigns) do
+    ~H"""
+    <span class={["text-xs font-medium uppercase tracking-wider py-1.5", @class]}>
+      {@label}
+    </span>
+    """
+  end
+
+  @doc """
+  A row selection checkbox, exposed as a named checkbox so the row it selects is announced.
+  """
   attr :checked, :boolean, default: false
   attr :click, :string, required: true
+  attr :label, :string, required: true
   attr :myself, :any, required: true
   attr :value, :string, required: true
 
   def row_checkbox(assigns) do
-    style =
-      if assigns.checked do
-        "border-blue-500 bg-blue-500"
-      else
-        "border-gray-400 dark:border-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-600"
-      end
-
-    assigns = assign(assigns, :style, style)
-
     ~H"""
     <button
-      class="p-6 group"
+      aria-checked={to_string(@checked)}
+      aria-label={@label}
+      class="p-6 group focus-visible:outline-none"
       phx-click={@click}
       phx-target={@myself}
       phx-value-id={@value}
       rel="check"
+      role="checkbox"
+      type="button"
     >
-      <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
+      <.checkbox_box checked={@checked}>
         <Icons.icon name="icon-check" class="w-3 h-3 text-white dark:text-gray-900" />
-      </div>
+      </.checkbox_box>
     </button>
     """
   end
@@ -191,35 +218,53 @@ defmodule Oban.Web.Components.Core do
   attr :myself, :any, required: true
 
   def all_checkbox(assigns) do
-    style =
-      if assigns.checked in [:all, :some] do
-        "border-blue-500 bg-blue-500"
-      else
-        "border-gray-400 dark:border-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-600"
-      end
-
-    assigns = assign(assigns, :style, style)
-
     ~H"""
     <button
-      class="p-6 group"
-      data-title="Select All"
+      aria-checked={all_checked(@checked)}
+      aria-label="Select all"
+      class="p-6 group focus-visible:outline-none"
+      data-title="Select all"
       id="toggle-select"
       phx-click={@click}
       phx-hook="Tippy"
       phx-target={@myself}
+      role="checkbox"
       type="button"
     >
-      <div class={["w-4 h-4 flex items-center justify-center rounded border", @style]}>
+      <.checkbox_box checked={@checked in [:all, :some]}>
         <%= if @checked == :some do %>
           <Icons.icon name="icon-indeterminate" class="w-3 h-3 text-white dark:text-gray-900" />
         <% else %>
           <Icons.icon name="icon-check" class="w-3 h-3 text-white dark:text-gray-900" />
         <% end %>
-      </div>
+      </.checkbox_box>
     </button>
     """
   end
+
+  attr :checked, :boolean, required: true
+  slot :inner_block, required: true
+
+  defp checkbox_box(assigns) do
+    ~H"""
+    <div class={[
+      "w-4 h-4 flex items-center justify-center rounded border",
+      "group-focus-visible:ring-2 group-focus-visible:ring-blue-500 group-focus-visible:ring-offset-2",
+      "dark:group-focus-visible:ring-offset-gray-900",
+      if(@checked,
+        do: "border-blue-500 bg-blue-500",
+        else:
+          "border-gray-400 dark:border-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-600"
+      )
+    ]}>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  defp all_checked(:all), do: "true"
+  defp all_checked(:some), do: "mixed"
+  defp all_checked(_none), do: "false"
 
   @doc """
   A status badge with icon that expands to show label on hover.

@@ -55,8 +55,12 @@ defmodule Oban.Web.SearchComponent do
           />
 
           <input
+            aria-autocomplete="list"
+            aria-controls="search-options"
+            aria-describedby="search-keys"
+            aria-expanded="false"
             aria-label="Add filters"
-            aria-placeholder="Add filters"
+            autocomplete="off"
             autocorrect="false"
             class="min-w-[10rem] flex-grow my-2 px-0 py-0.5 text-sm appearance-none border-none bg-transparent placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0"
             id="search-input"
@@ -66,6 +70,7 @@ defmodule Oban.Web.SearchComponent do
             phx-focus={show_focus()}
             phx-target={@myself}
             placeholder="Add filters"
+            role="combobox"
             spellcheck="false"
             type="search"
             value={@buffer}
@@ -74,49 +79,71 @@ defmodule Oban.Web.SearchComponent do
       </div>
 
       <button
+        aria-label="Clear filters"
         class={[
           "absolute inset-y-0 right-0 pr-3 items-center text-gray-400 hover:text-blue-500",
+          "focus-visible:outline-none focus-visible:text-blue-500",
           unless(clearable?(@buffer, @params, @queryable), do: "hidden")
         ]}
         data-title="Clear filters"
         id="search-reset"
-        phx-target={@myself}
         phx-click="clear"
+        phx-hook="Tippy"
+        phx-target={@myself}
         type="reset"
       >
         <Icons.icon name="icon-x-circle" class="w-5 h-5" />
       </button>
 
-      <nav
+      <div
         class="hidden absolute z-10 mt-1 w-full text-sm shadow-lg bg-white dark:bg-gray-800 focus:outline-none overflow-hidden rounded-md ring-1 ring-black/5"
         id="search-suggest"
-        phx-click-away={JS.hide()}
+        phx-click-away={hide_suggest()}
       >
-        <div class="p-2">
+        <div id="search-options" class="p-2" role="listbox" aria-label="Suggestions">
           <.option
-            :for={{name, desc, exmp} <- @suggestions}
+            :for={{{name, desc, exmp}, index} <- Enum.with_index(@suggestions)}
             buff={@buffer}
-            name={name}
             desc={desc}
             exmp={exmp}
+            index={index}
+            name={name}
           />
-
-          <div :if={Enum.empty?(@suggestions)} class="w-full flex items-center space-x-2 p-1">
-            <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-gray-400" />
-            <span class="text-gray-700">No suggestions matching <b>"{@buffer}"</b></span>
-          </div>
         </div>
 
-        <a
-          href="https://oban.pro/docs/web/filtering.html"
-          class="w-full flex items-center space-x-1 p-2 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-950 dark:hover:text-gray-100"
-          title="Read the filtering and searching guide"
-          target="_blank"
+        <div
+          :if={Enum.empty?(@suggestions)}
+          class="w-full flex items-center space-x-2 px-3 pb-2"
+          role="status"
         >
-          <Icons.icon name="icon-info-circle" class="w-4 h-4" />
-          <span class="text-xs">Filtering Tips</span>
-        </a>
-      </nav>
+          <Icons.icon name="icon-exclamation-circle" class="w-5 h-5 text-gray-400" />
+          <span class="text-gray-700 dark:text-gray-300">
+            No suggestions matching <b>"{@buffer}"</b>
+          </span>
+        </div>
+
+        <div class="w-full flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+          <a
+            href="https://oban.pro/docs/web/filtering.html"
+            class="flex items-center space-x-1 rounded-sm hover:text-gray-950 dark:hover:text-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+            title="Read the filtering and searching guide"
+            target="_blank"
+          >
+            <Icons.icon name="icon-info-circle" class="w-4 h-4" />
+            <span class="text-xs">Filtering Tips</span>
+          </a>
+
+          <p id="search-keys" class="flex items-center space-x-1.5 text-xs whitespace-nowrap">
+            <.key_hint key="Tab">completes</.key_hint>
+            <span aria-hidden="true">·</span>
+            <.key_hint key="↑↓">choose</.key_hint>
+            <span aria-hidden="true">·</span>
+            <.key_hint key="Enter">applies</.key_hint>
+            <span aria-hidden="true">·</span>
+            <.key_hint key="Esc">closes</.key_hint>
+          </p>
+        </div>
+      </div>
     </form>
     """
   end
@@ -132,7 +159,8 @@ defmodule Oban.Web.SearchComponent do
       </span>
 
       <button
-        class="flex items-center pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 dark:bg-violet-300 hover:bg-violet-500 dark:hover:bg-violet-500 hover:text-gray-100"
+        aria-label={"Remove filter #{Oban.Web.Search.format_filter(@param, @terms)}"}
+        class="flex items-center pl-0.5 pr-1 py-1 rounded-e-md text-gray-800/70 bg-violet-100 dark:bg-violet-300 hover:bg-violet-500 dark:hover:bg-violet-500 hover:text-gray-100 focus-visible:outline-none focus-visible:bg-violet-500 focus-visible:text-gray-100"
         type="button"
         phx-click="remove-filter"
         phx-value-param={@param}
@@ -146,28 +174,47 @@ defmodule Oban.Web.SearchComponent do
   end
 
   attr :buff, :string
-  attr :name, :string
   attr :desc, :string
   attr :exmp, :string
+  attr :index, :integer
+  attr :name, :string
 
   defp option(assigns) do
     ~H"""
     <button
-      class="w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-500"
+      aria-selected="false"
+      class="w-full flex items-center cursor-pointer p-1 rounded-md group hover:bg-violet-500 aria-selected:bg-violet-500"
+      id={"search-option-#{@index}"}
       phx-click={JS.push("append", value: %{choice: @name})}
       phx-target="#search"
+      role="option"
+      tabindex="-1"
       type="button"
     >
       <span class="block px-1 py-0.5 font-medium rounded-md bg-gray-100 dark:bg-gray-900">
         {highlight(@name, @buff)}
       </span>
-      <span class="block ml-2 text-gray-600 dark:text-gray-300 group-hover:text-white">
+      <span class="block ml-2 text-gray-600 dark:text-gray-300 group-hover:text-white group-aria-selected:text-white">
         {@desc}
       </span>
-      <span class="block ml-auto text-right text-gray-400 dark:text-gray-500 group-hover:text-white">
+      <span class="block ml-auto text-right text-gray-400 dark:text-gray-500 group-hover:text-white group-aria-selected:text-white">
         {@exmp}
       </span>
     </button>
+    """
+  end
+
+  attr :key, :string, required: true
+  slot :inner_block, required: true
+
+  defp key_hint(assigns) do
+    ~H"""
+    <span class="flex items-center space-x-1">
+      <kbd class="px-1 py-px rounded-sm text-xs font-sans bg-white dark:bg-gray-800 ring-1 ring-gray-300 dark:ring-gray-700">
+        {@key}
+      </kbd>
+      <span>{render_slot(@inner_block)}</span>
+    </span>
     """
   end
 
@@ -200,6 +247,7 @@ defmodule Oban.Web.SearchComponent do
     |> JS.add_class("shadow-blue-100 dark:shadow-blue-950", to: "#search-wrapper")
     |> JS.add_class("ring-blue-500 dark:ring-blue-700", to: "#search-wrapper")
     |> JS.add_class("bg-blue-100/30 dark:bg-blue-900/30", to: "#search-wrapper")
+    |> JS.set_attribute({"aria-expanded", "true"}, to: "#search-input")
     |> JS.show(to: "#search-suggest")
   end
 
@@ -211,6 +259,12 @@ defmodule Oban.Web.SearchComponent do
     |> JS.remove_class("shadow-blue-100 dark:shadow-blue-950", to: "#search-wrapper")
     |> JS.remove_class("ring-blue-500 dark:ring-blue-700", to: "#search-wrapper")
     |> JS.remove_class("bg-blue-100/30 dark:bg-blue-900/30", to: "#search-wrapper")
+  end
+
+  defp hide_suggest do
+    %JS{}
+    |> JS.hide()
+    |> JS.set_attribute({"aria-expanded", "false"}, to: "#search-input")
   end
 
   # Events
@@ -231,6 +285,7 @@ defmodule Oban.Web.SearchComponent do
     {:noreply,
      socket
      |> assign(buffer: "", loading: false, suggestions: suggestions)
+     |> push_event("completed", %{buffer: ""})
      |> push_patch(to: oban_path(socket.assigns.page))}
   end
 
@@ -239,6 +294,7 @@ defmodule Oban.Web.SearchComponent do
 
     socket
     |> assign(buffer: buffer)
+    |> push_event("completed", %{buffer: buffer})
     |> handle_submit()
   end
 
@@ -264,6 +320,8 @@ defmodule Oban.Web.SearchComponent do
     {:noreply, push_patch(socket, to: oban_path(socket.assigns.page, params))}
   end
 
+  # The completed event keeps the input in sync because LiveView leaves a focused input's value
+  # alone, and picking a suggestion by keyboard never moves focus out of the input.
   defp handle_submit(socket) do
     %{buffer: buffer, queryable: queryable} = socket.assigns
 
@@ -277,6 +335,7 @@ defmodule Oban.Web.SearchComponent do
       {:noreply,
        socket
        |> assign(buffer: "", loading: false, suggestions: suggestions)
+       |> push_event("completed", %{buffer: ""})
        |> push_patch(to: oban_path(socket.assigns.page, params))}
     end
   end

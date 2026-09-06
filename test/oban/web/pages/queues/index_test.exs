@@ -95,6 +95,24 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
            )
   end
 
+  test "queue checkboxes are named for screen readers", %{live: live, oban: oban} do
+    gossip(oban, node: "web.1", queue: "alpha")
+
+    refresh(live)
+
+    assert has_element?(
+             live,
+             "#queue-alpha button[role=checkbox][aria-checked=false][aria-label='Select queue alpha']"
+           )
+
+    live
+    |> element("#queue-alpha button[rel=check]")
+    |> render_click()
+
+    assert has_element?(live, "#queue-alpha button[role=checkbox][aria-checked=true]")
+    assert has_element?(live, "#toggle-select[role=checkbox][aria-checked=true]")
+  end
+
   test "selecting all queues matching the current filters", %{live: live, oban: oban} do
     gossip(oban, node: "web.1", queue: "alpha")
     gossip(oban, node: "web.2", queue: "bravo", paused: true)

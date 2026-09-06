@@ -14,16 +14,16 @@ defmodule Oban.Web.Crons.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="crons-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-        <.header label="name" class="pl-3 w-1/3 text-left" />
+      <Core.table_header>
+        <Core.column_header label="name" class="pl-3 w-1/3 text-left" />
         <div class="ml-auto flex items-center space-x-6">
-          <.header label="history" class="w-80 text-center" />
-          <.header label="schedule" class="w-32 text-right" />
-          <.header label="last run" class="w-32 text-right" />
-          <.header label="next run" class="w-32 text-right" />
-          <.header label="status" class="w-20 pr-4 text-right" />
+          <Core.column_header label="history" class="w-80 text-center" />
+          <Core.column_header label="schedule" class="w-32 text-right" />
+          <Core.column_header label="last run" class="w-32 text-right" />
+          <Core.column_header label="next run" class="w-32 text-right" />
+          <Core.column_header label="status" class="w-20 pr-4 text-right" />
         </div>
-      </ul>
+      </Core.table_header>
 
       <Core.no_matches
         :if={Enum.empty?(@crontab) and @filtered?}
@@ -50,17 +50,6 @@ defmodule Oban.Web.Crons.TableComponent do
         <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} />
       </ul>
     </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :class, :string, default: ""
-
-  defp header(assigns) do
-    ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5"]}>
-      {@label}
-    </span>
     """
   end
 
@@ -143,7 +132,10 @@ defmodule Oban.Web.Crons.TableComponent do
   defp cron_row(assigns) do
     ~H"""
     <li id={"cron-#{@id}"} class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-950/30">
-      <.link patch={oban_path([:crons, @cron.name])} class="pl-3 py-3.5 flex flex-grow items-center">
+      <.link
+        patch={oban_path([:crons, @cron.name])}
+        class="pl-3 py-3.5 flex flex-grow items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
+      >
         <div class="w-1/3">
           <span class="font-semibold text-sm text-gray-700 dark:text-gray-300">
             {@cron.handler}

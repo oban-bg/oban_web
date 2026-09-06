@@ -11,16 +11,16 @@ defmodule Oban.Web.Queues.TableComponent do
   def render(assigns) do
     ~H"""
     <div id="queues-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-        <.queue_header label="name" class="ml-12 w-1/4 text-left" />
+      <Core.table_header>
+        <Core.column_header label="name" class="ml-12 pl-4 w-1/4 text-left" />
         <div class="ml-auto flex items-center space-x-6">
-          <.queue_header label="utilization" class="w-56 text-center" />
-          <.queue_header label="history" class="w-80 text-center" />
-          <.queue_header label="pending" class="w-42 text-center" />
-          <.queue_header label="nodes" class="w-20 text-center" />
-          <.queue_header label="status" class="w-20 pr-3 text-right" />
+          <Core.column_header label="utilization" class="w-56 pl-4 text-center" />
+          <Core.column_header label="history" class="w-80 pl-4 text-center" />
+          <Core.column_header label="pending" class="w-42 pl-4 text-center" />
+          <Core.column_header label="nodes" class="w-20 pl-4 text-center" />
+          <Core.column_header label="status" class="w-20 pl-4 pr-3 text-right" />
         </div>
-      </ul>
+      </Core.table_header>
 
       <Core.empty_state
         :if={Enum.empty?(@queues) and Enum.empty?(@checks)}
@@ -60,17 +60,6 @@ defmodule Oban.Web.Queues.TableComponent do
 
   # Components
 
-  attr :label, :string, required: true
-  attr :class, :string, default: ""
-
-  defp queue_header(assigns) do
-    ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
-      {@label}
-    </span>
-    """
-  end
-
   attr :access, :map, required: true
   attr :history, :map, required: true
   attr :myself, :any, required: true
@@ -88,10 +77,14 @@ defmodule Oban.Web.Queues.TableComponent do
         click="toggle-select"
         value={@queue.name}
         checked={@selected}
+        label={"Select queue #{@queue.name}"}
         myself={@myself}
       />
 
-      <.link patch={oban_path([:queues, @queue.name])} class="py-5 flex flex-grow items-center">
+      <.link
+        patch={oban_path([:queues, @queue.name])}
+        class="py-5 flex flex-grow items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
+      >
         <div rel="name" class="w-1/4 font-semibold text-gray-700 dark:text-gray-300">
           {@queue.name}
         </div>

@@ -26,26 +26,15 @@ defmodule Oban.Web.Jobs.TableComponent do
     {:ok, socket}
   end
 
-  attr :label, :string, required: true
-  attr :class, :string, default: ""
-
-  defp header(assigns) do
-    ~H"""
-    <span class={[@class, "text-xs font-medium uppercase tracking-wider py-1.5 pl-4"]}>
-      {@label}
-    </span>
-    """
-  end
-
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="jobs-table" class="min-w-full">
-      <ul class="flex items-center border-b border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500">
-        <.header label="details" class="ml-12" />
-        <.header label="queue" class="ml-auto text-right" />
-        <.header label="time" class="w-20 pr-3 text-right" />
-      </ul>
+      <Core.table_header>
+        <Core.column_header label="details" class="ml-12 pl-4" />
+        <Core.column_header label="queue" class="ml-auto pl-4 text-right" />
+        <Core.column_header label="time" class="w-20 pl-4 pr-3 text-right" />
+      </Core.table_header>
 
       <Core.no_matches
         :if={Enum.empty?(@jobs)}
@@ -90,13 +79,14 @@ defmodule Oban.Web.Jobs.TableComponent do
         click="toggle-select"
         value={@job.id}
         checked={MapSet.member?(@selected, @job.id)}
+        label={"Select job #{@job.id}"}
         myself={@myself}
       />
 
       <.link
         patch={oban_path([:jobs, @job.id])}
         phx-click={JS.dispatch("phx:scroll-top", to: "body")}
-        class="flex flex-grow items-center"
+        class="flex flex-grow items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
       >
         <div class="py-2.5">
           <span class="block font-semibold text-sm text-gray-700 dark:text-gray-300" rel="worker">
