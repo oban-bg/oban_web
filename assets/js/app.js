@@ -115,7 +115,7 @@ const livePath = document.querySelector("meta[name='live-path']").getAttribute("
 
 const liveSocket = new LiveView.LiveSocket(livePath, Phoenix.Socket, {
   transport: liveTran === "longpoll" ? Phoenix.LongPoll : WebSocket,
-  params: { _csrf_token: csrfToken, init_state: loadAll() },
+  params: () => ({ _csrf_token: csrfToken, init_state: loadAll() }),
   hooks: hooks,
 });
 

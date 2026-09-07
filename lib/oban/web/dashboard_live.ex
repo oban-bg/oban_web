@@ -191,6 +191,10 @@ defmodule Oban.Web.DashboardLive do
     {:noreply, push_event(socket, "update-refresh", %{refresh: refresh})}
   end
 
+  def handle_info({:store_state, key, value}, socket) do
+    {:noreply, update(socket, :init_state, &Map.put(&1, "oban:" <> key, value))}
+  end
+
   def handle_info({:update_theme, theme}, socket) do
     {:noreply,
      socket

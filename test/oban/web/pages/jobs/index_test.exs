@@ -475,7 +475,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       |> element("#chart-canvas")
       |> render_hook("chart-select", %{"label" => "other"})
 
-      refute_receive {_ref, {:live_patch, _topic, _opts}}, 50
+      refute_receive {_ref, {:patch, _topic, _opts}}, 50
     end
 
     test "naming the chart for assistive technology", %{live: live} do
