@@ -47,6 +47,70 @@ defmodule Oban.Web.Colors do
     "text-gray-400 dark:text-gray-500"
   }
 
+  # Hues for series that aren't job states, e.g. queues or workers in a chart. None of these
+  # appear in the state palette so a queue can never be mistaken for a state.
+  @series_palette ~w(orange teal fuchsia lime sky pink amber red)a
+
+  @series_hex %{
+    amber: "#fbbf24",
+    fuchsia: "#e879f9",
+    gray: "#9ca3af",
+    lime: "#a3e635",
+    orange: "#fb923c",
+    pink: "#f472b6",
+    red: "#f87171",
+    sky: "#38bdf8",
+    teal: "#2dd4bf"
+  }
+
+  # Spelled out so Tailwind sees each class.
+  @series_bg_classes %{
+    amber: "bg-amber-400",
+    fuchsia: "bg-fuchsia-400",
+    gray: "bg-gray-400",
+    lime: "bg-lime-400",
+    orange: "bg-orange-400",
+    pink: "bg-pink-400",
+    red: "bg-red-400",
+    sky: "bg-sky-400",
+    teal: "bg-teal-400"
+  }
+
+  @doc """
+  Assign a stable color name to each label from the non-state palette.
+
+  Colors are chosen by hashing the label, so a label keeps its color regardless of which other
+  labels are present. When two labels hash to the same slot the later one (sorted) walks to the
+  next free slot.
+  """
+  def series_colors(labels) do
+    size = length(@series_palette)
+
+    labels
+    |> Enum.sort()
+    |> Enum.reduce({%{}, MapSet.new()}, fn label, {colors, used} ->
+      start = :erlang.phash2(label, size)
+
+      slot =
+        0..(size - 1)
+        |> Stream.map(&rem(start + &1, size))
+        |> Enum.find(start, &(not MapSet.member?(used, &1)))
+
+      {Map.put(colors, label, Enum.at(@series_palette, slot)), MapSet.put(used, slot)}
+    end)
+    |> elem(0)
+  end
+
+  @doc """
+  Returns the hex color for a series color name.
+  """
+  def series_hex(name), do: Map.fetch!(@series_hex, name)
+
+  @doc """
+  Returns the background class for a series color name (e.g., "bg-orange-400").
+  """
+  def series_bg_class(name), do: Map.fetch!(@series_bg_classes, name)
+
   @doc """
   Returns the hex color for a state (for SVGs and inline styles).
   """

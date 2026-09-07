@@ -2,12 +2,17 @@ defmodule Oban.Web.Jobs.ChartComponent do
   use Oban.Web, :live_component
 
   alias Oban.Met
+  alias Oban.Web.Colors
   alias Oban.Web.Components.Core
   alias Oban.Web.Timing
 
+  # Failure states sit at the baseline where a spike is easiest to read against a flat edge, and
+  # the bulk of completed jobs stacks above them.
+  @stack_order ~w(discarded retryable cancelled completed executing available scheduled suspended)
+
   @impl Phoenix.LiveComponent
   def mount(socket) do
-    {:ok, assign(socket, last_os_time: 0, max_cols: 100, max_data: 7)}
+    {:ok, assign(socket, hidden: MapSet.new(), last_os_time: 0, max_cols: 100, max_data: 7)}
   end
 
   @impl Phoenix.LiveComponent
@@ -22,17 +27,20 @@ defmodule Oban.Web.Jobs.ChartComponent do
       |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods())) end)
       |> assign_new(:series, fn -> init_lazy(:series, assigns, default_series) end)
       |> assign_new(:visible, fn -> init_lazy(:visible, assigns, true) end)
+      |> assign_new(:datasets, fn -> [] end)
+      |> assign_new(:truncated, fn -> 0 end)
 
     socket =
       if socket.assigns.visible do
         step = period_to_step(socket.assigns.period)
         os_time = Timing.snap(assigns.os_time, step)
-        points = points(os_time, socket.assigns)
-        update = %{group: socket.assigns.group, points: points, series: socket.assigns.series}
 
-        socket
-        |> assign(last_os_time: os_time)
-        |> push_event("chart-change", update)
+        socket =
+          socket
+          |> assign(last_os_time: os_time)
+          |> assign_datasets(os_time)
+
+        push_event(socket, "chart-change", chart_payload(socket.assigns, [:group, :series]))
       else
         socket
       end
@@ -52,7 +60,12 @@ defmodule Oban.Web.Jobs.ChartComponent do
         <div id="chart-h" class="flex items-center text-gray-900 dark:text-gray-200">
           <button
             id="chart-toggle"
-            data-title="Toggle charts"
+            type="button"
+            class="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            aria-controls="chart-body"
+            aria-expanded={to_string(@visible)}
+            aria-label="Toggle chart"
+            data-title="Toggle chart"
             phx-click={toggle_chart(@myself)}
             phx-hook="Tippy"
           >
@@ -71,13 +84,13 @@ defmodule Oban.Web.Jobs.ChartComponent do
           </h3>
 
           <span class="text-gray-600 dark:text-gray-400 font-light ml-1">
-            ({@period} by {String.capitalize(@group)})
+            ({subtitle(@series, @ntile, @period, @group)})
           </span>
 
           <span
             :if={@params |> params_to_filters() |> Enum.any?()}
             id="chart-filtered-alert"
-            class="w-3 h-3 ml-1 bg-violet-300 rounded-full"
+            class="w-3 h-3 ml-1 bg-violet-500 rounded-full"
             data-title={"Filtered by #{params_to_filters_list(@params)}"}
             phx-hook="Tippy"
           ></span>
@@ -126,16 +139,86 @@ defmodule Oban.Web.Jobs.ChartComponent do
         </div>
       </div>
 
-      <div
-        id="chart"
-        class={[
-          "w-full relative cursor-crosshair pl-5 pr-3 h-200px",
-          unless(@visible, do: "hidden")
-        ]}
-      >
-        <canvas id="chart-canvas" phx-update="ignore" phx-hook="JobsChart"></canvas>
+      <div id="chart-body" class={unless(@visible, do: "hidden")}>
+        <div
+          id="chart"
+          class="w-full relative cursor-crosshair pl-5 pr-3 h-45"
+          role="img"
+          aria-label={chart_label(@datasets, @series, @ntile, @period, @group)}
+        >
+          <canvas id="chart-canvas" phx-hook="JobsChart" phx-target={@myself} phx-update="ignore"></canvas>
+
+          <p
+            :if={@datasets == []}
+            id="chart-empty"
+            aria-hidden="true"
+            class="absolute inset-0 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
+          >
+            {empty_label(@series, @period)}
+          </p>
+        </div>
+
+        <%!-- The sidebar already maps every state to its color, so only other groupings need a key. --%>
+        <div
+          :if={@datasets != [] and @group != "state"}
+          id="chart-legend"
+          role="group"
+          aria-label="Toggle chart series"
+          class="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-3 text-xs"
+        >
+          <.legend_item
+            :for={dataset <- @datasets}
+            dataset={dataset}
+            group={@group}
+            myself={@myself}
+            pressed={not MapSet.member?(@hidden, dataset.label)}
+            truncated={@truncated}
+          />
+
+          <span
+            :if={@truncated > 0 and @series in ~w(exec_time wait_time)}
+            class="text-gray-400 dark:text-gray-500"
+          >
+            +{@truncated} more
+          </span>
+        </div>
       </div>
     </div>
+    """
+  end
+
+  attr :dataset, :map, required: true
+  attr :group, :string, required: true
+  attr :myself, :any, required: true
+  attr :pressed, :boolean, required: true
+  attr :truncated, :integer, required: true
+
+  defp legend_item(assigns) do
+    {dot_class, label_class} =
+      if assigns.pressed do
+        {assigns.dataset.dot_class, "text-gray-600 dark:text-gray-400"}
+      else
+        {"bg-gray-300 dark:bg-gray-600", "text-gray-400 dark:text-gray-500"}
+      end
+
+    assigns = assign(assigns, dot_class: dot_class, label_class: label_class)
+
+    ~H"""
+    <button
+      type="button"
+      id={"legend-#{@dataset.label}"}
+      class="flex items-center gap-x-1.5 rounded-md cursor-pointer hover:text-gray-900 dark:hover:text-gray-100
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      aria-pressed={to_string(@pressed)}
+      data-title={if @dataset.label == "other", do: "#{@truncated} more #{@group}s"}
+      phx-click="toggle-series"
+      phx-hook={if @dataset.label == "other", do: "Tippy"}
+      phx-target={@myself}
+      phx-value-label={@dataset.label}
+    >
+      <span aria-hidden="true" class={["w-2 h-2 rounded-full", @dot_class]} />
+      <span class={@label_class}>{@dataset.label}</span>
+    </button>
     """
   end
 
@@ -215,34 +298,100 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
   # Data
 
-  defp points(os_time, assigns) do
+  defp assign_datasets(socket, os_time) do
+    {datasets, truncated} = datasets(os_time, socket.assigns)
+
+    assign(socket, datasets: datasets, truncated: truncated)
+  end
+
+  defp datasets(os_time, assigns) do
     step = period_to_step(assigns.period)
     cols = assigns.max_cols
     sy_time = Timing.snap(System.system_time(:second), step)
 
-    filters = params_to_filters(assigns.params)
-
     opts = [
       by: step,
-      filters: filters,
+      filters: params_to_filters(assigns.params),
       group: assigns.group,
       lookback: cols * step,
       operation: ntile_to_operation(assigns.ntile),
       since: sy_time
     ]
 
-    assigns.conf.name
-    |> Met.timeslice(String.to_existing_atom(assigns.series), opts)
-    |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
-    |> top_n(assigns.max_data)
-    |> Map.new(fn {label, slices} -> {label, interpolate(slices, cols, step, os_time)} end)
+    {grouped, truncated} =
+      assigns.conf.name
+      |> Met.timeslice(String.to_existing_atom(assigns.series), opts)
+      |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
+      |> Enum.sort_by(fn {_label, slices} -> total(slices) end, :desc)
+      |> limit_groups(assigns)
+
+    colors = group_colors(grouped, assigns.group)
+
+    datasets =
+      for {label, slices} <- grouped do
+        {hex, dot_class} = Map.fetch!(colors, label)
+
+        %{
+          label: label,
+          hex: hex,
+          dot_class: dot_class,
+          data: interpolate(slices, cols, step, os_time)
+        }
+      end
+
+    {order_datasets(datasets, assigns.group), truncated}
   end
 
-  defp top_n(points, limit) do
-    points
-    |> Enum.sort_by(fn {_key, data} -> Enum.reduce(data, 0, &(elem(&1, 1) + &2)) end, :desc)
-    |> Enum.take(limit)
+  # Every state fits, so only other groupings are capped. Counts fold the remainder into an
+  # "other" series so the stack height stays truthful; percentiles can't be combined, so those
+  # series are dropped and the legend says how many.
+  defp limit_groups(grouped, %{group: "state"}), do: {grouped, 0}
+
+  defp limit_groups(grouped, assigns) do
+    {kept, rest} = Enum.split(grouped, assigns.max_data)
+
+    cond do
+      rest == [] ->
+        {kept, 0}
+
+      assigns.series in ~w(exec_count full_count) ->
+        other =
+          rest
+          |> Enum.flat_map(fn {_label, slices} -> slices end)
+          |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+          |> Enum.map(fn {index, values} -> {index, Enum.sum(values)} end)
+
+        {kept ++ [{"other", other}], length(rest)}
+
+      true ->
+        {kept, length(rest)}
+    end
   end
+
+  defp group_colors(grouped, "state") do
+    Map.new(grouped, fn {label, _slices} ->
+      {label, {Colors.state_hex(label), Colors.state_bg_class(label)}}
+    end)
+  end
+
+  defp group_colors(grouped, _group) do
+    labels = for {label, _slices} <- grouped, label != "other", do: label
+
+    labels
+    |> Colors.series_colors()
+    |> Map.put("other", :gray)
+    |> Map.new(fn {label, name} ->
+      {label, {Colors.series_hex(name), Colors.series_bg_class(name)}}
+    end)
+  end
+
+  defp order_datasets(datasets, "state") do
+    Enum.sort_by(datasets, &Enum.find_index(@stack_order, fn state -> state == &1.label end))
+  end
+
+  defp order_datasets(datasets, _group), do: datasets
+
+  defp total(slices), do: Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
 
   defp interpolate(slices, cols, step, time) do
     lookup = Map.new(slices)
@@ -259,7 +408,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
   @impl Phoenix.LiveComponent
   def handle_event("select-group", %{"choice" => group}, socket) do
-    {:noreply, push_change(socket, group: group)}
+    {:noreply, push_change(socket, group: group, hidden: MapSet.new())}
   end
 
   def handle_event("select-ntile", %{"choice" => ntile}, socket) do
@@ -286,7 +435,28 @@ defmodule Oban.Web.Jobs.ChartComponent do
           [ntile: "sum", series: series]
       end
 
-    {:noreply, push_change(socket, assigns)}
+    {:noreply, push_change(socket, [hidden: MapSet.new()] ++ assigns)}
+  end
+
+  def handle_event("toggle-series", %{"label" => label}, socket) do
+    hidden = socket.assigns.hidden
+
+    hidden =
+      if MapSet.member?(hidden, label),
+        do: MapSet.delete(hidden, label),
+        else: MapSet.put(hidden, label)
+
+    {:noreply, push_change(socket, hidden: hidden)}
+  end
+
+  def handle_event("chart-select", %{"label" => "other"}, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("chart-select", %{"label" => label}, socket) do
+    %{group: group, params: params} = socket.assigns
+
+    {:noreply, push_patch(socket, to: select_path(group, label, params))}
   end
 
   def handle_event("toggle-visible", _params, socket) do
@@ -301,20 +471,41 @@ defmodule Oban.Web.Jobs.ChartComponent do
   end
 
   defp push_change(socket, change) do
-    os_time = socket.assigns.last_os_time
-    socket = assign(socket, change)
-    points = points(os_time, Map.put(socket.assigns, :last_os_time, 0))
+    socket =
+      socket
+      |> assign(change)
+      |> assign_datasets(socket.assigns.last_os_time)
 
-    update = %{
-      group: socket.assigns.group,
-      ntile: socket.assigns.ntile,
-      period: socket.assigns.period,
-      points: points,
-      series: socket.assigns.series,
-      visible: socket.assigns.visible
+    push_event(socket, "chart-change", chart_payload(socket.assigns, []))
+  end
+
+  defp chart_payload(assigns, only) do
+    payload = %{
+      group: assigns.group,
+      hidden: MapSet.to_list(assigns.hidden),
+      ntile: assigns.ntile,
+      period: assigns.period,
+      points: Enum.map(assigns.datasets, &Map.take(&1, [:label, :hex, :data])),
+      series: assigns.series,
+      visible: assigns.visible
     }
 
-    push_event(socket, "chart-change", update)
+    if only == [], do: payload, else: Map.take(payload, [:hidden, :points | only])
+  end
+
+  defp select_path("state", label, params) do
+    oban_path(:jobs, Map.put(params, :state, label))
+  end
+
+  defp select_path(group, label, params) do
+    key =
+      case group do
+        "node" -> :nodes
+        "queue" -> :queues
+        "worker" -> :workers
+      end
+
+    oban_path(:jobs, Map.put(params, key, [label]))
   end
 
   # Lookups
@@ -334,6 +525,44 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp metric_label("full_count"), do: "Full Count"
   defp metric_label("exec_time"), do: "Execution Time"
   defp metric_label("wait_time"), do: "Queue Time"
+
+  defp metric_noun("exec_count"), do: "executions"
+  defp metric_noun("full_count"), do: "jobs"
+  defp metric_noun("exec_time"), do: "execution times"
+  defp metric_noun("wait_time"), do: "queue times"
+
+  defp subtitle(series, ntile, period, group) when series in ~w(exec_time wait_time) do
+    "#{ntile} · #{period} by #{String.capitalize(group)}"
+  end
+
+  defp subtitle(_series, _ntile, period, group) do
+    "#{period} by #{String.capitalize(group)}"
+  end
+
+  defp chart_label([], series, _ntile, period, _group), do: empty_label(series, period)
+
+  defp chart_label(_datasets, series, ntile, period, group) do
+    "#{metric_label(series)}, #{subtitle(series, ntile, period, group)}"
+  end
+
+  defp empty_label(series, period) do
+    "No #{metric_noun(series)} recorded in the last #{window_label(period)}"
+  end
+
+  defp window_label(period) do
+    seconds = period_to_step(period) * 100
+    hours = div(seconds, 3600)
+    minutes = div(rem(seconds, 3600), 60)
+    remainder = rem(seconds, 60)
+
+    cond do
+      hours > 0 and minutes > 0 -> "#{hours}h #{minutes}m"
+      hours > 0 -> "#{hours}h"
+      minutes > 0 and remainder > 0 -> "#{minutes}m #{remainder}s"
+      minutes > 0 -> "#{minutes}m"
+      true -> "#{seconds}s"
+    end
+  end
 
   defp ntile_to_operation("sum"), do: :sum
   defp ntile_to_operation("max"), do: :max
@@ -364,16 +593,16 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp params_to_filters_list(params) do
     params
     |> Map.take(@filterable_params)
-    |> Map.keys()
     |> Enum.sort()
-    |> Enum.join(", ")
+    |> Enum.map_join(", ", fn {key, vals} -> "#{key}: #{Enum.join(List.wrap(vals), ", ")}" end)
   end
 
   # JS Commands
 
   defp toggle_chart(target) do
     %JS{}
-    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart")
+    |> JS.toggle(in: "fade-in-scale", out: "fade-out-scale", to: "#chart-body")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#chart-toggle")
     |> JS.add_class("rotate-90", to: "#chart-chevron:not(.rotate-90)")
     |> JS.remove_class("rotate-90", to: "#chart-chevron.rotate-90")
     |> JS.push("toggle-visible", target: target)

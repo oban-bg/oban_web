@@ -132,7 +132,9 @@ A disciplined neutral gray field carrying eight luminous state hues, one interac
 - **Well** (gray-100 light / gray-950 dark): inset chips and hover fills within panels.
 
 ### Named Rules
-**The 400 Rule.** State color appears at the 400 level for the hue itself — borders (`border-{hue}-400`), tinted fills (`bg-{hue}-400/10`), chart strokes and sparkline bars. Text shifts to the 600 level in light mode and back to 400 in dark mode for contrast, except yellow, cyan, and emerald, which need 700 in light mode to clear 4.5:1. Never render state color at other weights.
+**The 400 Rule.** State color appears at the 400 level for the hue itself — borders (`border-{hue}-400`), tinted fills (`bg-{hue}-400/10`), chart bars and sparkline bars. Thin marks follow the text rule instead: text shifts to the 600 level in light mode and back to 400 in dark mode for contrast, except yellow, cyan, and emerald text, which need 700 in light mode to clear 4.5:1; 2px chart line strokes shift to 600 in light mode (yellow to 700) to clear 3:1 against white, and return to 400 in dark mode. Never render state color at other weights.
+
+**The Series Palette Rule.** When a chart groups by something other than state (queue, node, worker), series take hues that never appear in the state palette — orange, teal, fuchsia, lime, sky, pink, amber, red at the 400 level (`Oban.Web.Colors.series_colors/1`) — so a queue can never be misread as a state. Each label hashes to a stable hue, so a series keeps its color across refreshes and groupings. Anything past the top seven folds into a gray `other` series.
 
 **The Two Accents Rule.** Blue means interaction (selection, focus, checked); violet means brand (sidebar, badges, spinner). They are never interchangeable, and neither is ever used to represent a job state's meaning outside the state palette.
 
@@ -224,7 +226,7 @@ Sections collapse via a rotating chevron labelled "Collapse"/"Expand" with a `fa
 Violet pill (violet-100 fill / violet-700 text light; violet-700/70 fill / violet-200 text dark), 36px tall, icon-first, expanding a label on hover exactly like icon buttons. Used for connectivity, access, and instance status in the header. When a badge carries a job or workflow state rather than a brand fact, it takes that state's hue instead (`{hue}-100` fill / `{hue}-700` text light; `{hue}-500/20` fill / `{hue}-300` text dark), as the workflow detail header does for executing, completed, cancelled, and discarded.
 
 ### Sparklines & Charts (signature)
-Inline SVG sparklines: cyan (#22d3ee) 4px bars with 1px gaps and 1px radius over gray-200/gray-700 placeholder stubs, tooltip on hover. Full charts (Chart.js) stroke series in the state palette's 400-level hexes — this is where the luminous half of the identity earns its keep.
+Inline SVG sparklines: cyan (#22d3ee) 4px bars with 1px gaps and 1px radius over gray-200/gray-700 placeholder stubs, tooltip on hover. Full charts (Chart.js) fill bars in the state palette's 400-level hexes in both themes and stroke lines at 400 in dark mode, stepping to the text levels in light mode (see The 400 Rule) — this is where the luminous half of the identity earns its keep. Axis ticks use the Muted tier, gridlines the Border tier, in both themes. State groupings carry no legend because the sidebar's state dots already map every hue. Queue, node, and worker groupings get a DOM legend under the plot in the sidebar's dot grammar: a 2px dot in the series hue, the label in gray text, and `aria-pressed` toggles that dim a hidden series to the gray zero-count dot. Clicking a bar or point drills into the jobs list filtered by that series.
 
 ## Do's and Don'ts
 

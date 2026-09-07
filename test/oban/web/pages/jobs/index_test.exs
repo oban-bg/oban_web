@@ -441,6 +441,53 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
   end
 
+  describe "chart" do
+    test "explaining an empty window instead of drawing nothing", %{live: live} do
+      assert has_element?(live, "#chart-empty", "No executions recorded in the last 1m 40s")
+    end
+
+    test "drilling into a state series filters the table by that state", %{live: live} do
+      live
+      |> element("#chart-canvas")
+      |> render_hook("chart-select", %{"label" => "completed"})
+
+      assert_patch(live, jobs_path(state: "completed"))
+    end
+
+    test "drilling into a queue series filters the table by that queue", %{live: live} do
+      live
+      |> element("#select-group-queue")
+      |> render_click()
+
+      live
+      |> element("#chart-canvas")
+      |> render_hook("chart-select", %{"label" => "alpha"})
+
+      assert_patch(live, jobs_path(queues: "alpha"))
+    end
+
+    test "ignoring drill-through on the folded other series", %{live: live} do
+      live
+      |> element("#select-group-queue")
+      |> render_click()
+
+      live
+      |> element("#chart-canvas")
+      |> render_hook("chart-select", %{"label" => "other"})
+
+      refute_receive {_ref, {:live_patch, _topic, _opts}}, 50
+    end
+
+    test "naming the chart for assistive technology", %{live: live} do
+      assert has_element?(
+               live,
+               ~s(#chart-toggle[aria-expanded="true"][aria-controls="chart-body"])
+             )
+
+      assert has_element?(live, ~s(#chart[role="img"]))
+    end
+  end
+
   describe "keyboard and screen reader access" do
     test "search input is a combobox with named suggestions and controls", %{live: live} do
       assert has_element?(

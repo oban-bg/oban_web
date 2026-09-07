@@ -10,7 +10,27 @@ export const VIOLET = "#a78bfa" // violet-400
 export const YELLOW = "#facc15" // yellow-400
 export const GRAY = "#9ca3af" // gray-400
 
-export const OTHER_PALETTE = [CYAN, VIOLET, YELLOW, EMERALD, ORANGE, TEAL, ROSE]
+// A 2px line at the 400 level sits below 3:1 against white, so light-mode strokes step down to
+// the same darker levels text uses. Yellow needs 700 to clear the bar; the rest clear it at 600.
+// Keys cover the state palette and the non-state series palette from lib/oban/web/colors.ex.
+export const LINE_FG = {
+  [BLUE]: "#2563eb", // blue-600
+  [CYAN]: "#0891b2", // cyan-600
+  [EMERALD]: "#059669", // emerald-600
+  [INDIGO]: "#4f46e5", // indigo-600
+  [ROSE]: "#e11d48", // rose-600
+  [VIOLET]: "#7c3aed", // violet-600
+  [YELLOW]: "#a16207", // yellow-700
+  [GRAY]: "#4b5563", // gray-600
+  "#fbbf24": "#d97706", // amber-400 -> amber-600
+  "#e879f9": "#c026d3", // fuchsia-400 -> fuchsia-600
+  "#a3e635": "#65a30d", // lime-400 -> lime-600
+  [ORANGE]: "#ea580c", // orange-600
+  "#f472b6": "#db2777", // pink-400 -> pink-600
+  "#f87171": "#dc2626", // red-400 -> red-600
+  "#38bdf8": "#0284c7", // sky-400 -> sky-600
+  [TEAL]: "#0d9488", // teal-600
+}
 
 // Must match progress bar colors in detail_component.ex
 export const STATE_FG = {

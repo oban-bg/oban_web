@@ -58,7 +58,7 @@ defmodule Oban.Web.JobsPage do
           init_state={@init_state}
           module={ChartComponent}
           os_time={@os_time}
-          params={@params}
+          params={without_defaults(@params, @default_params)}
         />
 
         <div class={[
