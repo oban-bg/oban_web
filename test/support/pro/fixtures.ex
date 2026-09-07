@@ -65,8 +65,8 @@ if Code.ensure_loaded?(Oban.Pro) do
 
       use Oban.Pro.Chunk, queue: :chunks, size: 3, sleep: 10, timeout: 100
 
-      @impl Oban.Pro.Chunk
-      def process_chunk(jobs) do
+      @impl Oban.Pro.Worker
+      def process(jobs) do
         case Enum.find_value(jobs, & &1.args["block"]) do
           nil -> :ok
           listener -> Oban.Web.ProFixtures.block_chunk(listener)
@@ -84,8 +84,8 @@ if Code.ensure_loaded?(Oban.Pro) do
 
       use Oban.Pro.Chunk, queue: :chunks, size: 3, sleep: 10, timeout: 2_000
 
-      @impl Oban.Pro.Chunk
-      def process_chunk(_jobs), do: :ok
+      @impl Oban.Pro.Worker
+      def process(_jobs), do: :ok
     end
 
     defmodule Reports do

@@ -11,6 +11,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         start_supervised_oban!(%{oban_opts: [queues: [chunks: 1], stage_interval: 10]})
       end
 
+      @tag skip: "Requires the chunk_count leader meta added in Oban Pro v1.8.0"
       test "recognizing the leader and siblings of a running chunk", %{conf: conf, oban: oban} do
         {worker_pid, [leader | siblings]} =
           start_blocked_chunk!(oban, [%{ref: 1}, %{ref: 2}, %{ref: 3}])
