@@ -13,6 +13,7 @@ import Menu from "./hooks/menu";
 import QueueDetailChart from "./hooks/queue_detail_chart";
 import Refresher from "./hooks/refresher";
 import Relativize from "./hooks/relativize";
+import Segmented from "./hooks/segmented";
 import Shortcuts from "./hooks/shortcuts";
 import SidebarResizer from "./hooks/sidebar_resizer";
 import CronSparkline from "./hooks/cron_sparkline";
@@ -35,6 +36,7 @@ const hooks = {
   QueueSparkline,
   Refresher,
   Relativize,
+  Segmented,
   Shortcuts,
   SidebarResizer,
   Themer,

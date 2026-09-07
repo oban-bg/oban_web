@@ -1375,7 +1375,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
     job.meta["workflow_name"] || job.meta["workflow_id"]
   end
 
-  @state_order ~w(executing available scheduled suspended retryable cancelled discarded completed)
+  @state_order ~w(executing available suspended scheduled retryable cancelled discarded completed)
 
   defp chunk_states(counts) do
     Enum.sort_by(counts, fn {state, _count} ->

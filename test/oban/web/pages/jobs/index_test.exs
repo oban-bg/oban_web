@@ -446,6 +446,82 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_element?(live, "#chart-empty", "No executions recorded in the last 1m 40s")
     end
 
+    test "switching series with a radio group and keeping percentiles for time series", %{
+      live: live
+    } do
+      assert has_element?(live, "#chart-series[role=radiogroup]")
+      assert has_element?(live, "#select-series-exec_count[role=radio][aria-checked=true]")
+      refute has_element?(live, "#chart-options-menu #select-ntile-p95")
+
+      live
+      |> element("#select-series-exec_time")
+      |> render_click()
+
+      assert has_element?(live, "#select-series-exec_time[aria-checked=true]")
+      assert has_element?(live, "#select-series-exec_count[aria-checked=false]")
+      assert has_element?(live, "#chart-options-menu #select-ntile-p95[aria-checked=true]")
+      assert has_element?(live, "#chart-h", "p95 · 1s by State")
+    end
+
+    test "grouping by a filter only when it carries more than one value", %{live: live} do
+      assert has_element?(live, "#chart-h", "1s by State")
+
+      render_patch(live, jobs_path(queues: "alpha"))
+
+      assert has_element?(live, "#chart-h", "1s by State")
+
+      render_patch(live, jobs_path(queues: "alpha,delta"))
+
+      assert has_element?(live, "#chart-h", "1s by Queue")
+
+      render_patch(live, jobs_path(nodes: "web-1,web-2", queues: "alpha,delta"))
+
+      assert has_element?(live, "#chart-h", "1s by Node")
+
+      live
+      |> element("#select-series-full_count")
+      |> render_click()
+
+      assert has_element?(live, "#chart-h", "1s by Queue")
+    end
+
+    test "naming the state that narrows a non-state grouping", %{live: live} do
+      render_patch(live, jobs_path(queues: "alpha,delta", state: "discarded"))
+
+      assert has_element?(live, "#chart-h", "1s by Queue, discarded")
+    end
+
+    test "isolating the selected state at the baseline", %{live: live, oban: oban} do
+      record(oban, "exec_count", 3, %{"state" => "completed"})
+      record(oban, "exec_count", 1, %{"state" => "discarded"})
+
+      render_patch(live, jobs_path(state: "discarded"))
+
+      assert_push_event(live, "chart-change", %{
+        points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: true}]
+      })
+
+      assert has_element?(live, ~s(#chart[aria-label$="discarded isolated"]))
+
+      # A state without a series leaves the stack alone rather than graying everything out.
+      render_patch(live, jobs_path(state: "available"))
+
+      assert_push_event(live, "chart-change", %{
+        points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: false}]
+      })
+
+      refute has_element?(live, ~s(#chart[aria-label$="isolated"]))
+    end
+
+    test "pushing fresh points on every refresh", %{live: live} do
+      assert_push_event(live, "chart-change", %{now: first})
+
+      send(live.pid, :refresh)
+
+      assert_push_event(live, "chart-change", %{now: second})
+      assert second >= first
+    end
+
     test "drilling into a state series filters the table by that state", %{live: live} do
       live
       |> element("#chart-canvas")
@@ -454,10 +530,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(state: "completed"))
     end
 
-    test "drilling into a queue series filters the table by that queue", %{live: live} do
-      live
-      |> element("#select-group-queue")
-      |> render_click()
+    test "drilling into a queue series narrows to that queue", %{live: live} do
+      render_patch(live, jobs_path(queues: "alpha,delta"))
 
       live
       |> element("#chart-canvas")
@@ -467,15 +541,45 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
 
     test "ignoring drill-through on the folded other series", %{live: live} do
-      live
-      |> element("#select-group-queue")
-      |> render_click()
+      render_patch(live, jobs_path(queues: "alpha,delta"))
+      assert_patch(live, jobs_path(queues: "alpha,delta"))
 
       live
       |> element("#chart-canvas")
       |> render_hook("chart-select", %{"label" => "other"})
 
       refute_receive {_ref, {:patch, _topic, _opts}}, 50
+    end
+
+    test "keeping chart selections after leaving and returning", %{live: live} do
+      job = insert_job!([ref: 1])
+
+      live
+      |> element("#select-series-exec_time")
+      |> render_click()
+
+      live
+      |> element("#select-period-1m")
+      |> render_click()
+
+      assert has_element?(live, "#chart-h h3", "Execution Time")
+
+      render_patch(live, "/oban/jobs/#{job.id}")
+
+      refute has_element?(live, "#chart")
+
+      render_patch(live, "/oban/jobs")
+
+      assert has_element?(live, "#chart-h h3", "Execution Time")
+      assert has_element?(live, "#chart-h", "p95 · 1m by State")
+
+      render_patch(live, "/oban/queues")
+
+      refute has_element?(live, "#chart")
+
+      render_patch(live, "/oban/jobs")
+
+      assert has_element?(live, "#chart-h h3", "Execution Time")
     end
 
     test "naming the chart for assistive technology", %{live: live} do
@@ -621,6 +725,14 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
   defp hidden_job?(live, %{id: id}) do
     refute has_element?(live, "#job-#{id}")
+  end
+
+  defp record(oban, series, value, labels) do
+    labels = Map.merge(%{"node" => "web-1", "queue" => "alpha", "worker" => "Worker"}, labels)
+
+    oban
+    |> Oban.Registry.via(Oban.Met.Recorder)
+    |> Oban.Met.Recorder.store(series, Oban.Met.Values.Gauge.new(value), labels)
   end
 
   defp jobs_path(params) do

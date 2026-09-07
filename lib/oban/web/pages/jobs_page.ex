@@ -23,7 +23,7 @@ defmodule Oban.Web.JobsPage do
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
 
   @known_params JobQuery.known_params() ++ ~w(limit sort_by sort_dir)
-  @ordered_states ~w(executing available scheduled suspended retryable cancelled discarded completed)
+  @ordered_states ~w(executing available suspended scheduled retryable cancelled discarded completed)
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
