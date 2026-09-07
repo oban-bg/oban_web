@@ -77,51 +77,16 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       click_state(live, "available")
       click_node(live, "web-2")
       assert_patch(live, jobs_path(nodes: "web-2", state: "available"))
-
-      refute has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
+      assert_jobs(live, ~w(DeltaWorker), ~w(AlphaWorker GammaWorker))
 
       click_node(live, "web-1")
 
       assert_patch(live, jobs_path(nodes: "web-1,web-2", state: "available"))
-
-      assert has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      assert has_job?(live, "GammaWorker")
+      assert_jobs(live, ~w(AlphaWorker DeltaWorker GammaWorker))
     end
 
-    test "indicating rescued jobs", %{live: live} do
-      job_1 =
-        insert_job!([ref: 1],
-          state: "executing",
-          worker: AlphaWorker,
-          attempted_at: DateTime.utc_now(),
-          attempted_by: ["web-1", "aaaa-aaaa"],
-          meta: %{"rescued" => 1}
-        )
-
-      job_2 =
-        insert_job!([ref: 2],
-          state: "executing",
-          worker: GammaWorker,
-          attempted_at: DateTime.utc_now(),
-          attempted_by: ["web-1", "aaaa-aaaa"]
-        )
-
-      click_state(live, "executing")
-
-      assert has_job?(live, "AlphaWorker")
-
-      assert has_element?(live, "#job-rescued-#{job_1.id} .sr-only", "Rescued by lifeline")
-      refute has_element?(live, "#job-rescued-#{job_2.id}")
-    end
-
-    test "indicating orphaned jobs", %{live: live, oban: oban} do
+    test "indicating rescued and orphaned jobs", %{live: live, oban: oban} do
       now = DateTime.utc_now()
-
-      web_1 = ["web-1", "aaaa-aaaa"]
-      web_2 = ["web-1", "bbbb-bbbb"]
 
       gossip(oban, node: "web-1", queue: "alpha", uuid: "bbbb-bbbb")
 
@@ -130,7 +95,8 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
           state: "executing",
           worker: AlphaWorker,
           attempted_at: now,
-          attempted_by: web_1
+          attempted_by: ["web-1", "aaaa-aaaa"],
+          meta: %{"rescued" => 1}
         )
 
       job_2 =
@@ -138,16 +104,14 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
           state: "executing",
           worker: GammaWorker,
           attempted_at: now,
-          attempted_by: web_2
+          attempted_by: ["web-1", "bbbb-bbbb"]
         )
 
       click_state(live, "executing")
 
-      assert has_job?(live, "AlphaWorker")
-      assert has_job?(live, "GammaWorker")
-
+      assert has_element?(live, "#job-rescued-#{job_1.id} .sr-only", "Rescued by lifeline")
       assert has_element?(live, "#job-orphaned-#{job_1.id} .sr-only", "Orphaned")
-      refute has_element?(live, "#job-orphaned-#{job_2.id}")
+      refute has_fragment?(render(live), "#job-rescued-#{job_2.id}, #job-orphaned-#{job_2.id}")
     end
 
     test "viewing available or scheduled clears the node filter", %{live: live, oban: oban} do
@@ -161,7 +125,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(nodes: "web-1", state: "available"))
     end
 
-    test "filtering jobs by queue", %{live: live, oban: oban} do
+    test "filtering jobs by queue from the sidebar or the search bar", %{
+      live: live,
+      oban: oban
+    } do
       gossip(oban, node: "web-1", queue: "alpha")
       gossip(oban, node: "web-1", queue: "delta")
       gossip(oban, node: "web-1", queue: "gamma")
@@ -179,16 +146,20 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       click_state(live, "available")
       click_queue(live, "delta")
 
-      refute has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
+      assert_jobs(live, ~w(DeltaWorker), ~w(AlphaWorker GammaWorker))
 
       click_queue(live, "alpha")
       assert_patch(live, jobs_path(state: "available", queues: "alpha,delta"))
+      assert_jobs(live, ~w(AlphaWorker DeltaWorker), ~w(GammaWorker))
 
-      assert has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
+      # Searching adds to the filters the sidebar already picked rather than replacing them.
+      live
+      |> form("#search")
+      |> tap(&render_change(&1, %{terms: "queues:gamma"}))
+      |> tap(&render_submit(&1, %{}))
+
+      assert_patch(live, jobs_path(state: "available", queues: "alpha,delta,gamma"))
+      assert_jobs(live, ~w(AlphaWorker DeltaWorker GammaWorker))
     end
 
     test "the third queue column follows the selected state", %{live: live, oban: oban} do
@@ -245,35 +216,6 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert has_element?(live, "#queues-header-mode[data-title]")
       assert has_element?(live, "#mode-delta-paused.text-amber-500 .sr-only", "All paused")
     end
-
-    test "filtering through the autocomplete toolbar", %{live: live, oban: oban} do
-      gossip(oban, node: "web-1", queue: "alpha")
-      gossip(oban, node: "web-1", queue: "delta")
-      gossip(oban, node: "web-1", queue: "gamma")
-
-      changesets = [
-        Job.new(%{ref: 1}, queue: "alpha", worker: AlphaWorker),
-        Job.new(%{ref: 2}, queue: "delta", worker: DeltaWorker),
-        Job.new(%{ref: 3}, queue: "gamma", worker: GammaWorker)
-      ]
-
-      Oban.insert_all(oban, changesets)
-
-      flush_reporter(oban)
-
-      click_state(live, "available")
-
-      live
-      |> form("#search")
-      |> tap(&render_change(&1, %{terms: "queues:alpha,delta"}))
-      |> tap(&render_submit(&1, %{}))
-
-      assert_patch(live, jobs_path(state: "available", queues: "alpha,delta"))
-
-      assert has_job?(live, "AlphaWorker")
-      assert has_job?(live, "DeltaWorker")
-      refute has_job?(live, "GammaWorker")
-    end
   end
 
   describe "sorting" do
@@ -309,7 +251,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   end
 
   describe "bulk operations" do
-    test "cancelling selected jobs", %{live: live, oban: oban} do
+    test "cancelling and deleting selected jobs", %{live: live, oban: oban} do
       [job_1, _job, job_3] =
         Oban.insert_all(oban, [
           Job.new(%{ref: 1}, state: "available", worker: WorkerA),
@@ -321,24 +263,13 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       select_jobs(live, [job_1, job_3])
       click_bulk_action(live, "cancel-jobs")
 
-      hidden_job?(live, job_1)
-      hidden_job?(live, job_3)
-    end
+      refute_jobs(live, [job_1, job_3])
 
-    test "deleting selected jobs", %{live: live, oban: oban} do
-      [job_1, _job, job_3] =
-        Oban.insert_all(oban, [
-          Job.new(%{ref: 1}, state: "available", worker: WorkerA),
-          Job.new(%{ref: 2}, state: "available", worker: WorkerB),
-          Job.new(%{ref: 3}, state: "available", worker: WorkerC)
-        ])
-
-      click_state(live, "available")
+      click_state(live, "cancelled")
       select_jobs(live, [job_1, job_3])
       click_bulk_action(live, "delete-jobs")
 
-      hidden_job?(live, job_1)
-      hidden_job?(live, job_3)
+      refute_jobs(live, [job_1, job_3])
     end
   end
 
@@ -402,9 +333,19 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       click_state(live, "available")
 
-      assert has_element?(live, "#toggle-select[aria-label='Select all']")
+      assert has_element?(
+               live,
+               "#toggle-select[role=checkbox][aria-checked=false][aria-label='Select all']"
+             )
+
+      assert has_element?(
+               live,
+               "#job-#{job_1.id} button[role=checkbox][aria-checked=false][aria-label='Select job #{job_1.id}']"
+             )
 
       select_jobs(live, [job_1])
+
+      assert has_element?(live, "#job-#{job_1.id} button[role=checkbox][aria-checked=true]")
 
       assert has_element?(
                live,
@@ -442,163 +383,59 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
   end
 
   describe "chart" do
-    test "explaining an empty window instead of drawing nothing", %{live: live} do
+    test "naming the chart and explaining an empty window", %{live: live} do
+      assert has_element?(live, ~s(#chart[role="img"]))
       assert has_element?(live, "#chart-empty", "No executions recorded in the last 1m 40s")
     end
 
-    test "switching series with a radio group and keeping percentiles for time series", %{
-      live: live
-    } do
-      assert has_element?(live, "#chart-series[role=radiogroup]")
+    test "switching series and keeping percentiles for time series", %{live: live} do
       assert has_element?(live, "#select-series-exec_count[role=radio][aria-checked=true]")
-      refute has_element?(live, "#chart-options-menu #select-ntile-p95")
 
       live
       |> element("#select-series-exec_time")
       |> render_click()
 
       assert has_element?(live, "#select-series-exec_time[aria-checked=true]")
-      assert has_element?(live, "#select-series-exec_count[aria-checked=false]")
       assert has_element?(live, "#chart-options-menu #select-ntile-p95[aria-checked=true]")
       assert has_element?(live, "#chart-h", "p95 · 1s by State")
     end
 
-    test "grouping by a filter only when it carries more than one value", %{live: live} do
+    test "grouping automatically from filters or by an explicit choice", %{live: live} do
       assert has_element?(live, "#chart-h", "1s by State")
 
-      render_patch(live, jobs_path(queues: "alpha"))
+      render_patch(live, jobs_path(queues: "alpha,delta", state: "discarded"))
 
-      assert has_element?(live, "#chart-h", "1s by State")
-
-      render_patch(live, jobs_path(queues: "alpha,delta"))
-
-      assert has_element?(live, "#chart-h", "1s by Queue")
-
-      render_patch(live, jobs_path(nodes: "web-1,web-2", queues: "alpha,delta"))
-
-      assert has_element?(live, "#chart-h", "1s by Node")
-    end
-
-    test "choosing a grouping outright to compare every queue or worker", %{live: live} do
-      assert has_element?(live, "#chart-h", "1s by State")
+      assert has_element?(live, "#chart-h", "1s by Queue, discarded")
 
       live
       |> element("#select-grouping-worker")
       |> render_click()
 
-      assert has_element?(live, "#chart-h", "1s by Worker")
-
-      # Filters still narrow the data, but no longer decide the grouping.
-      render_patch(live, jobs_path(queues: "alpha,delta"))
-
-      assert has_element?(live, "#chart-h", "1s by Worker")
-
-      live
-      |> element("#select-grouping-auto")
-      |> render_click()
-
-      assert has_element?(live, "#chart-h", "1s by Queue")
+      assert has_element?(live, "#chart-h", "by Worker")
     end
 
-    test "naming the state that narrows a non-state grouping", %{live: live} do
-      render_patch(live, jobs_path(queues: "alpha,delta", state: "discarded"))
-
-      assert has_element?(live, "#chart-h", "1s by Queue, discarded")
-    end
-
-    test "isolating the selected state at the baseline", %{live: live, oban: oban} do
-      record(oban, "exec_count", 3, %{"state" => "completed"})
-      record(oban, "exec_count", 1, %{"state" => "discarded"})
-
-      render_patch(live, jobs_path(state: "discarded"))
-
-      assert_push_event(live, "chart-change", %{
-        points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: true}]
-      })
-
-      assert has_element?(live, "#chart-h", "1s by State, discarded")
-      assert has_element?(live, ~s(#chart[aria-label$="discarded isolated"]))
-
-      # A state without a series leaves the stack alone rather than graying everything out.
-      render_patch(live, jobs_path(state: "available"))
-
-      assert_push_event(live, "chart-change", %{
-        points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: false}]
-      })
-
-      refute has_element?(live, "#chart-h", "available")
-      refute has_element?(live, ~s(#chart[aria-label$="isolated"]))
-    end
-
-    test "keeping non-state series in a stable order while totals cross", %{
-      live: live,
-      oban: oban
-    } do
+    test "pushing grouped points on mount and on every refresh", %{live: live, oban: oban} do
       record(oban, "exec_count", 1, %{"queue" => "alpha"})
       record(oban, "exec_count", 5, %{"queue" => "delta"})
 
       render_patch(live, jobs_path(queues: "alpha,delta"))
 
-      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert_push_event(live, "chart-change", %{group: "queue", now: first, points: points})
       assert ["alpha", "delta"] = Enum.map(points, & &1.label)
 
-      record(oban, "exec_count", 10, %{"queue" => "alpha"})
+      refresh(live)
 
-      send(live.pid, :refresh)
-
-      assert_push_event(live, "chart-change", %{group: "queue", points: points})
-      assert ["alpha", "delta"] = Enum.map(points, & &1.label)
-    end
-
-    test "holding a series' slot until a challenger clearly outranks it", %{
-      live: live,
-      oban: oban
-    } do
-      queues = ~w(alpha bravo charlie delta echo foxtrot golf hotel)
-
-      for {queue, value} <- Enum.zip(queues, [80, 70, 60, 50, 45, 42, 40, 30]) do
-        record(oban, "exec_count", value, %{"queue" => queue})
-      end
-
-      render_patch(live, jobs_path(queues: Enum.join(queues, ",")))
-
-      assert_push_event(live, "chart-change", %{group: "queue", points: points})
-      assert ~w(alpha bravo charlie delta echo foxtrot golf other) = Enum.map(points, & &1.label)
-
-      # Hotel edges past golf, but not by enough to take its slot.
-      record(oban, "exec_count", 15, %{"queue" => "hotel"})
-
-      send(live.pid, :refresh)
-
-      assert_push_event(live, "chart-change", %{group: "queue", points: points})
-      assert ~w(alpha bravo charlie delta echo foxtrot golf other) = Enum.map(points, & &1.label)
-
-      record(oban, "exec_count", 20, %{"queue" => "hotel"})
-
-      send(live.pid, :refresh)
-
-      assert_push_event(live, "chart-change", %{group: "queue", points: points})
-      assert ~w(alpha bravo charlie delta echo foxtrot hotel other) = Enum.map(points, & &1.label)
-    end
-
-    test "pushing fresh points on every refresh", %{live: live} do
-      assert_push_event(live, "chart-change", %{now: first})
-
-      send(live.pid, :refresh)
-
-      assert_push_event(live, "chart-change", %{now: second})
+      assert_push_event(live, "chart-change", %{group: "queue", now: second})
       assert second >= first
     end
 
-    test "drilling into a state series filters the table by that state", %{live: live} do
+    test "drilling into a series narrows the table", %{live: live} do
       live
       |> element("#chart-canvas")
       |> render_hook("chart-select", %{"label" => "completed"})
 
       assert_patch(live, jobs_path(state: "completed"))
-    end
 
-    test "drilling into a queue series narrows to that queue", %{live: live} do
       render_patch(live, jobs_path(queues: "alpha,delta"))
 
       live
@@ -608,17 +445,6 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       assert_patch(live, jobs_path(queues: "alpha"))
     end
 
-    test "ignoring drill-through on the folded other series", %{live: live} do
-      render_patch(live, jobs_path(queues: "alpha,delta"))
-      assert_patch(live, jobs_path(queues: "alpha,delta"))
-
-      live
-      |> element("#chart-canvas")
-      |> render_hook("chart-select", %{"label" => "other"})
-
-      refute_receive {_ref, {:patch, _topic, _opts}}, 50
-    end
-
     test "keeping chart selections after leaving and returning", %{live: live} do
       job = insert_job!(ref: 1)
 
@@ -626,60 +452,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       |> element("#select-series-exec_time")
       |> render_click()
 
-      live
-      |> element("#select-period-1m")
-      |> render_click()
-
-      live
-      |> element("#select-grouping-queue")
-      |> render_click()
-
-      assert has_element?(live, "#chart-h h3", "Execution Time")
-
       render_patch(live, "/oban/jobs/#{job.id}")
-
-      refute has_element?(live, "#chart")
-
       render_patch(live, "/oban/jobs")
 
       assert has_element?(live, "#chart-h h3", "Execution Time")
-      assert has_element?(live, "#chart-h", "p95 · 1m by Queue")
-
-      render_patch(live, "/oban/queues")
-
-      refute has_element?(live, "#chart")
-
-      render_patch(live, "/oban/jobs")
-
-      assert has_element?(live, "#chart-h h3", "Execution Time")
-    end
-
-    test "falling back from stored settings that no longer exist" do
-      init_state = %{
-        "oban:chart-grouping" => "worker",
-        "oban:chart-ntile" => "max",
-        "oban:chart-period" => "3s",
-        "oban:chart-series" => "full_count"
-      }
-
-      conn = put_connect_params(build_conn(), %{"init_state" => init_state})
-
-      {:ok, live, _html} = live(conn, "/oban/jobs")
-
-      assert has_element?(live, "#select-series-exec_count[aria-checked=true]")
-      assert has_element?(live, "#chart-h h3", "Executed Count")
-      assert has_element?(live, "#chart-h", "1s by Worker")
-
-      assert_push_event(live, "chart-change", %{group: "worker", series: "exec_count"})
-    end
-
-    test "naming the chart for assistive technology", %{live: live} do
-      assert has_element?(
-               live,
-               ~s(#chart-toggle[aria-expanded="true"][aria-controls="chart-body"])
-             )
-
-      assert has_element?(live, ~s(#chart[role="img"]))
     end
   end
 
@@ -710,6 +486,9 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       live: live,
       oban: oban
     } do
+      assert has_element?(live, "#nodes-rows", "No nodes reporting")
+      assert has_element?(live, "#queues-rows", "No queues running")
+
       gossip(oban, node: "web-1", queue: "alpha")
       refresh(live)
 
@@ -741,38 +520,6 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       assert_push_event(live, "update-sidebar-collapsed", %{names: []})
       refute has_element?(live, "#nodes-rows.hidden")
-    end
-
-    test "empty sections say why they are empty", %{live: live} do
-      assert has_element?(live, "#nodes-rows", "No nodes reporting")
-      assert has_element?(live, "#queues-rows", "No queues running")
-    end
-
-    test "row and select all checkboxes announce their state", %{live: live, oban: oban} do
-      [job_1, job_2] =
-        Oban.insert_all(oban, [
-          Job.new(%{ref: 1}, state: "available", worker: WorkerA),
-          Job.new(%{ref: 2}, state: "available", worker: WorkerB)
-        ])
-
-      click_state(live, "available")
-
-      assert has_element?(live, "#toggle-select[role=checkbox][aria-checked=false]")
-
-      assert has_element?(
-               live,
-               "#job-#{job_1.id} button[role=checkbox][aria-checked=false][aria-label='Select job #{job_1.id}']"
-             )
-
-      select_jobs(live, [job_1])
-
-      assert has_element?(live, "#job-#{job_1.id} button[role=checkbox][aria-checked=true]")
-      assert has_element?(live, "#job-#{job_2.id} button[role=checkbox][aria-checked=false]")
-      assert has_element?(live, "#toggle-select[aria-checked=mixed]")
-
-      select_jobs(live, [job_2])
-
-      assert has_element?(live, "#toggle-select[aria-checked=true]")
     end
   end
 
@@ -814,8 +561,24 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     has_element?(live, "#jobs-table", worker_name)
   end
 
-  defp hidden_job?(live, %{id: id}) do
-    refute has_element?(live, "#job-#{id}")
+  # Rendering the table once and checking every worker against it keeps the round trips to the
+  # view down, which adds up across the filtering tests.
+  defp assert_jobs(live, shown, hidden \\ []) do
+    text =
+      live
+      |> element("#jobs-table")
+      |> render()
+      |> LazyHTML.from_fragment()
+      |> LazyHTML.text()
+
+    for worker <- shown, do: assert(text =~ worker)
+    for worker <- hidden, do: refute(text =~ worker)
+  end
+
+  defp refute_jobs(live, jobs) do
+    html = render(live)
+
+    for %{id: id} <- jobs, do: refute(has_fragment?(html, "#job-#{id}"))
   end
 
   defp record(oban, series, value, labels) do

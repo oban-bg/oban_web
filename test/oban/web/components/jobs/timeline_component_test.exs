@@ -6,7 +6,7 @@ defmodule Oban.Web.Jobs.TimelineComponentTest do
   alias Oban.Web.Jobs.TimelineComponent
 
   @now ~U[2024-01-15 12:00:00Z]
-  @os_time DateTime.to_unix(@now)
+  @os_time DateTime.to_unix(@now, :millisecond)
 
   describe "render/1" do
     test "renders all seven state boxes" do

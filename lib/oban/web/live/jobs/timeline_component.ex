@@ -11,7 +11,7 @@ defmodule Oban.Web.Jobs.TimelineComponent do
     assigns =
       assigns
       |> assign(:path, compute_path(assigns.job))
-      |> assign(:now, DateTime.from_unix!(assigns.os_time))
+      |> assign(:now, DateTime.from_unix!(assigns.os_time, :millisecond))
 
     ~H"""
     <div

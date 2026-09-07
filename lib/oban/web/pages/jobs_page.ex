@@ -287,7 +287,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:history, fn -> [] end)
     |> assign_new(:jobs, fn -> [] end)
     |> assign_new(:nodes, fn -> [] end)
-    |> assign_new(:os_time, fn -> System.os_time(:second) end)
+    |> assign_new(:os_time, fn -> System.os_time(:millisecond) end)
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
     |> assign_new(:selected, &MapSet.new/0)
@@ -341,7 +341,7 @@ defmodule Oban.Web.JobsPage do
       history: history,
       jobs: jobs,
       nodes: nodes(conf),
-      os_time: System.os_time(:second),
+      os_time: System.os_time(:millisecond),
       queues: queues(conf, socket.assigns.queues),
       selected: selected,
       states: states(conf, socket.assigns.states)
