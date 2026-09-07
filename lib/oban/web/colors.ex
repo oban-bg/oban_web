@@ -64,16 +64,19 @@ defmodule Oban.Web.Colors do
   }
 
   # Spelled out so Tailwind sees each class.
+  # Series draw one register away from the states' 400: deep at 600 in light mode and pale at 300
+  # in dark mode, so a queue never reads as a state. The hexes above stay at 400 as the identity
+  # the chart hook maps to each theme's register (see SERIES_FG in assets/js/lib/colors.js).
   @series_bg_classes %{
-    amber: "bg-amber-400",
-    fuchsia: "bg-fuchsia-400",
+    amber: "bg-amber-600 dark:bg-amber-300",
+    fuchsia: "bg-fuchsia-600 dark:bg-fuchsia-300",
     gray: "bg-gray-400",
-    lime: "bg-lime-400",
-    orange: "bg-orange-400",
-    pink: "bg-pink-400",
-    red: "bg-red-400",
-    sky: "bg-sky-400",
-    teal: "bg-teal-400"
+    lime: "bg-lime-600 dark:bg-lime-300",
+    orange: "bg-orange-600 dark:bg-orange-300",
+    pink: "bg-pink-600 dark:bg-pink-300",
+    red: "bg-red-600 dark:bg-red-300",
+    sky: "bg-sky-600 dark:bg-sky-300",
+    teal: "bg-teal-600 dark:bg-teal-300"
   }
 
   @doc """
@@ -107,7 +110,7 @@ defmodule Oban.Web.Colors do
   def series_hex(name), do: Map.fetch!(@series_hex, name)
 
   @doc """
-  Returns the background class for a series color name (e.g., "bg-orange-400").
+  Returns the background classes for a series color name (e.g., "bg-orange-600 dark:bg-orange-300").
   """
   def series_bg_class(name), do: Map.fetch!(@series_bg_classes, name)
 

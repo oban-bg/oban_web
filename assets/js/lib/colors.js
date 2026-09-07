@@ -12,7 +12,7 @@ export const GRAY = "#9ca3af" // gray-400
 
 // A 2px line at the 400 level sits below 3:1 against white, so light-mode strokes step down to
 // the same darker levels text uses. Yellow needs 700 to clear the bar; the rest clear it at 600.
-// Keys cover the state palette and the non-state series palette from lib/oban/web/colors.ex.
+// Keys cover the state palette from lib/oban/web/colors.ex.
 export const LINE_FG = {
   [BLUE]: "#2563eb", // blue-600
   [CYAN]: "#0891b2", // cyan-600
@@ -22,14 +22,21 @@ export const LINE_FG = {
   [VIOLET]: "#7c3aed", // violet-600
   [YELLOW]: "#a16207", // yellow-700
   [GRAY]: "#4b5563", // gray-600
-  "#fbbf24": "#d97706", // amber-400 -> amber-600
-  "#e879f9": "#c026d3", // fuchsia-400 -> fuchsia-600
-  "#a3e635": "#65a30d", // lime-400 -> lime-600
-  [ORANGE]: "#ea580c", // orange-600
-  "#f472b6": "#db2777", // pink-400 -> pink-600
-  "#f87171": "#dc2626", // red-400 -> red-600
-  "#38bdf8": "#0284c7", // sky-400 -> sky-600
-  [TEAL]: "#0d9488", // teal-600
+}
+
+// Non-state series (queues, nodes, workers) are keyed by their 400-level identity hex from
+// lib/oban/web/colors.ex but never draw at it: they sit one register away from the states,
+// deep at 600 in light mode and pale at 300 in dark mode, so a queue can't be misread as a state
+// even when its hue is a neighbour. Bars and lines share the register; the legend dots match it.
+export const SERIES_FG = {
+  "#fbbf24": { light: "#d97706", dark: "#fcd34d" }, // amber
+  "#e879f9": { light: "#c026d3", dark: "#f0abfc" }, // fuchsia
+  "#a3e635": { light: "#65a30d", dark: "#bef264" }, // lime
+  [ORANGE]: { light: "#ea580c", dark: "#fdba74" }, // orange
+  "#f472b6": { light: "#db2777", dark: "#f9a8d4" }, // pink
+  "#f87171": { light: "#dc2626", dark: "#fca5a5" }, // red
+  "#38bdf8": { light: "#0284c7", dark: "#7dd3fc" }, // sky
+  [TEAL]: { light: "#0d9488", dark: "#5eead4" }, // teal
 }
 
 // Must match progress bar colors in detail_component.ex

@@ -477,9 +477,24 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       render_patch(live, jobs_path(nodes: "web-1,web-2", queues: "alpha,delta"))
 
       assert has_element?(live, "#chart-h", "1s by Node")
+    end
+
+    test "choosing a grouping outright to compare every queue or worker", %{live: live} do
+      assert has_element?(live, "#chart-h", "1s by State")
 
       live
-      |> element("#select-series-full_count")
+      |> element("#select-grouping-worker")
+      |> render_click()
+
+      assert has_element?(live, "#chart-h", "1s by Worker")
+
+      # Filters still narrow the data, but no longer decide the grouping.
+      render_patch(live, jobs_path(queues: "alpha,delta"))
+
+      assert has_element?(live, "#chart-h", "1s by Worker")
+
+      live
+      |> element("#select-grouping-auto")
       |> render_click()
 
       assert has_element?(live, "#chart-h", "1s by Queue")
@@ -501,6 +516,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
         points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: true}]
       })
 
+      assert has_element?(live, "#chart-h", "1s by State, discarded")
       assert has_element?(live, ~s(#chart[aria-label$="discarded isolated"]))
 
       # A state without a series leaves the stack alone rather than graying everything out.
@@ -510,7 +526,59 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
         points: [%{label: "discarded", ghost: false}, %{label: "completed", ghost: false}]
       })
 
+      refute has_element?(live, "#chart-h", "available")
       refute has_element?(live, ~s(#chart[aria-label$="isolated"]))
+    end
+
+    test "keeping non-state series in a stable order while totals cross", %{
+      live: live,
+      oban: oban
+    } do
+      record(oban, "exec_count", 1, %{"queue" => "alpha"})
+      record(oban, "exec_count", 5, %{"queue" => "delta"})
+
+      render_patch(live, jobs_path(queues: "alpha,delta"))
+
+      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert ["alpha", "delta"] = Enum.map(points, & &1.label)
+
+      record(oban, "exec_count", 10, %{"queue" => "alpha"})
+
+      send(live.pid, :refresh)
+
+      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert ["alpha", "delta"] = Enum.map(points, & &1.label)
+    end
+
+    test "holding a series' slot until a challenger clearly outranks it", %{
+      live: live,
+      oban: oban
+    } do
+      queues = ~w(alpha bravo charlie delta echo foxtrot golf hotel)
+
+      for {queue, value} <- Enum.zip(queues, [80, 70, 60, 50, 45, 42, 40, 30]) do
+        record(oban, "exec_count", value, %{"queue" => queue})
+      end
+
+      render_patch(live, jobs_path(queues: Enum.join(queues, ",")))
+
+      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert ~w(alpha bravo charlie delta echo foxtrot golf other) = Enum.map(points, & &1.label)
+
+      # Hotel edges past golf, but not by enough to take its slot.
+      record(oban, "exec_count", 15, %{"queue" => "hotel"})
+
+      send(live.pid, :refresh)
+
+      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert ~w(alpha bravo charlie delta echo foxtrot golf other) = Enum.map(points, & &1.label)
+
+      record(oban, "exec_count", 20, %{"queue" => "hotel"})
+
+      send(live.pid, :refresh)
+
+      assert_push_event(live, "chart-change", %{group: "queue", points: points})
+      assert ~w(alpha bravo charlie delta echo foxtrot hotel other) = Enum.map(points, & &1.label)
     end
 
     test "pushing fresh points on every refresh", %{live: live} do
@@ -552,7 +620,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
     end
 
     test "keeping chart selections after leaving and returning", %{live: live} do
-      job = insert_job!([ref: 1])
+      job = insert_job!(ref: 1)
 
       live
       |> element("#select-series-exec_time")
@@ -560,6 +628,10 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
 
       live
       |> element("#select-period-1m")
+      |> render_click()
+
+      live
+      |> element("#select-grouping-queue")
       |> render_click()
 
       assert has_element?(live, "#chart-h h3", "Execution Time")
@@ -571,7 +643,7 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       render_patch(live, "/oban/jobs")
 
       assert has_element?(live, "#chart-h h3", "Execution Time")
-      assert has_element?(live, "#chart-h", "p95 · 1m by State")
+      assert has_element?(live, "#chart-h", "p95 · 1m by Queue")
 
       render_patch(live, "/oban/queues")
 
@@ -580,6 +652,25 @@ defmodule Oban.Web.Pages.Jobs.IndexTest do
       render_patch(live, "/oban/jobs")
 
       assert has_element?(live, "#chart-h h3", "Execution Time")
+    end
+
+    test "falling back from stored settings that no longer exist" do
+      init_state = %{
+        "oban:chart-grouping" => "worker",
+        "oban:chart-ntile" => "max",
+        "oban:chart-period" => "3s",
+        "oban:chart-series" => "full_count"
+      }
+
+      conn = put_connect_params(build_conn(), %{"init_state" => init_state})
+
+      {:ok, live, _html} = live(conn, "/oban/jobs")
+
+      assert has_element?(live, "#select-series-exec_count[aria-checked=true]")
+      assert has_element?(live, "#chart-h h3", "Executed Count")
+      assert has_element?(live, "#chart-h", "1s by Worker")
+
+      assert_push_event(live, "chart-change", %{group: "worker", series: "exec_count"})
     end
 
     test "naming the chart for assistive technology", %{live: live} do

@@ -10,13 +10,19 @@ defmodule Oban.Web.Jobs.ChartComponent do
   # jobs stack on top.
   @stack_order ~w(discarded retryable cancelled completed executing available suspended scheduled)
 
-  @storable ~w(ntile period series visible)a
+  @storable ~w(grouping ntile period series visible)a
 
-  # A filter with two or more values is the only signal that the operator wants to compare across
-  # that dimension. A single value narrows the data while the state stack keeps explaining it.
+  # With automatic grouping, a filter with two or more values is the signal that the operator
+  # wants to compare across that dimension; a single value narrows the data while the state stack
+  # keeps explaining it. An explicit grouping compares every queue, node, or worker without
+  # picking them first, which is how "which queue is hot right now" gets answered.
   @group_params [worker: :workers, node: :nodes, queue: :queues]
 
-  @count_series ~w(exec_count full_count)
+  # A series already on the chart keeps its slot until a challenger clearly out-ranks it, so a
+  # queue hovering around seventh place doesn't blink in and out of "other" on every refresh.
+  @incumbent_bonus 1.25
+
+  @count_series ~w(exec_count)
   @time_series ~w(exec_time wait_time)
 
   @impl Phoenix.LiveComponent
@@ -43,12 +49,20 @@ defmodule Oban.Web.Jobs.ChartComponent do
     socket =
       socket
       |> assign(conf: assigns.conf, os_time: assigns.os_time, params: assigns.params)
-      |> assign_new(:ntile, fn -> init_lazy(:ntile, assigns, ntile_for_series(default_series)) end)
-      |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods())) end)
-      |> assign_new(:series, fn -> init_lazy(:series, assigns, default_series) end)
-      |> assign_new(:visible, fn -> init_lazy(:visible, assigns, true) end)
+      |> assign_new(:grouping, fn -> init_lazy(:grouping, assigns, "auto", groupings()) end)
+      |> assign_new(:period, fn -> init_lazy(:period, assigns, hd(periods()), periods()) end)
+      |> assign_new(:series, fn -> init_lazy(:series, assigns, default_series, series()) end)
+      |> assign_new(:visible, fn -> init_lazy(:visible, assigns, true, [true, false]) end)
       |> assign_new(:datasets, fn -> [] end)
       |> assign_new(:truncated, fn -> 0 end)
+
+    # The percentile only makes sense for the series it was stored with.
+    series = socket.assigns.series
+
+    socket =
+      assign_new(socket, :ntile, fn ->
+        init_lazy(:ntile, assigns, ntile_for_series(series), ntiles_for_series(series))
+      end)
 
     socket =
       if fresh? and socket.assigns.visible do
@@ -62,8 +76,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
     {:ok, socket}
   end
 
-  defp init_lazy(key, %{init_state: init_state}, default) do
-    Map.get(init_state, "oban:chart-#{key}", default)
+  # Stored settings outlive releases, so a value that no longer exists falls back to the default.
+  defp init_lazy(key, %{init_state: init_state}, default, allowed) do
+    value = Map.get(init_state, "oban:chart-#{key}", default)
+
+    if value in allowed, do: value, else: default
   end
 
   @impl Phoenix.LiveComponent
@@ -144,7 +161,17 @@ defmodule Oban.Web.Jobs.ChartComponent do
               <Icons.icon name="icon-adjustments-horizontal" />
             </:toggle>
 
-            <.menu_heading text="Period" />
+            <.menu_heading text="Group" />
+
+            <.chart_option
+              :for={value <- groupings()}
+              myself={@myself}
+              name="grouping"
+              selected={@grouping}
+              value={value}
+            />
+
+            <.menu_heading text="Period" divided={true} />
 
             <.chart_option
               :for={value <- periods()}
@@ -172,7 +199,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       <div id="chart-body" class={unless(@visible, do: "hidden")}>
         <div
           id="chart"
-          class="w-full relative cursor-crosshair pl-5 pr-3 h-45"
+          class="w-full relative pl-5 pr-3 h-45"
           role="img"
           aria-label={@label}
         >
@@ -236,7 +263,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
       class="h-7 px-2.5 rounded text-xs font-medium cursor-pointer text-gray-500 dark:text-gray-400
       enabled:hover:text-gray-700 dark:enabled:hover:text-gray-200
       aria-checked:bg-white dark:aria-checked:bg-gray-700 aria-checked:shadow-sm
-      aria-checked:text-blue-500 dark:aria-checked:text-blue-400
+      enabled:aria-checked:text-gray-900 dark:enabled:aria-checked:text-gray-100 aria-checked:font-semibold
       disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-500
       focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       data-title={metric_label(@value)}
@@ -344,9 +371,9 @@ defmodule Oban.Web.Jobs.ChartComponent do
   # Data
 
   defp assign_datasets(socket) do
-    %{group: previous, hidden: hidden, params: params, series: series} = socket.assigns
+    %{group: previous, hidden: hidden} = socket.assigns
 
-    group = derive_group(params, series)
+    group = resolve_group(socket.assigns)
     hidden = if group == previous, do: hidden, else: MapSet.new()
 
     socket = assign(socket, group: group, hidden: hidden)
@@ -355,15 +382,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
     assign(socket, datasets: datasets, truncated: truncated)
   end
 
-  # Full counts are gauges labelled by state and queue alone, so nodes and workers can't group them.
-  defp derive_group(params, "full_count") do
-    find_group(params, Keyword.take(@group_params, [:queue]))
-  end
+  defp resolve_group(%{grouping: "auto", params: params}), do: derive_group(params)
+  defp resolve_group(%{grouping: grouping}), do: grouping
 
-  defp derive_group(params, _series), do: find_group(params, @group_params)
-
-  defp find_group(params, candidates) do
-    Enum.find_value(candidates, "state", fn {group, key} ->
+  defp derive_group(params) do
+    Enum.find_value(@group_params, "state", fn {group, key} ->
       if match?([_, _ | _], List.wrap(Map.get(params, key))), do: to_string(group)
     end)
   end
@@ -391,7 +414,6 @@ defmodule Oban.Web.Jobs.ChartComponent do
       assigns.conf.name
       |> Met.timeslice(String.to_existing_atom(assigns.series), opts)
       |> Enum.group_by(&elem(&1, 2), &Tuple.delete_at(&1, 2))
-      |> Enum.sort_by(fn {_label, slices} -> total(slices) end, :desc)
       |> limit_groups(assigns)
 
     colors = group_colors(grouped, group)
@@ -443,7 +465,13 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp limit_groups(grouped, %{group: "state"}), do: {grouped, 0}
 
   defp limit_groups(grouped, assigns) do
-    {kept, rest} = Enum.split(grouped, assigns.max_data)
+    incumbents =
+      for %{label: label} <- assigns.datasets, label != "other", into: MapSet.new(), do: label
+
+    {kept, rest} =
+      grouped
+      |> Enum.sort_by(fn {label, slices} -> {-rank(total(slices), label, incumbents), label} end)
+      |> Enum.split(assigns.max_data)
 
     cond do
       rest == [] ->
@@ -484,9 +512,17 @@ defmodule Oban.Web.Jobs.ChartComponent do
     Enum.sort_by(datasets, &Enum.find_index(@stack_order, fn state -> state == &1.label end))
   end
 
-  defp order_datasets(datasets, _group), do: datasets
+  # Any other grouping is alphabetical so a series keeps its place in the stack and the legend
+  # while totals cross, with the folded remainder always last.
+  defp order_datasets(datasets, _group) do
+    Enum.sort_by(datasets, &{&1.label == "other", &1.label})
+  end
 
   defp total(slices), do: Enum.reduce(slices, 0, &(elem(&1, 1) + &2))
+
+  defp rank(total, label, incumbents) do
+    if MapSet.member?(incumbents, label), do: total * @incumbent_bonus, else: total
+  end
 
   defp interpolate(slices, cols, step, time) do
     lookup = Map.new(slices)
@@ -502,6 +538,10 @@ defmodule Oban.Web.Jobs.ChartComponent do
   # Events
 
   @impl Phoenix.LiveComponent
+  def handle_event("select-grouping", %{"choice" => grouping}, socket) do
+    {:noreply, push_change(socket, grouping: grouping)}
+  end
+
   def handle_event("select-ntile", %{"choice" => ntile}, socket) do
     {:noreply, push_change(socket, ntile: ntile)}
   end
@@ -511,12 +551,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
   end
 
   def handle_event("select-series", %{"choice" => series}, socket) do
-    ntile =
-      cond do
-        series == "full_count" -> "max"
-        series in @time_series -> "p95"
-        true -> "sum"
-      end
+    ntile = ntile_for_series(series)
 
     {:noreply, push_change(socket, hidden: MapSet.new(), ntile: ntile, series: series)}
   end
@@ -583,7 +618,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
     }
 
     if settings? do
-      Map.put(payload, :settings, Map.take(assigns, [:ntile, :period, :series, :visible]))
+      Map.put(payload, :settings, Map.take(assigns, @storable))
     else
       payload
     end
@@ -614,53 +649,57 @@ defmodule Oban.Web.Jobs.ChartComponent do
 
   # Lookups
 
+  defp groupings, do: ~w(auto state queue node worker)
+
   defp ntiles, do: ~w(max p99 p95 p75 p50)
   defp periods, do: ~w(1s 5s 10s 30s 1m 2m)
-  defp series, do: ~w(exec_count full_count exec_time wait_time)
+  defp series, do: ~w(exec_count exec_time wait_time)
 
   defp time_series?(series), do: series in @time_series
 
   defp ntile_for_series(series) when series in @time_series, do: "p95"
   defp ntile_for_series(_series), do: "sum"
 
+  defp ntiles_for_series(series) when series in @time_series, do: ntiles()
+  defp ntiles_for_series(_series), do: ["sum"]
+
   defp metric_label("exec_count"), do: "Executed Count"
-  defp metric_label("full_count"), do: "Full Count"
   defp metric_label("exec_time"), do: "Execution Time"
   defp metric_label("wait_time"), do: "Queue Time"
 
   defp metric_noun("exec_count"), do: "executions"
-  defp metric_noun("full_count"), do: "jobs"
   defp metric_noun("exec_time"), do: "execution times"
   defp metric_noun("wait_time"), do: "queue times"
 
   defp series_label("exec_count"), do: "exec"
-  defp series_label("full_count"), do: "full"
   defp series_label("exec_time"), do: "time"
   defp series_label("wait_time"), do: "wait"
 
-  defp subtitle(%{group: group, ntile: ntile, params: params, period: period, series: series}) do
+  # The selected state is named whenever it shapes the chart: it narrows any other grouping, and
+  # it is isolated in the state stack whenever it has a series there.
+  defp subtitle(%{group: group, params: params, period: period, series: series} = assigns) do
     base =
       if series in @time_series,
-        do: "#{ntile} · #{period} by #{String.capitalize(group)}",
+        do: "#{assigns.ntile} · #{period} by #{String.capitalize(group)}",
         else: "#{period} by #{String.capitalize(group)}"
 
     case {group, Map.get(params, :state)} do
-      {"state", _state} -> base
       {_group, nil} -> base
+      {"state", state} -> if isolated?(assigns), do: "#{base}, #{state}", else: base
       {_group, state} -> "#{base}, #{state}"
     end
   end
+
+  defp isolated?(%{datasets: datasets}), do: Enum.any?(datasets, & &1.ghost)
 
   defp chart_label(%{datasets: [], period: period, series: series}) do
     empty_label(series, period)
   end
 
-  defp chart_label(%{datasets: datasets, params: params, series: series} = assigns) do
+  defp chart_label(%{series: series} = assigns) do
     label = "#{metric_label(series)}, #{subtitle(assigns)}"
 
-    if Enum.any?(datasets, & &1.ghost),
-      do: "#{label}, #{Map.get(params, :state)} isolated",
-      else: label
+    if isolated?(assigns), do: "#{label} isolated", else: label
   end
 
   defp empty_label(series, period) do

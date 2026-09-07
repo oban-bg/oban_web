@@ -1,5 +1,5 @@
 import { load, store } from "../lib/settings"
-import { LINE_FG } from "../lib/colors"
+import { LINE_FG, SERIES_FG } from "../lib/colors"
 
 import {
   BarController,
@@ -72,6 +72,9 @@ const CLOCK_LEAK_MS = 5
 // crawls, and redrawing for a hundredth of a pixel is wasted work on a tab left open all day.
 const MIN_MOVE_PX = 0.5
 
+// The shortest bar an isolated state draws, so one failure at a tall ceiling is still a mark.
+const MIN_BAR_PX = 3
+
 // The y-axis holds its ceiling while bars scroll off rather than rescaling on every arrival, and
 // only drops once the data has fallen well below it. A moving window is the one thing that
 // should move.
@@ -122,10 +125,10 @@ const estimateCount = function (value) {
     suff = "k"
   } else if (value < 1_000_000_000) {
     powr = 6
-    suff = "m"
+    suff = "M"
   } else {
     powr = 9
-    suff = "b"
+    suff = "B"
   }
 
   base = Math.round(value / Math.pow(10, powr))
@@ -133,23 +136,41 @@ const estimateCount = function (value) {
   return `${base}${suff}`
 }
 
+// Durations keep one decimal only when it carries something, so a tick reads "2s" and a tooltip
+// "3.8s". Minutes are spelled "min" because "m" already means millions on the count axis.
+const trimmed = (number) => Number(number.toFixed(1))
+
 const estimateNanos = function (value) {
+  if (value === 0) return "0"
+
   const milliseconds = value / 1e6
   const seconds = value / 1e9
   const minutes = value / 6e10
   const hours = value / 3.6e12
 
   if (hours >= 1) {
-    return `${hours.toFixed(1)}h`
+    return `${trimmed(hours)}h`
   } else if (minutes >= 1) {
-    return `${minutes.toFixed(1)}m`
+    return `${trimmed(minutes)}min`
   } else if (seconds >= 1) {
-    return `${seconds.toFixed(1)}s`
+    return `${trimmed(seconds)}s`
   } else if (milliseconds >= 1000) {
-    return `${milliseconds.toFixed(1)}ms`
+    return `${trimmed(milliseconds)}ms`
   } else {
     return `${milliseconds.toFixed(0)}ms`
   }
+}
+
+// Chart.js picks "nice" steps in nanoseconds, which lands minute ticks on 1.7min and 3.3min. The
+// duration axis steps through clock-shaped intervals instead, the way the time axis does.
+const DURATION_STEPS = [
+  1e6, 2e6, 5e6, 1e7, 2e7, 5e7, 1e8, 2e8, 5e8, 1e9, 2e9, 5e9, 1e10, 1.5e10, 3e10, 6e10, 1.2e11,
+  3e11, 6e11, 9e11, 1.8e12, 3.6e12, 7.2e12, 2.16e13, 4.32e13,
+]
+const DURATION_TICKS = 8
+
+const durationStep = (ceiling) => {
+  return DURATION_STEPS.find((step) => ceiling / step <= DURATION_TICKS) ?? DURATION_STEPS.at(-1)
 }
 
 const liner = {
@@ -210,7 +231,11 @@ const mixColors = (from, to, amount) => {
 const easeOut = (amount) => 1 - Math.pow(1 - amount, 3)
 
 const seriesColor = (type, hex) => {
-  if (type === "line" && !isDark()) {
+  const register = SERIES_FG[hex]
+
+  if (register) {
+    return isDark() ? register.dark : register.light
+  } else if (type === "line" && !isDark()) {
     return LINE_FG[hex] || hex
   } else {
     return hex
@@ -289,6 +314,10 @@ const elementAt = (chart, event) => {
   return elements.length > 0 ? chart.data.datasets[elements[0].datasetIndex] : null
 }
 
+// Chart.js stacks by dataset order, then index, so this is the same ranking it draws with.
+const stackPosition = (data, index) =>
+  (data.datasets[index].order ?? 0) * data.datasets.length + index
+
 const basicOpts = (hook) => ({
   animation: false,
   maintainAspectRatio: false,
@@ -311,10 +340,20 @@ const basicOpts = (hook) => ({
       hook.pushEventTo(hook.el, "chart-select", { label: dataset.label })
     }
   },
+  // The tooltip lists the whole column, but a click drills into the one segment under the
+  // pointer, so the footer names it. Chart.js only rebuilds the tooltip when the active column
+  // changes, so crossing segments within a column refreshes it by hand.
   onHover: (event, _elements, chart) => {
     const dataset = elementAt(chart, event)
+    const target = dataset && dataset.label !== "other" ? dataset.label : null
 
-    hook.el.classList.toggle("cursor-pointer", dataset !== null && dataset.label !== "other")
+    hook.el.classList.toggle("cursor-pointer", target !== null)
+
+    if (target !== chart.drillTarget) {
+      chart.drillTarget = target
+      chart.tooltip.update(true)
+      chart.render()
+    }
   },
   plugins: {
     legend: {
@@ -331,9 +370,26 @@ const basicOpts = (hook) => ({
       // Empty slices have no row, so a quiet second reads as a short list rather than a column
       // of zeros that can outgrow the plot.
       filter: (item) => item.raw.y !== null,
+      // Rows read the way the column does, top of the stack first; lines list the highest first.
+      itemSort: (left, right, data) => {
+        if (left.chart.config.type === "bar") {
+          return stackPosition(data, right.datasetIndex) - stackPosition(data, left.datasetIndex)
+        } else {
+          return right.parsed.y - left.parsed.y
+        }
+      },
+      footerColor: "#9ca3af",
+      footerFont: { weight: "normal" },
+      footerMarginTop: 8,
       callbacks: {
         title: function (context) {
           return formatTime(context[0].raw.t)
+        },
+
+        footer: function (context) {
+          const target = context[0]?.chart.drillTarget
+
+          return target ? `Click to filter by ${target}` : ""
         },
 
         label: function (context) {
@@ -398,12 +454,13 @@ const xScale = (extra) => ({
   },
 })
 
-const yScale = (extra, format) => ({
+const yScale = (extra, format, ticks = {}) => ({
   ...extra,
   grid: {
     color: gridColor(),
   },
   ticks: {
+    ...ticks,
     color: tickColor(),
     callback: function (value, index, _ticks) {
       if (index % 2 === 0) return format(value)
@@ -411,11 +468,12 @@ const yScale = (extra, format) => ({
   },
 })
 
+// Counts are whole numbers, so an empty or single-job window ticks 0 and 1 rather than 0.4.
 const stackOpts = (hook) => ({
   ...basicOpts(hook),
   scales: {
     x: xScale({ stacked: true }),
-    y: yScale({ stacked: true }, estimateCount),
+    y: yScale({ stacked: true }, estimateCount, { precision: 0 }),
   },
 })
 
@@ -536,6 +594,8 @@ const JobsChart = {
       if (!labels.has(label)) this.history.delete(label)
     }
 
+    const isolating = points.some((series) => series.ghost)
+
     this.chart.data.datasets = points.map(({ label, hex, ghost, data }) => {
       const slices = new Map()
 
@@ -556,13 +616,21 @@ const JobsChart = {
       }
 
       // Slices cover the period ending at their timestamp, so each bar is centred half a step
-      // back from the time it reports.
+      // back from the time it reports. An isolated state gets a floor so a single failure is a
+      // visible mark rather than a hairline; zero slices are dropped so the floor never invents one.
+      const floored = isolating && !ghost
+      const visible = (value) => (floored && value === 0 ? null : value)
+
       dataset.data = [...slices.entries()]
         .sort((left, right) => left[0] - right[0])
-        .map(([time, value]) => ({ x: time - step / 2, y: value, t: time }))
+        .map(([time, value]) => ({ x: time - step / 2, y: visible(value), t: time }))
       dataset.ghost = ghost
       dataset.hex = hex
       dataset.hidden = hidden.includes(label)
+      dataset.minBarLength = floored ? MIN_BAR_PX : undefined
+      // Lower order stacks at the baseline and draws on top, keeping the isolated state's floor
+      // clear of the ghosts above it.
+      dataset.order = ghost ? 1 : 0
 
       return dataset
     })
@@ -591,7 +659,13 @@ const JobsChart = {
       this.ceilingType = type
     }
 
-    this.chart.options.scales.y.suggestedMax = this.ceiling
+    const scale = this.chart.options.scales.y
+
+    if (type === "line") {
+      scale.ticks.stepSize = durationStep(this.ceiling)
+    }
+
+    scale.suggestedMax = Math.max(this.ceiling, 1)
   },
 
   // Server time is estimated from each payload's clock. Every sample arrives late by its own

@@ -22,10 +22,10 @@ defmodule Oban.Web.ColorsTest do
       assert colors |> Map.values() |> Enum.uniq() |> length() == 7
     end
 
-    test "every assigned color resolves to a hex and background class" do
+    test "every assigned color resolves to a hex and a register away from the state palette" do
       for {_label, name} <- Colors.series_colors(~w(alpha beta gamma)) do
         assert Colors.series_hex(name) =~ ~r/^#[0-9a-f]{6}$/
-        assert Colors.series_bg_class(name) =~ ~r/^bg-\w+-400$/
+        assert Colors.series_bg_class(name) =~ ~r/^bg-(\w+)-600 dark:bg-\1-300$/
       end
     end
   end
