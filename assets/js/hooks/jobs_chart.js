@@ -27,6 +27,22 @@ Chart.register(
 Chart.defaults.font.size = 12
 Chart.defaults.font.family = "Inter var, sans-serif"
 
+// This keeps the tooltip beside the column, on whichever side has room, and lets it ride along
+// with the pointer vertically.
+Tooltip.positioners.beside = function (items, eventPosition) {
+  if (!items.length) return false
+
+  const { left, right } = this.chart.chartArea
+  const x = items[0].element.getCenterPoint().x
+
+  return {
+    x: x,
+    y: eventPosition.y,
+    xAlign: x < left + (right - left) / 2 ? "left" : "right",
+    yAlign: "center",
+  }
+}
+
 // Axis chrome follows the theme's muted and border tokens rather than Chart.js defaults, which
 // are tuned for a white canvas and sink into the dark panel.
 const isDark = () => document.documentElement.classList.contains("dark")
@@ -187,6 +203,15 @@ const basicOpts = (hook) => ({
     },
     verticalLiner: {},
     tooltip: {
+      position: "beside",
+      caretPadding: 8,
+      boxHeight: 8,
+      boxWidth: 8,
+      boxPadding: 4,
+      usePointStyle: true,
+      // Empty slices have no row, so a quiet second reads as a short list rather than a column
+      // of zeros that can outgrow the plot.
+      filter: (item) => item.raw.y !== null,
       callbacks: {
         title: function (context) {
           return formatTime(context[0].label)

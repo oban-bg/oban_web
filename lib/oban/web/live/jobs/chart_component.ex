@@ -6,9 +6,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
   alias Oban.Web.Components.Core
   alias Oban.Web.Timing
 
-  # Failure states sit at the baseline where a spike is easiest to read against a flat edge, and
-  # the bulk of completed jobs stacks above them.
+  # Keep failure states at the baseline where spikes are easiest to spot, so the bulk of completed
+  # jobs stack on top.
   @stack_order ~w(discarded retryable cancelled completed executing available scheduled suspended)
+
+  @storable ~w(group ntile period series visible)a
 
   @impl Phoenix.LiveComponent
   def mount(socket) do
@@ -471,6 +473,10 @@ defmodule Oban.Web.Jobs.ChartComponent do
   end
 
   defp push_change(socket, change) do
+    for {key, value} <- change, key in @storable do
+      send(self(), {:store_state, "chart-#{key}", value})
+    end
+
     socket =
       socket
       |> assign(change)
