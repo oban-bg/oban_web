@@ -77,6 +77,19 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
+  # The key is inlined so the expression matches Pro's `(meta->>'key')` indexes.
+  defmacrop meta_text(field, key) when is_binary(key) do
+    quote do
+      fragment(unquote("?->>'#{key}'"), unquote(field))
+    end
+  end
+
+  defmacrop json_text(field, key) when is_binary(key) do
+    quote do
+      fragment(unquote("json_extract(?, '$.#{key}')"), unquote(field))
+    end
+  end
+
   defmacrop mysql_kv_table(field) do
     quote do
       fragment(
@@ -161,6 +174,8 @@ defmodule Oban.Web.JobQuery do
         suggest: &suggest_args_vals/4,
         suggest_keys: &suggest_args_keys/3
       ],
+      backfills: [desc: "backfill id", example: "backfills:0192a1b2-...", parse: :list],
+      chains: [desc: "chain id", example: "chains:aB3d...", parse: :list],
       chunks: [desc: "chunk leader job id", example: "chunks:123", parse: :ints],
       ids: [desc: "one or more job ids", example: "ids:1,2,3", parse: :ints],
       meta: [
@@ -534,6 +549,45 @@ defmodule Oban.Web.JobQuery do
 
   def chunk_counts(_conf, _job), do: %{}
 
+  @doc """
+  The jobs immediately before and after a job in its chain or backfill.
+
+  Chains and backfills run in insertion order, so the neighbors are the nearest ids on either side
+  that share the job's `chain_id` or `backfill_id`. Either side is nil at the ends of the sequence.
+  """
+  @spec neighbors(Config.t(), Job.t(), :chain | :backfill) :: %{
+          prev: Job.t() | nil,
+          next: Job.t() | nil
+        }
+  def neighbors(conf, _job, _kind) when is_mysql(conf) or is_sqlite(conf),
+    do: %{prev: nil, next: nil}
+
+  def neighbors(%Config{} = conf, %Job{id: id} = job, kind) do
+    case sequence_query(job, kind) do
+      nil ->
+        %{prev: nil, next: nil}
+
+      query ->
+        prev_query = query |> where([j], j.id < ^id) |> order_by(desc: :id) |> limit(1)
+        next_query = query |> where([j], j.id > ^id) |> order_by(asc: :id) |> limit(1)
+
+        %{prev: Repo.one(conf, prev_query), next: Repo.one(conf, next_query)}
+    end
+  end
+
+  # Backfill lookups hit Pro's `(meta->>'backfill_id', state)` index. The chain index is partial
+  # and excludes completed jobs, so chains use containment through the meta index instead.
+  defp sequence_query(%Job{meta: %{"chain_id" => chain_id}}, :chain) when is_binary(chain_id) do
+    where(Job, [j], fragment("? @> ?", j.meta, ^%{chain_id: chain_id}))
+  end
+
+  defp sequence_query(%Job{meta: %{"backfill_id" => backfill_id}}, :backfill)
+       when is_binary(backfill_id) do
+    where(Job, [j], meta_text(j.meta, "backfill_id") == ^backfill_id)
+  end
+
+  defp sequence_query(_job, _kind), do: nil
+
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))
 
@@ -577,6 +631,22 @@ defmodule Oban.Web.JobQuery do
 
   defp filter({:args, [path, term]}, condition, _conf) do
     dynamic([j], ^condition and fragment("? @> ?", j.args, ^gen_map(path, term)))
+  end
+
+  defp filter({:backfills, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do
+    dynamic([j], ^condition and json_text(j.meta, "backfill_id") in ^ids)
+  end
+
+  defp filter({:backfills, ids}, condition, _conf) do
+    dynamic([j], ^condition and meta_text(j.meta, "backfill_id") in ^ids)
+  end
+
+  defp filter({:chains, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do
+    dynamic([j], ^condition and json_text(j.meta, "chain_id") in ^ids)
+  end
+
+  defp filter({:chains, ids}, condition, _conf) do
+    dynamic([j], ^condition and meta_text(j.meta, "chain_id") in ^ids)
   end
 
   defp filter({:chunks, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do

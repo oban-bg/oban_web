@@ -21,6 +21,7 @@ defmodule WebDev.Generator do
     Oban.Workers.DigestMailer,
     Oban.Workers.EventAggregator,
     Oban.Workers.ExportGenerator,
+    Oban.Workers.LedgerPoster,
     Oban.Workers.MailingListSyncer,
     Oban.Workers.PaymentAuthorizer,
     Oban.Workers.PricingAnalyzer,
@@ -241,6 +242,21 @@ defmodule Oban.Workers.ExportGenerator do
   def enc_key, do: "3qvMCmkaKR3t/6DB8Lg6p8l+nO5V014GFpbUV5HdrkU="
 end
 
+defmodule Oban.Workers.LedgerPoster do
+  @moduledoc false
+
+  use Oban.Pro.Worker, queue: :fulfillment, chain: [by: [args: :account_id]]
+
+  alias WebDev.Generator
+
+  def gen(opts \\ []) do
+    new(%{account_id: Enum.random(1..8), amount: Enum.random(1..500)}, opts)
+  end
+
+  @impl Oban.Pro.Worker
+  def process(_job), do: Generator.random_perform(300, 3_000)
+end
+
 defmodule Oban.Workers.MailingListSyncer do
   @moduledoc false
 
@@ -420,6 +436,29 @@ defmodule Oban.Workers.TranscriptionAnalyzer do
 
   @impl Worker
   def perform(_job), do: Generator.random_perform(1_500, 7_000)
+end
+
+defmodule Oban.Workers.UserPlanBackfill do
+  @moduledoc false
+
+  use Oban.Pro.Backfill, queue: :backfills, limit: 500, throttle: {2, :second}
+
+  @total 12_500
+
+  @impl Oban.Pro.Backfill
+  def backfill(%{value: value, limit: limit} = cursor, _extra) do
+    start = value || 0
+
+    if start >= @total do
+      :halt
+    else
+      Process.sleep(Enum.random(500..3_000))
+
+      count = min(limit, @total - start)
+
+      {:cont, %{cursor | value: start + count}, count}
+    end
+  end
 end
 
 defmodule Oban.Workers.VideoProcessor do
@@ -1033,6 +1072,7 @@ oban_opts = [
   repo: WebDev.Repo,
   queues: [
     analysis: 30,
+    backfills: 1,
     default: 30,
     etl: 10,
     events: 3,
@@ -1066,6 +1106,7 @@ oban_opts = [
     {Oban.Pro.Cron,
      crontab: [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
+       {"*/10 * * * *", Oban.Workers.UserPlanBackfill},
        {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
        {"*/15 * * * *", Oban.Workers.DormantLocker},
        {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},

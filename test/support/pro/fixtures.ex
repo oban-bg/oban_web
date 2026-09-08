@@ -79,6 +79,36 @@ if Code.ensure_loaded?(Oban.Pro) do
       end
     end
 
+    defmodule ChainWorker do
+      @moduledoc false
+
+      use Oban.Pro.Worker, queue: :default, max_attempts: 1, chain: [by: :worker]
+
+      @impl Oban.Pro.Worker
+      def process(%Job{args: %{"result" => "error"}}), do: {:error, "link failed"}
+      def process(_job), do: :ok
+    end
+
+    defmodule BackfillWorker do
+      @moduledoc false
+
+      use Oban.Pro.Backfill, queue: :default, limit: 10
+
+      # Windows advance a counter rather than a table, so no schema is needed to run a backfill.
+      @impl Oban.Pro.Backfill
+      def backfill(%{value: value, limit: limit} = cursor, %{total: total}) do
+        start = value || 0
+
+        if start >= total do
+          :halt
+        else
+          count = min(limit, total - start)
+
+          {:cont, %{cursor | value: start + count}, count}
+        end
+      end
+    end
+
     defmodule WaitingChunkWorker do
       @moduledoc false
 
@@ -112,6 +142,29 @@ if Code.ensure_loaded?(Oban.Pro) do
       Repo.reload!(job)
     end
 
+    # Chains
+
+    def run_chain!(oban, args_list) do
+      changesets = Enum.map(args_list, &ChainWorker.new/1)
+      last_id = last_job_id()
+
+      Testing.run_jobs(changesets, oban: oban, with_summary: false)
+
+      jobs_since(last_id)
+    end
+
+    # Backfills
+
+    # Draining recursively runs each window's successor as it is inserted, so the backfill runs
+    # to completion and the final job is the one that halted.
+    def run_backfill!(oban, total) do
+      last_id = last_job_id()
+
+      Testing.run_jobs([BackfillWorker.new(%{total: total})], oban: oban, with_summary: false)
+
+      jobs_since(last_id)
+    end
+
     # Chunks
 
     def run_chunk!(oban, args_list) do
@@ -121,7 +174,7 @@ if Code.ensure_loaded?(Oban.Pro) do
       # Without staging, jobs the chunk marks retryable stay that way instead of running again.
       Testing.run_chunk(changesets, oban: oban, size: length(changesets), with_scheduled: false)
 
-      chunk_jobs(last_id)
+      jobs_since(last_id)
     end
 
     # The test pid rides along in the args so the executing chunk can report back without a
@@ -135,7 +188,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
       assert_receive {:chunk_running, worker_pid}, 5_000
 
-      {worker_pid, chunk_jobs(last_id)}
+      {worker_pid, jobs_since(last_id)}
     end
 
     def start_waiting_chunk!(oban, args) do
@@ -163,7 +216,7 @@ if Code.ensure_loaded?(Oban.Pro) do
 
     defp last_job_id, do: Repo.aggregate(Job, :max, :id) || 0
 
-    defp chunk_jobs(last_id) do
+    defp jobs_since(last_id) do
       Job
       |> where([j], j.id > ^last_id)
       |> order_by(asc: :id)

@@ -37,6 +37,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:chunk_counts, fn -> %{} end)
       |> assign_new(:chunk_leader, fn -> nil end)
       |> assign_new(:compensating_job, fn -> nil end)
+      |> assign_new(:neighbors, fn -> %{} end)
       |> assign_new(:diagnostics_open?, fn -> false end)
       |> assign_recorded()
       |> assign_form()
@@ -158,7 +159,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="user_group"
             label="Chunk"
           />
-          <Core.status_badge :if={@job.meta["chain"]} id="status-chain" icon="link" label="Chain" />
+          <Core.status_badge :if={chain_id(@job)} id="status-chain" icon="link" label="Chain" />
+          <Core.status_badge
+            :if={backfill_id(@job)}
+            id="status-backfill"
+            icon="circle_stack"
+            label="Backfill"
+          />
           <Core.status_badge
             :if={@job.meta["recorded"]}
             id="status-recorded"
@@ -416,6 +423,28 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 </span>
               </dd>
             </div>
+
+            <.sequence_row
+              :if={@neighbors[:chain]}
+              id="chain"
+              label="Chain"
+              icon="icon-link"
+              neighbors={@neighbors.chain}
+              all_path={oban_path(:jobs, %{state: @job.state, chains: [chain_id(@job)]})}
+              all_title="View the jobs in this chain"
+              confirm_leave={@confirm_leave}
+            />
+
+            <.sequence_row
+              :if={@neighbors[:backfill]}
+              id="backfill"
+              label="Backfill"
+              icon="icon-circle-stack"
+              neighbors={@neighbors.backfill}
+              all_path={oban_path(:jobs, %{state: @job.state, backfills: [backfill_id(@job)]})}
+              all_title="View the windows in this backfill"
+              confirm_leave={@confirm_leave}
+            />
 
             <div :if={@job.meta["workflow_id"]} class="flex flex-col col-span-3 min-w-0">
               <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -922,6 +951,89 @@ defmodule Oban.Web.Jobs.DetailComponent do
     >
       Pro
     </span>
+    """
+  end
+
+  # Chains and backfills run in insertion order, so the row steps to the previous or next job in
+  # the sequence and links to the whole sequence in the jobs list.
+  attr :id, :string, required: true
+  attr :label, :string, required: true
+  attr :icon, :string, required: true
+  attr :neighbors, :map, required: true
+  attr :all_path, :string, required: true
+  attr :all_title, :string, required: true
+  attr :confirm_leave, :any, required: true
+
+  defp sequence_row(assigns) do
+    ~H"""
+    <div class="flex flex-col col-span-3 min-w-0">
+      <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
+        {@label}
+      </dt>
+      <dd
+        id={"#{@id}-links"}
+        class="flex items-center space-x-4 text-base text-gray-800 dark:text-gray-200"
+      >
+        <Icons.icon name={@icon} class="w-4 h-4 shrink-0 text-violet-500" />
+        <.neighbor_link
+          id={"#{@id}-prev-link"}
+          job={@neighbors.prev}
+          label="Prev"
+          title={"View the previous job in this #{String.downcase(@label)}"}
+          confirm_leave={@confirm_leave}
+        />
+        <.neighbor_link
+          id={"#{@id}-next-link"}
+          job={@neighbors.next}
+          label="Next"
+          title={"View the next job in this #{String.downcase(@label)}"}
+          confirm_leave={@confirm_leave}
+        />
+        <.link
+          id={"#{@id}-all-link"}
+          patch={@all_path}
+          data-confirm={@confirm_leave}
+          class="rounded hover:text-blue-500 dark:hover:text-blue-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+          data-title={@all_title}
+          phx-hook="Tippy"
+        >
+          All
+        </.link>
+      </dd>
+    </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :job, :any, required: true
+  attr :label, :string, required: true
+  attr :title, :string, required: true
+  attr :confirm_leave, :any, required: true
+
+  defp neighbor_link(%{job: nil} = assigns) do
+    ~H"""
+    <span id={@id} class="text-gray-400 dark:text-gray-500">{@label}</span>
+    """
+  end
+
+  defp neighbor_link(assigns) do
+    ~H"""
+    <.link
+      id={@id}
+      patch={oban_path([:jobs, @job.id])}
+      data-confirm={@confirm_leave}
+      class="inline-flex items-center rounded hover:text-blue-500 dark:hover:text-blue-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
+      data-title={@title}
+      phx-hook="Tippy"
+    >
+      {@label}
+      <span
+        id={"#{@id}-state"}
+        class={["ml-1.5 w-2 h-2 rounded-full shrink-0", Colors.state_bg_class(@job.state)]}
+        data-title={@job.state}
+        phx-hook="Tippy"
+      />
+    </.link>
     """
   end
 

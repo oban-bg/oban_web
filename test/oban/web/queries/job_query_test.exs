@@ -34,6 +34,8 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       import JobQuery, only: [parse: 1]
 
       test "splitting multiple values" do
+        assert %{backfills: ["0192a", "0192b"]} = parse("backfills:0192a,0192b")
+        assert %{chains: ["aB3d"]} = parse("chains:aB3d")
         assert %{chunks: [123]} = parse("chunks:123")
         assert %{nodes: ["worker-1"]} = parse("nodes:worker-1")
         assert %{queues: ["alpha", "gamma"]} = parse("queues:alpha,gamma")
@@ -278,6 +280,24 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert [] = filter_refs(ids: ~w(12345))
       end
 
+      test "filtering by chain and backfill ids" do
+        insert!(%{ref: 1}, meta: %{chain_id: "chain-a"})
+        insert!(%{ref: 2}, meta: %{chain_id: "chain-a"})
+        insert!(%{ref: 3}, meta: %{chain_id: "chain-b"})
+        insert!(%{ref: 4}, meta: %{backfill_id: "fill-a", count: 0})
+        insert!(%{ref: 5}, meta: %{backfill_id: "fill-a", count: 10})
+        insert!(%{ref: 6}, meta: %{backfill_id: "fill-b", count: 0})
+        insert!(%{ref: 7})
+
+        assert [1, 2] = filter_refs(chains: ~w(chain-a))
+        assert [1, 2, 3] = filter_refs(chains: ~w(chain-a chain-b))
+        assert [] = filter_refs(chains: ~w(chain-c))
+
+        assert [4, 5] = filter_refs(backfills: ~w(fill-a))
+        assert [4, 5, 6] = filter_refs(backfills: ~w(fill-a fill-b))
+        assert [] = filter_refs(backfills: ~w(fill-c))
+      end
+
       test "filtering by node" do
         insert!(%{ref: 1}, attempted_by: ["worker.1", "abc-123"])
         insert!(%{ref: 2}, attempted_by: ["worker.2", "abc-123"])
@@ -418,6 +438,34 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         job = insert!(%{ref: 1}, state: "completed")
 
         assert %{} == JobQuery.chunk_counts(@conf, job)
+      end
+    end
+
+    describe "neighbors/3" do
+      @describetag skip: repo != Oban.Web.Repo
+
+      test "finding the surrounding jobs in a chain or backfill by id" do
+        chain_1 = insert!(%{ref: 1}, meta: %{chain_id: "chain-a"}, state: "completed")
+        insert!(%{ref: 2}, meta: %{chain_id: "chain-b"})
+        chain_3 = insert!(%{ref: 3}, meta: %{chain_id: "chain-a"}, state: "executing")
+        chain_4 = insert!(%{ref: 4}, meta: %{chain_id: "chain-a"})
+        fill_5 = insert!(%{ref: 5}, meta: %{backfill_id: "fill-a", count: 0}, state: "completed")
+        fill_6 = insert!(%{ref: 6}, meta: %{backfill_id: "fill-a", count: 10})
+        plain = insert!(%{ref: 7})
+
+        assert %{prev: %{id: prev_id}, next: %{id: next_id}} =
+                 JobQuery.neighbors(@conf, chain_3, :chain)
+
+        assert {chain_1.id, chain_4.id} == {prev_id, next_id}
+        assert %{prev: nil, next: %{id: ^next_id}} = JobQuery.neighbors(@conf, chain_1, :chain)
+        assert %{prev: %{id: ^next_id}, next: nil} = JobQuery.neighbors(@conf, chain_4, :chain)
+        assert %{prev: nil, next: nil} = JobQuery.neighbors(@conf, chain_1, :backfill)
+
+        assert %{prev: nil, next: %{id: fill_6_id}} = JobQuery.neighbors(@conf, fill_5, :backfill)
+        assert fill_6.id == fill_6_id
+        assert %{prev: %{id: fill_5_id}, next: nil} = JobQuery.neighbors(@conf, fill_6, :backfill)
+        assert fill_5.id == fill_5_id
+        assert %{prev: nil, next: nil} = JobQuery.neighbors(@conf, plain, :chain)
       end
     end
 

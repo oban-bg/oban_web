@@ -342,6 +342,28 @@ defmodule Oban.Web.Helpers do
   def chunk_count(%Job{meta: %{"chunk_count" => count}}) when is_integer(count), do: count
   def chunk_count(_job), do: nil
 
+  # Chain and Backfill Helpers
+
+  @doc """
+  The id of the chain a job belongs to, or nil when it isn't chained.
+
+  Pro puts `chain_id` in meta for both the `chain` worker option and legacy `Workers.Chain`
+  modules, so it identifies a chained job regardless of how the chain was declared.
+  """
+  @spec chain_id(Job.t()) :: String.t() | nil
+  def chain_id(%Job{meta: %{"chain_id" => chain_id}}) when is_binary(chain_id), do: chain_id
+  def chain_id(_job), do: nil
+
+  @doc """
+  The id of the backfill a job is a window of, or nil when it isn't part of a backfill.
+  """
+  @spec backfill_id(Job.t()) :: String.t() | nil
+  def backfill_id(%Job{meta: %{"backfill_id" => backfill_id}}) when is_binary(backfill_id) do
+    backfill_id
+  end
+
+  def backfill_id(_job), do: nil
+
   @doc """
   Format job tags using a delimiter.
   """

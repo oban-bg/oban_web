@@ -155,6 +155,20 @@ defmodule Oban.Web.Jobs.TableComponent do
             <span class="sr-only">{chunk_tooltip(@job)}</span>
           </span>
 
+          <.flag_icon
+            :if={chain_id(@job)}
+            icon="icon-link"
+            id={"job-chain-#{@job.id}"}
+            label="In a chain"
+          />
+
+          <.flag_icon
+            :if={backfill_id(@job)}
+            icon="icon-circle-stack"
+            id={"job-backfill-#{@job.id}"}
+            label="In a backfill"
+          />
+
           <span class="py-1.5 px-2 tabular truncate text-xs rounded-md bg-gray-100 dark:bg-gray-950">
             {@job.queue}
           </span>

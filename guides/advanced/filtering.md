@@ -18,6 +18,10 @@ Qualifiers are used to target a specific `Oban.Job` field. The available qualifi
 | Qualifier     | Description            | Example                 |
 | ------------- | ---------------------- | ----------------------- |
 | `args.`       | a key or value in args | `args.id:123`           |
+| `backfills:`  | backfill id            | `backfills:0192a1b2-…`  |
+| `chains:`     | chain id               | `chains:aB3d…`          |
+| `chunks:`     | chunk leader job id    | `chunks:123`            |
+| `ids:`        | one or more job ids    | `ids:1,2,3`             |
 | `meta.`       | a key or value in meta | `meta.batch_id:123`     |
 | `nodes:`      | host name              | `nodes:worker@somehost` |
 | `priorities:` | number from 0 to 9     | `priorities:1`          |

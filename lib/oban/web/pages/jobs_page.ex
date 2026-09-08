@@ -77,6 +77,7 @@ defmodule Oban.Web.JobsPage do
               chunk_counts={@chunk_counts}
               chunk_leader={@chunk_leader}
               compensating_job={@compensating_job}
+              neighbors={@neighbors}
               job={@detailed}
               module={DetailComponent}
               os_time={@os_time}
@@ -265,7 +266,7 @@ defmodule Oban.Web.JobsPage do
 
   @keep_on_mount ~w(
     chunk_counts chunk_leader compensating_job default_params
-    detailed jobs nodes params queues selected states
+    detailed jobs neighbors nodes params queues selected states
   )a
 
   @impl Page
@@ -286,6 +287,7 @@ defmodule Oban.Web.JobsPage do
     |> assign_new(:diagnostics_at, fn -> nil end)
     |> assign_new(:history, fn -> [] end)
     |> assign_new(:jobs, fn -> [] end)
+    |> assign_new(:neighbors, fn -> %{} end)
     |> assign_new(:nodes, fn -> [] end)
     |> assign_new(:os_time, fn -> System.os_time(:millisecond) end)
     |> assign_new(:params, default)
@@ -340,6 +342,7 @@ defmodule Oban.Web.JobsPage do
       diagnostics_at: diagnostics_at,
       history: history,
       jobs: jobs,
+      neighbors: neighbors(conf, detailed),
       nodes: nodes(conf),
       os_time: System.os_time(:millisecond),
       queues: queues(conf, socket.assigns.queues),
@@ -377,6 +380,7 @@ defmodule Oban.Web.JobsPage do
          |> assign(chunk_counts: chunk_counts(conf, job, socket))
          |> assign(chunk_leader: chunk_leader(conf, job))
          |> assign(compensating_job: compensating_job(conf, job))
+         |> assign(neighbors: neighbors(conf, job))
          |> assign(diagnostics: nil, diagnostics_at: nil)
          |> assign(history: history)
          |> assign(params: params)}
@@ -741,6 +745,16 @@ defmodule Oban.Web.JobsPage do
 
   defp compensating_job(_conf, _job), do: nil
 
+  defp neighbors(conf, %Oban.Job{} = job) do
+    for {kind, id_fun} <- [chain: &chain_id/1, backfill: &backfill_id/1],
+        is_binary(id_fun.(job)),
+        into: %{} do
+      {kind, JobQuery.neighbors(conf, job, kind)}
+    end
+  end
+
+  defp neighbors(_conf, _job), do: %{}
+
   defp chunk_leader(conf, %Oban.Job{} = job) do
     case chunk_leader_id(job) do
       nil -> nil
@@ -750,9 +764,6 @@ defmodule Oban.Web.JobsPage do
 
   defp chunk_leader(_conf, _job), do: nil
 
-  # Members of a running chunk are all executing, so their count comes straight from the
-  # leader's meta. Counting a finished chunk's members scans the leader's partition, so those
-  # counts refresh when the leader changes state rather than on every tick.
   defp chunk_counts(conf, %Oban.Job{} = job, socket) do
     %{chunk_counts: previous_counts, detailed: previous} = socket.assigns
 

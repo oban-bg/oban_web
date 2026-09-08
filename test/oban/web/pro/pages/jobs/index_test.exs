@@ -36,6 +36,17 @@ if Code.ensure_loaded?(Oban.Pro) do
       finish_chunk(worker_pid)
     end
 
+    test "flagging chained jobs and backfill windows", %{live: live, oban: oban} do
+      [chained | _rest] = run_chain!(oban, [%{ref: 1}, %{ref: 2}])
+      [_first, second | _rest] = run_backfill!(oban, 25)
+
+      click_state(live, "completed")
+
+      assert has_element?(live, "#job-chain-#{chained.id}[data-title='In a chain']")
+      assert has_element?(live, "#job-backfill-#{second.id}[data-title='In a backfill']")
+      refute has_element?(live, "#job-backfill-#{chained.id}")
+    end
+
     defp click_state(live, state) do
       live
       |> element("#sidebar #states #filter-#{state}")

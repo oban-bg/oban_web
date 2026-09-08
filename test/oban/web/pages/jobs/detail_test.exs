@@ -72,13 +72,15 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     end)
   end
 
-  test "omitting chunk rows for ordinary jobs" do
+  test "omitting chunk, chain, and backfill rows for ordinary jobs" do
     job = insert_job!([ref: 1], state: "completed", worker: WorkerA, attempted_by: ~w(web-1 a))
 
     live = open_job(job)
 
     refute has_element?(live, "#chunk-members")
     refute has_element?(live, "#chunk-leader-link")
+    refute has_element?(live, "#chain-links")
+    refute has_element?(live, "#backfill-links")
   end
 
   test "omitting compensation links for ordinary jobs" do
