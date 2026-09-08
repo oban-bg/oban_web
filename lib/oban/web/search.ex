@@ -176,7 +176,7 @@ defmodule Oban.Web.Search do
   # Parsing
 
   defp parse_term(term, qualifiers) do
-    Enum.find_value(qualifiers, {:none, ""}, fn {name, spec} ->
+    Enum.find_value(qualifiers, default_term(term, qualifiers), fn {name, spec} ->
       cond do
         path?(spec) and String.starts_with?(term, "#{name}.") ->
           {name, parse_path(String.replace_prefix(term, "#{name}.", ""))}
@@ -191,6 +191,15 @@ defmodule Oban.Web.Search do
           nil
       end
     end)
+  end
+
+  # A bare term belongs to the qualifier a page marks as its default, so typing a name filters
+  # rather than vanishing without a trace.
+  defp default_term(term, qualifiers) do
+    case Enum.find(qualifiers, fn {_name, spec} -> Keyword.get(spec, :default, false) end) do
+      {name, spec} -> {name, parse_value(term, spec)}
+      nil -> {:none, ""}
+    end
   end
 
   defp parse_path(rest) do

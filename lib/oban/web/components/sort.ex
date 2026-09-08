@@ -81,6 +81,8 @@ defmodule Oban.Web.SortComponent do
 
   # Sort keys are abbreviated in the URL, but the menu spells them out the way the columns do.
   defp label("avail"), do: "Available"
+  defp label("sched"), do: "Scheduled"
+  defp label("retry"), do: "Retryable"
   defp label("exec"), do: "Executing"
   defp label("local"), do: "Local limit"
   defp label("global"), do: "Global limit"

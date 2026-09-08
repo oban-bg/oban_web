@@ -1,24 +1,33 @@
 defmodule Oban.Web.Queues.TableComponent do
   use Oban.Web, :live_component
 
-  import Oban.Web.Helpers, only: [integer_to_estimate: 1, oban_path: 1]
+  import Oban.Web.Helpers,
+    only: [integer_to_delimited: 1, integer_to_estimate: 1, oban_path: 1, oban_path: 2]
+
   import Oban.Web.Helpers.QueueHelper
 
+  alias Oban.Web.{Colors, Queue}
   alias Oban.Web.Components.Core
-  alias Oban.Web.Queue
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
     ~H"""
     <div id="queues-table" class="min-w-full">
       <Core.table_header>
-        <Core.column_header label="name" class="ml-12 pl-4 w-1/4 text-left" />
-        <div class="ml-auto flex items-center space-x-6">
-          <Core.column_header label="utilization" class="w-56 pl-4 text-center" />
-          <Core.column_header label="history" class="w-80 pl-4 text-center" />
-          <Core.column_header label="pending" class="w-42 pl-4 text-center" />
-          <Core.column_header label="nodes" class="w-20 pl-4 text-center" />
-          <Core.column_header label="status" class="w-20 pl-4 pr-3 text-right" />
+        <div class="w-16 shrink-0" aria-hidden="true"></div>
+        <div class="flex flex-grow items-center min-w-0">
+          <Core.column_header label="name" class="flex-1" />
+          <div class="ml-auto flex items-center space-x-6">
+            <Core.column_header label="utilization" class="w-56" />
+            <Core.column_header label="history" class="hidden xl:block w-80 text-center" />
+          </div>
+        </div>
+        <div class="ml-6 pr-3 flex items-center space-x-6">
+          <Core.column_header label="available" class="w-20 text-right" />
+          <Core.column_header label="scheduled" class="w-20 text-right" />
+          <Core.column_header label="retryable" class="w-20 text-right" />
+          <Core.column_header label="nodes" class="w-14 text-center" />
+          <Core.column_header label="status" class="w-16 text-right" />
         </div>
       </Core.table_header>
 
@@ -67,6 +76,9 @@ defmodule Oban.Web.Queues.TableComponent do
   attr :selected, :boolean, default: false
   attr :total_limit, :integer, required: true
 
+  # The row link covers the name, utilization, and history. The counts sit outside it so each
+  # can be its own link into the jobs list, since anchors can't nest. History is the one column
+  # that gives way on narrower desktops, so the name never collapses under the fixed columns.
   defp queue_row(assigns) do
     ~H"""
     <li
@@ -83,9 +95,9 @@ defmodule Oban.Web.Queues.TableComponent do
 
       <.link
         patch={oban_path([:queues, @queue.name])}
-        class="py-5 flex flex-grow items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
+        class="py-5 flex flex-grow items-center min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
       >
-        <div rel="name" class="w-1/4 font-semibold text-gray-700 dark:text-gray-300">
+        <div rel="name" class="flex-1 min-w-0 truncate font-semibold text-gray-700 dark:text-gray-300">
           {@queue.name}
         </div>
 
@@ -101,9 +113,12 @@ defmodule Oban.Web.Queues.TableComponent do
               <div class="w-28 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div class="h-full rounded-full bg-emerald-400" style={"width: #{percent}%"} />
               </div>
-              <span class="w-14 text-left tabular pl-2">{exec}/{limit}</span>
+              <span class="w-14 text-right tabular pl-2">
+                <span aria-hidden="true">{exec}/{limit}</span>
+                <span class="sr-only">{exec} of {limit} executing</span>
+              </span>
             </span>
-            <div class="w-14 flex items-center justify-start space-x-1 text-gray-400 dark:text-gray-500">
+            <div class="w-14 pl-2 flex items-center justify-start space-x-1 text-gray-500 dark:text-gray-400">
               <.limit_icon
                 :if={Queue.global_limit?(@queue)}
                 icon="icon-globe"
@@ -125,93 +140,85 @@ defmodule Oban.Web.Queues.TableComponent do
             </div>
           </div>
 
-          <div class="w-80 flex justify-center">
+          <div class="hidden xl:flex w-80 justify-center">
             <Core.sparkline
               id={"sparkline-#{@queue.name}"}
               history={@history}
+              label={history_label(@history, @total_limit)}
               max_value={@total_limit}
-            />
-          </div>
-
-          <div
-            rel="pending"
-            class="w-42 flex items-center justify-end tabular text-gray-500 dark:text-gray-300"
-          >
-            <.pending_count
-              id={"#{@queue.name}-avail"}
-              count={@queue.counts.available}
-              dot_class="bg-blue-400"
-              label="Available"
-            />
-            <.pending_count
-              id={"#{@queue.name}-sched"}
-              count={@queue.counts.scheduled}
-              dot_class="bg-indigo-400"
-              label="Scheduled"
-            />
-            <.pending_count
-              id={"#{@queue.name}-retry"}
-              count={@queue.counts.retryable}
-              dot_class="bg-yellow-400"
-              label="Retryable"
-            />
-          </div>
-
-          <span rel="nodes" class="w-14 text-center text-gray-500 dark:text-gray-300">
-            {length(@queue.checks)}
-          </span>
-
-          <div class="w-20 pr-3 flex justify-center items-center space-x-1">
-            <.status_icon
-              :if={Queue.all_paused?(@queue)}
-              icon="icon-pause-circle"
-              id={"#{@queue.name}-is-paused"}
-              label="All paused"
-              rel="is-paused"
-            />
-            <.status_icon
-              :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
-              icon="icon-play-pause-circle"
-              id={"#{@queue.name}-is-some-paused"}
-              label="Some paused"
-              rel="has-some-paused"
-            />
-            <.status_icon
-              :if={Queue.terminating?(@queue)}
-              icon="icon-power"
-              id={"#{@queue.name}-is-terminating"}
-              label="Terminating"
-              rel="terminating"
             />
           </div>
         </div>
       </.link>
+
+      <div class="ml-6 pr-3 flex items-center space-x-6 tabular text-gray-500 dark:text-gray-300">
+        <.state_count
+          :for={{state, count} <- state_counts(@queue.counts)}
+          id={"#{@queue.name}-#{state}"}
+          count={count}
+          queue={@queue.name}
+          state={state}
+        />
+
+        <span rel="nodes" class="w-14 text-center">
+          {length(@queue.checks)}
+          <span class="sr-only">nodes</span>
+        </span>
+
+        <div class="w-16 flex justify-end items-center space-x-1">
+          <.status_icon
+            :if={Queue.all_paused?(@queue)}
+            icon="icon-pause-circle"
+            id={"#{@queue.name}-is-paused"}
+            label="All paused"
+            rel="is-paused"
+          />
+          <.status_icon
+            :if={Queue.any_paused?(@queue) and not Queue.all_paused?(@queue)}
+            icon="icon-play-pause-circle"
+            id={"#{@queue.name}-is-some-paused"}
+            label="Some paused"
+            rel="has-some-paused"
+          />
+          <.status_icon
+            :if={Queue.terminating?(@queue)}
+            icon="icon-power"
+            id={"#{@queue.name}-is-terminating"}
+            label="Terminating"
+            rel="terminating"
+          />
+        </div>
+      </div>
     </li>
     """
   end
 
   attr :id, :string, required: true
   attr :count, :integer, required: true
-  attr :dot_class, :string, required: true
-  attr :label, :string, required: true
+  attr :queue, :string, required: true
+  attr :state, :string, required: true
 
-  # An empty bucket keeps its slot but drops to gray, so only queues with waiting jobs draw
-  # the eye and the dot color carries the same state meaning as everywhere else.
-  defp pending_count(assigns) do
+  # Each count reads the way a sidebar row does: a dot in the state's hue that dims at zero, then
+  # a gray number that fades with it. The header names the state, so the dot never asks for
+  # recall, and every count drills into the jobs it counts.
+  defp state_count(assigns) do
     ~H"""
-    <span
-      class="w-14 flex items-center space-x-1.5"
-      data-title={@label}
+    <.link
       id={@id}
+      navigate={oban_path(:jobs, %{queues: @queue, state: @state})}
+      data-title={"#{integer_to_delimited(@count)} #{@state}"}
       phx-hook="Tippy"
+      class={[
+        "w-20 px-1 py-0.5 -my-0.5 rounded-sm flex items-center justify-end space-x-1.5",
+        "hover:bg-gray-100 dark:hover:bg-gray-800",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
+        if(@count == 0, do: "text-gray-400 dark:text-gray-600")
+      ]}
     >
-      <span class="flex-1 text-right">{integer_to_estimate(@count)}</span>
-      <span class="sr-only">{@label}</span>
-      <span class={[
-        "w-2 h-2 rounded-full",
-        if(@count > 0, do: @dot_class, else: "bg-gray-300 dark:bg-gray-600")
-      ]} />
-    </span>
+      <span aria-hidden="true" class={["w-2 h-2 rounded-full", dot_class(@state, @count)]} />
+      <span>{integer_to_estimate(@count)}</span>
+      <span class="sr-only">{@state}</span>
+    </.link>
     """
   end
 
@@ -233,9 +240,15 @@ defmodule Oban.Web.Queues.TableComponent do
   attr :label, :string, required: true
   attr :rel, :string, required: true
 
+  # Pauses and shutdowns are warnings, so they take the sidebar's amber rather than body ink.
   defp status_icon(assigns) do
     ~H"""
-    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
+    <span
+      class="flex items-center text-amber-500 dark:text-amber-400"
+      data-title={@label}
+      id={@id}
+      phx-hook="Tippy"
+    >
       <Icons.icon name={@icon} class="w-5 h-5" rel={@rel} />
       <span class="sr-only">{@label}</span>
     </span>
@@ -259,4 +272,24 @@ defmodule Oban.Web.Queues.TableComponent do
     percent = if limit > 0, do: min(round(exec / limit * 100), 100), else: 0
     {exec, limit, percent}
   end
+
+  # The trace is pointer-only, so its accessible name carries the number a reader would hover for.
+  defp history_label(history, limit) do
+    peak =
+      history
+      |> Map.values()
+      |> Enum.map(& &1.count)
+      |> Enum.max(fn -> 0 end)
+
+    "Recent activity, peak #{peak} of #{limit} executing"
+  end
+
+  defp state_counts(counts) do
+    for state <- ~w(available scheduled retryable)a do
+      {Atom.to_string(state), Map.fetch!(counts, state)}
+    end
+  end
+
+  defp dot_class(state, count) when count > 0, do: Colors.state_bg_class(state)
+  defp dot_class(_state, _count), do: "bg-gray-300 dark:bg-gray-600"
 end

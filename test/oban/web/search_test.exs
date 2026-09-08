@@ -3,6 +3,21 @@ defmodule Oban.Web.SearchTest do
 
   alias Oban.Web.Search
 
+  describe "parse/2" do
+    import Search, only: [parse: 2]
+
+    @qualifiers [names: [default: true], nodes: []]
+
+    test "sending bare terms to the default qualifier" do
+      assert %{names: ["mail"]} == parse("mail", @qualifiers)
+      assert %{names: ["mail"], nodes: ["web.1"]} == parse("mail nodes:web.1", @qualifiers)
+    end
+
+    test "dropping bare terms without a default qualifier" do
+      assert %{none: ""} == parse("mail", nodes: [])
+    end
+  end
+
   describe "append/2" do
     import Search, only: [append: 3]
 

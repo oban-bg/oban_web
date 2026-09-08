@@ -3,6 +3,8 @@ defmodule Oban.Web.QueueQuery do
 
   use Oban.Web.Queryable
 
+  import Oban.Web.Helpers.QueueHelper, only: [executing_count: 1]
+
   alias Oban.Met
   alias Oban.Web.Queue
 
@@ -21,6 +23,12 @@ defmodule Oban.Web.QueueQuery do
   @impl Queryable
   def qualifiers do
     [
+      names: [
+        default: true,
+        desc: "queue name or prefix",
+        example: "names:mailers",
+        suggest: &suggest_names/2
+      ],
       modes: [
         desc: "a concurrency mode such as global",
         example: "modes:global_limit",
@@ -37,6 +45,12 @@ defmodule Oban.Web.QueueQuery do
         suggest: @suggest_stat
       ]
     ]
+  end
+
+  defp suggest_names(frag, conf) do
+    conf.name
+    |> Met.labels("queue")
+    |> Search.restrict_suggestions(frag)
   end
 
   defp suggest_nodes(frag, conf) do
@@ -66,6 +80,10 @@ defmodule Oban.Web.QueueQuery do
   # Filtering
 
   @impl Queryable
+  def filter(%{name: name}, {:names, names}) do
+    Enum.any?(names, &String.starts_with?(name, &1))
+  end
+
   def filter(%{checks: checks}, {:nodes, nodes}) do
     Enum.any?(checks, &(&1["node"] in nodes))
   end
@@ -87,12 +105,13 @@ defmodule Oban.Web.QueueQuery do
   # Sorting
 
   @impl Queryable
-  def order(%{counts: counts}, :avail) do
-    Map.get(counts, "available", 0)
-  end
+  def order(%{counts: counts}, :avail), do: Map.get(counts, :available, 0)
+  def order(%{counts: counts}, :sched), do: Map.get(counts, :scheduled, 0)
+  def order(%{counts: counts}, :retry), do: Map.get(counts, :retryable, 0)
 
-  def order(%{counts: counts}, :exec) do
-    Map.get(counts, "executing", 0)
+  # Executing sorts by the same running jobs the utilization column shows, not the gauge.
+  def order(%{checks: checks}, :exec) do
+    executing_count(checks)
   end
 
   def order(queue, :local) do

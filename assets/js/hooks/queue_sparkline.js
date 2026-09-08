@@ -1,13 +1,17 @@
 import tippy, { followCursor, roundArrow } from "tippy.js"
-import { CYAN } from "../lib/colors"
+
+// The tooltip box inverts against the page, so its copy takes classes that flip with the surface
+// instead of hex values tuned for one theme. Cyan matches the bars and steps to 700 on the light
+// box, where 400 would wash out.
+const COUNT_CLASS = "font-semibold text-cyan-400 dark:text-cyan-700"
+const LABEL_CLASS = "text-gray-400 dark:text-gray-600"
 
 const formatTime = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleString("en-US", {
-    hour: "numeric",
+  return new Date(timestamp).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: true,
+    hour12: false,
   })
 }
 
@@ -69,9 +73,9 @@ const QueueSparkline = {
         const point = this.data[slot]
         const countLabel = point.count === 1 ? "job" : "jobs"
         const content = `
-          <span style="color: ${CYAN}; font-weight: 600;">${point.count}</span>
-          <span style="color: #9ca3af;"> ${countLabel}</span>
-          <span style="color: #9ca3af; margin-left: 4px;">${formatTime(point.timestamp)}</span>
+          <span class="${COUNT_CLASS}">${point.count}</span>
+          <span class="${LABEL_CLASS}">${countLabel}</span>
+          <span class="${LABEL_CLASS} ml-1">${formatTime(point.timestamp)}</span>
         `
         this.tippy.setContent(content)
         this.tippy.show()

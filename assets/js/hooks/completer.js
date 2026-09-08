@@ -39,6 +39,14 @@ const Completer = {
     }
   },
 
+  // Blur can't close the listbox because a click on an option blurs first, but a keyboard exit
+  // never lands on an option, so it closes immediately instead of leaving the list over the rows.
+  close() {
+    const suggest = this.el.querySelector("#search-suggest")
+
+    this.liveSocket.execJS(suggest, suggest.getAttribute("phx-click-away"), "click")
+  },
+
   keydown(event) {
     const options = this.options()
     const active = this.el.querySelector("#search-options [aria-selected=true]")
@@ -46,7 +54,10 @@ const Completer = {
 
     switch (event.key) {
       case "Tab":
-        if (event.shiftKey || this.input.value.trim() === "" || options.length === 0) return
+        if (event.shiftKey || this.input.value.trim() === "" || options.length === 0) {
+          this.close()
+          return
+        }
 
         event.preventDefault()
         this.pushEventTo("#search", "complete", {})
@@ -75,15 +86,10 @@ const Completer = {
         active.click()
         break
 
-      case "Escape": {
+      case "Escape":
         this.input.blur()
-
-        const node = this.el.querySelector("#search-suggest")
-        const exec = node.getAttribute("phx-click-away")
-
-        this.liveSocket.execJS(node, exec, "click")
+        this.close()
         break
-      }
     }
   },
 }

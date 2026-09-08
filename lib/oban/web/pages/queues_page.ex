@@ -38,7 +38,7 @@ defmodule Oban.Web.QueuesPage do
               <div class="flex-none flex items-center pr-12">
                 <Core.all_checkbox
                   click="toggle-select-all"
-                  checked={select_mode(@checks, @selected)}
+                  checked={select_mode(@queues, @selected)}
                   myself={@myself}
                 />
 
@@ -104,7 +104,7 @@ defmodule Oban.Web.QueuesPage do
                 <SortComponent.select
                   :if={Enum.empty?(@selected)}
                   id="queues-sort"
-                  by={~w(name nodes avail exec local global rate_limit started)}
+                  by={~w(name nodes avail sched retry exec local global rate_limit started)}
                   defaults={@default_params}
                   page={:queues}
                   params={@params}
@@ -236,23 +236,27 @@ defmodule Oban.Web.QueuesPage do
   end
 
   defp stop_confirm(selected) do
-    queues =
-      case Enum.sort(selected) do
-        [name] -> "the #{name} queue"
-        names when length(names) <= 3 -> "the #{Enum.join(names, ", ")} queues"
-        names -> "#{length(names)} queues"
-      end
-
-    "Stop #{queues} on every node? Stopped queues can't be restarted from the dashboard."
+    "Stop #{queues_phrase(selected)} on every node? " <>
+      "Stopped queues can't be restarted from the dashboard."
   end
 
-  defp select_mode(checks, selected) do
-    total = checks |> Enum.uniq_by(&Map.get(&1, "queue")) |> Enum.count()
+  defp queues_phrase(selected) do
+    case Enum.sort(selected) do
+      [name] -> "the #{name} queue"
+      names when length(names) <= 3 -> "the #{Enum.join(names, ", ")} queues"
+      names -> "#{length(names)} queues"
+    end
+  end
+
+  # The header checkbox reflects the listed queues, so with a filter active it can still clear
+  # everything it selected.
+  defp select_mode(queues, selected) do
+    names = MapSet.new(queues, & &1.name)
 
     cond do
-      Enum.any?(selected) and Enum.count(selected) == total -> :all
-      Enum.any?(selected) -> :some
-      true -> :none
+      Enum.empty?(selected) -> :none
+      MapSet.subset?(names, selected) -> :all
+      true -> :some
     end
   end
 
@@ -396,7 +400,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> put_flash_with_clear(:info, "Selected queues paused")
+      |> put_flash_with_clear(:info, "Paused #{queues_phrase(queues)} on every node")
 
     {:noreply, socket}
   end
@@ -413,7 +417,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> put_flash_with_clear(:info, "Selected queues resumed")
+      |> put_flash_with_clear(:info, "Resumed #{queues_phrase(queues)} on every node")
 
     {:noreply, socket}
   end
@@ -430,7 +434,7 @@ defmodule Oban.Web.QueuesPage do
     socket =
       socket
       |> assign(:selected, MapSet.new())
-      |> put_flash_with_clear(:info, "Selected queues stopped")
+      |> put_flash_with_clear(:info, "Stopped #{queues_phrase(queues)} on every node")
 
     {:noreply, socket}
   end
@@ -497,15 +501,13 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_info(:toggle_select_all, socket) do
-    %{checks: checks, conf: conf, params: params, selected: selected} = socket.assigns
+    %{queues: queues, selected: selected} = socket.assigns
 
     selected =
-      if select_mode(checks, selected) == :all do
+      if select_mode(queues, selected) == :all do
         MapSet.new()
       else
-        params
-        |> QueueQuery.all_queues(conf)
-        |> MapSet.new(& &1.name)
+        MapSet.new(queues, & &1.name)
       end
 
     {:noreply, assign(socket, selected: selected)}
