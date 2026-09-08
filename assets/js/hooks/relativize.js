@@ -4,7 +4,13 @@ function pad(number) {
   return number < 10 ? `0${number}` : number
 }
 
+function missing(timestamp) {
+  return timestamp == null || timestamp === "" || !Number.isFinite(Number(timestamp))
+}
+
 function toDuration(timestamp) {
+  if (missing(timestamp)) return "-"
+
   const ellapsed = Math.floor(Math.abs(Date.now() - timestamp) / 1000)
   const seconds = ellapsed % 60
   const minutes = Math.floor((ellapsed % 3600) / 60)
@@ -19,7 +25,7 @@ function toDuration(timestamp) {
 }
 
 function toWords(timestamp) {
-  if (timestamp === "") return "-"
+  if (missing(timestamp)) return "-"
 
   const ellapsed = Date.now() - timestamp
   const relative = Math.floor(Math.abs(ellapsed) / 1000)

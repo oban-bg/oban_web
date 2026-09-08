@@ -160,6 +160,7 @@ defmodule Oban.Web.SidebarComponents do
   attr :active, :boolean, default: false
   attr :exclusive, :boolean, default: false
   attr :state, :string, default: nil
+  attr :tooltip, :string, default: nil
   slot :statuses
   slot :leading
 
@@ -221,9 +222,11 @@ defmodule Oban.Web.SidebarComponents do
         ]}
         id={"filter-#{@name}"}
         aria-pressed={to_string(@active)}
+        data-title={@tooltip}
         phx-click={JS.patch(@patch, replace: true)}
+        phx-hook={if @tooltip, do: "Tippy"}
       >
-        <.row_name name={@name} active={@active} />
+        <.row_name name={@name} active={@active} title={is_nil(@tooltip)} />
 
         <div class="flex-none flex items-center gap-1.5">
           <div
@@ -253,11 +256,12 @@ defmodule Oban.Web.SidebarComponents do
 
   attr :name, :string, required: true
   attr :active, :boolean, required: true
+  attr :title, :boolean, default: true
 
   defp row_name(assigns) do
     ~H"""
     <span
-      title={@name}
+      title={@title && @name}
       class={[
         "min-w-0 text-sm text-gray-700 dark:text-gray-300 text-left font-medium truncate",
         if(@active, do: "font-semibold")
@@ -288,6 +292,7 @@ defmodule Oban.Web.SidebarComponents do
     Colors.state_bg_class(state)
   end
 
+  defp dot_class(state, nil) when is_binary(state), do: Colors.state_bg_class(state)
   defp dot_class(_state, _value), do: "bg-gray-300 dark:bg-gray-600"
 
   defp value_class(value) when is_integer(value) and value > 0 do

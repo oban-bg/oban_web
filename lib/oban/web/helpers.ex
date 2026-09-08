@@ -172,6 +172,14 @@ defmodule Oban.Web.Helpers do
     |> Map.new()
   end
 
+  @doc """
+  Add the archive flag to jobs list params when the current view is the archive.
+
+  Links between archived jobs, and from a job to its related jobs, stay in the archive.
+  """
+  def list_params(params, true), do: Map.put(params, :archive, "true")
+  def list_params(params, _archive?), do: params
+
   @scope_only_params ~w(limit sort_by sort_dir)a
 
   @doc """

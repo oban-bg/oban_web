@@ -48,6 +48,9 @@ defmodule Oban.Web.JobQuery do
 
   @states Map.new(Oban.Job.states(), &{to_string(&1), &1})
 
+  @archive {"oban_jobs_archive", Job}
+  @archive_states ~w(cancelled discarded completed)
+
   @history_limit 60
 
   defmacrop json_table(field) do
@@ -199,8 +202,35 @@ defmodule Oban.Web.JobQuery do
         example: "workers:MyApp.SomeWorker",
         suggest: &suggest_workers/3
       ],
-      state: [hidden: true, parse: :string]
+      state: [hidden: true, parse: :string],
+      archive: [hidden: true, parse: :string]
     ]
+  end
+
+  # Sources
+
+  @doc """
+  Whether params select the archive table rather than live jobs.
+  """
+  def archived?(%{archive: "true"}), do: true
+  def archived?(_params), do: false
+
+  @doc """
+  The states a job may have in the archive, in sidebar order.
+  """
+  def archive_states, do: @archive_states
+
+  defp source(opts) do
+    if Keyword.get(opts, :archive, false), do: @archive, else: Job
+  end
+
+  defp with_source(opts, params), do: Keyword.put(opts, :archive, archived?(params))
+
+  # Suggestions come from whichever table the page is showing, so hints match the visible jobs.
+  def suggest(terms, conf, opts) do
+    opts = with_source(opts, Keyword.get(opts, :params, %{}))
+
+    Search.suggest(terms, qualifiers(), conf, opts)
   end
 
   defp suggest_args_keys(path, conf, opts), do: suggest_json_path(:args, path, conf, opts)
@@ -269,7 +299,7 @@ defmodule Oban.Web.JobQuery do
       end
 
     {field, :keys, path}
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Kernel.--(~w(return: storage: size: safe_decode:))
     |> Search.restrict_suggestions(frag)
   end
@@ -306,7 +336,7 @@ defmodule Oban.Web.JobQuery do
       end
 
     {field, :vals, path}
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Enum.map(&String.slice(to_string(&1), 0..90))
     |> Search.restrict_suggestions(frag)
   end
@@ -326,7 +356,7 @@ defmodule Oban.Web.JobQuery do
       end
 
     :nodes
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Search.restrict_suggestions(frag)
   end
 
@@ -338,7 +368,7 @@ defmodule Oban.Web.JobQuery do
       |> distinct(true)
 
     :queues
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Search.restrict_suggestions(frag)
   end
 
@@ -363,7 +393,7 @@ defmodule Oban.Web.JobQuery do
       |> distinct(true)
 
     :tags
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Search.restrict_suggestions(frag)
   end
 
@@ -375,11 +405,13 @@ defmodule Oban.Web.JobQuery do
       |> distinct(true)
 
     :workers
-    |> cache_query(query, conf)
+    |> cache_query(query, conf, opts)
     |> Search.restrict_suggestions(frag)
   end
 
-  defp cache_query(key, query, conf) do
+  defp cache_query(key, query, conf, opts) do
+    key = if Keyword.get(opts, :archive, false), do: {:archive, key}, else: key
+
     Cache.fetch(key, fn -> Repo.all(conf, query) end)
   end
 
@@ -388,6 +420,7 @@ defmodule Oban.Web.JobQuery do
   def all_jobs(params, conf, opts \\ []) do
     params = params_with_defaults(params)
     conditions = conditions(params, conf)
+    opts = with_source(opts, params)
 
     query =
       params.state
@@ -404,6 +437,7 @@ defmodule Oban.Web.JobQuery do
     params = params_with_defaults(params)
     conditions = conditions(params, conf)
     limit = bulk_action_limit(params.state, opts)
+    opts = with_source(opts, params)
 
     query =
       params.state
@@ -461,25 +495,30 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp limit_query(value, fun, opts, conf) do
+    source = source(opts)
+
     case Resolver.call_with_fallback(opts[:resolver], fun, [value]) do
       :infinity ->
-        Job
+        source
 
       limit ->
         last_id =
-          Job
+          source
           |> select([j], type(subtract_unsigned(j.id, ^limit), :integer))
           |> order_by(desc: :id)
           |> limit(1)
           |> then(&Repo.one(conf, &1))
 
-        where(Job, [j], j.id >= ^(last_id || 0))
+        where(source, [j], j.id >= ^(last_id || 0))
     end
   end
 
-  def refresh_job(%Config{} = conf, %Job{id: job_id} = job) do
+  def refresh_job(conf, job, opts \\ [])
+
+  def refresh_job(%Config{} = conf, %Job{id: job_id} = job, opts) do
     query =
-      Job
+      opts
+      |> source()
       |> where(id: ^job_id)
       |> select([j], map(j, ^@refresh_fields))
 
@@ -492,19 +531,20 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  def refresh_job(%Config{} = conf, job_id) when is_binary(job_id) or is_integer(job_id) do
-    Repo.get(conf, Job, job_id)
+  def refresh_job(%Config{} = conf, job_id, opts) when is_binary(job_id) or is_integer(job_id) do
+    Repo.get(conf, source(opts), job_id)
   end
 
-  def refresh_job(_conf, nil), do: nil
+  def refresh_job(_conf, nil, _opts), do: nil
 
   @history_states ~w(executing completed cancelled discarded)
 
-  def job_history(job, conf, _opts \\ []) do
+  def job_history(job, conf, opts \\ []) do
     worker = Map.get(job.meta, "worker", job.worker)
 
     query =
-      Job
+      opts
+      |> source()
       |> where([j], j.worker == ^worker)
       |> where([j], j.id <= ^job.id)
       |> where([j], j.state in @history_states)
@@ -531,11 +571,14 @@ defmodule Oban.Web.JobQuery do
   Members share the leader's partition `chunk_id`, which narrows the scan to the partition
   through the meta index before matching the `chunk-<id>` marker in `attempted_by`.
   """
-  def chunk_counts(conf, _job) when is_mysql(conf) or is_sqlite(conf), do: %{}
+  def chunk_counts(conf, job, opts \\ [])
 
-  def chunk_counts(%Config{} = conf, %Job{id: id, meta: %{"chunk_id" => chunk_id}} = job) do
+  def chunk_counts(conf, _job, _opts) when is_mysql(conf) or is_sqlite(conf), do: %{}
+
+  def chunk_counts(%Config{} = conf, %Job{id: id, meta: %{"chunk_id" => chunk_id}} = job, opts) do
     query =
-      Job
+      opts
+      |> source()
       |> where([j], fragment("? @> ?", j.meta, ^%{chunk_id: chunk_id}))
       |> where([j], fragment("? @> ?", j.attempted_by, ^["chunk-#{id}"]))
       |> group_by([j], j.state)
@@ -547,7 +590,7 @@ defmodule Oban.Web.JobQuery do
     |> Map.update(job.state, 1, &(&1 + 1))
   end
 
-  def chunk_counts(_conf, _job), do: %{}
+  def chunk_counts(_conf, _job, _opts), do: %{}
 
   @doc """
   The jobs immediately before and after a job in its chain or backfill.
@@ -555,15 +598,17 @@ defmodule Oban.Web.JobQuery do
   Chains and backfills run in insertion order, so the neighbors are the nearest ids on either side
   that share the job's `chain_id` or `backfill_id`. Either side is nil at the ends of the sequence.
   """
-  @spec neighbors(Config.t(), Job.t(), :chain | :backfill) :: %{
+  @spec neighbors(Config.t(), Job.t(), :chain | :backfill, keyword()) :: %{
           prev: Job.t() | nil,
           next: Job.t() | nil
         }
-  def neighbors(conf, _job, _kind) when is_mysql(conf) or is_sqlite(conf),
+  def neighbors(conf, job, kind, opts \\ [])
+
+  def neighbors(conf, _job, _kind, _opts) when is_mysql(conf) or is_sqlite(conf),
     do: %{prev: nil, next: nil}
 
-  def neighbors(%Config{} = conf, %Job{id: id} = job, kind) do
-    case sequence_query(job, kind) do
+  def neighbors(%Config{} = conf, %Job{id: id} = job, kind, opts) do
+    case sequence_query(job, kind, source(opts)) do
       nil ->
         %{prev: nil, next: nil}
 
@@ -577,16 +622,17 @@ defmodule Oban.Web.JobQuery do
 
   # Backfill lookups hit Pro's `(meta->>'backfill_id', state)` index. The chain index is partial
   # and excludes completed jobs, so chains use containment through the meta index instead.
-  defp sequence_query(%Job{meta: %{"chain_id" => chain_id}}, :chain) when is_binary(chain_id) do
-    where(Job, [j], fragment("? @> ?", j.meta, ^%{chain_id: chain_id}))
+  defp sequence_query(%Job{meta: %{"chain_id" => chain_id}}, :chain, source)
+       when is_binary(chain_id) do
+    where(source, [j], fragment("? @> ?", j.meta, ^%{chain_id: chain_id}))
   end
 
-  defp sequence_query(%Job{meta: %{"backfill_id" => backfill_id}}, :backfill)
+  defp sequence_query(%Job{meta: %{"backfill_id" => backfill_id}}, :backfill, source)
        when is_binary(backfill_id) do
-    where(Job, [j], meta_text(j.meta, "backfill_id") == ^backfill_id)
+    where(source, [j], meta_text(j.meta, "backfill_id") == ^backfill_id)
   end
 
-  defp sequence_query(_job, _kind), do: nil
+  defp sequence_query(_job, _kind, _source), do: nil
 
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))
@@ -596,13 +642,21 @@ defmodule Oban.Web.JobQuery do
 
   def cancel_jobs(_conf, _ids), do: :ok
 
-  def delete_jobs(%Config{name: name}, [_ | _] = job_ids) do
+  def delete_jobs(conf, job_ids, opts \\ [])
+
+  def delete_jobs(%Config{} = conf, [_ | _] = job_ids, archive: true) do
+    Repo.delete_all(conf, where(@archive, [j], j.id in ^job_ids))
+
+    :ok
+  end
+
+  def delete_jobs(%Config{name: name}, [_ | _] = job_ids, _opts) do
     Oban.delete_all_jobs(name, only_ids(job_ids))
 
     :ok
   end
 
-  def delete_jobs(_conf, _ids), do: :ok
+  def delete_jobs(_conf, _ids, _opts), do: :ok
 
   def retry_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.retry_all_jobs(name, only_ids(job_ids))

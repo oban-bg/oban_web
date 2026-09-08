@@ -113,6 +113,7 @@ defmodule Oban.Web.DashboardLive do
     else
       socket =
         socket
+        |> resume_refresh()
         |> assign(params: params, page: page)
         |> page.comp.handle_mount()
 
@@ -139,11 +140,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info(:resume_refresh, socket) do
-    if original = socket.assigns.original_refresh do
-      handle_info({:update_refresh, original}, socket)
-    else
-      {:noreply, socket}
-    end
+    {:noreply, resume_refresh(socket)}
   end
 
   def handle_info({:select_instance, name}, socket) do
@@ -184,12 +181,7 @@ defmodule Oban.Web.DashboardLive do
   end
 
   def handle_info({:update_refresh, refresh}, socket) do
-    socket =
-      socket
-      |> assign(refresh: refresh, original_refresh: nil)
-      |> schedule_refresh()
-
-    {:noreply, push_event(socket, "update-refresh", %{refresh: refresh})}
+    {:noreply, update_refresh(socket, refresh)}
   end
 
   def handle_info({:store_state, key, value}, socket) do
@@ -285,6 +277,22 @@ defmodule Oban.Web.DashboardLive do
   defp resolve_page(_params), do: %{name: :jobs, comp: JobsPage}
 
   ## Refresh Helpers
+
+  # A pause from the search box or the jobs archive remembers the rate it interrupted, so resuming
+  # only does anything while one of those is in effect.
+  defp resume_refresh(socket) do
+    case socket.assigns.original_refresh do
+      nil -> socket
+      original -> update_refresh(socket, original)
+    end
+  end
+
+  defp update_refresh(socket, refresh) do
+    socket
+    |> assign(refresh: refresh, original_refresh: nil)
+    |> schedule_refresh()
+    |> push_event("update-refresh", %{refresh: refresh})
+  end
 
   defp init_schedule_refresh(socket) do
     if connected?(socket) do

@@ -38,6 +38,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
       |> assign_new(:chunk_leader, fn -> nil end)
       |> assign_new(:compensating_job, fn -> nil end)
       |> assign_new(:neighbors, fn -> %{} end)
+      |> assign_new(:archive?, fn -> false end)
       |> assign_new(:diagnostics_open?, fn -> false end)
       |> assign_recorded()
       |> assign_form()
@@ -135,12 +136,21 @@ defmodule Oban.Web.Jobs.DetailComponent do
           >
             <Icons.icon name="icon-arrow-left" class="w-5 h-5 shrink-0" />
             <span class="text-lg font-bold ml-2 truncate">
-              {job_title(@job)} <span class="font-normal text-gray-500 dark:text-gray-400">Job</span>
+              {job_title(@job)}
+              <span class="font-normal text-gray-500 dark:text-gray-400">
+                {if @archive?, do: "Archived job", else: "Job"}
+              </span>
             </span>
           </button>
         </h2>
 
         <div class="flex shrink-0 space-x-3">
+          <Core.status_badge
+            :if={@archive?}
+            id="status-archived"
+            icon="square_stack"
+            label="Archived"
+          />
           <Core.status_badge
             :if={@job.meta["batch"]}
             id="status-batch"
@@ -209,11 +219,13 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Cancel"
             color="yellow"
             tooltip={
-              if cancelable?(@job),
-                do: "Cancel this job",
-                else: "Only unfinished jobs can be cancelled"
+              cond do
+                @archive? -> "Archived jobs can't be cancelled"
+                cancelable?(@job) -> "Cancel this job"
+                true -> "Only unfinished jobs can be cancelled"
+              end
             }
-            disabled={not cancelable?(@job) or not can?(:cancel_jobs, @access)}
+            disabled={@archive? or not cancelable?(@job) or not can?(:cancel_jobs, @access)}
             phx-target={@myself}
             phx-click="cancel"
           />
@@ -223,8 +235,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="arrow_path"
             label="Retry"
             color="blue"
-            tooltip={retry_tooltip(@job)}
-            disabled={not (runnable?(@job) or retryable?(@job)) or not can?(:retry_jobs, @access)}
+            tooltip={retry_tooltip(@job, @archive?)}
+            disabled={
+              @archive? or not (runnable?(@job) or retryable?(@job)) or not can?(:retry_jobs, @access)
+            }
             phx-target={@myself}
             phx-click="retry"
           />
@@ -235,12 +249,18 @@ defmodule Oban.Web.Jobs.DetailComponent do
             label="Delete"
             color="red"
             tooltip={
-              if deletable?(@job),
-                do: "Delete this job",
-                else: "Executing jobs can't be deleted"
+              cond do
+                @archive? -> "Delete this job from the archive"
+                deletable?(@job) -> "Delete this job"
+                true -> "Executing jobs can't be deleted"
+              end
             }
             disabled={not deletable?(@job) or not can?(:delete_jobs, @access)}
-            confirm={"Delete job #{@job.id}? This can't be undone."}
+            confirm={
+              if @archive?,
+                do: "Delete archived job #{@job.id}? This can't be undone.",
+                else: "Delete job #{@job.id}? This can't be undone."
+            }
             phx-target={@myself}
             phx-click="delete"
           />
@@ -250,8 +270,14 @@ defmodule Oban.Web.Jobs.DetailComponent do
             icon="pencil_square"
             label="Edit"
             color="violet"
-            tooltip={if executing?(@job), do: "Executing jobs can't be edited", else: "Edit this job"}
-            disabled={executing?(@job) or not can?(:update_jobs, @access)}
+            tooltip={
+              cond do
+                @archive? -> "Archived jobs can't be edited"
+                executing?(@job) -> "Executing jobs can't be edited"
+                true -> "Edit this job"
+              end
+            }
+            disabled={@archive? or executing?(@job) or not can?(:update_jobs, @access)}
             phx-click={scroll_to_edit()}
           />
         </div>
@@ -371,7 +397,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
                   <span :if={index > 0} class="mx-1.5 text-gray-400 dark:text-gray-500">·</span>
                   <.link
                     id={"chunk-#{state}-link"}
-                    patch={oban_path(:jobs, %{state: state, chunks: [@job.id]})}
+                    patch={
+                      oban_path(:jobs, list_params(%{state: state, chunks: [@job.id]}, @archive?))
+                    }
                     data-confirm={@confirm_leave}
                     class={[
                       "tabular rounded hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500",
@@ -394,7 +422,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 <.link
                   :if={@chunk_leader}
                   id="chunk-leader-link"
-                  patch={oban_path([:jobs, chunk_leader_id(@job)])}
+                  patch={oban_path([:jobs, chunk_leader_id(@job)], list_params(%{}, @archive?))}
                   data-confirm={@confirm_leave}
                   class="inline-flex items-center max-w-full text-base text-gray-800 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-400 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
                   data-title="View the job that led this chunk"
@@ -430,8 +458,14 @@ defmodule Oban.Web.Jobs.DetailComponent do
               label="Chain"
               icon="icon-link"
               neighbors={@neighbors.chain}
-              all_path={oban_path(:jobs, %{state: @job.state, chains: [chain_id(@job)]})}
+              all_path={
+                oban_path(
+                  :jobs,
+                  list_params(%{state: @job.state, chains: [chain_id(@job)]}, @archive?)
+                )
+              }
               all_title="View the jobs in this chain"
+              archive?={@archive?}
               confirm_leave={@confirm_leave}
             />
 
@@ -441,8 +475,14 @@ defmodule Oban.Web.Jobs.DetailComponent do
               label="Backfill"
               icon="icon-circle-stack"
               neighbors={@neighbors.backfill}
-              all_path={oban_path(:jobs, %{state: @job.state, backfills: [backfill_id(@job)]})}
+              all_path={
+                oban_path(
+                  :jobs,
+                  list_params(%{state: @job.state, backfills: [backfill_id(@job)]}, @archive?)
+                )
+              }
               all_title="View the windows in this backfill"
+              archive?={@archive?}
               confirm_leave={@confirm_leave}
             />
 
@@ -668,6 +708,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
         <.live_component
           id="detail-history-chart"
           module={HistoryChartComponent}
+          archive?={@archive?}
           confirm_leave={@confirm_leave}
           job={@job}
           history={@history}
@@ -789,7 +830,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+      <div :if={not @archive?} class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
         <button
           id="edit-toggle"
           type="button"
@@ -962,6 +1003,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   attr :neighbors, :map, required: true
   attr :all_path, :string, required: true
   attr :all_title, :string, required: true
+  attr :archive?, :boolean, required: true
   attr :confirm_leave, :any, required: true
 
   defp sequence_row(assigns) do
@@ -980,6 +1022,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           job={@neighbors.prev}
           label="Prev"
           title={"View the previous job in this #{String.downcase(@label)}"}
+          archive?={@archive?}
           confirm_leave={@confirm_leave}
         />
         <.neighbor_link
@@ -987,6 +1030,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
           job={@neighbors.next}
           label="Next"
           title={"View the next job in this #{String.downcase(@label)}"}
+          archive?={@archive?}
           confirm_leave={@confirm_leave}
         />
         <.link
@@ -1008,6 +1052,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   attr :job, :any, required: true
   attr :label, :string, required: true
   attr :title, :string, required: true
+  attr :archive?, :boolean, required: true
   attr :confirm_leave, :any, required: true
 
   defp neighbor_link(%{job: nil} = assigns) do
@@ -1020,7 +1065,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
     ~H"""
     <.link
       id={@id}
-      patch={oban_path([:jobs, @job.id])}
+      patch={oban_path([:jobs, @job.id], list_params(%{}, @archive?))}
       data-confirm={@confirm_leave}
       class="inline-flex items-center rounded hover:text-blue-500 dark:hover:text-blue-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500"
       data-title={@title}
@@ -1523,7 +1568,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
 
   defp executing?(%{state: state}), do: state == "executing"
 
-  defp retry_tooltip(job) do
+  defp retry_tooltip(_job, true), do: "Archived jobs can't be retried"
+
+  defp retry_tooltip(job, _archive?) do
     cond do
       runnable?(job) or retryable?(job) -> "Retry this job"
       executing?(job) -> "Executing jobs can't be retried"

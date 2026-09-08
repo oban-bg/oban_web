@@ -5,6 +5,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     import Ecto.Query, only: [order_by: 2, where: 3]
     import ExUnit.Assertions, only: [assert_receive: 2]
 
+    alias Ecto.Changeset
     alias Oban.Job
     alias Oban.Pro.{Testing, Workflow}
     alias Oban.Web.Repo
@@ -134,6 +135,38 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     # Recorded
+
+    def insert_archived_job!(args, opts \\ []) do
+      now = DateTime.utc_now()
+      {state, opts} = Keyword.pop(opts, :state, "completed")
+
+      finished_at =
+        case state do
+          "completed" -> :completed_at
+          "cancelled" -> :cancelled_at
+          "discarded" -> :discarded_at
+        end
+
+      opts =
+        opts
+        |> Keyword.put_new(:priority, 0)
+        |> Keyword.put_new(:queue, :default)
+        |> Keyword.put(:state, state)
+        |> Keyword.put_new(finished_at, now)
+
+      args
+      |> Map.new()
+      |> Job.new(opts)
+      |> Changeset.change(id: next_archive_id(), inserted_at: now, scheduled_at: now)
+      |> Map.update!(:data, &Ecto.put_meta(&1, source: "oban_jobs_archive"))
+      |> Repo.insert!()
+    end
+
+    defp next_archive_id do
+      %{rows: [[id]]} = Repo.query!("SELECT nextval('oban_jobs_id_seq')")
+
+      id
+    end
 
     def run_recorded!(oban, total) do
       [job] =

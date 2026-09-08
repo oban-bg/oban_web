@@ -5,25 +5,15 @@ defmodule Oban.Web.JobsPage do
 
   alias Oban.Met
 
-  alias Oban.Web.{
-    Colors,
-    JobQuery,
-    Metrics,
-    Page,
-    QueueQuery,
-    Resolver,
-    Search,
-    SearchComponent,
-    SortComponent,
-    Telemetry,
-    WorkflowQuery
-  }
+  alias Oban.Web.{Colors, JobQuery, Metrics, Page, QueueQuery, Resolver}
+  alias Oban.Web.{Search, SearchComponent, SortComponent, Telemetry, Utils, WorkflowQuery}
 
   alias Oban.Web.Jobs.{ChartComponent, DetailComponent, NewComponent}
   alias Oban.Web.Jobs.{SidebarComponent, TableComponent}
 
   @known_params JobQuery.known_params() ++ ~w(limit sort_by sort_dir)
   @ordered_states ~w(executing available suspended scheduled retryable cancelled discarded completed)
+  @archive_states JobQuery.archive_states()
 
   @impl Phoenix.LiveComponent
   def update(assigns, socket) do
@@ -41,6 +31,7 @@ defmodule Oban.Web.JobsPage do
     <div id="jobs-page" class="flex-1 w-full flex flex-col my-6 md:flex-row">
       <SidebarComponent.sidebar
         :if={is_nil(@detailed)}
+        archive?={@archive?}
         collapsed={@sidebar_collapsed}
         nodes={@nodes}
         params={without_defaults(@params, @default_params)}
@@ -52,7 +43,7 @@ defmodule Oban.Web.JobsPage do
 
       <div class="flex-grow">
         <.live_component
-          :if={is_nil(@detailed)}
+          :if={is_nil(@detailed) and not @archive?}
           id="chart"
           conf={@conf}
           init_state={@init_state}
@@ -65,143 +56,165 @@ defmodule Oban.Web.JobsPage do
           "bg-white dark:bg-gray-900 rounded-md shadow-lg",
           @detailed && "mx-4"
         ]}>
-          <%= if @detailed do %>
-            <.live_component
-              id="detail"
-              access={@access}
-              conf={@conf}
-              diagnostics={@diagnostics}
-              diagnostics_at={@diagnostics_at}
-              history={@history}
-              init_state={@init_state}
-              chunk_counts={@chunk_counts}
-              chunk_leader={@chunk_leader}
-              compensating_job={@compensating_job}
-              neighbors={@neighbors}
-              job={@detailed}
-              module={DetailComponent}
-              os_time={@os_time}
-              params={without_defaults(Map.delete(@params, "id"), @default_params)}
-              queues={@queues}
-              resolver={@resolver}
-            />
-          <% else %>
-            <div class="sticky top-0 z-20 flex items-start pr-3 py-3 rounded-t-md bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-              <div id="jobs-header" class="h-10 pr-12 flex-none flex items-center">
-                <Core.all_checkbox
-                  click="toggle-select-all"
-                  checked={checked_mode(@jobs, @selected)}
-                  myself={@myself}
+          <%= cond do %>
+            <% @archive? and not @pro_available? -> %>
+              <Core.pro_promo feature="Archived jobs" icon="icon-square-stack">
+                Pruner rules can archive finished jobs instead of deleting them, keeping a record
+                of what ran without slowing down the jobs table. Archived jobs are browsed and
+                searched here, just like live ones.
+              </Core.pro_promo>
+            <% @archive? and not @archive_available? -> %>
+              <Core.migration_prompt
+                id="archive-migration-prompt"
+                conf={@conf}
+                docs="https://oban.pro/docs/pro/Oban.Pro.Pruner.html#archiving-jobs"
+                feature="Archived jobs"
+                table="oban_jobs_archive"
+                version="v1.8"
+              />
+            <% @detailed -> %>
+              <.live_component
+                id="detail"
+                access={@access}
+                archive?={@archive?}
+                conf={@conf}
+                diagnostics={@diagnostics}
+                diagnostics_at={@diagnostics_at}
+                history={@history}
+                init_state={@init_state}
+                chunk_counts={@chunk_counts}
+                chunk_leader={@chunk_leader}
+                compensating_job={@compensating_job}
+                neighbors={@neighbors}
+                job={@detailed}
+                module={DetailComponent}
+                os_time={@os_time}
+                params={without_defaults(Map.delete(@params, "id"), @default_params)}
+                queues={@queues}
+                resolver={@resolver}
+              />
+            <% true -> %>
+              <div class="sticky top-0 z-20 flex items-start pr-3 py-3 rounded-t-md bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <div id="jobs-header" class="h-10 pr-12 flex-none flex items-center">
+                  <Core.all_checkbox
+                    click="toggle-select-all"
+                    checked={checked_mode(@jobs, @selected)}
+                    myself={@myself}
+                  />
+
+                  <h2 class="flex items-center text-base font-semibold dark:text-gray-200">
+                    <span :if={@archive?} id="jobs-source" class="flex items-center">
+                      <Icons.icon name="icon-square-stack" class="w-5 h-5 mr-1.5 text-violet-500" />
+                      Archived
+                    </span>
+                    <span :if={not @archive?} id="jobs-source">Jobs</span>
+                    <.state_chip state={@params.state} />
+                  </h2>
+                </div>
+
+                <.live_component
+                  conf={@conf}
+                  id="search"
+                  module={SearchComponent}
+                  page={:jobs}
+                  params={without_defaults(@params, @default_params)}
+                  queryable={JobQuery}
+                  resolver={@resolver}
                 />
 
-                <h2 class="flex items-center text-base font-semibold dark:text-gray-200">
-                  Jobs <.state_chip state={@params.state} />
-                </h2>
+                <div class="pl-3 ml-auto flex items-center">
+                  <div
+                    :if={Enum.any?(@selected)}
+                    id="bulk-actions"
+                    class="h-10 flex items-center space-x-3"
+                  >
+                    <.selection_count
+                      count={MapSet.size(@selected)}
+                      limit={bulk_limit(@resolver, @params)}
+                    />
+
+                    <Core.action_button
+                      :if={not @archive? and cancelable?(@jobs, @access)}
+                      label="Cancel"
+                      click="cancel-jobs"
+                      confirm={bulk_confirm(:cancel, @selected, @params)}
+                      target={@myself}
+                    >
+                      <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
+                      <:title>Cancel Jobs</:title>
+                    </Core.action_button>
+
+                    <Core.action_button
+                      :if={not @archive? and retryable?(@jobs, @access)}
+                      label="Retry"
+                      click="retry-jobs"
+                      confirm={bulk_confirm(:retry, @selected, @params)}
+                      target={@myself}
+                    >
+                      <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
+                      <:title>Retry Jobs</:title>
+                    </Core.action_button>
+
+                    <Core.action_button
+                      :if={not @archive? and runnable?(@jobs, @access)}
+                      label="Run Now"
+                      click="retry-jobs"
+                      confirm={bulk_confirm(:run, @selected, @params)}
+                      target={@myself}
+                    >
+                      <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
+                      <:title>Run Jobs Now</:title>
+                    </Core.action_button>
+
+                    <Core.action_button
+                      :if={deletable?(@jobs, @access)}
+                      label="Delete"
+                      click="delete-jobs"
+                      confirm={bulk_confirm(:delete, @selected, @params)}
+                      target={@myself}
+                      danger={true}
+                    >
+                      <:icon><Icons.icon name="icon-trash" class="w-5 h-5" /></:icon>
+                      <:title>Delete Jobs</:title>
+                    </Core.action_button>
+                  </div>
+
+                  <SortComponent.select
+                    :if={Enum.empty?(@selected)}
+                    by={~w(time attempt queue worker)}
+                    defaults={@default_params}
+                    params={@params}
+                  />
+
+                  <.link
+                    :if={Enum.empty?(@selected) and not @archive?}
+                    patch={can?(:insert_jobs, @access) && oban_path([:jobs, :new])}
+                    id="new-job-button"
+                    data-title="Create a new job"
+                    phx-hook="Tippy"
+                    aria-disabled={not can?(:insert_jobs, @access)}
+                    class={[
+                      "ml-3 h-10 flex items-center text-sm bg-white dark:bg-gray-800 px-3 py-2 border rounded-md",
+                      can?(:insert_jobs, @access) &&
+                        "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
+                      not can?(:insert_jobs, @access) &&
+                        "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
+                    ]}
+                  >
+                    <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> New
+                  </.link>
+                </div>
               </div>
 
               <.live_component
+                id="jobs-table"
                 conf={@conf}
-                id="search"
-                module={SearchComponent}
-                page={:jobs}
-                params={without_defaults(@params, @default_params)}
-                queryable={JobQuery}
+                jobs={@jobs}
+                module={TableComponent}
+                params={@params}
                 resolver={@resolver}
+                selected={@selected}
               />
-
-              <div class="pl-3 ml-auto flex items-center">
-                <div
-                  :if={Enum.any?(@selected)}
-                  id="bulk-actions"
-                  class="h-10 flex items-center space-x-3"
-                >
-                  <.selection_count
-                    count={MapSet.size(@selected)}
-                    limit={bulk_limit(@resolver, @params)}
-                  />
-
-                  <Core.action_button
-                    :if={cancelable?(@jobs, @access)}
-                    label="Cancel"
-                    click="cancel-jobs"
-                    confirm={bulk_confirm(:cancel, @selected, @params)}
-                    target={@myself}
-                  >
-                    <:icon><Icons.icon name="icon-x-circle" class="w-5 h-5" /></:icon>
-                    <:title>Cancel Jobs</:title>
-                  </Core.action_button>
-
-                  <Core.action_button
-                    :if={retryable?(@jobs, @access)}
-                    label="Retry"
-                    click="retry-jobs"
-                    confirm={bulk_confirm(:retry, @selected, @params)}
-                    target={@myself}
-                  >
-                    <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
-                    <:title>Retry Jobs</:title>
-                  </Core.action_button>
-
-                  <Core.action_button
-                    :if={runnable?(@jobs, @access)}
-                    label="Run Now"
-                    click="retry-jobs"
-                    confirm={bulk_confirm(:run, @selected, @params)}
-                    target={@myself}
-                  >
-                    <:icon><Icons.icon name="icon-arrow-right-circle" class="w-5 h-5" /></:icon>
-                    <:title>Run Jobs Now</:title>
-                  </Core.action_button>
-
-                  <Core.action_button
-                    :if={deletable?(@jobs, @access)}
-                    label="Delete"
-                    click="delete-jobs"
-                    confirm={bulk_confirm(:delete, @selected, @params)}
-                    target={@myself}
-                    danger={true}
-                  >
-                    <:icon><Icons.icon name="icon-trash" class="w-5 h-5" /></:icon>
-                    <:title>Delete Jobs</:title>
-                  </Core.action_button>
-                </div>
-
-                <SortComponent.select
-                  :if={Enum.empty?(@selected)}
-                  by={~w(time attempt queue worker)}
-                  defaults={@default_params}
-                  params={@params}
-                />
-
-                <.link
-                  :if={Enum.empty?(@selected)}
-                  patch={can?(:insert_jobs, @access) && oban_path([:jobs, :new])}
-                  id="new-job-button"
-                  data-title="Create a new job"
-                  phx-hook="Tippy"
-                  aria-disabled={not can?(:insert_jobs, @access)}
-                  class={[
-                    "ml-3 h-10 flex items-center text-sm bg-white dark:bg-gray-800 px-3 py-2 border rounded-md",
-                    can?(:insert_jobs, @access) &&
-                      "text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 hover:text-blue-500 hover:border-blue-600 cursor-pointer",
-                    not can?(:insert_jobs, @access) &&
-                      "text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed opacity-50"
-                  ]}
-                >
-                  <Icons.icon name="icon-plus-circle" class="mr-1 h-4 w-4" /> New
-                </.link>
-              </div>
-            </div>
-
-            <.live_component
-              id="jobs-table"
-              conf={@conf}
-              jobs={@jobs}
-              module={TableComponent}
-              params={@params}
-              resolver={@resolver}
-              selected={@selected}
-            />
           <% end %>
         </div>
       </div>
@@ -265,7 +278,7 @@ defmodule Oban.Web.JobsPage do
   end
 
   @keep_on_mount ~w(
-    chunk_counts chunk_leader compensating_job default_params
+    archive? chunk_counts chunk_leader compensating_job default_params
     detailed jobs neighbors nodes params queues selected states
   )a
 
@@ -278,6 +291,9 @@ defmodule Oban.Web.JobsPage do
     assigns = Map.drop(socket.assigns, @keep_on_mount)
 
     %{socket | assigns: assigns}
+    |> assign(:archive_available?, Utils.has_archive?(socket.assigns.conf))
+    |> assign(:pro_available?, Utils.has_pro?())
+    |> assign_new(:archive?, fn -> false end)
     |> assign_new(:chunk_counts, fn -> %{} end)
     |> assign_new(:chunk_leader, fn -> nil end)
     |> assign_new(:compensating_job, fn -> nil end)
@@ -300,7 +316,8 @@ defmodule Oban.Web.JobsPage do
   def handle_refresh(socket) do
     %{conf: conf, params: params, resolver: resolver} = socket.assigns
 
-    jobs = JobQuery.all_jobs(params, conf, resolver: resolver)
+    query_opts = query_opts(params)
+    jobs = all_jobs(socket, params, resolver: resolver)
 
     selected =
       if Enum.any?(socket.assigns.selected) do
@@ -313,11 +330,11 @@ defmodule Oban.Web.JobsPage do
         MapSet.new()
       end
 
-    detailed = JobQuery.refresh_job(conf, socket.assigns.detailed)
+    detailed = JobQuery.refresh_job(conf, socket.assigns.detailed, query_opts)
 
     history =
       if detailed do
-        JobQuery.job_history(detailed, conf)
+        JobQuery.job_history(detailed, conf, query_opts)
       else
         []
       end
@@ -335,19 +352,19 @@ defmodule Oban.Web.JobsPage do
 
     assign(socket,
       chunk_counts: chunk_counts(conf, detailed, socket),
-      chunk_leader: chunk_leader(conf, detailed),
+      chunk_leader: chunk_leader(conf, detailed, query_opts),
       compensating_job: compensating_job(conf, detailed),
       detailed: detailed,
       diagnostics: diagnostics,
       diagnostics_at: diagnostics_at,
       history: history,
       jobs: jobs,
-      neighbors: neighbors(conf, detailed),
+      neighbors: neighbors(conf, detailed, query_opts),
       nodes: nodes(conf),
       os_time: System.os_time(:millisecond),
       queues: queues(conf, socket.assigns.queues),
       selected: selected,
-      states: states(conf, socket.assigns.states)
+      states: states(conf, socket.assigns.states, params)
     )
   end
 
@@ -358,32 +375,37 @@ defmodule Oban.Web.JobsPage do
     {:noreply,
      socket
      |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Job"))
-     |> assign(params: params)}
+     |> assign_params(params)}
   end
 
   def handle_params(%{"id" => job_id} = params, _uri, socket) do
     params = params_with_defaults(params, socket)
     conf = socket.assigns.conf
+    query_opts = query_opts(params)
 
-    case JobQuery.refresh_job(conf, job_id) do
+    job = if archive_ready?(socket, params), do: JobQuery.refresh_job(conf, job_id, query_opts)
+
+    case job do
       nil ->
-        {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
+        path = oban_path(:jobs, list_params(%{}, JobQuery.archived?(params)))
+
+        {:noreply, push_patch(socket, to: path, replace: true)}
 
       job ->
         Oban.Notifier.listen(conf.name, [:diagnostics_reply])
 
-        history = JobQuery.job_history(job, conf)
+        history = JobQuery.job_history(job, conf, query_opts)
+        socket = assign_params(socket, params)
 
         {:noreply,
          socket
-         |> assign(detailed: job, show_new_form: false, page_title: page_title(job))
+         |> assign(detailed: job, show_new_form: false, page_title: detail_title(job, params))
          |> assign(chunk_counts: chunk_counts(conf, job, socket))
-         |> assign(chunk_leader: chunk_leader(conf, job))
+         |> assign(chunk_leader: chunk_leader(conf, job, query_opts))
          |> assign(compensating_job: compensating_job(conf, job))
-         |> assign(neighbors: neighbors(conf, job))
+         |> assign(neighbors: neighbors(conf, job, query_opts))
          |> assign(diagnostics: nil, diagnostics_at: nil)
-         |> assign(history: history)
-         |> assign(params: params)}
+         |> assign(history: history)}
     end
   end
 
@@ -401,17 +423,20 @@ defmodule Oban.Web.JobsPage do
         MapSet.new()
       end
 
+    title = if JobQuery.archived?(params), do: "Archived", else: "Jobs"
+
     socket =
       socket
-      |> assign(detailed: nil, show_new_form: false, page_title: page_title("Jobs"))
+      |> assign(detailed: nil, show_new_form: false, page_title: page_title(title))
       |> assign(diagnostics: nil, diagnostics_at: nil)
       |> assign(history: [])
-      |> assign(params: params, selected: selected)
-      |> assign(jobs: JobQuery.all_jobs(params, conf, resolver: resolver))
+      |> assign_params(params)
+      |> assign(selected: selected)
+      |> assign(jobs: all_jobs(socket, params, resolver: resolver))
       |> assign(nodes: nodes(conf))
       |> assign(
         queues: queues(conf, socket.assigns.queues),
-        states: states(conf, socket.assigns.states)
+        states: states(conf, socket.assigns.states, params)
       )
 
     {:noreply, socket}
@@ -507,11 +532,15 @@ defmodule Oban.Web.JobsPage do
   end
 
   def handle_info({:delete_job, job}, socket) do
+    %{archive?: archive?, conf: conf} = socket.assigns
+
     Telemetry.action(:delete_jobs, socket, [job_ids: [job.id]], fn ->
-      JobQuery.delete_jobs(socket.assigns.conf, [job.id])
+      JobQuery.delete_jobs(conf, [job.id], archive: archive?)
     end)
 
-    {:noreply, push_patch(socket, to: oban_path(:jobs), replace: true)}
+    path = oban_path(:jobs, list_params(%{}, archive?))
+
+    {:noreply, push_patch(socket, to: path, replace: true)}
   end
 
   def handle_info({:update_job, job, changes}, socket) do
@@ -571,7 +600,7 @@ defmodule Oban.Web.JobsPage do
     job_ids = MapSet.to_list(socket.assigns.selected)
 
     Telemetry.action(:delete_jobs, socket, [job_ids: job_ids], fn ->
-      JobQuery.delete_jobs(socket.assigns.conf, job_ids)
+      JobQuery.delete_jobs(socket.assigns.conf, job_ids, archive: socket.assigns.archive?)
     end)
 
     socket =
@@ -623,13 +652,60 @@ defmodule Oban.Web.JobsPage do
 
   # Param Helpers
 
+  # Only finished jobs are archived, so the archive opens on completed jobs unless the state is
+  # already one that exists there.
   defp params_with_defaults(params, socket) do
     params =
       params
       |> Map.take(@known_params)
       |> decode_params(JobQuery)
 
-    Map.merge(socket.assigns.default_params, params)
+    params = Map.merge(socket.assigns.default_params, params)
+
+    if JobQuery.archived?(params) and params.state not in @archive_states do
+      %{params | state: "completed"}
+    else
+      params
+    end
+  end
+
+  # The archive only changes when the pruner runs, so watching it doesn't need a refresh timer.
+  # Pausing goes through the dashboard, which restores the rate when the archive is left.
+  defp assign_params(socket, params) do
+    was_archived? = socket.assigns.archive?
+    now_archived? = JobQuery.archived?(params)
+
+    cond do
+      now_archived? and not was_archived? -> send(self(), :pause_refresh)
+      was_archived? and not now_archived? -> send(self(), :resume_refresh)
+      true -> :ok
+    end
+
+    assign(socket, archive?: now_archived?, params: params)
+  end
+
+  defp query_opts(params), do: [archive: JobQuery.archived?(params)]
+
+  defp detail_title(job, params) do
+    if JobQuery.archived?(params) do
+      page_title("#{job.worker} Archived Job (#{job.id})")
+    else
+      page_title(job)
+    end
+  end
+
+  # Without Pro or its v1.8 migration there's no archive table to query, so the page explains
+  # what's missing instead of showing an empty list.
+  defp archive_ready?(socket, params) do
+    not JobQuery.archived?(params) or socket.assigns.archive_available?
+  end
+
+  defp all_jobs(socket, params, opts) do
+    if archive_ready?(socket, params) do
+      JobQuery.all_jobs(params, socket.assigns.conf, opts)
+    else
+      []
+    end
   end
 
   # Socket Helpers
@@ -652,9 +728,10 @@ defmodule Oban.Web.JobsPage do
 
   defp bulk_confirm(action, selected, params) do
     count = MapSet.size(selected)
+    archived = if JobQuery.archived?(params), do: "archived ", else: ""
 
     jobs =
-      "#{integer_to_delimited(count)} #{params.state} #{if count == 1, do: "job", else: "jobs"}"
+      "#{integer_to_delimited(count)} #{archived}#{params.state} #{if count == 1, do: "job", else: "jobs"}"
 
     scope =
       case Search.describe(params, JobQuery.qualifiers()) do
@@ -728,8 +805,14 @@ defmodule Oban.Web.JobsPage do
     |> Enum.sort_by(& &1.name)
   end
 
-  defp states(conf, previous) do
-    Metrics.state_counts(conf.name, @ordered_states, previous)
+  # Counting the archive would scan an unindexed table on every refresh, and the pruner only adds
+  # to it occasionally, so archived states are listed without counts.
+  defp states(conf, previous, params) do
+    if JobQuery.archived?(params) do
+      for state <- @archive_states, do: %{name: state, count: nil}
+    else
+      Metrics.state_counts(conf.name, @ordered_states, previous)
+    end
   end
 
   defp queues(conf, previous) do
@@ -745,24 +828,24 @@ defmodule Oban.Web.JobsPage do
 
   defp compensating_job(_conf, _job), do: nil
 
-  defp neighbors(conf, %Oban.Job{} = job) do
+  defp neighbors(conf, %Oban.Job{} = job, query_opts) do
     for {kind, id_fun} <- [chain: &chain_id/1, backfill: &backfill_id/1],
         is_binary(id_fun.(job)),
         into: %{} do
-      {kind, JobQuery.neighbors(conf, job, kind)}
+      {kind, JobQuery.neighbors(conf, job, kind, query_opts)}
     end
   end
 
-  defp neighbors(_conf, _job), do: %{}
+  defp neighbors(_conf, _job, _query_opts), do: %{}
 
-  defp chunk_leader(conf, %Oban.Job{} = job) do
+  defp chunk_leader(conf, %Oban.Job{} = job, query_opts) do
     case chunk_leader_id(job) do
       nil -> nil
-      leader_id -> JobQuery.refresh_job(conf, leader_id)
+      leader_id -> JobQuery.refresh_job(conf, leader_id, query_opts)
     end
   end
 
-  defp chunk_leader(_conf, _job), do: nil
+  defp chunk_leader(_conf, _job, _query_opts), do: nil
 
   defp chunk_counts(conf, %Oban.Job{} = job, socket) do
     %{chunk_counts: previous_counts, detailed: previous} = socket.assigns
@@ -781,7 +864,7 @@ defmodule Oban.Web.JobsPage do
         previous_counts
 
       true ->
-        JobQuery.chunk_counts(conf, job)
+        JobQuery.chunk_counts(conf, job, query_opts(socket.assigns.params))
     end
   end
 

@@ -1,8 +1,7 @@
 defmodule Oban.Web.Jobs.SidebarComponent do
   use Oban.Web, :html
 
-  alias Oban.Web.Queue
-  alias Oban.Web.SidebarComponents
+  alias Oban.Web.{JobQuery, Queue, SidebarComponents}
 
   attr :collapsed, :list, default: []
   attr :nodes, :list
@@ -11,6 +10,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
   attr :states, :list
   attr :csp_nonces, :map
   attr :width, :integer, default: 320
+  attr :archive?, :boolean, default: false
 
   def sidebar(assigns) do
     {state_header, state_key} = state_column(assigns.params)
@@ -26,7 +26,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
     <SidebarComponents.sidebar label="Job filters" width={@width} csp_nonces={@csp_nonces}>
       <SidebarComponents.section
         name="states"
-        headers={["jobs"]}
+        headers={if @archive?, do: [], else: ["jobs"]}
         expanded={"states" not in @collapsed}
       >
         <div role="group" aria-label="Filter by one state">
@@ -37,13 +37,16 @@ defmodule Oban.Web.Jobs.SidebarComponent do
             exclusive={true}
             active={active_filter?(@params, :state, state.name)}
             patch={state_patch(@params, state.name)}
-            values={[state.count]}
+            values={if @archive?, do: [], else: [state.count]}
           />
         </div>
+
+        <.archive_row archive?={@archive?} params={@params} />
       </SidebarComponents.section>
 
       <SidebarComponents.section
         :let={labels}
+        :if={not @archive?}
         name="nodes"
         headers={[%{short: "exec", label: "executing"}, "limit"]}
         expanded={"nodes" not in @collapsed}
@@ -69,6 +72,7 @@ defmodule Oban.Web.Jobs.SidebarComponent do
 
       <SidebarComponents.section
         :let={labels}
+        :if={not @archive?}
         name="queues"
         mode_header={if(@modes?, do: %{short: "mode", label: "Limits, partitioning, and pauses"})}
         headers={["limit", %{short: "exec", label: "executing"}, @state_header]}
@@ -139,6 +143,57 @@ defmodule Oban.Web.Jobs.SidebarComponent do
       </SidebarComponents.section>
     </SidebarComponents.sidebar>
     """
+  end
+
+  # Archived jobs live in a separate table with only finished states, so switching keeps the
+  # filters and moves the state to one that exists there. The row sits with the states because
+  # the archive is another place a job can be, not a filter on where it is now. Counts are never
+  # queried for the archive, so the tooltip says so where the missing numbers would be noticed.
+  attr :archive?, :boolean, required: true
+  attr :params, :map, required: true
+
+  defp archive_row(assigns) do
+    ~H"""
+    <div class="mt-1 pt-1 border-t border-gray-200 dark:border-gray-800">
+      <SidebarComponents.filter_row
+        name="archive"
+        active={@archive?}
+        patch={oban_path(:jobs, toggle_archive(@params, @archive?))}
+        tooltip={archive_tooltip(@archive?)}
+        values={[]}
+      >
+        <:leading>
+          <Icons.icon
+            name="icon-square-stack"
+            class={[
+              "w-4 h-4",
+              if(@archive?,
+                do: "text-violet-500 dark:text-violet-400",
+                else: "text-gray-400 dark:text-gray-600"
+              )
+            ]}
+          />
+        </:leading>
+      </SidebarComponents.filter_row>
+    </div>
+    """
+  end
+
+  defp archive_tooltip(true), do: "Back to live jobs"
+
+  defp archive_tooltip(_archive?),
+    do: "Browse archived jobs. Counts aren't tracked for the archive."
+
+  defp toggle_archive(params, true), do: Map.delete(params, :archive)
+
+  defp toggle_archive(params, _archive?) do
+    params = Map.put(params, :archive, "true")
+
+    if params[:state] in JobQuery.archive_states() do
+      params
+    else
+      Map.put(params, :state, "completed")
+    end
   end
 
   # The third queue column follows the selected state so the sidebar answers "which queue" for

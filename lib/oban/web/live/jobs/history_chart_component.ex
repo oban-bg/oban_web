@@ -33,7 +33,7 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
         >
         </div>
         <.link
-          navigate={all_jobs_path(@job)}
+          navigate={all_jobs_path(@job, @archive?)}
           data-confirm={@confirm_leave}
           class="absolute right-4 top-4 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 transition-opacity"
         >
@@ -52,9 +52,10 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
     |> JS.remove_class("rotate-90", to: "#history-chevron.rotate-90")
   end
 
-  defp all_jobs_path(job) do
+  defp all_jobs_path(job, archive?) do
     worker = Map.get(job.meta, "worker", job.worker)
-    oban_path(:jobs, %{workers: [worker], state: "completed"})
+
+    oban_path(:jobs, list_params(%{workers: [worker], state: "completed"}, archive?))
   end
 
   @impl Phoenix.LiveComponent
@@ -62,6 +63,7 @@ defmodule Oban.Web.Jobs.HistoryChartComponent do
     socket =
       socket
       |> assign(assigns)
+      |> assign_new(:archive?, fn -> false end)
       |> assign_new(:confirm_leave, fn -> nil end)
       |> push_chart_data()
 

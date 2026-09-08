@@ -1091,7 +1091,7 @@ oban_opts = [
      sync_mode: :manual,
      schedule: "*/5 * * * *",
      rules: [
-       [name: "audit", worker: "Oban.Workers.SecurityScanner", max_age: {1, :day}, archive: true],
+       [name: "audit", worker: "Oban.Workers.SecurityScanner", max_age: {10, :minutes}, archive: true],
        [name: "exports", queue: "exports", state: :completed, max_age: {1, :week}],
        [name: "analysis", queue: "analysis", max_len: 500, limit: 2_500],
        [name: "failures", state: :discarded, max_age: {2, :weeks}, timeout: 15_000],
@@ -1120,7 +1120,7 @@ oban_opts = [
        {"* * * * *", Oban.Workers.HealthChecker, tags: ~w(health monitoring)},
        {"*/5 * * * *", Oban.Workers.CustomerSegmenter, args: %{batch_size: 1000}},
        {"30 */3 * * *", Oban.Workers.IndexRebuilder, priority: 1},
-       {"0 */2 * * *", Oban.Workers.SecurityScanner, tags: ["security"]},
+       {"*/5 * * * *", Oban.Workers.SecurityScanner, tags: ["security"]},
        {"0 6 * * MON", Oban.Workers.WeeklyUpdate, priority: 3}
      ]}
   ]

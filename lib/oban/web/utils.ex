@@ -43,19 +43,21 @@ defmodule Oban.Web.Utils do
 
   def fetch_service(_conf, _service), do: :error
 
-  def has_crons?(conf), do: has_table?("oban_crons", conf)
-
-  def has_pruners?(conf), do: has_table?("oban_pruners", conf)
-
-  def has_workflows?(conf), do: has_table?("oban_workflows", conf)
+  def has_archive?(conf), do: has_table?("oban_jobs_archive", conf)
 
   def has_compensations?(conf) do
     has_workflows?(conf) and has_column?("oban_workflows", "compensation_id", conf)
   end
 
+  def has_crons?(conf), do: has_table?("oban_crons", conf)
+
   def has_pro? do
     persistent_cache(:pro?, fn -> Code.ensure_loaded?(Oban.Pro) end)
   end
+
+  def has_pruners?(conf), do: has_table?("oban_pruners", conf)
+
+  def has_workflows?(conf), do: has_table?("oban_workflows", conf)
 
   def persistent_cache(key, fun) when is_function(fun, 0) do
     case :persistent_term.get(key, nil) do

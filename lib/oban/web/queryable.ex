@@ -54,7 +54,7 @@ defmodule Oban.Web.Queryable do
       @impl Queryable
       def sorter(_sort_by, dir), do: dir
 
-      defoverridable sorter: 2
+      defoverridable sorter: 2, suggest: 3
     end
   end
 

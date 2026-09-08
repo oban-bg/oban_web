@@ -1,7 +1,7 @@
 defmodule Oban.Web.Jobs.TableComponent do
   use Oban.Web, :live_component
 
-  alias Oban.Web.Resolver
+  alias Oban.Web.{JobQuery, Resolver}
 
   @inc_limit 20
   @max_limit 200
@@ -17,6 +17,8 @@ defmodule Oban.Web.Jobs.TableComponent do
 
     socket =
       socket
+      |> assign(archive?: JobQuery.archived?(assigns.params))
+      |> assign(filtered?: filtered?(assigns.params, JobQuery))
       |> assign(jobs: assigns.jobs, params: assigns.params)
       |> assign(query_limit: query_limit(assigns.resolver, assigns.params))
       |> assign(producers: producers, resolver: assigns.resolver, selected: assigns.selected)
@@ -38,11 +40,26 @@ defmodule Oban.Web.Jobs.TableComponent do
         <Core.column_header label={time_label(@params.state)} class="w-28 pl-4 pr-3 text-right" />
       </Core.table_header>
 
+      <Core.empty_state
+        :if={Enum.empty?(@jobs) and @archive? and not @filtered?}
+        id="archive-empty"
+        icon="icon-square-stack"
+        title="No archived jobs"
+      >
+        Pruner rules with archiving enabled copy finished jobs here before deleting them from the
+        jobs table. The archive isn't pruned automatically.
+        <:actions>
+          <Core.learn_link href="https://oban.pro/docs/pro/Oban.Pro.Pruner.html#archiving-jobs">
+            Learn about archiving
+          </Core.learn_link>
+        </:actions>
+      </Core.empty_state>
+
       <Core.no_matches
-        :if={Enum.empty?(@jobs)}
+        :if={Enum.empty?(@jobs) and not (@archive? and not @filtered?)}
         id="jobs-no-matches"
         label="No jobs match the current filters."
-        clear={oban_path(:jobs)}
+        clear={oban_path(:jobs, list_params(%{}, @archive?))}
       >
         <p :if={is_integer(@query_limit)} class="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Filtering limited to latest {integer_to_delimited(@query_limit)} jobs. See <a
@@ -55,6 +72,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
         <.job_row
           :for={job <- @jobs}
+          archive?={@archive?}
           job={job}
           myself={@myself}
           producers={@producers}
@@ -99,7 +117,7 @@ defmodule Oban.Web.Jobs.TableComponent do
       />
 
       <.link
-        patch={oban_path([:jobs, @job.id])}
+        patch={oban_path([:jobs, @job.id], list_params(%{}, @archive?))}
         phx-click={JS.dispatch("phx:scroll-top", to: "body")}
         class="flex flex-grow items-center focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500"
       >
