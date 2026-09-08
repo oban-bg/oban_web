@@ -9,17 +9,23 @@ const Refresher = {
       this.pushEventTo(targ, "select-refresh", { interval: storedRefresh })
     }
 
-    document.addEventListener("visibilitychange", () => {
+    this.handleVisibility = () => {
       if (document.visibilityState === "visible") {
         this.pushEventTo(targ, "resume-refresh", {})
       } else {
         this.pushEventTo(targ, "pause-refresh", {})
       }
-    })
+    }
+
+    document.addEventListener("visibilitychange", this.handleVisibility)
 
     this.handleEvent("update-refresh", ({ refresh }) => {
       store("refresh", refresh)
     })
+  },
+
+  destroyed() {
+    document.removeEventListener("visibilitychange", this.handleVisibility)
   },
 }
 

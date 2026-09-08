@@ -30,6 +30,39 @@ defmodule Oban.Web.DashboardTest do
     assert :ok = Task.await(task)
   end
 
+  describe "refresh" do
+    test "toggling refresh off and back on with the shortcut" do
+      start_supervised_oban!()
+
+      {:ok, live, _html} = live(build_conn(), "/oban")
+
+      assert %{refresh: 1, timer: timer} = assigns(live)
+      assert is_reference(timer)
+
+      live
+      |> with_target("#refresh-selector")
+      |> render_hook("toggle-refresh", %{})
+
+      assert %{refresh: -1, original_refresh: 1, timer: nil} = assigns(live)
+      assert has_element?(live, "#refresh-menu-toggle", "Off")
+
+      live
+      |> with_target("#refresh-selector")
+      |> render_hook("toggle-refresh", %{})
+
+      assert %{refresh: 1, original_refresh: nil, timer: timer} = assigns(live)
+      assert is_reference(timer)
+      assert has_element?(live, "#refresh-menu-toggle", "1s")
+    end
+
+    defp assigns(live) do
+      # Toggling routes through a message to the view, so the state is settled after a render.
+      render(live)
+
+      :sys.get_state(live.pid).socket.assigns
+    end
+  end
+
   describe "isolation" do
     test "viewing available jobs for an instance with a custom prefix" do
       oban = start_supervised_oban!(prefix: "private")

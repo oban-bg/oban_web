@@ -170,6 +170,7 @@ defmodule Oban.Web.DashboardLive do
         socket =
           socket
           |> assign(refresh: -1, original_refresh: refresh)
+          |> schedule_refresh()
           |> push_event("update-refresh", %{refresh: -1})
 
         {:noreply, socket}

@@ -33,7 +33,9 @@ defmodule Oban.Web.RefreshComponent do
       >
         <:toggle>
           <Icons.icon name="icon-arrow-path-rounded" />
-          <span class="ml-1 leading-6 text-sm">{interval_label(@refresh, @options)}</span>
+          <span class="ml-1 min-w-6 leading-6 text-sm text-left tabular-nums">
+            {interval_label(@refresh, @options)}
+          </span>
         </:toggle>
 
         <%= for {value, display} <- @options do %>
