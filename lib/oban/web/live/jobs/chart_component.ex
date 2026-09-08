@@ -134,7 +134,7 @@ defmodule Oban.Web.Jobs.ChartComponent do
             id="chart-series"
             role="radiogroup"
             aria-label="Metric series"
-            class="hidden md:flex items-center gap-0.5 p-0.5 rounded-md bg-gray-100 dark:bg-gray-800"
+            class="hidden md:flex items-center gap-0.5"
             phx-hook="Segmented"
           >
             <.series_option
@@ -260,10 +260,11 @@ defmodule Oban.Web.Jobs.ChartComponent do
       aria-checked={to_string(@checked)}
       tabindex={if @checked, do: "0", else: "-1"}
       disabled={@disabled}
-      class="h-7 px-2.5 rounded text-xs font-medium cursor-pointer text-gray-500 dark:text-gray-400
+      class="h-9 px-2.5 rounded-md text-xs font-medium cursor-pointer text-gray-500 dark:text-gray-400
       enabled:hover:text-gray-700 dark:enabled:hover:text-gray-200
-      aria-checked:bg-white dark:aria-checked:bg-gray-700 aria-checked:shadow-sm
-      enabled:aria-checked:text-gray-900 dark:enabled:aria-checked:text-gray-100 aria-checked:font-semibold
+      enabled:hover:bg-black/5 dark:enabled:hover:bg-white/5
+      aria-checked:bg-black/5 dark:aria-checked:bg-white/5
+      enabled:aria-checked:text-gray-900 dark:enabled:aria-checked:text-gray-100
       disabled:cursor-not-allowed disabled:text-gray-400 dark:disabled:text-gray-500
       focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       data-title={metric_label(@value)}
@@ -671,9 +672,9 @@ defmodule Oban.Web.Jobs.ChartComponent do
   defp metric_noun("exec_time"), do: "execution times"
   defp metric_noun("wait_time"), do: "queue times"
 
-  defp series_label("exec_count"), do: "exec"
-  defp series_label("exec_time"), do: "time"
-  defp series_label("wait_time"), do: "wait"
+  defp series_label("exec_count"), do: "Exec"
+  defp series_label("exec_time"), do: "Time"
+  defp series_label("wait_time"), do: "Wait"
 
   # The selected state is named whenever it shapes the chart: it narrows any other grouping, and
   # it is isolated in the state stack whenever it has a series there.
