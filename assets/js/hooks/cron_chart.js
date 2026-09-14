@@ -25,15 +25,10 @@ const formatDuration = (ms) => {
 }
 
 const formatTime = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
+  return `${new Date(timestamp).toISOString().slice(0, 19).replace("T", " ")} UTC`
 }
+
+const formatTick = (timestamp) => new Date(timestamp).toISOString().slice(11, 16)
 
 const CronChart = {
   mounted() {
@@ -82,13 +77,7 @@ const CronChart = {
               autoSkip: true,
               maxTicksLimit: 6,
               callback: function (value) {
-                const timestamp = parseInt(this.getLabelForValue(value), 10)
-                const date = new Date(timestamp)
-                return date.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                })
+                return formatTick(parseInt(this.getLabelForValue(value), 10))
               },
             },
           },

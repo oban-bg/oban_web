@@ -51,7 +51,7 @@ defmodule Oban.Web.CronsPage do
             <div class="pl-3 ml-auto flex items-center">
               <SortComponent.select
                 id="crons-sort"
-                by={~w(name worker schedule last_run next_run)}
+                by={~w(name schedule last_run next_run)}
                 defaults={@default_params}
                 page={:crons}
                 params={@params}
@@ -111,7 +111,7 @@ defmodule Oban.Web.CronsPage do
 
   @impl Page
   def handle_mount(socket) do
-    default = %{limit: @min_limit, sort_by: "worker", sort_dir: "asc"}
+    default = %{limit: @min_limit, sort_by: "name", sort_dir: "asc"}
 
     socket
     |> assign(:default_params, default)

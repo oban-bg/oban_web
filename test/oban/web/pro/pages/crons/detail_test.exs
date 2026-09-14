@@ -175,7 +175,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         html = refresh(live)
 
         assert html =~ "Paused cron pause-test"
-        refute html =~ ~r/Last Status.*Paused/s
+        refute html =~ ~r/Last State.*Paused/s
       end
 
       test "run now button inserts a job for the cron", %{oban: oban} do

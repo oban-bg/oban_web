@@ -24,6 +24,12 @@ function toDuration(timestamp) {
   return parts.join(":")
 }
 
+// A lone "1h" covers everything from sixty to a hundred and nineteen minutes, which is too coarse
+// to tell whether a cron is late.
+function withMinor(major, majorUnit, minor, minorUnit) {
+  return minor > 0 ? `${major}${majorUnit} ${minor}${minorUnit}` : `${major}${majorUnit}`
+}
+
 function toWords(timestamp) {
   if (missing(timestamp)) return "-"
 
@@ -36,8 +42,11 @@ function toWords(timestamp) {
 
   if (relative <= 59) distance = `${relative}s`
   else if (relative <= 3_599) distance = `${Math.floor(relative / 60)}m`
-  else if (relative <= 86_399) distance = `${Math.floor(relative / 3_600)}h`
-  else if (relative <= 2_591_999) distance = `${Math.floor(relative / 86_400)}d`
+  else if (relative <= 86_399) {
+    distance = withMinor(Math.floor(relative / 3_600), "h", Math.floor((relative % 3_600) / 60), "m")
+  } else if (relative <= 2_591_999) {
+    distance = withMinor(Math.floor(relative / 86_400), "d", Math.floor((relative % 86_400) / 3_600), "h")
+  }
   else if (relative <= 31_535_999) distance = `${Math.floor(relative / 2_592_000)}mo`
   else distance = `${Math.floor(relative / 31_536_000)}yr`
 
@@ -47,9 +56,6 @@ function toWords(timestamp) {
   return distance
 }
 
-// Every relative timestamp on a page shares one ticker rather than owning an interval. A table
-// of a hundred rows would otherwise run a hundred timers, each reading localStorage and rewriting
-// text that rarely changes.
 const hooks = new Set()
 
 let ticker = null

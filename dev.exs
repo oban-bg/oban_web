@@ -1108,7 +1108,7 @@ oban_opts = [
        {"*/2 * * * *", Oban.Workers.BotCleaner, tags: ~w(health bots)},
        {"*/10 * * * *", Oban.Workers.UserPlanBackfill},
        {"*/5 * * * *", Oban.Workers.TrialCleaner, priority: 2},
-       {"*/15 * * * *", Oban.Workers.DormantLocker},
+       {"*/15 * * * *", Oban.Workers.DormantLocker, paused: true},
        {"0 * * * *", Oban.Workers.TrafficReport, args: %{format: "json"}, tags: ["reports"]},
        {"*/10 * * * *", Oban.Pro.Decorator,
         name: "Oban.Workers.ArticleSummarizer.digest/0",
@@ -1121,7 +1121,7 @@ oban_opts = [
        {"*/5 * * * *", Oban.Workers.CustomerSegmenter, args: %{batch_size: 1000}},
        {"30 */3 * * *", Oban.Workers.IndexRebuilder, priority: 1},
        {"*/5 * * * *", Oban.Workers.SecurityScanner, tags: ["security"]},
-       {"0 6 * * MON", Oban.Workers.WeeklyUpdate, priority: 3}
+       {"0 6 * * MON", Oban.Workers.WeeklyUpdate, priority: 3, timezone: "America/Chicago"}
      ]}
   ]
 ]

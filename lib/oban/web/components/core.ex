@@ -382,6 +382,9 @@ defmodule Oban.Web.Components.Core do
   defp badge_icon(%{name: "arrow_path_rounded"} = assigns),
     do: ~H[<Icons.icon name="icon-arrow-path-rounded" class="h-4 w-4 shrink-0" />]
 
+  defp badge_icon(%{name: "at_symbol"} = assigns),
+    do: ~H[<Icons.icon name="icon-at-symbol" class="h-4 w-4 shrink-0" />]
+
   defp badge_icon(%{name: "camera"} = assigns),
     do: ~H[<Icons.icon name="icon-camera" class="h-4 w-4 shrink-0" />]
 

@@ -95,18 +95,52 @@ defmodule Oban.Web.CronQuery do
   # Querying
 
   def all_crons(params, conf) do
-    crontab = static_crontab(conf) ++ dynamic_crontab(conf)
-    history = crontab_history(crontab, conf)
+    opts = [default_sort: {:name, :asc}, limit: 20]
 
-    crontab
-    |> Enum.map(&build_cron(&1, history))
-    |> Queryable.refine(__MODULE__, params, default_sort: {:worker, :asc}, limit: 20)
+    crons =
+      conf
+      |> static_crontab()
+      |> Kernel.++(dynamic_crontab(conf))
+      |> Enum.map(&build_cron/1)
+
+    if history_refines?(params) do
+      crons
+      |> Enum.filter(&entry_match?(&1, params))
+      |> with_history(conf)
+      |> Queryable.refine(__MODULE__, params, opts)
+    else
+      crons
+      |> Queryable.refine(__MODULE__, params, opts)
+      |> with_history(conf)
+    end
+  end
+
+  defp history_refines?(%{sort_by: "last_run"}), do: true
+  defp history_refines?(%{states: _states}), do: true
+  defp history_refines?(_params), do: false
+
+  defp entry_match?(cron, params) do
+    params
+    |> Map.take(~w(names workers modes)a)
+    |> Enum.all?(&filter(cron, &1))
+  end
+
+  defp with_history([], _conf), do: []
+
+  defp with_history(crons, conf) do
+    history =
+      crons
+      |> Enum.map(& &1.name)
+      |> crontab_history(conf)
+
+    Enum.map(crons, &put_history(&1, Map.get(history, &1.name, [])))
   end
 
   def get_cron(name, conf) when is_binary(name) do
     with entry when not is_nil(entry) <- find_cron_entry(name, conf) do
-      history = cron_history(name, conf)
-      build_cron(entry, %{name => history})
+      entry
+      |> build_cron()
+      |> put_history(cron_history(name, conf))
     end
   end
 
@@ -188,10 +222,7 @@ defmodule Oban.Web.CronQuery do
 
   # Construction
 
-  defp build_cron({expr, worker, opts, name, dynamic?, paused?}, history) do
-    jobs = Map.get(history, name, [])
-    last_job = List.last(jobs)
-
+  defp build_cron({expr, worker, opts, name, dynamic?, paused?}) do
     decorated_name = Cron.decorated_name(worker, opts)
 
     fields = [
@@ -203,13 +234,21 @@ defmodule Oban.Web.CronQuery do
       decorated?: is_binary(decorated_name),
       dynamic?: dynamic?,
       paused?: paused?,
-      next_at: next_at(expr),
-      last_at: last_at_from_job(last_job),
-      last_state: if(last_job, do: last_job.state),
-      history: jobs
+      next_at: next_at(expr, opts, paused?)
     ]
 
     struct!(Cron, fields)
+  end
+
+  defp put_history(cron, jobs) do
+    last_job = List.last(jobs)
+
+    %{
+      cron
+      | last_at: last_at_from_job(last_job),
+        last_state: if(last_job, do: last_job.state),
+        history: jobs
+    }
   end
 
   defp handler(worker, opts), do: Cron.decorated_name(worker, opts) || worker
@@ -220,15 +259,11 @@ defmodule Oban.Web.CronQuery do
   defp last_at_from_job(%{scheduled_at: at}) when not is_nil(at), do: at
   defp last_at_from_job(_job), do: nil
 
-  def crontab_history(crontab, conf) when is_mysql(conf) or is_sqlite(conf) do
-    crontab
-    |> Enum.map(&elem(&1, 3))
-    |> Map.new(fn name -> {name, cron_history(name, conf)} end)
+  def crontab_history(names, conf) when is_mysql(conf) or is_sqlite(conf) do
+    Map.new(names, fn name -> {name, cron_history(name, conf)} end)
   end
 
-  def crontab_history(crontab, conf) do
-    names = Enum.map(crontab, &elem(&1, 3))
-
+  def crontab_history(names, conf) do
     # The `offset: 0` is an optimization fence for Postgres. Without it the planner pulls the
     # subquery up and, lacking stats for the lateral value, walks the primary key backward
     # filtering on `meta` rather than using the GIN index. CockroachDB elides a zero offset.
@@ -281,25 +316,59 @@ defmodule Oban.Web.CronQuery do
   defp empty_job?(%{scheduled_at: nil}), do: true
   defp empty_job?(_job), do: false
 
-  defp next_at(expression) do
-    expression
-    |> Expression.parse!()
-    |> Expression.next_at()
+  # A paused entry has no next run, and neither does one that only fires at boot. Per-entry
+  # timezones ride along in the entry's opts, but the plugin-level timezone never leaves its
+  # node, so entries without an override are evaluated in UTC.
+  defp next_at(_expression, _opts, true), do: nil
+
+  defp next_at(expression, opts, false) do
+    timezone = Map.get(opts, "timezone", "Etc/UTC")
+
+    case Expression.next_at(Expression.parse!(expression), now_in(timezone)) do
+      %DateTime{} = next_at -> DateTime.shift_zone!(next_at, "Etc/UTC")
+      :unknown -> nil
+    end
+  end
+
+  # Without a timezone database, which the standalone image doesn't ship, only UTC resolves.
+  defp now_in(timezone) do
+    case DateTime.now(timezone) do
+      {:ok, now} -> now
+      {:error, _reason} -> DateTime.utc_now()
+    end
   end
 
   # Sorting
 
   @impl Queryable
-  def sorter(sort_by, dir) when sort_by in [:last_run, :next_run], do: {dir, NaiveDateTime}
+  def sorter(:last_run, dir), do: {dir, NaiveDateTime}
+  def sorter(:next_run, dir), do: {dir, DateTime}
   def sorter(_sort_by, dir), do: dir
 
   @impl Queryable
   def order(%{last_at: nil}, :last_run), do: ~U[2000-01-01 00:00:00Z]
   def order(%{last_at: last_at}, :last_run), do: last_at
-  def order(%{name: name}, :name), do: name
+  def order(%{next_at: nil}, :next_run), do: ~U[9999-12-31 23:59:59Z]
   def order(%{next_at: next_at}, :next_run), do: next_at
-  def order(%{expression: expression}, :schedule), do: expression
-  def order(%{handler: handler}, :worker), do: handler
+  def order(%{expression: expression}, :schedule), do: cadence(expression)
+
+  # Rows are recognized by their handler, but several entries may share one. Ordering by the
+  # entry name second keeps those neighbors in a stable order rather than crontab order.
+  def order(%{handler: handler, name: name}, :name), do: {handler, name}
+
+  # Sorting expressions as text puts "*/5 * * * *" beside "0 0 * * *" for no reason a reader
+  # could name. The gap between the next two fires orders entries by how often they run instead,
+  # and a reboot entry, which has no cadence, sorts after every entry that does.
+  defp cadence(expression) do
+    parsed = Expression.parse!(expression)
+
+    with %DateTime{} = first <- Expression.next_at(parsed),
+         %DateTime{} = second <- Expression.next_at(parsed, first) do
+      DateTime.diff(second, first)
+    else
+      :unknown -> :infinity
+    end
+  end
 
   # Filtering
 

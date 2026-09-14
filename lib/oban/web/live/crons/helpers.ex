@@ -7,16 +7,9 @@ defmodule Oban.Web.Crons.Helpers do
   alias Oban.Web.Components.Icons
 
   attr :state, :string, required: true
-  attr :paused, :boolean, default: false
-
-  def state_icon(%{paused: true} = assigns) do
-    ~H"""
-    <Icons.icon name="icon-pause-circle" class="w-5 h-5 text-gray-400" />
-    """
-  end
 
   def state_icon(assigns) do
-    assigns = assign(assigns, :color_class, Colors.state_text_class(assigns.state))
+    assigns = assign(assigns, :color_class, elem(Colors.state_classes(assigns.state), 2))
 
     ~H"""
     <%= case @state do %>
@@ -35,7 +28,7 @@ defmodule Oban.Web.Crons.Helpers do
       <% "scheduled" -> %>
         <Icons.icon name="icon-clock" class={["w-5 h-5", @color_class]} />
       <% _ -> %>
-        <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400" />
+        <Icons.icon name="icon-minus-circle" class="w-5 h-5 text-gray-400 dark:text-gray-500" />
     <% end %>
     """
   end

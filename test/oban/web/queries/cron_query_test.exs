@@ -141,7 +141,9 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
     end
 
     defp crontab_history(crontab) do
-      CronQuery.crontab_history(crontab, @conf)
+      crontab
+      |> Enum.map(&elem(&1, 3))
+      |> CronQuery.crontab_history(@conf)
     end
 
     defp insert!(args, opts) do

@@ -2,14 +2,7 @@ import tippy, { followCursor, roundArrow } from "tippy.js"
 import { STATE_FG, GRAY } from "../lib/colors"
 
 const formatTime = (timestamp) => {
-  const date = new Date(timestamp)
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })
+  return `${new Date(timestamp).toISOString().slice(0, 19).replace("T", " ")} UTC`
 }
 
 const CronSparkline = {

@@ -18,7 +18,7 @@ defmodule Oban.Web.Queues.TableComponent do
         <div class="flex flex-grow items-center min-w-0">
           <Core.column_header label="name" class="flex-1" />
           <div class="ml-auto flex items-center space-x-6">
-            <Core.column_header label="utilization" class="w-56" />
+            <Core.column_header label="utilization" class="w-44" />
             <Core.column_header label="history" class="hidden xl:block w-80 text-center" />
           </div>
         </div>
@@ -27,7 +27,7 @@ defmodule Oban.Web.Queues.TableComponent do
           <Core.column_header label="scheduled" class="w-20 text-right" />
           <Core.column_header label="retryable" class="w-20 text-right" />
           <Core.column_header label="nodes" class="w-14 text-center" />
-          <Core.column_header label="status" class="w-16 text-right" />
+          <Core.column_header label="status" class="w-32 text-right" />
         </div>
       </Core.table_header>
 
@@ -103,7 +103,7 @@ defmodule Oban.Web.Queues.TableComponent do
 
         <div class="ml-auto flex items-center space-x-6">
           <% {exec, limit, percent} = utilization(@queue) %>
-          <div rel="utilization" class="w-56 flex items-center text-gray-500 dark:text-gray-300">
+          <div rel="utilization" class="w-44 flex items-center text-gray-500 dark:text-gray-300">
             <span
               class="flex items-center"
               data-title="Executing / Limit"
@@ -118,26 +118,6 @@ defmodule Oban.Web.Queues.TableComponent do
                 <span class="sr-only">{exec} of {limit} executing</span>
               </span>
             </span>
-            <div class="w-14 pl-2 flex items-center justify-start space-x-1 text-gray-500 dark:text-gray-400">
-              <.limit_icon
-                :if={Queue.global_limit?(@queue)}
-                icon="icon-globe"
-                id={"#{@queue.name}-has-global"}
-                label="Global limit"
-              />
-              <.limit_icon
-                :if={Queue.rate_limit?(@queue)}
-                icon="icon-arrow-trending-down"
-                id={"#{@queue.name}-has-rate"}
-                label="Rate limit"
-              />
-              <.limit_icon
-                :if={Queue.partitioned?(@queue)}
-                icon="icon-view-columns"
-                id={"#{@queue.name}-has-partition"}
-                label="Partitioned"
-              />
-            </div>
           </div>
 
           <div class="hidden xl:flex w-80 justify-center">
@@ -165,7 +145,25 @@ defmodule Oban.Web.Queues.TableComponent do
           <span class="sr-only">nodes</span>
         </span>
 
-        <div class="w-16 flex justify-end items-center space-x-1">
+        <div class="w-32 flex justify-end items-center space-x-1">
+          <.limit_icon
+            :if={Queue.global_limit?(@queue)}
+            icon="icon-globe"
+            id={"#{@queue.name}-has-global"}
+            label="Global limit"
+          />
+          <.limit_icon
+            :if={Queue.rate_limit?(@queue)}
+            icon="icon-arrow-trending-down"
+            id={"#{@queue.name}-has-rate"}
+            label="Rate limit"
+          />
+          <.limit_icon
+            :if={Queue.partitioned?(@queue)}
+            icon="icon-view-columns"
+            id={"#{@queue.name}-has-partition"}
+            label="Partitioned"
+          />
           <.status_icon
             :if={Queue.all_paused?(@queue)}
             icon="icon-pause-circle"
@@ -226,10 +224,17 @@ defmodule Oban.Web.Queues.TableComponent do
   attr :id, :string, required: true
   attr :label, :string, required: true
 
+  # Limits are configuration rather than a warning, so they lead the status cluster in body gray
+  # and leave the amber pause and shutdown glyphs anchored at the right edge.
   defp limit_icon(assigns) do
     ~H"""
-    <span class="flex items-center" data-title={@label} id={@id} phx-hook="Tippy">
-      <Icons.icon name={@icon} class="w-4 h-4" />
+    <span
+      class="flex items-center text-gray-500 dark:text-gray-400"
+      data-title={@label}
+      id={@id}
+      phx-hook="Tippy"
+    >
+      <Icons.icon name={@icon} class="w-5 h-5" />
       <span class="sr-only">{@label}</span>
     </span>
     """

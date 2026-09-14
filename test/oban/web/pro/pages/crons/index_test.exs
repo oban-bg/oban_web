@@ -74,6 +74,15 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert table =~ ~r/Oban.Workers.CronC/
     end
 
+    test "marking paused crons instead of promising a next run", %{live: live, oban: oban} do
+      Cron.insert(oban, [{"* * * * *", Oban.Workers.CronC, name: "paused-cron", paused: true}])
+
+      refresh(live)
+
+      assert has_element?(live, "#cron-paused-icon-paused-cron .sr-only", "Paused")
+      assert has_element?(live, "#cron-nts-paused-cron", "paused")
+    end
+
     test "viewing decorated crons by their handler", %{live: live, oban: oban} do
       Cron.insert(oban, [
         decorated_cron_entry("0 * * * *", fun: "cleanup", name: decorated_cron_name("cleanup"))
@@ -87,8 +96,14 @@ if Code.ensure_loaded?(Oban.Pro) do
         |> render()
 
       assert table =~ decorated_cron_name("cleanup")
-      assert table =~ "decorated"
       refute table =~ "Oban.Pro.Decorator"
+
+      assert has_element?(
+               live,
+               ~s([id="cron-mode-icon-#{decorated_cron_name("cleanup")}"] .sr-only),
+               "Decorated"
+             )
+
       refute table =~ ~s("fun" => "digest")
     end
 

@@ -147,14 +147,4 @@ defmodule Oban.Web.Colors do
   end
 
   def state_bg_class(_state), do: "bg-gray-400"
-
-  @doc """
-  Returns the text class for a state (e.g., "text-cyan-400").
-  """
-  def state_text_class(state) when is_binary(state) do
-    color_name = Map.get(@state_color_names, state, :gray)
-    "text-#{color_name}-400"
-  end
-
-  def state_text_class(_state), do: "text-gray-400"
 end

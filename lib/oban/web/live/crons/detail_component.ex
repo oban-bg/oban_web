@@ -159,7 +159,7 @@ defmodule Oban.Web.Crons.DetailComponent do
         <Core.status_badge
           :if={@cron.decorated?}
           id="status-decorated"
-          icon="sparkles"
+          icon="at_symbol"
           label="Decorated"
           tooltip={"Calls #{@cron.handler} through #{@cron.worker}"}
         />
@@ -310,7 +310,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
       <div class="flex flex-col">
         <dt class="uppercase font-semibold text-xs text-gray-500 dark:text-gray-400 mb-1">
-          Last Status
+          Last State
         </dt>
         <dd class="flex items-center space-x-1">
           <.state_icon state={@cron.last_state} />
