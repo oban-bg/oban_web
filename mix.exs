@@ -2,7 +2,7 @@ defmodule Oban.Web.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/oban-bg/oban_web"
-  @version "2.12.7"
+  @version "2.13.0"
 
   def project do
     [
@@ -101,7 +101,7 @@ defmodule Oban.Web.MixProject do
       {:phoenix_live_view, "~> 1.0"},
 
       # Oban
-      {:oban, "~> 2.21"},
+      {:oban, "~> 2.24"},
       {:oban_met, "~> 1.1"},
 
       # Databases
@@ -130,7 +130,7 @@ defmodule Oban.Web.MixProject do
 
   defp oban_pro_dep do
     if oban_repo_configured?() do
-      [{:oban_pro, "~> 1.8.0-rc.0", repo: :oban, only: [:test, :dev]}]
+      [{:oban_pro, "~> 1.8.0", repo: :oban, only: [:test, :dev]}]
     else
       []
     end

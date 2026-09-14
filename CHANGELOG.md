@@ -1,412 +1,305 @@
-# Changelog for Oban Web v2.12
+# Changelog for Oban Web v2.13
 
-This is a major release that overhauls job details, the queues table, queue details, introduces a
-crons page, adds a workflows page, and adds a job creation sidebar.
+This release adds a pruners page, archived job browsing, a reworked jobs chart and sidebar, and
+sharpens every single page to optimize triage and overall accessibility.
 
 > #### Requirements {: .info}
 >
-> This release requires Oban v2.21+ and the new V14 migration due to important schema changes. For
-> Pro users, v1.7+ is also required along with the v1.7.0 migration.
+> This release requires Oban v2.24+. For Pro users, v1.8+ is required for the pruners page,
+> archived jobs, compensations, and chunk views, along with the v1.8.0 migration.
 
-## 🔀 Workflows Page
+## 🧹 Pruners Page
 
-There is a new page for viewing, filtering, and generally managing workflows. The table displays
-workflow progress, activity counts, duration, and nested sub-workflows. Workflows can be filtered
-by properties like name, workers, or status.
-
-<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-workflows-av1.mp4" type="video/mp4" codecs="av01">
-  <source src="https://media.oban.pro/web-2-12-workflows.mp4" type="video/mp4">
-</video>
-
-Clicking into a workflow brings you to a detail view with an interactive graph showing jobs as
-stateful nodes with dependencies. The graph supports panning, zooming, directional layout
-toggling, and a default tracking mode that follows executing nodes. Sub-workflow nodes can be
-expanded inline to reveal their internal jobs, or navigated to for direct management such as
-retrying or cancelling.
-
-Workflow viewing remains fast on busy systems or with _large_ workflows thanks to the new
-`oban_workflows` aggregate table in Pro v1.7. It's also compatible with Python Pro, though
-cancel/retry actions require Elixir.
-
-## ⏰ Crons Page
-
-There's also a new page for viewing and managing cron entries. The table displays all static and
-dynamic entries with history sparklines and activity details.
+There is a new page for viewing and managing Pro pruning rules. In Pro v1.8 pruning rules live in
+the database rather than static config, the dashboard shows persisted rules, and allows editing at
+runtime.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-crons-av1.mp4" type="video/mp4" codecs="av01">
-  <source src="https://media.oban.pro/web-2-12-crons.mp4" type="video/mp4">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-pruners-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-pruners.mp4" type="video/mp4">
 </video>
 
-The cron detail view includes natural language expressions like "Daily at 8:00 and 9:00" or
-"Weekdays except Monday", along with cron entry specifics, and recent job history.
+Rules are shown in order with their details, and the index supports all the usual filtering and
+sorting. It's also possible to reorder rules to change precedence.
 
-For Pro users, `DynamicCron` entires can be created, edited, paused, resumed, or deleted directly
-from a form on the details page.
+Retention, limits, and scoping can be edited on each Rule's detail page. New rules can also be
+created on the fly for users with proper access.
 
-## 🔍 Job Details
+## 🗄️ Archived Jobs
 
-The job detail page is rebuilt with a full-width layout and a new timeline component that shows
-the job state machine as a branching diagram rather than a linear progression.
+The new Pruner also brought automatic archiving for select rules, and archived jobs are visible in
+`archive` mode. Archived jobs can be filtered, inspected, and deleted like live jobs, with any
+functionality (like cancellation) that doesn't apply disabled.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-jobs-details-av1.mp4" type="video/mp4" codecs="av01">
-  <source src="https://media.oban.pro/web-2-12-jobs-details.mp4" type="video/mp4">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-archive-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-archive.mp4" type="video/mp4">
 </video>
 
-A scoped chart displays execution history for that worker's previous jobs and jobs in an
-incomplete, non-executing state can now be edited directly.
+## 📊 Jobs Chart and Sidebar
 
-Executing Pro jobs display live diagnostics including process status, reductions, memory, and
-current stacktrace. The diagnostics panel persists after job completion with a "Stale" indicator
-showing the data is from when the job was running.
-
-## ➡️ Queues Table and Details
-
-The queues table is redesigned with a utilization gauge and a history sparkline showing 5-minute
-throughput for each queue. The queue sidebar provided minimal value, and it was removed to make
-room for the additional data displayed per-row.
+The jobs chart is rebuilt for more intuitive metric comparisons. Filtering by state dims all other
+values, and state/node/worker grouping follows filters automatically. The chart refreshes on every
+tick now, scrolls smoothly, and avoids rescaling during activity spikes.
 
 <video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
-  <source src="https://media.oban.pro/web-2-12-queues-av1.mp4" type="video/mp4" codecs="av01">
-  <source src="https://media.oban.pro/web-2-12-queues.mp4" type="video/mp4">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-jobs-chart-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-jobs-chart.mp4" type="video/mp4">
 </video>
 
-The queue detail page adds status badges for paused, partial, and terminating states, with
-pause/resume, stop, and edit buttons in the header. Partitioning controls are expanded with meta
-options and burst mode configuration.
+The sidebar is now stateful and options are persistent. The queue's count follows the current
+state, so filtering by `discarded` shows how many discarded jobs each queue holds, etc. Sections
+remember whether they're collapsed, queue rows link to their detail page, and deep links like
+select the right state on initial render.
 
-## v2.12.7 - 2026-08-28
+## 🔗 Chunks, Chains, and Backfills
+
+Chunks, chains, and backfills are easily identifiable, filterable, and fully navigable.
+
+Executing chunks appear as a combined unit, with the leader row showing the total chunk size.
+Siblings are still listed in other states, and they have a link back to the leader job.
+
+<video autoplay loop muted playsinline loading="lazy" preload="none" style="width: 100%; border-radius: 12px;">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-chains-av1.mp4" type="video/mp4" codecs="av01">
+  <source src="https://oban-pro-assets.s3.eu-west-2.amazonaws.com/web-2-13-chains.mp4" type="video/mp4">
+</video>
+
+Chains and backfills show a badge on the jobs table, matching chunks. Job details gain Chain and
+Backfill rows that link to the previous, next, and all related jobs in the sequence, along with
+each job's execution state. All three composition tools gain a filter, like `chain:1234` to help
+target all related jobs.
+
+## v2.13.0 - 2026-09-15
+
+### Enhancements
+
+- [Crons] Sharpen the crons index for triage
+
+  Next run is evaluated in the entry's own timezone, paused entries read "paused", and `@reboot`
+  entries read "at reboot". Last and next run carry the exact clock in a tooltip, the schedule sort
+  orders by frequency, and the name sort groups entries by handler. Dynamic and decorated entries
+  are marked with icons in the status column, and job history is only fetched for the page that
+  renders.
+
+- [Crons] Show decorated crons by their handler
+
+  Pro v1.8 persists decorated cron functions as `Oban.Pro.Decorator` entries. The crons page
+  derives the handler name for those entries and uses it consistently.
+
+- [Crons] Use inline editing for cron details
+
+  Cron details edit in place, matching pruners. Clearing an option like queue, timezone, tags, or
+  args removes it rather than being ignored, renaming reopens the cron at its new address, and
+  invalid expressions or args are reported inline.
+
+- [Dashboard] Make search, sort, and tables usable by keyboard
+
+  Search is a proper combobox where `Tab` only completes when there's something to complete, arrow
+  keys move through suggestions, and `Enter` picks one. Sort is a real menu with a separate
+  direction toggle, and the header, nav, and footer are fully keyboard operable.
+
+- [Dashboard] Show a second unit in relative times
+
+  Relative times carry a second unit for hours and days, so "1h" reads as "1h 14m" and "1d" as
+  "1d 9h", which is enough resolution to tell whether a cron is late.
+
+- [Dashboard] Match detail pages for queues, crons, pruners, and jobs
+
+  Detail pages share the same layout, form behavior, and language. Edit forms validate every field
+  and only submit what changed, so a refresh never overwrites edits in progress. Unavailable
+  actions explain why in their tooltips, deletes ask for confirmation, and copy buttons show
+  "Copied" feedback.
+
+- [Dashboard] Share empty state components across pages
+
+  Empty, no-match, promo, and missing-migration states render through shared components. Every
+  filtered miss offers a way to clear filters, and workflows prompt for the missing migration
+  instead of claiming Pro is absent.
+
+- [Dashboard] Align headings, footers, and history for index pages
+
+  Index panels share one title style and one paging footer that's hidden until a page is full.
+  Applying or clearing a search replaces history, so Back leaves the page instead of stepping
+  through filters.
+
+- [Dashboard] Improve contrast and screen reader labels throughout
+
+  State icons, counts, sparklines, toggles, and charts are named for assistive tech, and yellow,
+  cyan, and emerald state text is darkened in light mode to meet contrast requirements.
+
+- [Jobs] Browse and delete archived jobs
+
+  A toggled `archive` mode lists jobs from the Pro archive table with the same filtering, search,
+  and deletion as live jobs.
+
+- [Jobs] Group, link, and steady the jobs chart
+
+  Grouping follows filters or an explicit `Group` choice, series use a stable palette with a
+  legend, clicking a series filters the list, and the tooltip sits beside the hovered column.
+
+- [Jobs] Make the sidebar stateful and persistent
+
+  The queue count column follows the selected state, collapsed sections are remembered, queue rows
+  link to their detail page, and state deep links select the right state on first render.
+
+- [Jobs] Show chunk leaders and members in job views
+
+  Running chunks appear as a combined unit in the executing view, siblings are marked with their
+  leader elsewhere, and a `chunks:` filter shows every member of a chunk.
+
+- [Jobs] Highlight chains and backfills on jobs
+
+  Chains and backfills show a badge on the jobs table, and job details link to related jobs in the
+  sequence with their execution state.
+
+- [Jobs] Confirm bulk actions with visible filters
+
+  Bulk cancel, retry, run, delete, and queue stop ask for confirmation with a sentence naming how
+  many jobs are affected, their state, and the active filters. Selections survive loading more rows
+  or changing the sort, reaching the bulk action limit explains that select all can be repeated,
+  and select all honors a resolver's custom `bulk_action_limit`.
+
+- [Jobs] Keep the jobs header sticky and selections visible
+
+  Search, sort, and bulk actions stay reachable while scrolling, selected rows are tinted, and
+  clicking the header checkbox with a partial selection completes the visible page instead of
+  clearing it.
+
+- [Jobs] Name the active state and time column
+
+  The heading shows which state the rows belong to, and the time column header says what its value
+  means for that state, such as Running, Next retry, or Finished.
+
+- [Job Details] Support externally stored recorded output
+
+  Recorded output is fetched through Pro's storage backend, so jobs recorded to an external store
+  show their output rather than a storage key. External output loads on demand, and the panel
+  reports stored size and distinguishes nothing recorded, missing output, and an unreachable
+  backend.
+
+- [Job Details] Display process PID in job diagnostics
+
+  Executing Pro jobs show the process PID alongside the node and status.
+
+- [Pruners] Add pruners page for managing retention rules
+
+  Pro v1.8 pruning rules are listed with their precedence, match, and retention details, and can
+  be reordered, edited inline, or created from a side drawer. Concurrent edits are recovered
+  gracefully rather than discarding work in progress.
+
+- [Queues] Sharpen the queues index for triage
+
+  Queue counts are split into available, scheduled, and retryable columns with state dots that
+  link into the jobs list. Bare search filters by queue name, sorting by counts and executing
+  works, paused or terminating queues show in amber, and bulk action toasts name the queues they
+  touched.
+
+- [Queues] Support per node scaling for global limits
+
+  Global limits with `per_node: true` are read from producer checks and preserved when editing.
+  The global limit stat distinguishes "N cluster-wide" from "N per node", and queue totals scale
+  with node count so utilization reflects real capacity.
+
+- [Resolver] Add `recorded_size_limit/0` resolver callback
+
+  Caps rendered recorded output at 256kb by default. Decoding also follows the job's
+  `safe_decode` setting instead of always forcing `:safe`.
+
+- [Workflows] Support workflow compensations
+
+  Compensations roll back completed steps when a workflow fails. Workflow details gain a
+  compensation section reporting rollback state and jobs, compensations appear in the index under
+  the workflow they roll back, and a new `kinds:` qualifier filters them in or out.
+
+- [Workflows] Make the workflows index accurate and scannable
+
+  Progress shows each state instead of hiding failures inside a "finished" segment, activity
+  counts only what exists, rows needing attention carry an edge cue, and status agrees with the
+  started and duration columns.
+
+- [Workflows] Improve workflow detail legibility and safety
+
+  The graph sizes to its content and opens on the running or first failed step, with
+  keyboard-focusable nodes. Cancel and Retry confirm before acting, disable when nothing applies,
+  and report affected counts.
+
+- [Workflows] Look up origin names after the workflow limit
+
+  The index joined every root against its origin before sorting, even though only compensations
+  have an origin. A correlated subquery now runs for the visible rows alone, cutting used buffers
+  by more than half on an index with thousands of workflows.
 
 ### Changes
 
-- [Web] Support Oban v2.24 module reorganization
+- [Crons] Remove the worker sort from the crons index
 
-  Oban v2.24 flattened plugin, service, and engine modules to top-level names and dropped
-  `Oban.Plugins.Cron.entry_name/1`, which broke static cron name resolution.
+  The name sort now orders by handler and then entry name, so entries that share a worker stay
+  adjacent without a separate sort.
 
-  Entry names now resolve through `Oban.Cron` when it's available and fall back to the legacy
-  module, so a single release supports v2.21 through v2.24.
+- [Dashboard] Title detail pages consistently
 
-### Bug Fixes
+  Each detail heading and browser title reads as the name followed by its kind, and create pages
+  use the same wording as their forms.
 
-- [Cron] Build cron jobs through new/2 when available
+- [Jobs] Remove the "full" count option from the jobs chart
 
-  The cron "Run Now" action now resolves the worker module and overlays the cron options on top of
-  the worker's defaults, matching the jobs page behavior.
-
-- [Cron] Remove window function from `crontab_history` function
-
-  Drop the window function and use an order/limit clause directly in the lateral subquery. This
-  caps each iteration at 60 rows instead of doing a full table scan each time in CockroachDB.
-
-## v2.12.6 - 2026-07-06
-
-### Enhancements
-
-- [Jobs] Build jobs through worker `new/2` when available
-
-  The new job drawer always built changesets with `Job.new/2`, bypassing worker-level defaults,
-  validation, and Pro stages (recorded, chain, etc). Now we resolve the worker module and use its
-  `new/2` when it's loaded on the Web instance, falling back to `Job.new/2` when the module isn't
-  available.
+  The count series rarely changed and the sidebar already carries those numbers.
 
 ### Bug Fixes
 
-- [Dashboard] Resolve Elixir 1.20 compilation warnings
+- [Crons] Fix slow crons page load on Postgres
 
-  Fix all of the warnings surfaced by the Elixir v1.20 type checker and upgrade any packages with
-  errors or secutity warnings.
+  Fetching cron history caused a full table backward scan for every entry, taking multiple seconds
+  on large tables. The history query filters before sorting so Postgres uses the index, while
+  remaining compatible with CockroachDB.
 
-- [Job Details] Fix clearing tags when editing jobs
+- [Crons] Evaluate next run in the entry's timezone
 
-  Treat blank tag input as an empty list when editing jobs, while leaving it as `nil` during job
-  creation.
+  A `0 9 * * *` entry zoned to Chicago now shows a 9am local fire rather than 9am UTC.
 
-- [Job Details] Add clipboard fallback for insecure contexts
+- [Dashboard] Restore Inter and Menlo fonts after the Tailwind v4 upgrade
 
-  The navigator.clipboard API is only available in secure contexts (HTTPS or localhost), so
-  copying job args, meta, and stacktraces failed with "navigator.clipboard is undefined" when Oban
-  Web was served over plain HTTP. Fall back to execCommand so copy actions work in those
-  environments.
+  The theme declared fonts with names Tailwind v4 no longer uses, so every page silently fell back
+  to the system font.
 
-- [Job Details] Fix new job form ignoring the scheduled at time
+- [Dashboard] Fix refresh shortcut toggling twice per press
 
-  `DateTime.from_iso8601/1` returns a three-element tuple, but we only matched on `{:ok,
-  datetime}`. That clause never matched, so parsing always returned `nil` and jobs created with a
-  scheduled time ran immediately instead. Match the full tuple so the selected time is applied.
+  The shortcut listener stacked on every reconnect, so `r` flipped refresh off and back on
+  immediately. Toggling off now cancels the pending timer.
 
-- [Job Details]  Stack timeline labels on narrow screens
+- [Dashboard] Raise a descriptive error for denied actions
 
-  State boxes in the job timeline placed the state label and timestamp in a row that was too
-  narrow until the xl breakpoint, causing the timestamp to wrap awkwardly and the content to
-  bleed. Now the label and timestamp are stacked below xl, switching to side-by-side where there's
-  room to fit them.
+  Enforcing access raised `AccessError` without a message, which failed during formatting and
+  obscured the cause. The error now names the denied action and the access level that disallows
+  it.
 
-- [Cron] Fix cron and tag history queries for CockroachDB
+- [Dashboard] Respect `resolve_instances/1` for stashed and default instances
 
-  The cron history and tag suggestion queries relied on the Postgres-only implicit `value` column
-  name. CRDB names it after the function instead, which caused an `undefined_column` error.
+  Instance selection honors the resolver for the default instance, and the default telemetry
+  logger reports the actual instance name instead of always logging `Oban`.
 
-  Now the set-returning function is wrapped in a derived table with an explicit column alias for
-  all engines.
+- [Jobs] Refresh the jobs chart on every tick
 
-## v2.12.5 - 2026-05-26
+  The chart only re-queried when the page's second-resolution timestamp changed, so refreshes
+  landing in the same second were skipped.
 
-### Enhancements
+- [Jobs] Keep chart selection between navigated pages
 
-- [Jobs] Display awaitable signals in the job details page
+  Chart settings are mirrored into mounted state and read fresh on every join, so they survive a
+  remount.
 
-  Add a section that decodes and displays signal payloads sent via
-  `Oban.Pro.Worker.signal/2`. While a job is parked waiting, the section
-  shows "Awaiting Signal" with the deadline. Once a signal arrives, it
-  switches to "Received Signal".
+- [Job Details] Disable job detail actions without access
 
-- [Resolver] Add `format_signal/2` resolver callback
+  Cancel, retry, delete, and edit buttons are gated on resolver access, matching the queues and
+  workflows pages. Previously read only users saw enabled buttons that did nothing when clicked.
 
-  This allows customizing the decoded output,mirroring what's available
-  with `format_recorded/2`.
+- [Queues] Use fixed buckets for the queue detail sparkline
 
-### Bug Fixes
+  Idle periods were compressed away, so buckets minutes apart rendered as neighbors and every axis
+  label showed the same time. History now spans the full lookback window with a zero count where
+  nothing executed.
 
-- [Jobs] Restrict unauthorized job editing and updates with new permission
+- [Workflows] Add partial-index predicate to sub-workflow parent subquery
 
-  The save-job event handler previously dispatched changes from any client
-  without checking access controls, allowing a read-only user to rewrite a
-  job's worker module and potentially trigger code execution on the next
-  attempt. Editing now requires `:update_jobs` permission, which is
-  enabled by default for `:all` and disabled for `:read_only`.
-
-- [Cron] Prevent malicious cron expressions from unrestricted memory allocation
-
-  A maliciously crafted cron expression like "0 0 1--100000000 \* \*" could
-  trigger multi-gigabyte allocations when `describe/1` eagerly expanded
-  the range during formatting. Range, value, and step parsing now validate
-  against per-field bounds and require ranges to be non-decreasing, so
-  out-of-domain inputs are rejected before any expansion occurs.
-
-## v2.12.4 - 2026-05-11
-
-### Changes
-
-- [Dashboard] Upgrade oban_pro dependency to full v1.7 release
-
-  Require the full v1.7 release rather than a release candidate.
-
-### Bug Fixes
-
-- [Dashboard] Escape names with reserved URL characters in paths
-
-  Safely handle queues or crons with names like `foo/bar.baz` when linking from the queues and
-  crons tables.
-
-- [Workflow] Fix workflow queries ignoring custom prefix
-
-  Two raw SQL fragments in WorkflowQuery referenced tables without a schema qualifier, causing a
-  mismatch with the configured Oban prefix. Both fragments now inject the prefix as a quoted
-  identifier so they honor the configured prefix like any other Oban.Repo queries.
-
-- [Cron] Fix crash on cron page when an entry uses @reboot
-
-  The `next_at/2` function returns `:unknown` for `@reboot` crons, which fell through to
-  `maybe_to_unix/1` and crashed. Guard the helper on a `DateTime` struct and return an empty
-  string for anything else, safely convering `nil` or `:unknown`.
-
-- [Cron] Fix crash loading cron history on SQLite
-
-  The `COALESCE` fragment used to compute the `finished_at` time was untyped, so Ecto couldn't
-  apply the `:utc_datetime_usec` load callback. Postgrex would cast the value automatically, but
-  exqlite returned a string and crashed downstream locations expecting a DateTime.
-
-## v2.12.3 - 2026-04-15
-
-### Bug Fixes
-
-- [Dashboard] Switch icons from inline SVG to CSS masks
-
-  CSP doesn't allow inline styles, which includes the url-masks that our app was using for icons.
-  This removes the icons/asset pipeline in favor of the standard Tailwind plugin approach used by
-  modern Phoenix apps
-
-## v2.12.2 - 2026-03-31
-
-### Enhancements
-
-- [Jobs] Allow editing jobs in any state except `executing`
-
-  `Oban.update_job/3` allows editing any non-executing job, so the detail component's edit form
-  should as well.
-
-- [Standalone] Ship inetrc in standalone Docker image for native DNS resolution (#173)
-
-  The BEAM VM's built-in DNS resolver ignores `/etc/resolv.conf`, which prevents the standalone
-  image from resolving internal hostnames on platforms like Fly.io and Kubernetes with CoreDNS.
-
-### Bug Fixes
-
-- [Query] Prevent table check with non-PostgreSQL engines
-
-  The crons and workflows table checks only apply to Pro, and only Postgres engines should check
-  whether the tables exist.
-
-## v2.12.1 - 2026-03-25
-
-### Bug Fixes
-
-- [Dashboard] Include `priv/timezones.txt` in hex package
-
-  The timezones file wasn't included in the package files list, which broke compilation for
-  downloaded packages.
-
-## v2.12.0 - 2026-03-25
-
-While all bug fixes are listed below, the enhancements section only covers a portion of the new
-features. For enhancements, a video is worth many thousands of words.
-
-### Enhancements
-
-- [Dashboard] Preserve refresh changes between page changes
-
-  The refresh reverted to the original value between changes because there wasn't a new liveview
-  connection. Now the stored refresh value is synced on change, and reloaded when the component
-  mounts.
-
-- [Dahboard] Add a 30s option for refreshing
-
-  It's a simple addition that makes watching the cron page a bit more sensible.
-
-- [Dashboard] Serve dynamically loaded mask based svg icons
-
-  Rather than manually defining SVG icons inline, SVG files are tracked and dynamically loaded
-  from a compiled assets module.
-
-- [Dashboard] Serve font as static asset instead of embedding
-
-  Extract font out of the `app.css` and serve it as a stand-alone asset for better caching.
-
-- [Dashboard] Add help button to primary toolbar
-
-  The keyboard shortcuts modal was only accessible via the ? key with no visual indication it
-  existed. Added a help dropdown to the toolbar that links to documentation and opens the
-  shortcuts modal.
-
-- [Jobs] Support suspended state in sidebar and details
-
-  The latest Oban version adds a proper `suspended` state, so there's no more on_hold
-  psuedo-state.
-
-- [Jobs] Jobs rescued by any lifeline are detectable
-
-  Change the language for orphans to correctly indicate that any lifeline may have rescued them.
-
-- [Jobs] Redesign timeline as state machine visualization
-
-  Replace the linear horizontal timeline with a branching layout that accurately represents the
-  job state machine. Entry states (scheduled/retryable) flow into available, then executing, which
-  branches to terminal states (completed/cancelled/discarded).
-
-- [Jobs] Add diagnostics for executing jobs
-
-  Actively executing `Oban.Pro.Worker` jobs now display diagnostics including process status,
-  reductions, memory, and the current stacktrace.
-
-- [Jobs] Add job editing to job detail page
-
-  Job's in an incomplete and non-executing state can have their attributes edited. Internally,
-  `Oban.update_job/3` is used to perform the update, so standard validations still apply.
-
-- [Jobs] Refine layout and error display for job details
-
-  Restructure information for job details to emphasize what's important (args, the most recent
-  error), while providing control over which information is displayed.
-
-- [Jobs] Show history chart component for job detail
-
-  The new component uses exact historic information for the current job rather than the aggregate
-  metrics used for the primary job chart.
-
-- [Jobs] Add "New Job" drawer for creating jobs
-
-  Jobs can now be created directly from the Jobs page using a slide-out drawer. The form includes
-  fields for worker, args, queue, priority, max attempts, scheduled time, and tags. After
-  creation, the user is navigated to the new job's detail page.
-
-- [Crons] Use name provided by crontab for entry job history
-
-  The `cron_name` calculated for Elixir entries isn't compatible with those generated by Python.
-  The `oban-py` metrics now include a `name` option that is used to correctly match entries up
-  with historic jobs.
-
-- [Crons] Add cron parser for complex expressions
-
-  Parse cron fields into structured data before describing them, enabling support for:
-  - Combined DOM/DOW patterns like "The 1st, only on Mondays"
-  - Complement detection, "Daily except the 1st" or "except Tuesdays"
-  - Multiple hour values, "Daily at 8:00, 9:00, and 10:00"
-  - Weekday/weekend recognition
-
-  It's also switched to a 24-hour time format for international consistency.
-
-- [Queues] Remove sidebar from queues page The sidebar filters (paused, terminating, modes, nodes) added little
-
-  The sidebar filters (paused, terminating, modes, nodes) added little value for a typically small
-  dataset while consuming significant screen space. Filtering remains available via the search
-  component.
-
-- [Queues] Add history sparkline graph to queues table
-
-  Display a 5-minute throughput history for each queue using a sparkline
-  visualization with 5-second rollups (60 data points). Hovering over bars
-  shows the job count and timestamp for that interval.
-
-- [Queues] Refine queue detail forms and layout
-
-  Expand the queue form partitioning controls with "meta" options and burst mode. Also changes to
-  standard form inputs for numbers and select boxes within the edit form to simplify event
-  handling.
-
-- [Queues] Redesign queue details with actions and history
-
-  Add status badges for paused, partial, and terminating states. Include pause/resume, stop, and
-  edit buttons in the header for quick access. Display queue execution history in a chart
-  alongside stats.
-
-- [Pages] Add empty states for workflows, crons, and queues
-
-  Each page now shows a helpful message with an icon and documentation link when there's nothing
-  to display. The queues page distinguishes between having no queues configured versus filters
-  hiding all results.
-
-- [Pages] Improve dark mode color consistency and contrast
-
-  Standardize border colors across form inputs and controls, align form input backgrounds, and
-  increase contrast for disabled elements.
-
-### Bug Fixes
-
-- [Dahboard] Fix instance switching when resolver returns a list
-
-  Ensure the instance name and allowed instances are strings before comparison
-
-- [Dashboard] Poll registry instead of blocking on telemetry
-
-  Replace telemetry-based init that could block for 15 seconds waiting for an init event that may
-  have already fired. Now polls the Oban registry, avoiding the race condition that caused slow
-  websocket reconnections.
-
-- [Dashboard] Cache sidebar counts to prevent flickering
-
-  When the metric reporter's `check_interval` exceeds the 2s lookback window, counts briefly show
-  as zero between broadcasts. Cache previous non-empty counts in a centralized Metrics module and
-  return them when `Met.latest/3` returns an empty map.
-
-- [Dashboard] Automatically update theme when OS theme changes
-
-  Listen for prefers-color-scheme media query changes so the theme updates in real-time when the
-  browser or OS switches between light and dark mode.
-
-- [Standalone] Use the Postgres notifier for standalone instance
-
-  The PG notifier can't (easily) connect to an external cluster for notifications. Connection is
-  possible through the Postgres notifier.
+  The parent dependency subquery lacked the `meta ? 'workflow_id'` predicate, so Postgres couldn't
+  use the partial workflow index and scanned the jobs table instead.
