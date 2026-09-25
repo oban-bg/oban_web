@@ -6,6 +6,18 @@ defmodule Oban.Web.Jobs.Form do
 
   @cast_keys ~w(worker queue priority max_attempts scheduled_at tags args)
 
+  def seed do
+    %{
+      worker: "",
+      queue: "",
+      priority: "",
+      max_attempts: "",
+      scheduled_at: "",
+      tags: "",
+      args: "{}"
+    }
+  end
+
   def seed(job) do
     %{
       worker: job.worker,
@@ -70,6 +82,35 @@ defmodule Oban.Web.Jobs.Form do
       }
 
       {:ok, Map.reject(changes, fn {key, value} -> value == Map.fetch!(current, key) end)}
+    end
+  end
+
+  # Blank options are left out rather than defaulted here, so a worker's own defaults apply when
+  # the job is built through its new/2.
+  def build_insert(form) do
+    with {:ok, worker} <- parse_required(form.worker, :worker, "Worker is required"),
+         {:ok, args} <- parse_args(form.args),
+         {:ok, priority} <- parse_optional(form.priority, &parse_priority/1),
+         {:ok, max_attempts} <- parse_optional(form.max_attempts, &parse_max_attempts/1),
+         {:ok, scheduled_at} <- parse_optional(form.scheduled_at, &parse_datetime/1) do
+      opts =
+        [
+          queue: parse_string(form.queue) || "default",
+          priority: priority,
+          max_attempts: max_attempts,
+          scheduled_at: scheduled_at,
+          tags: parse_tags(form.tags)
+        ]
+        |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+
+      {:ok, {worker, args, opts}}
+    end
+  end
+
+  defp parse_optional(value, parser) do
+    case parse_string(value) do
+      nil -> {:ok, nil}
+      _value -> parser.(value)
     end
   end
 

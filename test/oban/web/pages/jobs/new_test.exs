@@ -100,35 +100,46 @@ defmodule Oban.Web.Pages.Jobs.NewTest do
       assert_patch(live, "/oban/jobs/#{job.id}")
     end
 
-    test "stays on drawer when args is invalid JSON", %{live: live} do
+    test "surfacing errors without creating", %{live: live} do
       live
       |> element("#new-job-button")
       |> render_click()
 
-      assert_patch(live, "/oban/jobs/new")
-
       live
-      |> form("#new-job-form", %{
-        "worker" => "MyApp.Workers.InvalidJsonWorker",
-        "args" => "not valid json"
-      })
+      |> form("#new-job-form", %{"worker" => "MyApp.Workers.Invalid", "args" => "not json"})
       |> render_submit()
 
-      # Drawer stays open, no redirect
-      assert has_element?(live, "#new-job")
-      refute Repo.get_by(Job, worker: "MyApp.Workers.InvalidJsonWorker")
+      assert live |> element("#new-job-errors") |> render() =~ "Args must be valid JSON"
+      assert has_element?(live, "#args[aria-invalid]")
+
+      live
+      |> form("#new-job-form", %{"args" => "{}", "priority" => "12"})
+      |> render_submit()
+
+      assert live |> element("#new-job-errors") |> render() =~ "Priority must be a number"
+      assert has_element?(live, "#priority[aria-invalid]")
+      refute has_element?(live, "#args[aria-invalid]")
+
+      refute Repo.get_by(Job, worker: "MyApp.Workers.Invalid")
     end
 
-    test "closes drawer on escape key", %{live: live} do
+    test "confirming before discarding edits", %{live: live} do
       live
       |> element("#new-job-button")
       |> render_click()
 
-      assert_patch(live, "/oban/jobs/new")
+      refute live |> element("#new-job-close") |> render() =~ "data-confirm"
 
       live
-      |> element("#new-job")
-      |> render_keydown(%{"key" => "Escape"})
+      |> form("#new-job-form", %{"worker" => "MyApp.Workers.Draft"})
+      |> render_change()
+
+      assert live |> element("#new-job-close") |> render() =~ "Discard this unsaved job?"
+      assert live |> element("#new-job-bg") |> render() =~ "Discard this unsaved job?"
+
+      live
+      |> element("#new-job-close")
+      |> render_click()
 
       assert_patch(live, "/oban/jobs")
     end

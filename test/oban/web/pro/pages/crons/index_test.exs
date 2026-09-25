@@ -187,18 +187,45 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert html =~ ~r/name="name"[^>]*value="send-email"/
       end
 
-      test "closes drawer on escape key", %{live: live} do
+      test "surfacing errors without creating", %{live: live, oban: oban} do
         refresh(live)
 
         live
         |> element("#new-cron-button")
         |> render_click()
 
-        assert_patch(live, "/oban/crons/new")
+        live
+        |> form("#new-cron-form", %{
+          "worker" => "Oban.Workers.CronA",
+          "name" => "seconds-cron",
+          "expression" => "0 * * * * *"
+        })
+        |> render_submit()
+
+        assert live |> element("#new-cron-errors") |> render() =~ "valid cron expression"
+        assert has_element?(live, "#expression[aria-invalid]")
+
+        refute Enum.any?(Cron.all(oban), &(&1.name == "seconds-cron"))
+      end
+
+      test "confirming before discarding edits", %{live: live} do
+        refresh(live)
 
         live
-        |> element("#new-cron")
-        |> render_keydown(%{"key" => "Escape"})
+        |> element("#new-cron-button")
+        |> render_click()
+
+        refute live |> element("#new-cron-close") |> render() =~ "data-confirm"
+
+        live
+        |> form("#new-cron-form", %{"worker" => "MyApp.Workers.Draft"})
+        |> render_change()
+
+        assert live |> element("#new-cron-close") |> render() =~ "Discard this unsaved cron?"
+
+        live
+        |> element("#new-cron-close")
+        |> render_click()
 
         assert_patch(live, "/oban/crons")
       end

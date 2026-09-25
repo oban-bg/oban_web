@@ -12,6 +12,21 @@ defmodule Oban.Web.Crons.Form do
   # stored entry untouched.
   @form_opts ~w(args guaranteed max_attempts priority queue tags timezone)
 
+  def seed do
+    %{
+      name: "",
+      worker: "",
+      expression: "",
+      queue: "",
+      timezone: "",
+      priority: "",
+      max_attempts: "",
+      guaranteed: false,
+      tags: "",
+      args: ""
+    }
+  end
+
   def seed(cron) do
     opts = cron.opts || %{}
 
@@ -52,20 +67,11 @@ defmodule Oban.Web.Crons.Form do
   # than merging a blank over the previous value. Changing the schedule or timezone resets the
   # entry's insertion history, which only happens when the expression is part of the update.
   def build_opts(form, baseline, current_opts) do
-    with {:ok, name} <- parse_required(form.name, :name, "Name is required"),
-         {:ok, worker} <- parse_required(form.worker, :worker, "Worker is required"),
-         {:ok, expression} <- parse_expression(form.expression),
-         {:ok, args} <- parse_args(form.args) do
+    with {:ok, {name, worker, expression, opts}} <- parse_entry(form) do
       opts =
         (current_opts || %{})
         |> Map.drop(@form_opts)
-        |> put_present("args", args)
-        |> put_present("guaranteed", form.guaranteed == true || nil)
-        |> put_present("max_attempts", parse_int(form.max_attempts))
-        |> put_present("priority", parse_int(form.priority))
-        |> put_present("queue", parse_string(form.queue))
-        |> put_present("tags", parse_tags(form.tags))
-        |> put_present("timezone", parse_string(form.timezone))
+        |> Map.merge(opts)
 
       params = [name: name, worker: worker, opts: opts]
 
@@ -74,6 +80,34 @@ defmodule Oban.Web.Crons.Form do
       else
         {:ok, params}
       end
+    end
+  end
+
+  # New entries are inserted as a crontab tuple, which takes its options as a keyword list.
+  def build_entry(form) do
+    with {:ok, {name, worker, expression, opts}} <- parse_entry(form) do
+      opts = for {key, value} <- opts, do: {String.to_existing_atom(key), value}
+
+      {:ok, {expression, worker, [{:name, name} | opts]}}
+    end
+  end
+
+  defp parse_entry(form) do
+    with {:ok, name} <- parse_required(form.name, :name, "Name is required"),
+         {:ok, worker} <- parse_required(form.worker, :worker, "Worker is required"),
+         {:ok, expression} <- parse_expression(form.expression),
+         {:ok, args} <- parse_args(form.args) do
+      opts =
+        %{}
+        |> put_present("args", args)
+        |> put_present("guaranteed", form.guaranteed == true || nil)
+        |> put_present("max_attempts", parse_int(form.max_attempts))
+        |> put_present("priority", parse_int(form.priority))
+        |> put_present("queue", parse_string(form.queue))
+        |> put_present("tags", parse_tags(form.tags))
+        |> put_present("timezone", parse_string(form.timezone))
+
+      {:ok, {name, worker, expression, opts}}
     end
   end
 

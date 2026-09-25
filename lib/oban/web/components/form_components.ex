@@ -230,21 +230,6 @@ defmodule Oban.Web.FormComponents do
   def decode_json(_json), do: :error
 
   @doc """
-  Parses a JSON string into a map, returning nil for empty or invalid values.
-  """
-  def parse_json(nil), do: nil
-  def parse_json(""), do: nil
-
-  def parse_json(str) when is_binary(str) do
-    case Oban.JSON.decode!(str) do
-      map when is_map(map) -> map
-      _ -> nil
-    end
-  rescue
-    _ -> nil
-  end
-
-  @doc """
   Flattens changeset errors into a list of readable messages, prefixing nested keys with their
   parent.
   """
