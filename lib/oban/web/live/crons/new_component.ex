@@ -50,7 +50,7 @@ defmodule Oban.Web.Crons.NewComponent do
                     id="new-cron-title"
                     class="text-lg font-semibold text-gray-900 dark:text-gray-100"
                   >
-                    New Dynamic Cron
+                    New Cron
                   </h2>
                   <button
                     id="new-cron-close"

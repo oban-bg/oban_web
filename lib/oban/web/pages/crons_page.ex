@@ -61,7 +61,7 @@ defmodule Oban.Web.CronsPage do
                 :if={Utils.has_crons?(@conf)}
                 patch={can?(:insert_crons, @access) && oban_path([:crons, :new])}
                 id="new-cron-button"
-                data-title="Create a new dynamic cron"
+                data-title="Create a new cron"
                 phx-hook="Tippy"
                 aria-disabled={not can?(:insert_crons, @access)}
                 class={[
@@ -168,7 +168,7 @@ defmodule Oban.Web.CronsPage do
 
     {:noreply,
      socket
-     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Dynamic Cron"))
+     |> assign(detailed: nil, show_new_form: true, page_title: page_title("New Cron"))
      |> assign(params: params)}
   end
 
