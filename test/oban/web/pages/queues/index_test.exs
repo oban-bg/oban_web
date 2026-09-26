@@ -192,6 +192,30 @@ defmodule Oban.Web.Pages.Queues.IndexTest do
     refute has_element?(live, "#selected-count")
   end
 
+  test "selecting all reaches queues beyond the loaded page", %{oban: oban} do
+    :telemetry_test.attach_event_handlers(self(), [[:oban_web, :action, :stop]])
+
+    names = for index <- 1..25, do: "queue-#{String.pad_leading("#{index}", 2, "0")}"
+
+    for name <- names, do: gossip(oban, node: "web.1", queue: name)
+
+    {:ok, live, _html} = live(build_conn(), "/oban/queues?names=queue")
+
+    refute has_element?(live, "#queue-queue-25")
+
+    toggle_select_all(live)
+
+    assert has_element?(live, "#selected-count", "25 selected")
+    assert has_element?(live, "#toggle-select[aria-checked=true]")
+
+    live
+    |> element("#bulk-actions #pause-queues")
+    |> render_click()
+
+    assert_receive {_event, _ref, _timing, %{action: :pause_queues, queues: queues}}
+    assert MapSet.new(names) == queues
+  end
+
   test "filtering queues by name with a bare search term", %{live: live, oban: oban} do
     gossip(oban, node: "web.1", queue: "alpha")
     gossip(oban, node: "web.1", queue: "bravo")

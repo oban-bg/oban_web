@@ -4,7 +4,18 @@ defmodule Oban.Web.QueuesPage do
   use Oban.Web, :live_component
 
   alias Oban.Met
-  alias Oban.Web.{Metrics, Page, QueueQuery, SearchComponent, SortComponent, Telemetry, Timing}
+
+  alias Oban.Web.{
+    Metrics,
+    Page,
+    QueueQuery,
+    Search,
+    SearchComponent,
+    SortComponent,
+    Telemetry,
+    Timing
+  }
+
   alias Oban.Web.Queues.{DetailComponent, DetailInstanceComponent, TableComponent}
 
   @inc_limit 20
@@ -12,7 +23,7 @@ defmodule Oban.Web.QueuesPage do
   @min_limit 20
 
   @known_params QueueQuery.known_params() ++ ~w(limit sort_by sort_dir)
-  @keep_on_mount ~w(checks counts default_params detail history node_history params queues selected)a
+  @keep_on_mount ~w(checks counts default_params detail history matching node_history params queues selected)a
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -65,13 +76,14 @@ defmodule Oban.Web.QueuesPage do
                     id="selected-count"
                     class="tabular text-sm font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap"
                   >
-                    {MapSet.size(@selected)} selected
+                    {integer_to_delimited(MapSet.size(@selected))} selected
                   </span>
 
                   <Core.action_button
                     :if={can?(:pause_queues, @access)}
                     label="Pause"
                     click="pause-queues"
+                    confirm={bulk_confirm(:pause, @selected, @params)}
                     target={@myself}
                   >
                     <:icon><Icons.icon name="icon-pause-circle" class="w-5 h-5" /></:icon>
@@ -92,7 +104,7 @@ defmodule Oban.Web.QueuesPage do
                     :if={can?(:stop_queues, @access)}
                     label="Stop"
                     click="stop-queues"
-                    confirm={stop_confirm(@selected)}
+                    confirm={bulk_confirm(:stop, @selected, @params)}
                     target={@myself}
                     danger={true}
                   >
@@ -151,6 +163,7 @@ defmodule Oban.Web.QueuesPage do
     |> assign_new(:default_params, default)
     |> assign_new(:detail, fn -> nil end)
     |> assign_new(:history, fn -> %{} end)
+    |> assign_new(:matching, &MapSet.new/0)
     |> assign_new(:node_history, fn -> %{} end)
     |> assign_new(:params, default)
     |> assign_new(:queues, fn -> [] end)
@@ -169,7 +182,9 @@ defmodule Oban.Web.QueuesPage do
 
     previous_counts = Metrics.extract_queue_counts(socket.assigns.queues)
     queue_counts = Metrics.all_queue_counts(conf.name, previous_counts)
-    queues = QueueQuery.all_queues(params, conf, queue_counts)
+    matching = QueueQuery.all_queues(Map.delete(params, :limit), conf, queue_counts)
+    queues = Enum.take(matching, limit)
+    names = MapSet.new(matching, & &1.name)
 
     node_history =
       if socket.assigns.detail do
@@ -183,11 +198,13 @@ defmodule Oban.Web.QueuesPage do
       checks: checks(conf),
       counts: queue_counts[:available],
       history: queue_history(conf),
+      matching: names,
       node_history: node_history,
       queues: queues,
+      selected: MapSet.intersection(socket.assigns.selected, names),
       show_less?: limit > @min_limit,
-      show_more?: limit < @max_limit and length(queues) == limit,
-      capped?: limit >= @max_limit and length(queues) == limit
+      show_more?: limit < @max_limit and length(matching) > limit,
+      capped?: limit >= @max_limit and length(matching) > limit
     )
     |> leave_vanished_detail()
   end
@@ -235,21 +252,36 @@ defmodule Oban.Web.QueuesPage do
     |> Map.new(fn {group, data} -> {group, Map.new(data)} end)
   end
 
-  defp stop_confirm(selected) do
-    "Stop #{queues_phrase(selected)} on every node? " <>
-      "Stopped queues can't be restarted from the dashboard."
+  defp bulk_confirm(action, selected, params) do
+    queues = queues_phrase(selected, params)
+
+    case action do
+      :pause ->
+        "Pause #{queues} on every node? Running jobs finish, but no new jobs start."
+
+      :stop ->
+        "Stop #{queues} on every node? Stopped queues can't be restarted from the dashboard."
+    end
   end
 
-  defp queues_phrase(selected) do
+  # Listed names already say which queues are affected, so filters only describe a bare count.
+  defp queues_phrase(selected, params \\ %{}) do
     case Enum.sort(selected) do
       [name] -> "the #{name} queue"
       names when length(names) <= 3 -> "the #{Enum.join(names, ", ")} queues"
-      names -> "#{length(names)} queues"
+      names -> "#{integer_to_delimited(length(names))} queues#{scope_phrase(params)}"
+    end
+  end
+
+  defp scope_phrase(params) do
+    case Search.describe(params, QueueQuery.qualifiers()) do
+      [] -> ""
+      filters -> " matching #{Enum.join(filters, " ")}"
     end
   end
 
   # The header checkbox reflects the listed queues, so with a filter active it can still clear
-  # everything it selected.
+  # everything it selected, including matches beyond the loaded page.
   defp select_mode(queues, selected) do
     names = MapSet.new(queues, & &1.name)
 
@@ -501,13 +533,13 @@ defmodule Oban.Web.QueuesPage do
   end
 
   def handle_info(:toggle_select_all, socket) do
-    %{queues: queues, selected: selected} = socket.assigns
+    %{matching: matching, queues: queues, selected: selected} = socket.assigns
 
     selected =
-      if select_mode(queues, selected) == :all do
-        MapSet.new()
-      else
-        MapSet.new(queues, & &1.name)
+      case select_mode(queues, selected) do
+        :all -> MapSet.new()
+        :some -> MapSet.union(selected, MapSet.new(queues, & &1.name))
+        :none -> matching
       end
 
     {:noreply, assign(socket, selected: selected)}
