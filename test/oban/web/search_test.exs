@@ -13,6 +13,11 @@ defmodule Oban.Web.SearchTest do
       assert %{names: ["mail"], nodes: ["web.1"]} == parse("mail nodes:web.1", @qualifiers)
     end
 
+    test "preserving punctuation within values" do
+      assert %{names: ["foo/bar"]} == parse("names:foo/bar", @qualifiers)
+      assert %{names: ["a+b", "c$d"]} == parse("a+b,c$d", @qualifiers)
+    end
+
     test "dropping bare terms without a default qualifier" do
       assert %{none: ""} == parse("mail", nodes: [])
     end

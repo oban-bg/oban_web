@@ -30,8 +30,6 @@ defmodule Oban.Web.Search do
   #
   #   * hidden — the qualifier is parsed from terms but never suggested or shown as a filter chip
 
-  @ignored_chars ~w(; / \ ` ' = * ! ? # $ & + ^ | ~ < > ( \) { } [ ])
-
   @boundary ~r/\s+(?=([^\"]*\"[^\"]*\")*[^\"]*$)/
 
   # Suggestion tuning
@@ -83,11 +81,7 @@ defmodule Oban.Web.Search do
   def parse(terms, qualifiers) when is_binary(terms) and is_list(qualifiers) do
     terms
     |> String.split(@boundary, trim: true)
-    |> Map.new(fn term ->
-      term
-      |> String.replace(@ignored_chars, "")
-      |> parse_term(qualifiers)
-    end)
+    |> Map.new(&parse_term(&1, qualifiers))
   end
 
   @doc """
