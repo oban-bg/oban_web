@@ -77,20 +77,14 @@ defmodule Oban.Web.Pages.Jobs.EditTest do
     end)
   end
 
-  test "read-only users cannot submit edits or rewrite the worker" do
+  test "read-only users don't receive the edit form" do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
     live = open_job(job, "/oban-readonly")
 
-    assert has_element?(live, "fieldset[disabled] #job-edit-form")
-
-    live
-    |> form("#job-edit-form", %{"worker" => "Attacker.Worker", "args" => "{}"})
-    |> render_submit()
-
-    reloaded = Repo.reload!(job)
-    assert reloaded.worker == job.worker
-    refute render(live) =~ "Job updated successfully"
+    assert has_element?(live, "#job-details")
+    refute has_element?(live, "#edit-toggle")
+    refute has_element?(live, "#job-edit-form")
   end
 
   @tag oban_opts: [queues: [alpha: 1]]

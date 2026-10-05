@@ -830,7 +830,10 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </div>
       </div>
 
-      <div :if={not @archive?} class="px-3 py-6 border-t border-gray-200 dark:border-gray-700">
+      <div
+        :if={not @archive? and can?(:update_jobs, @access)}
+        class="px-3 py-6 border-t border-gray-200 dark:border-gray-700"
+      >
         <button
           id="edit-toggle"
           type="button"
@@ -857,7 +860,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
         </button>
 
         <div id="edit-content" class={["mt-3", if(executing?(@job), do: "hidden")]}>
-          <fieldset disabled={executing?(@job) or not can?(:update_jobs, @access)}>
+          <fieldset disabled={executing?(@job)}>
             <form
               id="job-edit-form"
               class="grid grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-800 rounded-md p-4"
@@ -945,10 +948,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
                 <p :for={error <- @errors}>{error}</p>
               </div>
 
-              <div
-                :if={can?(:update_jobs, @access)}
-                class="col-span-4 flex justify-end items-center gap-4 pt-4"
-              >
+              <div class="col-span-4 flex justify-end items-center gap-4 pt-4">
                 <button
                   type="button"
                   id="detail-discard"
