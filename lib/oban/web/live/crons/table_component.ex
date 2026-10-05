@@ -26,14 +26,14 @@ defmodule Oban.Web.Crons.TableComponent do
       </Core.table_header>
 
       <Core.no_matches
-        :if={Enum.empty?(@crontab) and @filtered?}
+        :if={@crontab == [] and @filtered?}
         id="crons-no-matches"
         label="No crons match the current filters."
         clear={oban_path(:crons)}
       />
 
       <Core.empty_state
-        :if={Enum.empty?(@crontab) and not @filtered?}
+        :if={@crontab == [] and not @filtered?}
         icon="icon-clock"
         title="No crons"
       >
@@ -47,7 +47,7 @@ defmodule Oban.Web.Crons.TableComponent do
       </Core.empty_state>
 
       <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-        <.cron_row :for={cron <- @crontab} id={cron.name} cron={cron} />
+        <.cron_row :for={cron <- @crontab || []} id={cron.name} cron={cron} />
       </ul>
     </div>
     """

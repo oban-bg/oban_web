@@ -1,6 +1,10 @@
 defmodule Oban.Web.QueryHelpers do
   @moduledoc false
 
+  import Ecto.Query
+
+  alias Oban.Repo
+
   # Engine Guards
 
   defguard is_mysql(conf) when conf.engine == Oban.Engines.Dolphin
@@ -43,5 +47,37 @@ defmodule Oban.Web.QueryHelpers do
         ^Oban.JSON.encode!(unquote(list))
       )
     end
+  end
+
+  # Id Windows
+
+  # MySQL raises an out of bounds error when subtracting from an UNSIGNED value returns a value
+  # less than 0. There's no standard `greatest/max` function that can clamp to 0, so we use a case
+  # statement instead.
+  defmacro subtract_unsigned(id, limit) do
+    quote do
+      fragment(
+        "CASE WHEN ? > ? THEN ? - ? ELSE 1 END",
+        unquote(id),
+        unquote(limit),
+        unquote(id),
+        unquote(limit)
+      )
+    end
+  end
+
+  # Restricting a query to the most recent ids bounds scans by the primary key, so filters that
+  # lack an index stay cheap. Limits are approximate because ids aren't necessarily contiguous.
+  def limit_by_id(source, :infinity, _conf), do: source
+
+  def limit_by_id(source, limit, conf) when is_integer(limit) do
+    last_id =
+      source
+      |> select([j], type(subtract_unsigned(j.id, ^limit), :integer))
+      |> order_by(desc: :id)
+      |> limit(1)
+      |> then(&Repo.one(conf, &1))
+
+    where(source, [j], j.id >= ^(last_id || 0))
   end
 end

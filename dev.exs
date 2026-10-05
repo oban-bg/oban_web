@@ -504,7 +504,7 @@ defmodule Oban.Workers.PaymentAuthorizer do
   def process(%Job{id: id, meta: meta}) do
     unless Map.has_key?(meta, "wait_until"), do: schedule_callback(id)
 
-    wait = Enum.random(8_000..15_000)
+    wait = Enum.random(2_000..7_000)
 
     case Oban.Pro.Worker.await_signal(wait_for: {30, :minutes}, wait_timeout: wait) do
       {:ok, _payload} -> :ok

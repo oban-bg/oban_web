@@ -177,8 +177,8 @@ defmodule Oban.Web.Pages.Crons.IndexTest do
   end
 
   defp refresh(live) do
+    render_async(live)
     send(live.pid, :refresh)
-
-    render(live)
+    render_async(live)
   end
 end

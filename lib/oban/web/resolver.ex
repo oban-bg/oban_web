@@ -87,6 +87,9 @@ defmodule Oban.Web.Resolver do
   * [Hint Query Limit](#c:hint_query_limit/1)—Control the maximum number of jobs to search for
     auto-complete hints.
 
+  * [Cron Query Limit](#c:cron_query_limit/0)—Control the maximum number of jobs to search for
+    cron history.
+
   * [Bulk Action Limit](#c:bulk_action_limit/1)—Control the maximum number of jobs that can be
     acted on at once, e.g. cancelled.
 
@@ -441,6 +444,31 @@ defmodule Oban.Web.Resolver do
   @callback hint_query_limit(qualifier()) :: :infinity | pos_integer()
 
   @doc """
+  The maximum number of recent jobs to search for cron history.
+
+  Cron history is found by the `cron_name` stored in each job's `meta`. Limiting the search to
+  recent jobs keeps the crons page fast without an index on `meta`. Crons that haven't run within
+  the limit show no history, as though their jobs were pruned.
+
+  In the interest of speed, limits are only approximate. Limiting may be disabled with
+  `:infinity`, which is only recommended with a GIN index on `meta`, e.g. the
+  `oban_jobs_meta_index` created by Oban's migrations.
+
+  Without a callback implemented it defaults to 100,000.
+
+  ## Example
+
+  Search further back for crons that run infrequently:
+
+      def cron_query_limit, do: 500_000
+
+  Remove the limit when `meta` is indexed:
+
+      def cron_query_limit, do: :infinity
+  """
+  @callback cron_query_limit() :: :infinity | pos_integer()
+
+  @doc """
   The maximum number of jobs that can be selected and operated on in bulk.
 
   The limit may be determined by state, e.g. `:completed` or `:cancelled`, to fine-tune query
@@ -490,6 +518,7 @@ defmodule Oban.Web.Resolver do
                       format_signal: 2,
                       bulk_action_limit: 1,
                       recorded_size_limit: 0,
+                      cron_query_limit: 0,
                       hint_query_limit: 1,
                       jobs_query_limit: 1,
                       resolve_user: 1,
@@ -603,6 +632,9 @@ defmodule Oban.Web.Resolver do
 
   @doc false
   def hint_query_limit(_qualifier), do: 10_000
+
+  @doc false
+  def cron_query_limit, do: 100_000
 
   @doc false
   def bulk_action_limit(_state), do: 1_000

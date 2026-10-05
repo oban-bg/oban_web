@@ -259,7 +259,9 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     defp refresh(live) do
+      render_async(live)
       send(live.pid, :refresh)
+      render_async(live)
     end
   end
 end

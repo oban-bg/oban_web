@@ -8,7 +8,7 @@ defmodule Oban.Web.CronQuery do
 
   alias Oban.Cron.Expression
   alias Oban.{Job, Met, Repo}
-  alias Oban.Web.{Cron, CronEntry, Utils}
+  alias Oban.Web.{Cron, CronEntry, Resolver, Utils}
 
   @suggest_state [
     {"available", "last job is available", "available"},
@@ -94,8 +94,8 @@ defmodule Oban.Web.CronQuery do
 
   # Querying
 
-  def all_crons(params, conf) do
-    opts = [default_sort: {:name, :asc}, limit: 20]
+  def all_crons(params, conf, opts \\ []) do
+    refine_opts = [default_sort: {:name, :asc}, limit: 20]
 
     crons =
       conf
@@ -106,12 +106,12 @@ defmodule Oban.Web.CronQuery do
     if history_refines?(params) do
       crons
       |> Enum.filter(&entry_match?(&1, params))
-      |> with_history(conf)
-      |> Queryable.refine(__MODULE__, params, opts)
+      |> with_history(conf, opts)
+      |> Queryable.refine(__MODULE__, params, refine_opts)
     else
       crons
-      |> Queryable.refine(__MODULE__, params, opts)
-      |> with_history(conf)
+      |> Queryable.refine(__MODULE__, params, refine_opts)
+      |> with_history(conf, opts)
     end
   end
 
@@ -125,22 +125,26 @@ defmodule Oban.Web.CronQuery do
     |> Enum.all?(&filter(cron, &1))
   end
 
-  defp with_history([], _conf), do: []
+  defp with_history([], _conf, _opts), do: []
 
-  defp with_history(crons, conf) do
-    history =
+  defp with_history(crons, conf, opts) do
+    if Keyword.get(opts, :history, true) do
+      history =
+        crons
+        |> Enum.map(& &1.name)
+        |> crontab_history(conf, opts)
+
+      Enum.map(crons, &put_history(&1, Map.get(history, &1.name, [])))
+    else
       crons
-      |> Enum.map(& &1.name)
-      |> crontab_history(conf)
-
-    Enum.map(crons, &put_history(&1, Map.get(history, &1.name, [])))
+    end
   end
 
-  def get_cron(name, conf) when is_binary(name) do
+  def get_cron(name, conf, opts \\ []) when is_binary(name) do
     with entry when not is_nil(entry) <- find_cron_entry(name, conf) do
       entry
       |> build_cron()
-      |> put_history(cron_history(name, conf))
+      |> put_history(cron_history(name, conf, opts))
     end
   end
 
@@ -168,9 +172,15 @@ defmodule Oban.Web.CronQuery do
     end
   end
 
-  def cron_history(name, conf) do
+  def cron_history(name, conf, opts \\ []) do
+    opts
+    |> limited_source(conf)
+    |> history_for(name, conf)
+  end
+
+  defp history_for(source, name, conf) do
     query =
-      Job
+      source
       |> where(^filter_cron_name(name, conf))
       |> order_by([j], desc: j.id)
       |> limit(@history_limit)
@@ -259,11 +269,67 @@ defmodule Oban.Web.CronQuery do
   defp last_at_from_job(%{scheduled_at: at}) when not is_nil(at), do: at
   defp last_at_from_job(_job), do: nil
 
-  def crontab_history(names, conf) when is_mysql(conf) or is_sqlite(conf) do
-    Map.new(names, fn name -> {name, cron_history(name, conf)} end)
+  defp limited_source(opts, conf) do
+    limit = Resolver.call_with_fallback(opts[:resolver], :cron_query_limit, [])
+
+    limit_by_id(Job, limit, conf)
   end
 
-  def crontab_history(names, conf) do
+  def crontab_history(names, conf, opts \\ [])
+
+  def crontab_history(names, conf, opts) when is_mysql(conf) or is_sqlite(conf) do
+    source = limited_source(opts, conf)
+
+    Map.new(names, fn name -> {name, history_for(source, name, conf)} end)
+  end
+
+  def crontab_history(names, conf, opts) do
+    case Resolver.call_with_fallback(opts[:resolver], :cron_query_limit, []) do
+      :infinity -> lateral_history(names, conf)
+      limit -> windowed_history(names, limit, conf)
+    end
+  end
+
+  # Within a bounded window of recent ids one pass over the primary key is cheaper than a lookup
+  # per name, and it doesn't need any index on `meta`.
+  defp windowed_history(names, limit, conf) do
+    ranked =
+      from o in limit_by_id(Job, limit, conf),
+        where: fragment("?->>'cron_name' = ANY(?)", o.meta, ^names),
+        select: %{
+          id: o.id,
+          cron_name: fragment("?->>'cron_name'", o.meta),
+          state: o.state,
+          attempted_at: o.attempted_at,
+          scheduled_at: o.scheduled_at,
+          finished_at:
+            type(
+              fragment("COALESCE(?, ?, ?)", o.completed_at, o.cancelled_at, o.discarded_at),
+              :utc_datetime_usec
+            ),
+          rank:
+            over(row_number(),
+              partition_by: fragment("?->>'cron_name'", o.meta),
+              order_by: [desc: o.id]
+            )
+        }
+
+    query =
+      from r in subquery(ranked),
+        where: r.rank <= @history_limit,
+        order_by: [asc: r.id],
+        select: map(r, [:cron_name, :state, :attempted_at, :scheduled_at, :finished_at])
+
+    history =
+      conf
+      |> Repo.all(query)
+      |> Enum.group_by(& &1.cron_name)
+
+    Map.new(names, &{&1, Map.get(history, &1, [])})
+  end
+
+  # Without a window, each name is matched through the GIN index on `meta`.
+  defp lateral_history(names, conf) do
     # The `offset: 0` is an optimization fence for Postgres. Without it the planner pulls the
     # subquery up and, lacking stats for the lateral value, walks the primary key backward
     # filtering on `meta` rather than using the GIN index. CockroachDB elides a zero offset.

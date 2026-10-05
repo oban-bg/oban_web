@@ -117,7 +117,8 @@ defmodule Oban.Web.CronsPage do
     |> assign(:default_params, default)
     |> assign_new(:detailed, fn -> nil end)
     |> assign_new(:params, fn -> default end)
-    |> assign_new(:crontab, fn -> [] end)
+    |> assign_new(:crontab, fn -> nil end)
+    |> assign(:fetching?, false)
     |> assign_new(:show_less?, fn -> false end)
     |> assign_new(:show_more?, fn -> false end)
     |> assign_new(:capped?, fn -> false end)
@@ -135,27 +136,53 @@ defmodule Oban.Web.CronsPage do
   end
 
   @impl Page
+  def handle_refresh(%{assigns: %{detailed: nil, fetching?: true}} = socket), do: socket
+
   def handle_refresh(%{assigns: %{detailed: nil}} = socket) do
+    %{params: params, conf: conf, resolver: resolver} = socket.assigns
+
+    socket
+    |> assign(:fetching?, true)
+    |> start_async(:crontab, fn -> CronQuery.all_crons(params, conf, resolver: resolver) end)
+  end
+
+  def handle_refresh(socket) do
+    %{conf: conf, detailed: detailed, resolver: resolver} = socket.assigns
+
+    case detailed do
+      %Cron{name: name} ->
+        assign(socket, detailed: CronQuery.get_cron(name, conf, resolver: resolver))
+
+      _ ->
+        socket
+    end
+  end
+
+  @impl Phoenix.LiveComponent
+  def handle_async(:crontab, {:ok, crons}, socket) do
+    {:noreply, assign_crontab(socket, crons)}
+  end
+
+  def handle_async(:crontab, {:exit, _reason}, %{assigns: %{crontab: nil}} = socket) do
     %{params: params, conf: conf} = socket.assigns
 
-    crons = CronQuery.all_crons(params, conf)
-    limit = params.limit
+    {:noreply, assign_crontab(socket, CronQuery.all_crons(params, conf, history: false))}
+  end
+
+  def handle_async(:crontab, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, :fetching?, false)}
+  end
+
+  defp assign_crontab(socket, crons) do
+    limit = socket.assigns.params.limit
 
     assign(socket,
       crontab: crons,
+      fetching?: false,
       show_less?: limit > @min_limit,
       show_more?: limit < @max_limit and length(crons) == limit,
       capped?: limit >= @max_limit and length(crons) == limit
     )
-  end
-
-  def handle_refresh(socket) do
-    %{conf: conf, detailed: detailed} = socket.assigns
-
-    case detailed do
-      %Cron{name: name} -> assign(socket, detailed: CronQuery.get_cron(name, conf))
-      _ -> socket
-    end
   end
 
   @impl Page
@@ -179,7 +206,7 @@ defmodule Oban.Web.CronsPage do
       |> decode_params(CronQuery)
       |> then(&Map.merge(socket.assigns.default_params, &1))
 
-    case CronQuery.get_cron(cron_name, socket.assigns.conf) do
+    case CronQuery.get_cron(cron_name, socket.assigns.conf, resolver: socket.assigns.resolver) do
       nil ->
         {:noreply, push_patch(socket, to: oban_path(:crons), replace: true)}
 
@@ -205,6 +232,7 @@ defmodule Oban.Web.CronsPage do
       socket
       |> assign(detailed: nil, show_new_form: false, page_title: page_title("Crons"))
       |> assign(params: Map.merge(socket.assigns.default_params, params))
+      |> assign(:fetching?, false)
       |> handle_refresh()
 
     {:noreply, socket}

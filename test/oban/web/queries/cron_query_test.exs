@@ -20,6 +20,14 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
     @moduletag myxql: repo == Oban.Web.MyXQLRepo
     @moduletag sqlite: repo == Oban.Web.SQLiteRepo
 
+    defmodule NarrowResolver do
+      def cron_query_limit, do: 1
+    end
+
+    defmodule UnlimitedResolver do
+      def cron_query_limit, do: :infinity
+    end
+
     describe "all_crons/2" do
       defmodule FakeWorker do
         use Oban.Worker
@@ -134,16 +142,53 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
         assert length(history["cron-a"]) == 1
         assert history["cron-b"] == []
       end
+
+      test "matching history across all jobs without a limit" do
+        insert!(%{}, meta: %{cron_name: "cron-a"}, state: "completed")
+        insert!(%{}, meta: %{cron_name: "cron-a"}, state: "executing")
+        insert!(%{}, meta: %{cron_name: "cron-b"}, state: "completed")
+
+        crontab = [
+          {"* * * * *", "WorkerA", [], "cron-a", false, false},
+          {"0 * * * *", "WorkerB", [], "cron-b", false, false},
+          {"0 0 * * *", "WorkerC", [], "cron-c", false, false}
+        ]
+
+        history = crontab_history(crontab, resolver: UnlimitedResolver)
+
+        assert ~w(completed executing) == Enum.map(history["cron-a"], & &1.state)
+        assert ~w(completed) == Enum.map(history["cron-b"], & &1.state)
+        assert [] == history["cron-c"]
+      end
+
+      test "restricting history to recent jobs with cron_query_limit/0" do
+        insert!(%{}, meta: %{cron_name: "cron-a"}, state: "completed")
+        insert!(%{}, meta: %{cron_name: "cron-b"}, state: "completed")
+        insert!(%{}, meta: %{cron_name: "cron-b"}, state: "completed")
+
+        crontab = [
+          {"* * * * *", "WorkerA", [], "cron-a", false, false},
+          {"0 * * * *", "WorkerB", [], "cron-b", false, false}
+        ]
+
+        # Limits are id windows below the newest job. Concurrent tests leave gaps in the id
+        # sequence, so a window of one holds the newest job and maybe the one before it.
+        history = crontab_history(crontab, resolver: NarrowResolver)
+
+        assert [] == history["cron-a"]
+        assert [_ | _] = history["cron-b"]
+        assert [] == CronQuery.cron_history("cron-a", @conf, resolver: NarrowResolver)
+      end
     end
 
     defp cron_history(name) do
       CronQuery.cron_history(name, @conf)
     end
 
-    defp crontab_history(crontab) do
+    defp crontab_history(crontab, opts \\ []) do
       crontab
       |> Enum.map(&elem(&1, 3))
-      |> CronQuery.crontab_history(@conf)
+      |> CronQuery.crontab_history(@conf, opts)
     end
 
     defp insert!(args, opts) do

@@ -209,6 +209,17 @@ defmodule Oban.Web.DashboardLive do
   end
 
   @impl Phoenix.LiveView
+  def handle_async(name, result, socket) do
+    page = socket.assigns.page.comp
+
+    if function_exported?(page, :handle_async, 3) do
+      page.handle_async(name, result, socket)
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl Phoenix.LiveView
   def handle_event("sidebar_resize", %{"width" => width}, socket) do
     {:noreply, assign(socket, sidebar_width: width)}
   end

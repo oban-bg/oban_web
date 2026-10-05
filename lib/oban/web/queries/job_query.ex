@@ -137,21 +137,6 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  # MySQL raises an out of bounds error when subtracting from an UNSIGNED value returns a value
-  # less than 0. There's no standard `greatest/max` function that can clamp to 0, so we use a case
-  # statement instead.
-  defmacrop subtract_unsigned(id, limit) do
-    quote do
-      fragment(
-        "CASE WHEN ? > ? THEN ? - ? ELSE 1 END",
-        unquote(id),
-        unquote(limit),
-        unquote(id),
-        unquote(limit)
-      )
-    end
-  end
-
   @suggest_priority [
     {"0", "critical", "priorities:0"},
     {"1", "urgent", "priorities:1"},
@@ -495,22 +480,9 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp limit_query(value, fun, opts, conf) do
-    source = source(opts)
+    limit = Resolver.call_with_fallback(opts[:resolver], fun, [value])
 
-    case Resolver.call_with_fallback(opts[:resolver], fun, [value]) do
-      :infinity ->
-        source
-
-      limit ->
-        last_id =
-          source
-          |> select([j], type(subtract_unsigned(j.id, ^limit), :integer))
-          |> order_by(desc: :id)
-          |> limit(1)
-          |> then(&Repo.one(conf, &1))
-
-        where(source, [j], j.id >= ^(last_id || 0))
-    end
+    limit_by_id(source(opts), limit, conf)
   end
 
   def refresh_job(conf, job, opts \\ [])
