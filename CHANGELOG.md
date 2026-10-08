@@ -69,6 +69,44 @@ Backfill rows that link to the previous, next, and all related jobs in the seque
 each job's execution state. All three composition tools gain a filter, like `chain:1234` to help
 target all related jobs.
 
+## v2.13.1 - 2026-10-08
+
+### Enhancements
+
+- [Resolver] Add `cron_query_limit/0` callback to bound cron history
+
+  Cron history searches a bounded window of the most recent jobs, defaulting to 100k. Lower the
+  limit to speed up the crons page on large tables, or set it to `:infinity` to search all jobs.
+
+### Bug Fixes
+
+- [Crons] Keep the crons page responsive without a `meta` index
+
+  Cron history searches a bounded window of recent jobs and loads in a single pass, so the page
+  stays fast after dropping the optional `meta` GIN index. The crontab also loads in the
+  background, so a slow history query no longer blocks or crashes the page.
+
+- [Dashboard] Preserve punctuation in search filter values
+
+  Search terms were stripped of characters like `/`, `+`, and `$` before parsing, a holdover from
+  legacy full-text search. Filtering by values like `names:foo/bar` now matches as expected.
+
+- [Dashboard] Show validation errors inline for new jobs and crons
+
+  Failures were reported through a flash rendered beneath the drawer, so an invalid submission
+  appeared to do nothing. Errors now show inline and mark the offending fields invalid, matching
+  the pruner and detail forms.
+
+- [Job Details] Hide job editing from users without update access
+
+  Read only users saw a disabled edit form that exposed raw job args and bypassed any redaction
+  from `format_job_args/1`. The edit section is now omitted unless the user can update jobs.
+
+- [Queues] Select all matching queues from the header checkbox
+
+  The select all checkbox selects every matching queue, not only the visible ones, so bulk pause,
+  resume, and stop work regardless of how many queues are running.
+
 ## v2.13.0 - 2026-09-15
 
 ### Enhancements
