@@ -22,8 +22,12 @@ defmodule Oban.Web.Assets do
   # JS
 
   phoenix_js_paths =
-    for app <- ~w(phoenix phoenix_html phoenix_live_view)a do
-      path = Application.app_dir(app, ["priv", "static", "#{app}.js"])
+    for {app, file} <- [
+          phoenix: "phoenix.min.js",
+          phoenix_html: "phoenix_html.js",
+          phoenix_live_view: "phoenix_live_view.min.js"
+        ] do
+      path = Application.app_dir(app, ["priv", "static", file])
       Module.put_attribute(__MODULE__, :external_resource, path)
       path
     end
@@ -35,20 +39,44 @@ defmodule Oban.Web.Assets do
   #{File.read!(js_path)}
   """
 
+  # Compressed
+
+  @css_gz :zlib.gzip(@css)
+  @js_gz :zlib.gzip(@js)
+
   @impl Plug
   def init(asset), do: asset
 
   @impl Plug
   def call(conn, :css) do
-    serve_asset(conn, @css, "text/css")
+    serve_compressible(conn, @css, @css_gz, "text/css")
   end
 
   def call(conn, :js) do
-    serve_asset(conn, @js, "text/javascript")
+    serve_compressible(conn, @js, @js_gz, "text/javascript")
   end
 
   def call(conn, :font) do
     serve_asset(conn, @font, "font/woff2")
+  end
+
+  defp serve_compressible(conn, contents, gzipped, content_type) do
+    conn = put_resp_header(conn, "vary", "accept-encoding")
+
+    if accepts_gzip?(conn) do
+      conn
+      |> put_resp_header("content-encoding", "gzip")
+      |> serve_asset(gzipped, content_type)
+    else
+      serve_asset(conn, contents, content_type)
+    end
+  end
+
+  defp accepts_gzip?(conn) do
+    conn
+    |> get_req_header("accept-encoding")
+    |> Enum.flat_map(&Plug.Conn.Utils.list/1)
+    |> Enum.any?(&(&1 |> String.split(";") |> hd() |> String.trim() == "gzip"))
   end
 
   defp serve_asset(conn, contents, content_type) do
