@@ -1,4 +1,4 @@
-import dagre from "dagre";
+import dagre from "@dagrejs/dagre";
 import { STATE_BG, STATE_FG } from "../lib/colors";
 
 const NODE_WIDTH = 260;
