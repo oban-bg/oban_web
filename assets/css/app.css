@@ -1,3 +1,11 @@
+/* Inter 4.1 with optical size pinned to text and subset to Latin-1, Latin Extended-A,
+   punctuation, and arrows. Other glyphs fall back to the system sans. Regenerate from the
+   release's InterVariable.woff2 with:
+
+   fonttools varLib.instancer InterVariable.woff2 opsz=14 -o InterText.ttf
+   pyftsubset InterText.ttf --flavor=woff2 --layout-features+=tnum,zero \
+     --unicodes="U+0000-00FF,U+0100-017F,U+0218-021B,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212"
+*/
 @font-face {
   font-display: swap;
   font-family: "Inter var";

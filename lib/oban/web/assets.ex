@@ -13,11 +13,16 @@ defmodule Oban.Web.Assets do
 
   @font File.read!(font_path)
 
+  @font_hash Base.encode16(:crypto.hash(:md5, @font), case: :lower)
+
   # CSS
 
   @external_resource css_path = Path.join(@static_path, "app.css")
 
-  @css File.read!(css_path)
+  # The font is cached as immutable, so its url carries a hash to bust stale copies.
+  @css css_path
+       |> File.read!()
+       |> String.replace("fonts/inter.woff2", "fonts/inter-#{@font_hash}")
 
   # JS
 

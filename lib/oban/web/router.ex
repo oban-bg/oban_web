@@ -199,7 +199,7 @@ defmodule Oban.Web.Router do
         live_session session_name, session_opts do
           get "/css-:md5", Oban.Web.Assets, :css, as: :oban_web_asset
           get "/js-:md5", Oban.Web.Assets, :js, as: :oban_web_asset
-          get "/fonts/inter.woff2", Oban.Web.Assets, :font, as: :oban_web_font
+          get "/fonts/inter-:md5", Oban.Web.Assets, :font, as: :oban_web_font
 
           live "/", Oban.Web.DashboardLive, :home, route_opts
           live "/:page", Oban.Web.DashboardLive, :index, route_opts
