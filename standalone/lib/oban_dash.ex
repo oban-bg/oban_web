@@ -107,31 +107,93 @@ defmodule ObanDash.ErrorHTML do
   end
 end
 
+defmodule ObanDash.Cluster do
+  @moduledoc false
+
+  # Connects to every node registered with EPMD on the configured hosts, named `alive@host`. That
+  # matches how oban-py's Erlang notifier discovers nodes, and is enough to join an Elixir cluster
+  # because distribution meshes transitively from there.
+
+  use GenServer
+
+  @interval :timer.seconds(5)
+
+  def start_link(hosts) do
+    GenServer.start_link(__MODULE__, hosts, name: __MODULE__)
+  end
+
+  @impl GenServer
+  def init(hosts) do
+    send(self(), :connect)
+
+    {:ok, hosts}
+  end
+
+  @impl GenServer
+  def handle_info(:connect, hosts) do
+    connected = [Node.self() | Node.list()]
+
+    for host <- hosts, peer <- epmd_nodes(host), peer not in connected do
+      Node.connect(peer)
+    end
+
+    Process.send_after(self(), :connect, @interval)
+
+    {:noreply, hosts}
+  end
+
+  defp epmd_nodes(host) do
+    case :erl_epmd.names(String.to_charlist(host)) do
+      {:ok, names} -> for {name, _port} <- names, do: :"#{name}@#{host}"
+      _error -> []
+    end
+  end
+end
+
 defmodule ObanDash.Application do
   use Application
 
   @impl true
   def start(_type, _args) do
-    children = [
-      ObanDash.Repo,
-      {Oban, oban_opts()},
-      ObanDash.Endpoint
-    ]
+    children =
+      [ObanDash.Repo] ++
+        cluster_child() ++
+        [{Oban, oban_opts()}, ObanDash.Endpoint]
 
     opts = [strategy: :one_for_one, name: ObanDash.Supervisor]
 
     Supervisor.start_link(children, opts)
   end
 
+  defp cluster_child do
+    case Application.get_env(:oban_dash, :cluster_hosts, []) do
+      [] -> []
+      hosts -> [{ObanDash.Cluster, hosts}]
+    end
+  end
+
   defp oban_opts do
     [
       engine: engine(),
-      notifier: Oban.Notifiers.Postgres,
+      notifier: notifier(),
       repo: ObanDash.Repo,
       prefix: Application.fetch_env!(:oban_dash, :oban_prefix),
       plugins: false,
       queues: false
     ]
+  end
+
+  defp notifier do
+    case Application.get_env(:oban_dash, :oban_notifier, "postgres") do
+      "postgres" ->
+        Oban.Notifiers.Postgres
+
+      "pg" ->
+        Oban.Notifiers.PG
+
+      other ->
+        raise ArgumentError, "expected OBAN_NOTIFIER to be postgres or pg, got: #{inspect(other)}"
+    end
   end
 
   defp engine do

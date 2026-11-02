@@ -58,16 +58,18 @@ explicitly, use the `--platform` flag:
 
 All configuration is done through environment variables:
 
-| Variable          | Required   | Default   | Description                     |
-| ----------------- | ---------- | --------- | ------------------------------- |
-| `DATABASE_URL`    | Yes        | —         | PostgreSQL connection URL       |
-| `POOL_SIZE`       | No         | `5`       | Database connection pool size   |
-| `PORT`            | No         | `4000`    | HTTP port                       |
-| `OBAN_PREFIX`     | No         | `public`  | Oban table schema prefix        |
-| `OBAN_READ_ONLY`  | No         | `false`   | Disable job actions when `true` |
-| `BASIC_AUTH_USER` | No         | —         | Basic auth username             |
-| `BASIC_AUTH_PASS` | No         | —         | Basic auth password             |
-| `LOG_LEVEL`       | No         | `info`    | Log level                       |
+| Variable          | Required | Default    | Description                     |
+| ----------------- | -------- | ---------- | ------------------------------- |
+| `DATABASE_URL`    | Yes      | —          | PostgreSQL connection URL       |
+| `BASIC_AUTH_PASS` | No       | —          | Basic auth password             |
+| `BASIC_AUTH_USER` | No       | —          | Basic auth username             |
+| `CLUSTER_HOSTS`   | No       | —          | Comma separated hosts to join   |
+| `LOG_LEVEL`       | No       | `info`     | Log level                       |
+| `OBAN_NOTIFIER`   | No       | `postgres` | Notifier, `postgres` or `pg`    |
+| `OBAN_PREFIX`     | No       | `public`   | Oban table schema prefix        |
+| `OBAN_READ_ONLY`  | No       | `false`    | Disable job actions when `true` |
+| `POOL_SIZE`       | No       | `5`        | Database connection pool size   |
+| `PORT`            | No       | `4000`     | HTTP port                       |
 
 ## Authentication & Authorization
 
@@ -120,6 +122,37 @@ docker run -d \
 ```
 
 [pro]: https://oban.pro
+
+## Clustering
+
+The dashboard uses the Postgres notifier by default, which works with any application connected to
+the same database. Applications using the `Oban.Notifiers.PG` notifier, or the Erlang notifier in
+Oban for Python, exchange notifications over distributed Erlang instead, and the dashboard must
+join their cluster to see nodes and share metrics.
+
+Set `OBAN_NOTIFIER` to `pg`, share the cluster's cookie through `RELEASE_COOKIE`, and list the hosts
+to connect to in `CLUSTER_HOSTS`. The dashboard connects to every node registered with EPMD on those
+hosts, and reaches the rest of the cluster from there:
+
+```diff
+ docker run -d \
+   -e DATABASE_URL="postgres://user:pass@host.docker.internal:5432/myapp" \
++  -e OBAN_NOTIFIER="pg" \
++  -e RELEASE_COOKIE="shared-secret-cookie" \
++  -e CLUSTER_HOSTS="app-1,app-2" \
++  --hostname oban-dash \
+   -p 4000:4000 \
+   ghcr.io/oban-bg/oban-dash
+```
+
+The node is named `oban_dash@<hostname>` with short names. Give the container a stable hostname
+that other nodes can resolve, so they can connect to the dashboard as well. For a cluster that uses
+long names, override the distribution mode and node name:
+
+```diff
++  -e RELEASE_DISTRIBUTION="name" \
++  -e RELEASE_NODE="oban_dash@oban-dash.internal" \
+```
 
 ## DNS Resolution
 

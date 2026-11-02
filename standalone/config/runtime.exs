@@ -14,9 +14,11 @@ config :oban_dash, ObanDash.Endpoint,
   server: true
 
 config :oban_dash,
-  oban_prefix: System.get_env("OBAN_PREFIX", "public"),
-  read_only: System.get_env("OBAN_READ_ONLY", "false") == "true",
+  basic_auth_pass: System.get_env("BASIC_AUTH_PASS"),
   basic_auth_user: System.get_env("BASIC_AUTH_USER"),
-  basic_auth_pass: System.get_env("BASIC_AUTH_PASS")
+  cluster_hosts: String.split(System.get_env("CLUSTER_HOSTS", ""), ",", trim: true),
+  oban_notifier: System.get_env("OBAN_NOTIFIER", "postgres"),
+  oban_prefix: System.get_env("OBAN_PREFIX", "public"),
+  read_only: System.get_env("OBAN_READ_ONLY", "false") == "true"
 
 config :logger, level: String.to_existing_atom(System.get_env("LOG_LEVEL", "info"))
