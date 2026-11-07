@@ -145,6 +145,11 @@ hosts, and reaches the rest of the cluster from there:
    ghcr.io/oban-bg/oban-dash
 ```
 
+Each node found on a host is dialed as `name@host`, and distribution only accepts a connection when
+that's the node's real name. Hosts must be the names the nodes themselves use, such as `app-1` for
+`myapp@app-1`, not a load balancer or a service name shared by several replicas. Otherwise, have
+the application nodes connect to the dashboard instead.
+
 The node is named `oban_dash@<hostname>` with short names. Give the container a stable hostname
 that other nodes can resolve, so they can connect to the dashboard as well. For a cluster that uses
 long names, override the distribution mode and node name:
