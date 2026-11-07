@@ -31,7 +31,7 @@ Oban Web is a dashboard for the Oban job orchestration framework, hosted directl
 - Four pages: Jobs (filtering, inspection, batch actions), Queues (cross-node controls), Crons, and Workflows (Pro).
 - Live updates with configurable refresh rates and automatic pausing on blur; used during incidents and for ambient monitoring alike.
 - Dashboard actions emit telemetry for audit logging.
-- Dev environment: `iex -S mix dev` runs a single-file server generating fake jobs; optional Python workers (`mix py.dev`) add cross-language job variety.
+- Dev environment: `iex -S mix dev` runs a single-file server generating fake jobs.
 
 ## Capabilities and Constraints
 
@@ -54,7 +54,7 @@ Other product facts: Oban Pro is an optional integration that unlocks additional
 
 - Production screenshots: `assets/oban-web-preview-light.png`, `assets/oban-web-preview-dark.png`.
 - Published docs at hexdocs.pm/oban_web with installation, standalone, and advanced guides (`guides/`).
-- A realistic runnable demo via the dev server and Python workers — no need to fabricate data for design work.
+- A realistic runnable demo via the dev server — no need to fabricate data for design work.
 
 ## Product Principles
 

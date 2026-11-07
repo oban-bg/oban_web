@@ -161,8 +161,6 @@ defmodule Oban.Web.MixProject do
         "hex.publish --yes"
       ],
       "dash.build": "cmd docker build -t oban-dash standalone",
-      "py.dev": "cmd --cd py uv run py-dev",
-      "py.install": "cmd --cd py uv sync",
       "test.reset": ["ecto.drop --quiet", "test.setup"],
       "test.setup": ["ecto.create --quiet", "ecto.migrate --quiet"],
       "test.ci": [

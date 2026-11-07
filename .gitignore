@@ -35,10 +35,5 @@ priv/static/app.*
 /standalone/_build/
 /standalone/deps/
 
-# Python-generated files
-__pycache__/
-*.py[oc]
-.venv
-
 # Design artifacts
 .impeccable/
