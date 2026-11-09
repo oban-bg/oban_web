@@ -130,10 +130,8 @@ defmodule Oban.Web.QueueQuery do
 
   def order(%{checks: checks}, :rate_limit) do
     checks
-    |> Enum.map(&get_in(&1, ["rate_limit", "windows"]))
-    |> Enum.reject(&is_nil/1)
-    |> List.flatten()
-    |> Enum.reduce(0, &(&1["curr_count"] + &1["prev_count"] + &2))
+    |> Enum.flat_map(&List.wrap(get_in(&1, ["rate_limit", "windows"])))
+    |> Enum.reduce(0, &(window_usage(&1) + &2))
   end
 
   def order(%{checks: checks}, :started) do
@@ -148,4 +146,11 @@ defmodule Oban.Web.QueueQuery do
     |> Enum.map(started_at_to_diff)
     |> Enum.max()
   end
+
+  # Each rate limit algorithm flattens its windows into a different shape
+
+  defp window_usage(%{"curr_count" => curr, "prev_count" => prev}), do: curr + prev
+  defp window_usage(%{"count" => count}), do: count
+  defp window_usage(%{"consumed" => consumed}), do: consumed
+  defp window_usage(_window), do: 0
 end
