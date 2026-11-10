@@ -334,7 +334,7 @@ defmodule Oban.Web.JobsPage do
 
     history =
       if detailed do
-        JobQuery.job_history(detailed, conf, query_opts)
+        JobQuery.refresh_history(detailed, socket.assigns.history, conf, query_opts)
       else
         []
       end
@@ -394,7 +394,7 @@ defmodule Oban.Web.JobsPage do
       job ->
         Oban.Notifier.listen(conf.name, [:diagnostics_reply])
 
-        history = JobQuery.job_history(job, conf, query_opts)
+        history_opts = Keyword.put(query_opts, :resolver, socket.assigns.resolver)
         socket = assign_params(socket, params)
 
         {:noreply,
@@ -405,7 +405,10 @@ defmodule Oban.Web.JobsPage do
          |> assign(compensating_job: compensating_job(conf, job))
          |> assign(neighbors: neighbors(conf, job, query_opts))
          |> assign(diagnostics: nil, diagnostics_at: nil)
-         |> assign(history: history)}
+         |> assign(history: history_for(socket, job))
+         |> start_async(:history, fn ->
+           {job.id, JobQuery.job_history(job, conf, history_opts)}
+         end)}
     end
   end
 
@@ -472,6 +475,16 @@ defmodule Oban.Web.JobsPage do
 
     {:noreply, socket}
   end
+
+  @impl Phoenix.LiveComponent
+  def handle_async(:history, {:ok, {job_id, history}}, socket) do
+    case socket.assigns.detailed do
+      %{id: ^job_id} -> {:noreply, assign(socket, history: history)}
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_async(:history, {:exit, _reason}, socket), do: {:noreply, socket}
 
   # System
 
@@ -683,6 +696,9 @@ defmodule Oban.Web.JobsPage do
 
     assign(socket, archive?: now_archived?, params: params)
   end
+
+  defp history_for(%{assigns: %{detailed: %{id: id}, history: history}}, %{id: id}), do: history
+  defp history_for(_socket, _job), do: []
 
   defp query_opts(params), do: [archive: JobQuery.archived?(params)]
 

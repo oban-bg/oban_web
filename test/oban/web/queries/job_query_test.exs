@@ -469,6 +469,42 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       end
     end
 
+    describe "job_history/3" do
+      test "finding earlier runs of the same worker" do
+        job_1 = insert!(%{ref: 1}, worker: MyApp.VideoA, state: "completed")
+        job_2 = insert!(%{ref: 2}, worker: MyApp.VideoB, state: "completed")
+        job_3 = insert!(%{ref: 3}, worker: MyApp.VideoA, state: "completed")
+
+        history_ids = fn job, opts ->
+          job
+          |> JobQuery.job_history(@conf, opts)
+          |> Enum.map(& &1.id)
+        end
+
+        assert [job_1.id, job_3.id] == history_ids.(job_3, [])
+        assert [job_2.id] == history_ids.(job_2, [])
+
+        # A limit of one doesn't look any further back than the job itself
+        assert [job_3.id] == history_ids.(job_3, resolver: JobResolver)
+      end
+    end
+
+    describe "refresh_history/4" do
+      test "reloading history without picking up newer jobs" do
+        job_1 = insert!(%{ref: 1}, worker: MyApp.VideoA, state: "completed")
+        job_2 = insert!(%{ref: 2}, worker: MyApp.VideoA, state: "completed")
+
+        history = JobQuery.job_history(job_2, @conf)
+
+        insert!(%{ref: 3}, worker: MyApp.VideoA, state: "completed")
+
+        assert [job_1.id, job_2.id] ==
+                 job_2
+                 |> JobQuery.refresh_history(history, @conf)
+                 |> Enum.map(& &1.id)
+      end
+    end
+
     describe "all_job_ids/3" do
       test "returning all ids within the current filters" do
         job_1 = insert!(%{ref: 1}, worker: MyApp.VideoA)

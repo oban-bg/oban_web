@@ -519,9 +519,45 @@ defmodule Oban.Web.JobQuery do
       |> source()
       |> where([j], j.worker == ^worker)
       |> where([j], j.id <= ^job.id)
-      |> where([j], j.state in @history_states)
+      |> history_window(job, opts)
       |> order_by([j], desc: j.id)
       |> limit(@history_limit)
+
+    all_history(query, conf)
+  end
+
+  @doc """
+  Reload the jobs in a previously fetched history, along with the job itself.
+
+  History only looks backward from the job, so newer jobs never join it and a refresh is a
+  primary key lookup rather than another search by worker.
+  """
+  def refresh_history(job, history, conf, opts \\ []) do
+    ids = Enum.uniq([job.id | Enum.map(history, & &1.id)])
+
+    query =
+      opts
+      |> source()
+      |> where([j], j.id in ^ids)
+      |> order_by([j], desc: j.id)
+
+    all_history(query, conf)
+  end
+
+  # Few workers have an index to search by, so the planner walks the primary key backward and
+  # filters as it goes. Without a lower bound an infrequent worker never fills the limit and the
+  # walk covers the whole table.
+  defp history_window(query, job, opts) do
+    case Resolver.call_with_fallback(opts[:resolver], :jobs_query_limit, [:completed]) do
+      :infinity -> query
+      limit -> where(query, [j], j.id > ^(job.id - limit))
+    end
+  end
+
+  defp all_history(query, conf) do
+    query =
+      query
+      |> where([j], j.state in @history_states)
       |> select([j], %{
         id: j.id,
         state: j.state,

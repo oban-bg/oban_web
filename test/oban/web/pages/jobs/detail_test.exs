@@ -12,6 +12,18 @@ defmodule Oban.Web.Pages.Jobs.DetailTest do
     assert has_element?(live, "h2 #back-link", "WorkerA Job")
   end
 
+  test "charting recent runs of the same worker" do
+    prev = insert_job!([ref: 1], state: "completed", worker: WorkerA)
+    insert_job!([ref: 2], state: "completed", worker: WorkerB)
+    job = insert_job!([ref: 3], state: "completed", worker: WorkerA)
+
+    live = open_job(job)
+
+    # The first push is the empty chart, before history has loaded.
+    assert_push_event(live, "job-history", %{history: [%{id: prev_id}, %{id: job_id}]})
+    assert {prev.id, job.id} == {prev_id, job_id}
+  end
+
   test "naming controls and section state for assistive tech" do
     job = insert_job!([ref: 1], state: "available", worker: WorkerA)
 
