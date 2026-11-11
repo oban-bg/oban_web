@@ -28,9 +28,18 @@ defmodule ObanDash.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.19"},
       {:oban, "~> 2.20"},
-      {:oban_web, "~> 2.13"},
+      {:oban_web, oban_web_requirement()},
       {:oban_met, "~> 1.0"}
     ] ++ oban_pro_dep()
+  end
+
+  # Release builds pin the exact tagged version, so an image can't silently ship an older package
+  # when it builds before the tagged release is available on Hex.
+  defp oban_web_requirement do
+    case System.get_env("OBAN_WEB_VERSION") do
+      version when is_binary(version) and version != "" -> version
+      _unset -> "~> 2.13"
+    end
   end
 
   defp oban_pro_dep do

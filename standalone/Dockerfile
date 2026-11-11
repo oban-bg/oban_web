@@ -7,6 +7,7 @@ ARG ALPINE_VERSION=3.22.3
 FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-alpine-${ALPINE_VERSION} AS builder
 
 ARG OBAN_LICENSE_KEY
+ARG OBAN_WEB_VERSION
 
 RUN apk add --no-cache build-base git
 
@@ -22,6 +23,7 @@ RUN if [ -n "$OBAN_LICENSE_KEY" ]; then \
     fi
 
 ENV MIX_ENV=prod
+ENV OBAN_WEB_VERSION=${OBAN_WEB_VERSION}
 
 COPY mix.exs ./
 RUN mix deps.get --only prod

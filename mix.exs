@@ -155,10 +155,10 @@ defmodule Oban.Web.MixProject do
       precommit: ["test.ci"],
       release: [
         "assets.build",
-        "cmd git tag v#{@version} -f",
         "cmd git push",
-        "cmd git push --tags",
-        "hex.publish --yes"
+        "hex.publish --yes",
+        "cmd git tag v#{@version} -f",
+        "cmd git push --tags"
       ],
       "dash.build": "cmd docker build -t oban-dash standalone",
       "test.reset": ["ecto.drop --quiet", "test.setup"],

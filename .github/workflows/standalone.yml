@@ -48,6 +48,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: standalone
+          build-args: |
+            OBAN_WEB_VERSION=${{ github.ref_type == 'tag' && steps.meta.outputs.version || '' }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
