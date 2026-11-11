@@ -399,9 +399,9 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp cache_query(key, query, conf, opts) do
-    key = if Keyword.get(opts, :archive, false), do: {:archive, key}, else: key
+    table = if Keyword.get(opts, :archive, false), do: :archive, else: :jobs
 
-    Cache.fetch(key, fn -> Repo.all(conf, query) end)
+    Cache.fetch({conf.name, table, key}, fn -> Repo.all(conf, query) end)
   end
 
   # Queries

@@ -6,7 +6,7 @@ defmodule Oban.Web.WorkflowQuery do
   import Ecto.Query
 
   alias Oban.{Job, Repo}
-  alias Oban.Web.{Utils, Workflow}
+  alias Oban.Web.{Cache, Utils, Workflow}
   alias Oban.Web.Workflows.Helpers
 
   @default_sup_graph_limit 500
@@ -231,8 +231,8 @@ defmodule Oban.Web.WorkflowQuery do
       |> distinct(true)
       |> limit(@default_suggest_limit)
 
-    conf
-    |> Repo.all(query)
+    :names
+    |> cache_query(query, conf)
     |> Search.restrict_suggestions(fragment)
   end
 
@@ -243,8 +243,8 @@ defmodule Oban.Web.WorkflowQuery do
       |> distinct(true)
       |> limit(@default_suggest_limit)
 
-    conf
-    |> Repo.all(query)
+    :queues
+    |> cache_query(query, conf)
     |> Search.restrict_suggestions(fragment)
   end
 
@@ -255,10 +255,15 @@ defmodule Oban.Web.WorkflowQuery do
       |> distinct(true)
       |> limit(@default_suggest_limit)
 
-    conf
-    |> Repo.all(query)
+    :workers
+    |> cache_query(query, conf)
     |> Enum.reject(&(&1 == Helpers.compensation_worker()))
     |> Search.restrict_suggestions(fragment)
+  end
+
+  # Suggestions read the whole workflows table, far too much to repeat for every keystroke.
+  defp cache_query(key, query, conf) do
+    Cache.fetch({conf.name, :workflows, key}, fn -> Repo.all(conf, query) end)
   end
 
   # Querying
