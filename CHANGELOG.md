@@ -69,6 +69,90 @@ Backfill rows that link to the previous, next, and all related jobs in the seque
 each job's execution state. All three composition tools gain a filter, like `chain:1234` to help
 target all related jobs.
 
+## v2.13.2 - 2026-11-11
+
+### Enhancements
+
+- [Dashboard] Compress and slim down embedded JS and CSS
+
+  Dashboard JS/CSS are now gzipped once at compile time. Clients that accept gzip get the
+  compressed copy, so hosts that don't compress responses themselves (e.g. Cowboy) no longer send
+  the full bundle. Bandit and others no longer repeat that work on every request.
+
+  The embedded Phoenix and LiveView scripts now use their minified builds, which cuts roughly
+  190KB from the uncompressed bundle.
+
+- [Dashboard] Use a subset of Inter with a content hash
+
+  Upgrade Inter to 4.1, reduce the total size from 226kb to 51kb, and use a content hash to make
+  future changes bust the cache.
+
+- [Jobs] Check selected jobs by id when refreshing
+
+  Only refresh selected jobs rather than querying the entire query window before filtering. The
+  new approach is a primary key lookup regardless of how many jobs are selected or filters
+  applied.
+
+- [Jobs] Use indexes for backfill and chain lookups
+
+  Backfill and chain indexes are partial and require a predicate check for the planner to use
+  them. Backfill lookups now include the key test so they use the index. Filtering by chain uses
+  containment through the meta index, because the chain index excludes completed jobs.
+
+- [Standalone] Add standalone clustering and pg notifier support
+
+  Previously, the standalone web dashboard could only use the postgres notifier for metrics and
+  signaling. That's not ideal in a production environment, and now that Oban Py Pro supports
+  Distributed Erlang, the standalone Web container needs to support clustering.
+
+  Set `OBAN_NOTIFIER` to "pg" to switch notifiers, and `CLUSTER_HOSTS` to a comma separated list
+  of hosts to join. The dashboard connects to every node registered with EPMD on those hosts, the
+  same way oban-py's notifier discovers nodes. Postgres remains the default.
+
+- [Workflows] Cache workflow search suggestions
+
+  Suggesting for workflows queried the entire workflows table for each keydown. Suggestions are
+  now cached for a few minutes, the same as job suggestions.
+
+  Cached suggestions are also kept separately for each Oban instance. Previously, instances shown
+  in the same dashboard shared one set of job suggestions.
+
+- [Workflows] Read sub-workflow graph state from workflow counts
+
+  Sub-workflow state now comes from workflow table counts, and names are read from a single job
+  per sub-workflow.
+
+- [Workflows] Sort workflows by id rather than insertion time
+
+  The workflows table has no index on `inserted_at`, so the default sort read and sorted every
+  workflow on each refresh. Workflow ids are UUIDv7 by default, which already sort by creation
+  time, so the default order now follows the primary key instead.
+
+- [Workflows] Switch dagre out for maintained @dagrejs/dagre
+
+  Workflow graphs now use @dagrejs/dagre 2.0.0, which drops the lodash dependency and trims about
+  55KB from the JS bundle.
+
+### Bug Fixes
+
+- [Job Details] Limit job history to recent jobs and load async
+
+  Opening job details could time out with infrequent workers and a large table. Without an index
+  on `worker`, finding the last 60 runs could search most of the table. To make it worse, the
+  query would run on every refresh.
+
+  Now history uses the same query limit to restrict lookback, and the chart loads async. After
+  the initial load, job details are only refreshed by id to limit overall query load.
+
+- [Queues] Sort by rate limit usage for every algorithm
+
+  Sorting by rate limit assumed sliding windows and raised on queues using the other algorithms.
+
+- [Standalone] Use IPv4 loopback for the standalone healthcheck
+
+  Force using IPv4 because localhost may resolve to `::1` first, and the endpoint only binds
+  IPv4.
+
 ## v2.13.1 - 2026-10-08
 
 ### Enhancements
