@@ -523,6 +523,29 @@ for repo <- [Oban.Web.Repo, Oban.Web.SQLiteRepo, Oban.Web.MyXQLRepo] do
       end
     end
 
+    describe "matching_job_ids/4" do
+      test "narrowing ids to those within the current filters" do
+        job_1 = insert!(%{ref: 1}, worker: MyApp.VideoA)
+        job_2 = insert!(%{ref: 2}, worker: MyApp.VideoB)
+        job_3 = insert!(%{ref: 3}, worker: MyApp.VideoB, state: "completed")
+
+        matching_ids = fn job_ids, params ->
+          params = Map.put_new(params, :state, "available")
+
+          job_ids
+          |> JobQuery.matching_job_ids(params, @conf)
+          |> Enum.sort()
+        end
+
+        all_ids = [job_1.id, job_2.id, job_3.id]
+
+        assert [job_1.id, job_2.id] == matching_ids.(all_ids, %{})
+        assert [job_2.id] == matching_ids.(all_ids, %{workers: ~w(MyApp.VideoB)})
+        assert [job_3.id] == matching_ids.(all_ids, %{state: "completed"})
+        assert [job_1.id] == matching_ids.([job_1.id], %{})
+      end
+    end
+
     defp insert!(args, opts \\ []) do
       opts = Keyword.put_new(opts, :conf, @conf)
 

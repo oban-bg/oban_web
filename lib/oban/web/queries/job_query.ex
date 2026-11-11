@@ -439,6 +439,27 @@ defmodule Oban.Web.JobQuery do
     Repo.all(conf, query)
   end
 
+  @doc """
+  Narrow a list of job ids to those that still match the current filters.
+
+  Checking known ids is a primary key lookup, where listing every matching job and comparing
+  afterward would search and sort the whole query window.
+  """
+  def matching_job_ids(job_ids, params, conf, opts \\ []) do
+    params = params_with_defaults(params)
+    conditions = conditions(params, conf)
+
+    query =
+      opts
+      |> with_source(params)
+      |> source()
+      |> select([j], j.id)
+      |> where([j], j.id in ^job_ids)
+      |> where(^conditions)
+
+    Repo.all(conf, query)
+  end
+
   defp conditions(params, conf) do
     params
     |> Enum.reduce(true, &filter(&1, &2, conf))

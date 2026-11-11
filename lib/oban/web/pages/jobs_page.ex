@@ -321,11 +321,10 @@ defmodule Oban.Web.JobsPage do
 
     selected =
       if Enum.any?(socket.assigns.selected) do
-        all_job_ids = JobQuery.all_job_ids(params, conf, resolver: resolver)
-
-        all_job_ids
+        socket.assigns.selected
+        |> MapSet.to_list()
+        |> JobQuery.matching_job_ids(params, conf)
         |> MapSet.new()
-        |> MapSet.intersection(socket.assigns.selected)
       else
         MapSet.new()
       end
