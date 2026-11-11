@@ -34,17 +34,6 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
-  defmacrop has_sup_workflow_id(meta, workflow_id) do
-    quote do
-      fragment(
-        "? \\? 'sup_workflow_id' AND ?->>'sup_workflow_id' = ?",
-        unquote(meta),
-        unquote(meta),
-        unquote(workflow_id)
-      )
-    end
-  end
-
   defmacrop duration_seconds(completed_at, started_at) do
     quote do
       fragment(
@@ -125,24 +114,26 @@ defmodule Oban.Web.WorkflowQuery do
     end
   end
 
-  defmacrop aggregate_workflow_state(state) do
+  defmacrop graph_state(wf) do
     quote do
       fragment(
         """
         CASE
-          WHEN bool_or(? = 'executing') THEN 'executing'
-          WHEN bool_or(? = 'discarded') THEN 'discarded'
-          WHEN bool_or(? = 'cancelled') THEN 'cancelled'
-          WHEN bool_or(? = 'retryable') THEN 'retryable'
-          WHEN bool_and(? = 'completed') THEN 'completed'
+          WHEN ? > 0 THEN 'executing'
+          WHEN ? > 0 THEN 'discarded'
+          WHEN ? > 0 THEN 'cancelled'
+          WHEN ? > 0 THEN 'retryable'
+          WHEN ? + ? + ? = 0 THEN 'completed'
           ELSE 'pending'
         END
         """,
-        unquote(state),
-        unquote(state),
-        unquote(state),
-        unquote(state),
-        unquote(state)
+        unquote(wf).executing,
+        unquote(wf).discarded,
+        unquote(wf).cancelled,
+        unquote(wf).retryable,
+        unquote(wf).suspended,
+        unquote(wf).available,
+        unquote(wf).scheduled
       )
     end
   end
@@ -608,28 +599,33 @@ defmodule Oban.Web.WorkflowQuery do
     |> put_origin_workers(conf)
   end
 
+  # State comes from the counts Pro maintains for each sub-workflow rather than from grouping
+  # every one of its jobs. Names aren't recorded with the workflow, so they're read from a single
+  # job, which also leaves out any sub-workflow whose jobs are gone.
   defp workflow_graph_subs(conf, workflow_id) do
     prefix = conf.prefix
 
-    base_query =
+    named =
       Job
-      |> where([j], has_sup_workflow_id(j.meta, ^workflow_id))
-      |> group_by([j], fragment("?->>'workflow_id'", j.meta))
+      |> where([j], has_workflow_id(j.meta, parent_as(:sub).id))
+      |> limit(1)
       |> select([j], %{
-        workflow_id: fragment("?->>'workflow_id'", j.meta),
-        workflow_name: fragment("MAX(?->>'workflow_name')", j.meta),
-        sub_name: fragment("MAX(?->>'sub_name')", j.meta),
-        state: aggregate_workflow_state(j.state)
+        workflow_name: fragment("?->>'workflow_name'", j.meta),
+        sub_name: fragment("?->>'sub_name'", j.meta)
       })
 
     query =
-      from(s in subquery(base_query),
+      from(wf in Workflow,
+        as: :sub,
+        inner_lateral_join: j in subquery(named),
+        on: true,
+        where: wf.parent_id == ^workflow_id,
         select: %{
-          workflow_id: s.workflow_id,
-          workflow_name: s.workflow_name,
-          sub_name: s.sub_name,
-          state: s.state,
-          parent_dep: sub_workflow_parent_dep(prefix, s.workflow_id, ^workflow_id)
+          workflow_id: wf.id,
+          workflow_name: j.workflow_name,
+          sub_name: j.sub_name,
+          state: graph_state(wf),
+          parent_dep: sub_workflow_parent_dep(prefix, wf.id, ^workflow_id)
         }
       )
 
