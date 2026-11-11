@@ -80,10 +80,14 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  # The key is inlined so the expression matches Pro's `(meta->>'key')` indexes.
-  defmacrop meta_text(field, key) when is_binary(key) do
+  defmacrop meta_text(field, key, value) when is_binary(key) do
     quote do
-      fragment(unquote("?->>'#{key}'"), unquote(field))
+      fragment(
+        unquote("? \\? '#{key}' AND ?->>'#{key}' = ANY(?)"),
+        unquote(field),
+        unquote(field),
+        unquote(value)
+      )
     end
   end
 
@@ -628,19 +632,23 @@ defmodule Oban.Web.JobQuery do
     end
   end
 
-  # Backfill lookups hit Pro's `(meta->>'backfill_id', state)` index. The chain index is partial
-  # and excludes completed jobs, so chains use containment through the meta index instead.
+  # Backfill lookups hit Pro's `(meta->>'backfill_id', state)` index. The chain index excludes
+  # completed jobs, so chains use containment through the meta index instead.
   defp sequence_query(%Job{meta: %{"chain_id" => chain_id}}, :chain, source)
        when is_binary(chain_id) do
-    where(source, [j], fragment("? @> ?", j.meta, ^%{chain_id: chain_id}))
+    where(source, ^chain_contains(chain_id))
   end
 
   defp sequence_query(%Job{meta: %{"backfill_id" => backfill_id}}, :backfill, source)
        when is_binary(backfill_id) do
-    where(source, [j], meta_text(j.meta, "backfill_id") == ^backfill_id)
+    where(source, [j], meta_text(j.meta, "backfill_id", ^[backfill_id]))
   end
 
   defp sequence_query(_job, _kind, _source), do: nil
+
+  defp chain_contains(chain_id) do
+    dynamic([j], fragment("? @> ?", j.meta, ^%{chain_id: chain_id}))
+  end
 
   def cancel_jobs(%Config{name: name}, [_ | _] = job_ids) do
     Oban.cancel_all_jobs(name, only_ids(job_ids))
@@ -700,15 +708,20 @@ defmodule Oban.Web.JobQuery do
   end
 
   defp filter({:backfills, ids}, condition, _conf) do
-    dynamic([j], ^condition and meta_text(j.meta, "backfill_id") in ^ids)
+    dynamic([j], ^condition and meta_text(j.meta, "backfill_id", ^ids))
   end
 
   defp filter({:chains, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do
     dynamic([j], ^condition and json_text(j.meta, "chain_id") in ^ids)
   end
 
-  defp filter({:chains, ids}, condition, _conf) do
-    dynamic([j], ^condition and meta_text(j.meta, "chain_id") in ^ids)
+  defp filter({:chains, [chain_id | chain_ids]}, condition, _conf) do
+    contains =
+      Enum.reduce(chain_ids, chain_contains(chain_id), fn other_id, acc ->
+        dynamic([j], ^acc or ^chain_contains(other_id))
+      end)
+
+    dynamic([j], ^condition and ^contains)
   end
 
   defp filter({:chunks, ids}, condition, conf) when is_mysql(conf) or is_sqlite(conf) do
