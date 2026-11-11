@@ -331,8 +331,10 @@ defmodule Oban.Web.WorkflowQuery do
     where(query, [wf], fragment("?->'workers' \\?| ?", wf.meta, ^workers))
   end
 
+  # Workflow ids are UUIDv7 by default, which sort by creation time. Ordering by id walks the
+  # primary key, where `inserted_at` has no index and requires sorting the whole table.
   defp apply_sort(query, "inserted", dir) do
-    order_by(query, [wf], [{^dir, wf.inserted_at}])
+    order_by(query, [wf], [{^dir, wf.id}])
   end
 
   defp apply_sort(query, "started", dir) do
