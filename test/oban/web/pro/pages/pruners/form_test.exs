@@ -117,9 +117,7 @@ if Code.ensure_loaded?(Oban.Pro) do
         %{live: live, oban: oban} =
           start_pruner_live!(rules: [[name: "media", queue: "media", max_len: 500]])
 
-        live
-        |> form("#new-pruner-form", %{"name" => "media", "age_value" => "1"})
-        |> render_submit()
+        submit_and_settle(live, "#new-pruner-form", %{"name" => "media", "age_value" => "1"})
 
         assert live |> element("#new-pruner-errors") |> render() =~ "already exists"
         assert %{mode: %{kind: :max_len}} = Pruner.get(oban, "media")
@@ -210,16 +208,12 @@ if Code.ensure_loaded?(Oban.Pro) do
 
         assert {:ok, _rule} = Pruner.update(oban, "media", limit: 9_000)
 
-        live
-        |> form("#pruner-form", %{"age_value" => "3"})
-        |> render_submit()
+        submit_and_settle(live, "#pruner-form", %{"age_value" => "3"})
 
         assert live |> element("#pruner-form-errors") |> render() =~ "changed elsewhere"
         assert %{mode: %{value: "7 days"}} = Pruner.get(oban, "media")
 
-        live
-        |> form("#pruner-form", %{"age_value" => "3"})
-        |> render_submit()
+        submit_and_settle(live, "#pruner-form", %{"age_value" => "3"})
 
         assert render(live) =~ "Rule &quot;media&quot; updated"
         assert %{mode: %{value: "3 days"}} = Pruner.get(oban, "media")
@@ -256,6 +250,16 @@ if Code.ensure_loaded?(Oban.Pro) do
       {:ok, live, _html} = live(build_conn(refresh), path)
 
       %{live: live, oban: oban}
+    end
+
+    # Forms hand the write to the page, which replies to the form in a later message. Rendering
+    # once more waits for the page to process the write, so the reply is ahead of any assertion.
+    defp submit_and_settle(live, selector, params) do
+      live
+      |> form(selector, params)
+      |> render_submit()
+
+      render(live)
     end
 
     # The browser restores the refresh rate through connect params, so a paused refresh keeps the

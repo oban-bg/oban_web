@@ -14,7 +14,7 @@ defmodule Oban.Web.PrunersPage do
     <div id="pruners-page" class="w-full my-6">
       <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
         <%= cond do %>
-          <% not @pro_loaded? -> %>
+          <% not @has_pruners? and not @pro_loaded? -> %>
             <Core.pro_promo feature="Pruners" icon="icon-trash">
               Pruners control which completed, cancelled, and discarded jobs are retained, and for
               how long. Rules match on queue, worker, and state to retain by age or count, or
@@ -207,9 +207,9 @@ defmodule Oban.Web.PrunersPage do
 
   @impl Page
   def handle_params(%{"id" => "new"} = params, _uri, socket) do
-    %{access: access, has_pruners?: has_pruners?, pro_loaded?: pro_loaded?} = socket.assigns
+    %{access: access, has_pruners?: has_pruners?} = socket.assigns
 
-    if pro_loaded? and has_pruners? and can?(:insert_pruners, access) do
+    if has_pruners? and can?(:insert_pruners, access) do
       socket =
         socket
         |> assign(detail: nil, page_title: page_title("New Pruning Rule"), show_new_form: true)

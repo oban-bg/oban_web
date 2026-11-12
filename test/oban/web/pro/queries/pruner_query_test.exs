@@ -185,6 +185,121 @@ if Code.ensure_loaded?(Oban.Pro) do
       end
     end
 
+    describe "create_rule/2" do
+      setup :start_rules
+
+      test "appending new rules ahead of the default", %{conf: conf} do
+        params = %{
+          name: "audit",
+          match: %{worker: "MyApp.Audit", state: "completed"},
+          mode: %{kind: :max_age, value: "2 weeks"},
+          limit: 500
+        }
+
+        assert {:ok, rule} = PrunerQuery.create_rule(conf, params)
+
+        assert %{name: "audit", position: 2, limit: 500, paused: false} = rule
+        assert %{worker: "MyApp.Audit", state: "completed", queue: nil} = rule.match
+        assert %{kind: :max_age, value: "2 weeks"} = rule.mode
+
+        assert {:error, message} = PrunerQuery.create_rule(conf, %{params | name: "media"})
+        assert message =~ "already exists"
+
+        assert {:error, changeset} =
+                 PrunerQuery.create_rule(conf, %{params | name: "huge", limit: 20_000_000})
+
+        assert %{limit: _} = Map.new(changeset.errors)
+
+        assert ~w(media events audit default) == rule_names(conf)
+        assert %{mode: %{value: "500"}} = find_rule(conf, "media")
+      end
+    end
+
+    describe "update_rule/4" do
+      setup :start_rules
+
+      test "changing a rule unless it's stale or missing", %{conf: conf} do
+        %{lock_version: lock_version} = rule = find_rule(conf, "media")
+
+        params = %{
+          match: %{queue: nil, state: "discarded"},
+          mode: %{kind: :max_age, value: "infinity"}
+        }
+
+        assert {:ok, updated} = PrunerQuery.update_rule(conf, "media", lock_version, params)
+
+        assert %{queue: nil, state: "discarded"} = updated.match
+        assert %{kind: :max_age, value: "infinity"} = updated.mode
+        assert updated.lock_version == lock_version + 1
+
+        assert {:error, changeset} =
+                 PrunerQuery.update_rule(conf, "media", lock_version, %{limit: 20})
+
+        assert %{lock_version: _} = Map.new(changeset.errors)
+        assert {:error, %Ecto.Changeset{}} = PrunerQuery.toggle_rule(conf, rule, true)
+
+        assert {:ok, %{paused: true, limit: 10_000}} =
+                 PrunerQuery.toggle_rule(conf, updated, true)
+
+        assert {:error, :not_found} = PrunerQuery.update_rule(conf, "missing", 1, %{limit: 20})
+      end
+    end
+
+    describe "delete_rule/2" do
+      setup :start_rules
+
+      test "deleting a rule unless it's the default, stale, or missing", %{conf: conf} do
+        rule = find_rule(conf, "media")
+
+        assert {:error, message} = PrunerQuery.delete_rule(conf, find_rule(conf, "default"))
+        assert message =~ "can't be deleted"
+
+        assert {:error, :not_found} = PrunerQuery.delete_rule(conf, %{rule | name: "missing"})
+
+        assert {:ok, paused} = PrunerQuery.toggle_rule(conf, rule, true)
+        assert {:error, %Ecto.Changeset{}} = PrunerQuery.delete_rule(conf, rule)
+        assert ~w(media events default) == rule_names(conf)
+
+        assert {:ok, _rule} = PrunerQuery.delete_rule(conf, paused)
+        assert ~w(events default) == rule_names(conf)
+      end
+    end
+
+    describe "move_rule/3" do
+      setup :start_rules
+
+      test "moving a rule within the chain while the default stays last", %{conf: conf} do
+        assert {:ok, %{position: 0}} = PrunerQuery.move_rule(conf, find_rule(conf, "events"), 0)
+        assert ~w(events media default) == rule_names(conf)
+
+        assert {:ok, %{position: 1}} = PrunerQuery.move_rule(conf, find_rule(conf, "events"), 9)
+        assert {:ok, _rule} = PrunerQuery.move_rule(conf, find_rule(conf, "default"), 0)
+        assert ~w(media events default) == rule_names(conf)
+        assert [0, 1, 2] == Enum.map(PrunerQuery.all_rules(conf), & &1.position)
+
+        missing = %{find_rule(conf, "media") | name: "missing"}
+
+        assert {:error, :not_found} = PrunerQuery.move_rule(conf, missing, 0)
+      end
+    end
+
+    defp start_rules(_context) do
+      conf =
+        start_pruner!(
+          rules: [
+            [name: "media", queue: "media", max_len: 500],
+            [name: "events", queue: "events", max_age: {1, :day}],
+            [name: "default", max_age: {7, :days}]
+          ]
+        )
+
+      {:ok, conf: conf}
+    end
+
+    defp rule_names(conf), do: Enum.map(PrunerQuery.all_rules(conf), & &1.name)
+
+    defp find_rule(conf, name), do: Enum.find(PrunerQuery.all_rules(conf), &(&1.name == name))
+
     defp start_pruner!(opts) do
       name = start_supervised_oban!(plugins: [{Pruner, opts}])
 

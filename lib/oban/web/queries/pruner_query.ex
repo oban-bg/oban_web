@@ -5,13 +5,13 @@ defmodule Oban.Web.PrunerQuery do
 
   import Oban.Web.Pruners.Helpers, only: [match_pairs: 1, mode_label: 1]
 
-  alias Oban.Period
-  alias Oban.Pro.Pruner
-  alias Oban.Web.Utils
+  import Ecto.Query
 
-  @compile {:no_warn_undefined, Oban.Pro.Pruner}
+  alias Oban.{Period, Repo}
+  alias Oban.Web.{PrunerRule, Utils}
 
   @default "default"
+  @service Oban.Pro.Pruner
 
   # Legacy config generates machine named rules, e.g. `queue-events`, one for every override.
   @legacy_sources [queue: :queue_overrides, state: :state_overrides, worker: :worker_overrides]
@@ -97,8 +97,14 @@ defmodule Oban.Web.PrunerQuery do
   All persisted rules, in the order the pruner evaluates them.
   """
   def all_rules(conf) do
-    if Utils.pro_loaded?() and Utils.has_pruners?(conf) do
-      Pruner.all(conf.name)
+    if Utils.has_pruners?(conf) do
+      {default, rest} =
+        PrunerRule
+        |> order_by(asc: :position, asc: :name)
+        |> then(&Repo.all(conf, &1))
+        |> Enum.split_with(&(&1.name == @default))
+
+      rest ++ default
     else
       []
     end
@@ -124,7 +130,7 @@ defmodule Oban.Web.PrunerQuery do
   isn't also in the configuration.
   """
   def service_status(conf) do
-    case Utils.fetch_service(conf, Pruner) do
+    case Utils.fetch_service(conf, @service) do
       {:ok, {_module, opts}} ->
         %{configured?: true, sync_mode: Keyword.get(opts, :sync_mode, :manual)}
 
@@ -137,7 +143,7 @@ defmodule Oban.Web.PrunerQuery do
   Names of the rules declared in the pruner's configuration, rather than created at runtime.
   """
   def configured_names(conf) do
-    case Utils.fetch_service(conf, Pruner) do
+    case Utils.fetch_service(conf, @service) do
       {:ok, {_module, opts}} ->
         opts
         |> Keyword.get(:rules, legacy_rules(opts))
@@ -151,40 +157,50 @@ defmodule Oban.Web.PrunerQuery do
   end
 
   @doc """
-  Insert a brand new rule, refusing to clobber an existing one.
-
-  Pro's `insert/2` is an upsert that replaces a same-named rule wholesale and bypasses the
-  optimistic lock, so creation checks for the name first.
+  Insert a brand new rule after the existing rules, refusing to clobber one with the same name.
   """
-  def create_rule(conf, opts) do
-    name = Keyword.fetch!(opts, :name)
+  def create_rule(conf, params) do
+    changeset = PrunerRule.changeset(Map.put(params, :position, 0))
 
-    if is_nil(Pruner.get(conf.name, name)) do
-      Pruner.insert(conf.name, opts)
-    else
-      {:error, ~s(a rule named "#{name}" already exists)}
-    end
+    Repo.transaction(conf, fn ->
+      with :ok <- check_available(conf, changeset),
+           {:ok, rule} <- Repo.insert(conf, changeset) do
+        reposition(conf, rule.name, nil)
+      else
+        {:error, reason} -> Repo.rollback(conf, reason)
+      end
+    end)
   end
 
   @doc """
   Update a rule's match and retention, refusing when the rule changed since the form opened.
   """
-  def update_rule(conf, name, lock_version, opts) do
-    Pruner.update(conf.name, name, Keyword.put(opts, :lock_version, lock_version))
+  def update_rule(conf, name, lock_version, params) do
+    with {:ok, rule} <- fetch_rule(conf, name) do
+      changeset = PrunerRule.changeset(%{rule | lock_version: lock_version}, params)
+
+      Repo.update(conf, changeset, stale_error_field: :lock_version)
+    end
   end
 
   @doc """
   Pause or resume a rule, refusing when the rule changed since it was rendered.
   """
   def toggle_rule(conf, rule, paused?) do
-    Pruner.update(conf.name, rule.name, paused: paused?, lock_version: rule.lock_version)
+    update_rule(conf, rule.name, rule.lock_version, %{paused: paused?})
   end
 
   @doc """
   Delete a rule, refusing the default rule and stale copies.
   """
+  def delete_rule(_conf, %{name: @default}), do: {:error, ~s(the "default" rule can't be deleted)}
+
   def delete_rule(conf, rule) do
-    Pruner.delete(conf.name, rule.name, lock_version: rule.lock_version)
+    with {:ok, stored} <- fetch_rule(conf, rule.name) do
+      changeset = PrunerRule.lock_changeset(%{stored | lock_version: rule.lock_version})
+
+      Repo.delete(conf, changeset, stale_error_field: :lock_version)
+    end
   end
 
   @doc """
@@ -193,8 +209,55 @@ defmodule Oban.Web.PrunerQuery do
   Positions renumber the whole chain, so a stale position can't corrupt ordering and no lock
   check is needed.
   """
+  def move_rule(_conf, %{name: @default} = rule, _position), do: {:ok, rule}
+
   def move_rule(conf, rule, position) do
-    Pruner.update(conf.name, rule.name, position: position)
+    Repo.transaction(conf, fn ->
+      case fetch_rule(conf, rule.name) do
+        {:ok, _rule} -> reposition(conf, rule.name, position)
+        {:error, reason} -> Repo.rollback(conf, reason)
+      end
+    end)
+  end
+
+  defp check_available(conf, changeset) do
+    name = Ecto.Changeset.get_field(changeset, :name)
+
+    if is_binary(name) and Repo.exists?(conf, where(PrunerRule, name: ^name)) do
+      {:error, ~s(a rule named "#{name}" already exists)}
+    else
+      :ok
+    end
+  end
+
+  defp fetch_rule(conf, name) do
+    case Repo.one(conf, where(PrunerRule, name: ^name)) do
+      nil -> {:error, :not_found}
+      rule -> {:ok, rule}
+    end
+  end
+
+  defp reposition(conf, name, desired) do
+    names =
+      PrunerRule
+      |> where([r], r.name != @default)
+      |> order_by(asc: :position, asc: :name)
+      |> lock("FOR UPDATE")
+      |> select([r], r.name)
+      |> then(&Repo.all(conf, &1))
+      |> List.delete(name)
+
+    index = (desired || length(names)) |> max(0) |> min(length(names))
+
+    names
+    |> List.insert_at(index, name)
+    |> Kernel.++([@default])
+    |> Enum.with_index()
+    |> Enum.each(fn {rule_name, position} ->
+      Repo.update_all(conf, where(PrunerRule, name: ^rule_name), set: [position: position])
+    end)
+
+    Repo.one!(conf, where(PrunerRule, name: ^name))
   end
 
   defp legacy_rules(opts) do

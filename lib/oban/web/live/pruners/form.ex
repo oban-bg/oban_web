@@ -4,16 +4,13 @@ defmodule Oban.Web.Pruners.Form do
   import Oban.Web.FormComponents, only: [changeset_errors: 1, parse_int: 1, parse_string: 1]
 
   alias Oban.Period
-
-  # Pruning by age bypasses row-number filtering with a constant of 100M, so limits anywhere
-  # near it silently stop pruning. Pro's changeset enforces the same ceiling.
-  @max_limit 10_000_000
+  alias Oban.Web.PrunerRule
 
   @age_units ~w(seconds minutes hours days weeks months)
   @cast_keys ~w(name queue worker state kind age_value age_unit length_value limit timeout)
   @states ~w(completed cancelled discarded)
 
-  def max_limit, do: @max_limit
+  defdelegate max_limit, to: PrunerRule
 
   def state_options do
     [{"Any state", ""} | Enum.map(@states, &{&1, &1})]
@@ -98,17 +95,16 @@ defmodule Oban.Web.Pruners.Form do
 
   def build_opts(form) do
     with {:ok, name} <- parse_name(form.name),
-         {:ok, retention} <- parse_retention(form) do
-      opts =
-        [
-          name: name,
-          queue: parse_string(form.queue),
-          worker: parse_string(form.worker),
-          state: parse_string(form.state),
-          archive: form.archive
-        ] ++ retention ++ parse_limits(form)
+         {:ok, mode} <- parse_retention(form) do
+      match = %{
+        queue: parse_string(form.queue),
+        worker: parse_string(form.worker),
+        state: parse_string(form.state)
+      }
 
-      {:ok, opts}
+      params = %{name: name, archive: form.archive, match: match, mode: mode}
+
+      {:ok, Map.merge(params, parse_limits(form))}
     end
   end
 
@@ -119,12 +115,15 @@ defmodule Oban.Web.Pruners.Form do
     end
   end
 
-  defp parse_retention(%{kind: "forever"}), do: {:ok, [max_age: :infinity]}
+  defp parse_retention(%{kind: "forever"}), do: {:ok, %{kind: :max_age, value: "infinity"}}
 
   defp parse_retention(%{kind: "length"} = form) do
     case parse_int(form.length_value) do
-      count when is_integer(count) and count > 0 -> {:ok, [max_len: count]}
-      _other -> {:error, "Length must be a positive number of jobs"}
+      count when is_integer(count) and count > 0 ->
+        {:ok, %{kind: :max_len, value: to_string(count)}}
+
+      _other ->
+        {:error, "Length must be a positive number of jobs"}
     end
   end
 
@@ -139,7 +138,7 @@ defmodule Oban.Web.Pruners.Form do
         {:error, "Age must be at least a minute, the pruner only runs once a minute"}
 
       true ->
-        {:ok, [max_age: {value, String.to_existing_atom(form.age_unit)}]}
+        {:ok, %{kind: :max_age, value: "#{value} #{form.age_unit}"}}
     end
   end
 
@@ -147,6 +146,7 @@ defmodule Oban.Web.Pruners.Form do
     for {key, value} <- [limit: form.limit, timeout: form.timeout],
         parsed = parse_int(value),
         is_integer(parsed),
+        into: %{},
         do: {key, parsed}
   end
 

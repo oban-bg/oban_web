@@ -239,7 +239,7 @@ defmodule Oban.Web.Pruners.NewComponent do
     case Form.build_opts(form) do
       {:ok, opts} ->
         # Only creation takes paused from the form; the detail toggles pausing as its own action.
-        send(self(), {:insert_rule, Keyword.put(opts, :paused, form.paused)})
+        send(self(), {:insert_rule, Map.put(opts, :paused, form.paused)})
 
         {:noreply, assign(socket, errors: [])}
 
