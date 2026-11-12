@@ -64,7 +64,23 @@ defmodule Oban.Web.Case do
 
     start_supervised!({Oban, opts})
 
-    Keyword.fetch!(opts, :name)
+    name = Keyword.fetch!(opts, :name)
+
+    await_crontab(name)
+
+    name
+  end
+
+  # The cronitor shares its crontab through the notifier after it starts, so the instance is up
+  # before the crontab is readable and a test that queries right away may find it empty.
+  defp await_crontab(name) do
+    crontab = get_in(Oban.config(name).plugins, [Oban.Cron, :crontab]) || []
+
+    if crontab != [] do
+      with_backoff(fn ->
+        ExUnit.Assertions.assert(Oban.Met.crontab(name) != [], "crontab was never shared")
+      end)
+    end
   end
 
   # Build the options for an isolated instance and register it for the test, without starting
@@ -76,7 +92,6 @@ defmodule Oban.Web.Case do
       peer: Oban.Peers.Isolated,
       repo: Repo,
       stage_interval: :infinity,
-      # Jobs still executing at the end of a test are abandoned, so there's no reason to wait.
       shutdown_grace_period: 10
     ]
 
