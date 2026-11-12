@@ -97,7 +97,7 @@ defmodule Oban.Web.PrunerQuery do
   All persisted rules, in the order the pruner evaluates them.
   """
   def all_rules(conf) do
-    if Utils.has_pro?() and Utils.has_pruners?(conf) do
+    if Utils.pro_loaded?() and Utils.has_pruners?(conf) do
       Pruner.all(conf.name)
     else
       []

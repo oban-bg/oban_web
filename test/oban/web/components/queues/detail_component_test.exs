@@ -15,8 +15,9 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     {:ok, oban: start_supervised_oban!()}
   end
 
+  @tag :pro
   test "restricting actions based on access", %{oban: oban} do
-    conf = %{Config.new(name: oban, repo: Repo) | engine: Oban.Pro.Engine}
+    conf = Config.new(name: oban, repo: Repo)
 
     html =
       render_component(Component, assigns(oban, access: :read_only, conf: conf), router: Router)
@@ -44,31 +45,25 @@ defmodule Oban.Web.Queues.DetailComponentTest do
     assert html =~ "web.2/oban"
   end
 
-  test "disabling advanced features when the Pro engine isn't available", %{oban: oban} do
-    conf = Config.new(engine: Basic, name: oban, repo: Repo)
+  test "disabling advanced features without a producers table", %{oban: oban} do
+    conf = Config.new(engine: Basic, name: oban, prefix: "missing", repo: Repo)
     html = render_component(Component, assigns(oban, conf: conf), router: Router)
 
     assert has_fragment?(html, "#global-form [rel=requires-pro]")
     assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
     refute has_fragment?(html, "[name=global_allowed]")
     refute has_fragment?(html, "[name=rate_allowed]")
-
-    # Engines other than the Pro engine can't apply global or rate limits
-    conf = %{conf | engine: FakeEngine}
-    html = render_component(Component, assigns(oban, conf: conf), router: Router)
-
-    assert has_fragment?(html, "#global-form [rel=requires-pro]")
-    assert has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
   end
 
-  test "enabling advanced features for the Pro engine, new and legacy names", %{oban: oban} do
-    for engine <- [Oban.Pro.Engine, Oban.Pro.Engines.Smart] do
-      conf = %{Config.new(engine: Basic, name: oban, repo: Repo) | engine: engine}
-      html = render_component(Component, assigns(oban, conf: conf), router: Router)
+  @tag :pro
+  test "enabling advanced features with a producers table, whatever the engine", %{oban: oban} do
+    conf = Config.new(engine: Basic, name: oban, repo: Repo)
+    html = render_component(Component, assigns(oban, conf: conf), router: Router)
 
-      refute has_fragment?(html, "#global-form [rel=requires-pro]")
-      refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
-    end
+    refute has_fragment?(html, "#global-form [rel=requires-pro]")
+    refute has_fragment?(html, "#rate-limit-form [rel=requires-pro]")
+    assert has_fragment?(html, "[name=global_allowed]")
+    assert has_fragment?(html, "[name=rate_allowed]")
   end
 
   test "displaying status badges based on queue state", %{oban: oban} do

@@ -50,7 +50,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
         <.header
           access={@access}
           myself={@myself}
-          pro_available?={@pro_available?}
+          pro_loaded?={@pro_loaded?}
           workflow={@workflow}
           sub_workflows={@sub_workflows}
           compensation_status={@compensation_status}
@@ -79,7 +79,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
           comp_open?={@comp_open?}
           compensation={@compensation}
           myself={@myself}
-          pro_available?={@pro_available?}
+          pro_loaded?={@pro_loaded?}
           policy={@compensation_policy}
           status={@compensation_status}
           steps={@compensation_steps}
@@ -130,7 +130,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
 
   attr :access, :any, required: true
   attr :myself, :any, required: true
-  attr :pro_available?, :boolean, required: true
+  attr :pro_loaded?, :boolean, required: true
   attr :workflow, :map, required: true
   attr :sub_workflows, :list, required: true
   attr :compensation_status, :atom, required: true
@@ -177,9 +177,9 @@ defmodule Oban.Web.Workflows.DetailComponent do
           icon="x_circle"
           label="Cancel"
           color="red"
-          tooltip={cancel_tooltip(@pro_available?)}
+          tooltip={cancel_tooltip(@pro_loaded?)}
           confirm={cancel_confirm(@workflow, @cancellable, @sub_workflows)}
-          disabled={not @pro_available? or not can?(:cancel_workflows, @access) or @cancellable == 0}
+          disabled={not @pro_loaded? or not can?(:cancel_workflows, @access) or @cancellable == 0}
           phx-target={@myself}
           phx-click="cancel-workflow"
         />
@@ -189,9 +189,9 @@ defmodule Oban.Web.Workflows.DetailComponent do
           icon="arrow_path"
           label="Retry"
           color="blue"
-          tooltip={retry_tooltip(@pro_available?)}
+          tooltip={retry_tooltip(@pro_loaded?)}
           confirm={retry_confirm(@workflow, @compensation_status)}
-          disabled={not @pro_available? or not can?(:retry_workflows, @access) or @retryable == 0}
+          disabled={not @pro_loaded? or not can?(:retry_workflows, @access) or @retryable == 0}
           phx-target={@myself}
           phx-click="retry-workflow"
         />
@@ -644,7 +644,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
   attr :compensation, :map, default: nil
   attr :myself, :any, required: true
   attr :policy, :list, default: []
-  attr :pro_available?, :boolean, required: true
+  attr :pro_loaded?, :boolean, required: true
   attr :status, :atom, required: true
   attr :steps, :list, default: []
   attr :workflow, :map, required: true
@@ -699,7 +699,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
                 tooltip="Cancel the remaining rollback steps"
                 confirm={"Cancel the rollback for #{Helpers.display_name(@workflow)}? Steps that haven't rolled back yet will stay as they are."}
                 disabled={
-                  not @pro_available? or not can?(:cancel_workflows, @access) or
+                  not @pro_loaded? or not can?(:cancel_workflows, @access) or
                     @status != :executing
                 }
                 phx-target={@myself}
@@ -715,7 +715,7 @@ defmodule Oban.Web.Workflows.DetailComponent do
                 tooltip="Retry the rollback"
                 confirm={"Retry the rollback for #{Helpers.display_name(@workflow)}? Rollback steps that already completed will run again."}
                 disabled={
-                  not @pro_available? or not can?(:retry_workflows, @access) or
+                  not @pro_loaded? or not can?(:retry_workflows, @access) or
                     @status != :failed
                 }
                 phx-target={@myself}

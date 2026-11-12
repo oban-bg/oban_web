@@ -11,14 +11,10 @@ defmodule Oban.Web.UtilsTest do
     end
   end
 
-  describe "pro_engine?/1" do
-    test "detecting the pro engine through either module name" do
-      assert Utils.pro_engine?(%{engine: Oban.Pro.Engine})
-      assert Utils.pro_engine?(%{engine: Oban.Pro.Engines.Smart})
-
-      refute Utils.pro_engine?(%{engine: Oban.Engines.Basic})
-      refute Utils.pro_engine?(%{engine: Oban.Engines.Lite})
-      refute Utils.pro_engine?(%{engine: Oban.Queue.BasicEngine})
+  describe "has_producers?/1" do
+    test "short circuiting for adapters without producer support" do
+      refute Utils.has_producers?(%{engine: Oban.Engines.Lite})
+      refute Utils.has_producers?(%{engine: Oban.Engines.Dolphin})
     end
   end
 

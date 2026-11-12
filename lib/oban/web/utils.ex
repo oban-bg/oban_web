@@ -21,8 +21,6 @@ defmodule Oban.Web.Utils do
 
   def engine(%{engine: engine}), do: normalize_module(engine)
 
-  def pro_engine?(conf), do: engine(conf) == Oban.Pro.Engine
-
   # Cron moved to Oban.Cron in v2.24 and entry_name/1 isn't delegated from the legacy module.
   if Code.ensure_loaded?(Oban.Cron) and function_exported?(Oban.Cron, :entry_name, 1) do
     def cron_entry_name(entry), do: Oban.Cron.entry_name(entry)
@@ -51,13 +49,15 @@ defmodule Oban.Web.Utils do
 
   def has_crons?(conf), do: has_table?("oban_crons", conf)
 
-  def has_pro? do
-    persistent_cache(:pro?, fn -> Code.ensure_loaded?(Oban.Pro) end)
-  end
+  def has_producers?(conf), do: has_table?("oban_producers", conf)
 
   def has_pruners?(conf), do: has_table?("oban_pruners", conf)
 
   def has_workflows?(conf), do: has_table?("oban_workflows", conf)
+
+  def pro_loaded? do
+    persistent_cache(:pro_loaded?, fn -> Code.ensure_loaded?(Oban.Pro) end)
+  end
 
   def persistent_cache(key, fun) when is_function(fun, 0) do
     case :persistent_term.get(key, nil) do

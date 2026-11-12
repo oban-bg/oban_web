@@ -57,7 +57,7 @@ defmodule Oban.Web.JobsPage do
           @detailed && "mx-4"
         ]}>
           <%= cond do %>
-            <% @archive? and not @pro_available? -> %>
+            <% @archive? and not @archive_available? and not @pro_loaded? -> %>
               <Core.pro_promo feature="Archived jobs" icon="icon-square-stack">
                 Pruner rules can archive finished jobs instead of deleting them, keeping a record
                 of what ran without slowing down the jobs table. Archived jobs are browsed and
@@ -292,7 +292,7 @@ defmodule Oban.Web.JobsPage do
 
     %{socket | assigns: assigns}
     |> assign(:archive_available?, Utils.has_archive?(socket.assigns.conf))
-    |> assign(:pro_available?, Utils.has_pro?())
+    |> assign(:pro_loaded?, Utils.pro_loaded?())
     |> assign_new(:archive?, fn -> false end)
     |> assign_new(:chunk_counts, fn -> %{} end)
     |> assign_new(:chunk_leader, fn -> nil end)

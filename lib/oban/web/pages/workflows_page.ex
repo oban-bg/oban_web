@@ -37,7 +37,7 @@ defmodule Oban.Web.WorkflowsPage do
     <div id="workflows-page" class="w-full my-6">
       <div class="bg-white dark:bg-gray-900 rounded-md shadow-lg overflow-hidden">
         <%= cond do %>
-          <% not @pro_available? -> %>
+          <% not @has_workflows? and not @pro_loaded? -> %>
             <Core.pro_promo feature="Workflows" icon="icon-rectangle-group">
               Workflows coordinate jobs with dependencies. Steps run in sequence, fan out in
               parallel, and fan back in, with context carried between steps and sub-workflows
@@ -58,7 +58,7 @@ defmodule Oban.Web.WorkflowsPage do
               access={@access}
               conf={@conf}
               module={DetailComponent}
-              pro_available?={@pro_available?}
+              pro_loaded?={@pro_loaded?}
               workflow={@workflow}
               workflow_id={@detail}
               parent_workflow={@parent_workflow}
@@ -130,7 +130,7 @@ defmodule Oban.Web.WorkflowsPage do
     %{socket | assigns: assigns}
     |> assign(:default_params, default)
     |> assign(:has_workflows?, Utils.has_workflows?(socket.assigns.conf))
-    |> assign(:pro_available?, Utils.has_pro?())
+    |> assign(:pro_loaded?, Utils.pro_loaded?())
     |> assign_new(:compensation, fn -> nil end)
     |> assign_new(:compensation_policy, fn -> [] end)
     |> assign_new(:compensation_status, fn -> :none end)
@@ -238,7 +238,7 @@ defmodule Oban.Web.WorkflowsPage do
     enforce_access!(:cancel_workflows, socket.assigns.access)
 
     socket =
-      if Utils.has_pro?() do
+      if Utils.pro_loaded?() do
         {:ok, count} =
           Telemetry.action(:cancel_workflow, socket, [workflow_id: workflow_id], fn ->
             Workflow.cancel_jobs(socket.assigns.conf.name, workflow_id)
@@ -258,7 +258,7 @@ defmodule Oban.Web.WorkflowsPage do
     enforce_access!(:retry_workflows, socket.assigns.access)
 
     socket =
-      if Utils.has_pro?() do
+      if Utils.pro_loaded?() do
         {:ok, count} =
           Telemetry.action(:retry_workflow, socket, [workflow_id: workflow_id], fn ->
             Workflow.retry_jobs(socket.assigns.conf.name, workflow_id)

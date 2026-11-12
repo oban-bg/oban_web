@@ -4,7 +4,6 @@ defmodule Oban.Web.Queues.DetailComponent do
   import Oban.Web.FormComponents
   import Oban.Web.Helpers.QueueHelper
 
-  alias Oban.Config
   alias Oban.Met
   alias Oban.Web.Colors
   alias Oban.Web.Components.Core
@@ -486,7 +485,7 @@ defmodule Oban.Web.Queues.DetailComponent do
 
         <div id="config-content" class={["mt-3", unless(@config_open?, do: "hidden")]}>
           <div class="grid grid-cols-2 gap-x-10 gap-y-6 bg-gray-50 dark:bg-gray-800 rounded-md p-4">
-            <div :if={missing_pro?(@conf)} id="global-form">
+            <div :if={not Utils.has_producers?(@conf)} id="global-form">
               <.panel_heading
                 icon="icon-globe"
                 id="global-limit-info"
@@ -497,7 +496,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             </div>
 
             <form
-              :if={not missing_pro?(@conf)}
+              :if={Utils.has_producers?(@conf)}
               id="global-form"
               phx-change="form-change"
               phx-submit="global-update"
@@ -593,7 +592,7 @@ defmodule Oban.Web.Queues.DetailComponent do
               />
             </form>
 
-            <div :if={missing_pro?(@conf)} id="rate-limit-form">
+            <div :if={not Utils.has_producers?(@conf)} id="rate-limit-form">
               <.panel_heading
                 icon="icon-arrow-trending-down"
                 id="rate-limit-info"
@@ -604,7 +603,7 @@ defmodule Oban.Web.Queues.DetailComponent do
             </div>
 
             <form
-              :if={not missing_pro?(@conf)}
+              :if={Utils.has_producers?(@conf)}
               id="rate-limit-form"
               phx-change="form-change"
               phx-submit="rate-limit-update"
@@ -1334,8 +1333,4 @@ defmodule Oban.Web.Queues.DetailComponent do
       %{count: Map.get(counts, index, 0), timestamp: (since - index * @history_by) * 1000}
     end
   end
-
-  # Pro Helpers
-
-  defp missing_pro?(%Config{} = conf), do: not Utils.pro_engine?(conf)
 end
