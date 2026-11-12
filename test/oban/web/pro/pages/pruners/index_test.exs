@@ -96,7 +96,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "showing rules as stored when no pruner is configured" do
-      {oban, live} = start_unconfigured_live!()
+      {oban, live} = start_unconfigured_live!(plugins: [Oban.Reindexer])
 
       assert {:ok, _rule} = Pruner.insert(oban, name: "media", queue: "media", max_len: 500)
 
@@ -119,8 +119,8 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert default =~ "Forever"
     end
 
-    test "warning when no pruner is configured" do
-      {oban, live} = start_unconfigured_live!()
+    test "warning when a working instance has no pruner configured" do
+      {oban, live} = start_unconfigured_live!(plugins: [Oban.Reindexer])
 
       assert {:ok, _rule} = Pruner.insert(oban, name: "media", queue: "media", max_len: 500)
 
@@ -130,6 +130,17 @@ if Code.ensure_loaded?(Oban.Pro) do
       assert live |> element("#warning-no-default") |> render() =~ "retained forever"
 
       assert live |> element("#pruner-media") |> render() =~ ~s(rel="is-stored")
+    end
+
+    test "staying quiet for a dashboard instance without queues or plugins" do
+      {oban, live} = start_unconfigured_live!()
+
+      assert {:ok, _rule} = Pruner.insert(oban, name: "media", queue: "media", max_len: 500)
+
+      refresh(live)
+
+      refute live |> element("#warning-unconfigured") |> has_element?()
+      assert live |> element("#pruner-media") |> render() =~ ~s(rel="is-active")
     end
 
     test "warning when configuration deletes rules on restart" do
@@ -318,7 +329,7 @@ if Code.ensure_loaded?(Oban.Pro) do
     end
 
     test "navigating to pruners from other pages" do
-      {_oban, live} = start_unconfigured_live!("/oban/jobs")
+      {_oban, live} = start_unconfigured_live!(path: "/oban/jobs")
 
       assert live |> element("#nav-pruners") |> has_element?()
 
@@ -336,8 +347,10 @@ if Code.ensure_loaded?(Oban.Pro) do
                live(build_conn(), "/oban/pruners/missing")
     end
 
-    defp start_unconfigured_live!(path \\ "/oban/pruners") do
-      oban = start_supervised_oban!()
+    defp start_unconfigured_live!(opts \\ []) do
+      {path, opts} = Keyword.pop(opts, :path, "/oban/pruners")
+
+      oban = start_supervised_oban!(opts)
 
       {:ok, live, _html} = live(build_conn(), path)
 

@@ -238,7 +238,7 @@ defmodule Oban.Web.WorkflowsPage do
     enforce_access!(:cancel_workflows, socket.assigns.access)
 
     socket =
-      if Utils.pro_loaded?() do
+      if socket.assigns.pro_loaded? do
         {:ok, count} =
           Telemetry.action(:cancel_workflow, socket, [workflow_id: workflow_id], fn ->
             Workflow.cancel_jobs(socket.assigns.conf.name, workflow_id)
@@ -258,7 +258,7 @@ defmodule Oban.Web.WorkflowsPage do
     enforce_access!(:retry_workflows, socket.assigns.access)
 
     socket =
-      if Utils.pro_loaded?() do
+      if socket.assigns.pro_loaded? do
         {:ok, count} =
           Telemetry.action(:retry_workflow, socket, [workflow_id: workflow_id], fn ->
             Workflow.retry_jobs(socket.assigns.conf.name, workflow_id)

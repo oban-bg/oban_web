@@ -127,16 +127,21 @@ defmodule Oban.Web.PrunerQuery do
   How the configured pruner applies rules.
 
   Rules only take effect when a pruner is configured, and automatic syncing deletes any rule that
-  isn't also in the configuration.
+  isn't also in the configuration. A pruner is only reported missing for an instance that runs
+  queues or plugins of its own, because a dashboard-only instance can't tell what other nodes run.
   """
   def service_status(conf) do
     case Utils.fetch_service(conf, @service) do
       {:ok, {_module, opts}} ->
-        %{configured?: true, sync_mode: Keyword.get(opts, :sync_mode, :manual)}
+        %{missing?: false, sync_mode: Keyword.get(opts, :sync_mode, :manual)}
 
       :error ->
-        %{configured?: false, sync_mode: nil}
+        %{missing?: working?(conf), sync_mode: nil}
     end
+  end
+
+  defp working?(%{plugins: plugins, queues: queues}) do
+    queues != [] or Enum.any?(plugins, &(&1 != Oban.Met and not match?({Oban.Met, _opts}, &1)))
   end
 
   @doc """

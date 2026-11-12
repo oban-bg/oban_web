@@ -90,6 +90,7 @@ defmodule Oban.Web.JobsPage do
                 module={DetailComponent}
                 os_time={@os_time}
                 params={without_defaults(Map.delete(@params, "id"), @default_params)}
+                pro_loaded?={@pro_loaded?}
                 queues={@queues}
                 resolver={@resolver}
               />

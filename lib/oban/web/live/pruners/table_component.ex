@@ -200,13 +200,13 @@ defmodule Oban.Web.Pruners.TableComponent do
                 rel="is-paused"
               />
               <Icons.icon
-                :if={not @rule.paused and @status.configured?}
+                :if={not @rule.paused and not @status.missing?}
                 name="icon-check-circle"
                 class="w-5 h-5 text-emerald-600 dark:text-emerald-400"
                 rel="is-active"
               />
               <Icons.icon
-                :if={not @rule.paused and not @status.configured?}
+                :if={not @rule.paused and @status.missing?}
                 name="icon-minus-circle"
                 class="w-5 h-5 text-gray-400 dark:text-gray-500"
                 rel="is-stored"
@@ -290,6 +290,6 @@ defmodule Oban.Web.Pruners.TableComponent do
   end
 
   defp status_title(%{paused: true}, _status), do: "Paused"
-  defp status_title(_rule, %{configured?: true}), do: "Active"
-  defp status_title(_rule, _status), do: "Stored — no pruner is running"
+  defp status_title(_rule, %{missing?: true}), do: "Stored — no pruner is running"
+  defp status_title(_rule, _status), do: "Active"
 end

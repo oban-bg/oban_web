@@ -117,10 +117,10 @@ defmodule Oban.Web.PrunersPage do
   defp warnings(assigns) do
     ~H"""
     <div
-      :if={not @status.configured? or @status.sync_mode == :automatic or missing_default?(@rules)}
+      :if={@status.missing? or @status.sync_mode == :automatic or missing_default?(@rules)}
       class="divide-y divide-amber-200 dark:divide-amber-900/50"
     >
-      <.warning :if={not @status.configured?} id="warning-unconfigured">
+      <.warning :if={@status.missing?} id="warning-unconfigured">
         No pruner is configured for this instance, so these rules are stored but never applied. Add
         <code class="font-mono">Oban.Pro.Pruner</code>
         to your Oban configuration to start pruning.
@@ -326,10 +326,10 @@ defmodule Oban.Web.PrunersPage do
     case result do
       {:ok, rule} ->
         message =
-          if socket.assigns.status.configured? do
-            "Rule \"#{rule.name}\" created"
-          else
+          if socket.assigns.status.missing? do
             "Rule \"#{rule.name}\" created — no pruner is running"
+          else
+            "Rule \"#{rule.name}\" created"
           end
 
         socket =

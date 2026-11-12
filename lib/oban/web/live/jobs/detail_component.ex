@@ -72,7 +72,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   end
 
   defp assign_recorded(socket) do
-    %{job: job, resolver: resolver} = socket.assigns
+    %{job: job, pro_loaded?: pro_loaded?, resolver: resolver} = socket.assigns
 
     key = {job.id, job.meta["return"]}
 
@@ -85,12 +85,12 @@ defmodule Oban.Web.Jobs.DetailComponent do
       assign(socket,
         recorded_key: key,
         recorded_size: Recorded.size(job),
-        recorded_state: initial_recorded_state(job, resolver)
+        recorded_state: initial_recorded_state(job, resolver, pro_loaded?)
       )
     end
   end
 
-  defp initial_recorded_state(job, resolver) do
+  defp initial_recorded_state(job, resolver, pro_loaded?) do
     case Recorded.status(job) do
       :disabled ->
         {:error, :disabled}
@@ -104,6 +104,9 @@ defmodule Oban.Web.Jobs.DetailComponent do
         else
           format_recorded(job.meta["return"], job, resolver)
         end
+
+      :external when not pro_loaded? ->
+        {:error, :unavailable}
 
       :external ->
         if oversized?(Recorded.size(job), size_limit(resolver)) do
@@ -1404,6 +1407,7 @@ defmodule Oban.Web.Jobs.DetailComponent do
   defp recorded_message({:error, :timeout}), do: "Timed out fetching output"
   defp recorded_message({:error, :backend}), do: "Unable to reach the storage backend"
   defp recorded_message({:error, :too_large}), do: "Output is too large to display"
+  defp recorded_message({:error, :unavailable}), do: "External, loading requires Oban Pro"
   defp recorded_message(:idle), do: "Stored externally"
   defp recorded_message(_state), do: nil
 

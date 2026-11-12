@@ -263,6 +263,15 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
       refute html =~ ~s(id="copy-recorded")
     end
 
+    test "explaining that externally stored output can't be loaded without Pro" do
+      job = recorded_job(%{"return" => key(), "storage" => "encoded", "size" => 2048})
+
+      html = render_component(Component, assigns(job, pro_loaded?: false), router: Router)
+
+      assert html =~ "loading requires Oban Pro"
+      refute html =~ ~s(id="load-recorded")
+    end
+
     test "refusing to render output larger than the resolver's limit" do
       job = recorded_job(%{"return" => key(), "storage" => "encoded", "size" => 5_000_000})
 
@@ -324,6 +333,7 @@ defmodule Oban.Web.Jobs.DetailComponentTest do
       id: :details,
       os_time: os_time,
       params: %{},
+      pro_loaded?: true,
       resolver: nil
     ]
     |> Keyword.put(:job, job)
