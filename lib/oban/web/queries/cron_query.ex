@@ -26,6 +26,21 @@ defmodule Oban.Web.CronQuery do
     {"dynamic", "dynamic cron job", "dynamic"}
   ]
 
+  @replaceable ~w(expression worker opts paused)a
+
+  defmacrop reset_insertions(cron, expression, timezone) do
+    quote do
+      fragment(
+        "CASE WHEN ? != ? OR COALESCE(?->>'timezone', 'NA') != COALESCE(?, 'NA') THEN '{}' ELSE ? END",
+        field(unquote(cron), :expression),
+        unquote(expression),
+        field(unquote(cron), :opts),
+        unquote(timezone),
+        field(unquote(cron), :insertions)
+      )
+    end
+  end
+
   # Searching
 
   @impl Queryable
@@ -169,6 +184,52 @@ defmodule Oban.Web.CronQuery do
 
       true ->
         nil
+    end
+  end
+
+  @doc """
+  Insert a dynamic cron entry, or replace the entry that already has the same name.
+
+  Replacing keeps the insertions that guaranteed mode tracks unless the schedule changes.
+  """
+  def insert_cron(params, conf) do
+    changeset = CronEntry.changeset(params)
+
+    Repo.insert(conf, changeset, conflict_target: :name, on_conflict: replace_entry(changeset))
+  end
+
+  defp replace_entry(%{changes: changes}) do
+    replace = for {key, value} <- Map.take(changes, @replaceable), value != %{}, do: {key, value}
+    expression = changes[:expression]
+    timezone = CronEntry.timezone(changes)
+
+    CronEntry
+    |> update([_], set: ^replace)
+    |> update([c], set: [insertions: reset_insertions(c, ^expression, ^timezone)])
+  end
+
+  @doc """
+  Update a dynamic cron entry by name, which may include renaming it.
+  """
+  def update_cron(name, params, conf) do
+    with {:ok, entry} <- fetch_entry(name, conf) do
+      changeset = CronEntry.changeset(entry, params)
+
+      Repo.update(conf, changeset, stale_error_field: :lock_version)
+    end
+  end
+
+  @doc """
+  Delete a dynamic cron entry by name.
+  """
+  def delete_cron(name, conf) do
+    with {:ok, entry} <- fetch_entry(name, conf), do: Repo.delete(conf, entry)
+  end
+
+  defp fetch_entry(name, conf) do
+    case Repo.one(conf, where(CronEntry, name: ^name)) do
+      nil -> {:error, "no cron entry named #{inspect(name)} could be found"}
+      entry -> {:ok, entry}
     end
   end
 

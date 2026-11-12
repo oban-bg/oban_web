@@ -4,11 +4,8 @@ defmodule Oban.Web.Crons.DetailComponent do
   import Oban.Web.Crons.Helpers, only: [state_icon: 1, maybe_to_unix: 1, show_name?: 1]
   import Oban.Web.FormComponents
 
-  alias Oban.Pro.Cron
-  alias Oban.Web.{CronExpr, Timezones}
+  alias Oban.Web.{CronExpr, CronQuery, Timezones}
   alias Oban.Web.Crons.Form
-
-  @compile {:no_warn_undefined, Cron}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -577,7 +574,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     verb = if cron.paused?, do: "resume", else: "pause"
 
-    case Cron.update(conf.name, cron.name, paused: not cron.paused?) do
+    case CronQuery.update_cron(cron.name, %{paused: not cron.paused?}, conf) do
       {:ok, entry} ->
         send(self(), :refresh)
         send(self(), {:flash, :info, "#{String.capitalize(verb)}d cron #{cron.name}"})
@@ -596,7 +593,7 @@ defmodule Oban.Web.Crons.DetailComponent do
 
     %{cron: cron, conf: conf, params: params} = socket.assigns
 
-    case Cron.delete(conf.name, cron.name) do
+    case CronQuery.delete_cron(cron.name, conf) do
       {:ok, _deleted} ->
         send(self(), {:flash, :info, "Deleted cron #{cron.name}"})
         {:noreply, push_patch(socket, to: oban_path(:crons, params))}
@@ -626,7 +623,7 @@ defmodule Oban.Web.Crons.DetailComponent do
     socket = assign(socket, form: form)
 
     with {:ok, opts} <- Form.build_opts(form, baseline, cron.opts),
-         {:ok, entry} <- Cron.update(conf.name, cron.name, opts) do
+         {:ok, entry} <- CronQuery.update_cron(cron.name, opts, conf) do
       send(self(), {:flash, :info, "Cron \"#{entry.name}\" updated"})
 
       # The page reloads the cron by name, so a renamed entry has to be reopened at its new

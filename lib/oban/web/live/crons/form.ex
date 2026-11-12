@@ -73,22 +73,19 @@ defmodule Oban.Web.Crons.Form do
         |> Map.drop(@form_opts)
         |> Map.merge(opts)
 
-      params = [name: name, worker: worker, opts: opts]
+      params = %{name: name, worker: worker, opts: opts}
 
       if rescheduled?(form, baseline) do
-        {:ok, [{:expression, expression} | params]}
+        {:ok, Map.put(params, :expression, expression)}
       else
         {:ok, params}
       end
     end
   end
 
-  # New entries are inserted as a crontab tuple, which takes its options as a keyword list.
   def build_entry(form) do
     with {:ok, {name, worker, expression, opts}} <- parse_entry(form) do
-      opts = for {key, value} <- opts, do: {String.to_existing_atom(key), value}
-
-      {:ok, {expression, worker, [{:name, name} | opts]}}
+      {:ok, %{name: name, worker: worker, expression: expression, opts: opts}}
     end
   end
 

@@ -3,11 +3,9 @@ defmodule Oban.Web.Crons.NewComponent do
 
   import Oban.Web.FormComponents
 
-  alias Oban.Pro.Cron
+  alias Oban.Web.CronQuery
   alias Oban.Web.Crons.Form
   alias Oban.Web.Timezones
-
-  @compile {:no_warn_undefined, Cron}
 
   @impl Phoenix.LiveComponent
   def render(assigns) do
@@ -233,9 +231,9 @@ defmodule Oban.Web.Crons.NewComponent do
     form = Map.merge(socket.assigns.form, Form.cast_params(params))
     socket = assign(socket, form: form)
 
-    with {:ok, {_expression, _worker, opts} = entry} <- Form.build_entry(form),
-         {:ok, _entries} <- Cron.insert(conf.name, [entry]) do
-      send(self(), {:flash, :info, "Cron \"#{opts[:name]}\" created"})
+    with {:ok, params} <- Form.build_entry(form),
+         {:ok, entry} <- CronQuery.insert_cron(params, conf) do
+      send(self(), {:flash, :info, "Cron \"#{entry.name}\" created"})
 
       {:noreply, push_patch(socket, to: oban_path(:crons))}
     else
