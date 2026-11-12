@@ -10,12 +10,12 @@ mounting Oban.Web within your application. This is useful for:
 
 > #### Interaction with Oban {: .info}
 > 
-> The standalone dashboard operates in a monitoring-only capacity:
+> The standalone dashboard never does any work of its own:
 > 
 > - It connects to an existing database with Oban tables already present
 > - It does not run migrations or create tables
-> - It does not process jobs (`plugins: false`, `queues: false`)
-> - Queue scaling operations affect the connected application's queues
+> - It does not process jobs or run plugins (`plugins: false`, `queues: false`)
+> - Actions such as scaling a queue or cancelling a job affect the connected application
 >
 > When deploying to a production environment you should add authentication and potentially set
 > read only mode.
@@ -98,11 +98,27 @@ read-only mode:
 
 ## Oban Pro
 
-To use [Oban Pro][pro] features like the Smart Engine, you'll need to build the image with your
-license key. The published `ghcr.io/oban-bg/oban-dash` image only includes the open source
-components.
+The published image works with databases managed by [Oban Pro][pro] in any language. It needs no
+license key and no custom build. Pro features are detected from the tables in your database, so
+once Pro's migrations have run the dashboard can:
 
-Build with your Oban Pro license:
+- Edit global limits, rate limits, and partitioning for queues
+- Browse workflows and archived jobs
+- Create, edit, pause, and delete dynamic crons
+- Create, edit, reorder, and delete pruning rules
+
+The dashboard only stores those changes or broadcasts them to your nodes. They take effect when a
+node runs the matching Pro feature.
+
+### Building with Pro for Elixir
+
+Two actions run Pro's Elixir code inside the dashboard itself:
+
+- Cancelling and retrying an entire workflow
+- Loading recorded output that's kept in an external storage backend
+
+They're disabled in the published image, and everything else works without them. To enable them,
+build the image with a license key for Oban Pro for Elixir:
 
 ```bash
 git clone https://github.com/oban-bg/oban_web.git
