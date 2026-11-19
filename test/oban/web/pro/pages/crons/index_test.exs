@@ -187,6 +187,50 @@ if Code.ensure_loaded?(Oban.Pro) do
         assert html =~ ~r/name="name"[^>]*value="send-email"/
       end
 
+      test "preserves a hand-typed name across later changes", %{live: live} do
+        refresh(live)
+
+        live
+        |> element("#new-cron-button")
+        |> render_click()
+
+        form = element(live, "#new-cron-form")
+
+        render_change(form, %{"worker" => "MyApp.Workers.SendEmail", "name" => ""})
+        render_change(form, %{"worker" => "MyApp.Workers.SendEmail", "name" => "custom-name"})
+
+        html =
+          render_change(form, %{
+            "worker" => "MyApp.Workers.SendEmail",
+            "name" => "custom-name",
+            "expression" => "0 * * * *"
+          })
+
+        assert html =~ ~r/name="name"[^>]*value="custom-name"/
+
+        html =
+          render_change(form, %{"worker" => "MyApp.Workers.SendDigest", "name" => "custom-name"})
+
+        assert html =~ ~r/name="name"[^>]*value="custom-name"/
+      end
+
+      test "name keeps tracking the worker until edited", %{live: live} do
+        refresh(live)
+
+        live
+        |> element("#new-cron-button")
+        |> render_click()
+
+        form = element(live, "#new-cron-form")
+
+        render_change(form, %{"worker" => "MyApp.Workers.SendEmail", "name" => ""})
+
+        html =
+          render_change(form, %{"worker" => "MyApp.Workers.SendDigest", "name" => "send-email"})
+
+        assert html =~ ~r/name="name"[^>]*value="send-digest"/
+      end
+
       test "surfacing errors without creating", %{live: live, oban: oban} do
         refresh(live)
 

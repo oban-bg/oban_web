@@ -214,7 +214,7 @@ defmodule Oban.Web.Crons.NewComponent do
 
     # The name tracks the worker until it's edited by hand
     form =
-      if params["name"] == "" or params["name"] == socket.assigns.form.name do
+      if params["name"] in ["", worker_to_name(socket.assigns.form.worker)] do
         %{form | name: worker_to_name(form.worker)}
       else
         form
