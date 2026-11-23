@@ -333,6 +333,32 @@ if Code.ensure_loaded?(Oban.Pro) do
       })
     end
 
+    test "storing pause and resume for dynamic queues without a leader", %{oban: oban} do
+      {:ok, _queues} = Oban.Pro.Queues.insert(oban, alpha: 5)
+
+      assert_signal(%{"action" => "dyn_start", "queue" => "alpha"})
+
+      gossip(oban, local_limit: 5, queue: "alpha")
+
+      live = render_details("alpha")
+
+      live
+      |> element("#detail-pause-resume")
+      |> render_click()
+
+      assert_action(:pause_queue, queue: "alpha")
+      assert_signal(%{"action" => "pause", "queue" => "alpha"})
+      assert %{opts: %{paused: true, local_limit: 5}} = Oban.Pro.Queues.get(oban, :alpha)
+
+      live
+      |> element("#detail-pause-resume")
+      |> render_click()
+
+      assert_action(:resume_queue, queue: "alpha")
+      assert_signal(%{"action" => "resume", "queue" => "alpha"})
+      assert %{opts: %{paused: false, local_limit: 5}} = Oban.Pro.Queues.get(oban, :alpha)
+    end
+
     # Helpers
 
     defp attach_signals(%{oban: oban}) do

@@ -372,6 +372,7 @@ defmodule Oban.Web.QueuesPage do
   @impl Page
   def handle_info({:pause_queue, queue}, socket) do
     Telemetry.action(:pause_queue, socket, [queue: queue], fn ->
+      QueueQuery.persist_paused(socket.assigns.conf, [queue], true)
       Oban.pause_queue(socket.assigns.conf.name, queue: queue)
     end)
 
@@ -390,6 +391,7 @@ defmodule Oban.Web.QueuesPage do
 
   def handle_info({:resume_queue, queue}, socket) do
     Telemetry.action(:resume_queue, socket, [queue: queue], fn ->
+      QueueQuery.persist_paused(socket.assigns.conf, [queue], false)
       Oban.resume_queue(socket.assigns.conf.name, queue: queue)
     end)
 
@@ -426,6 +428,7 @@ defmodule Oban.Web.QueuesPage do
     queues = socket.assigns.selected
 
     Telemetry.action(:pause_queues, socket, [queues: queues], fn ->
+      QueueQuery.persist_paused(socket.assigns.conf, queues, true)
       Enum.each(queues, &Oban.pause_queue(socket.assigns.conf.name, queue: &1))
     end)
 
@@ -443,6 +446,7 @@ defmodule Oban.Web.QueuesPage do
     queues = socket.assigns.selected
 
     Telemetry.action(:resume_queues, socket, [queues: queues], fn ->
+      QueueQuery.persist_paused(socket.assigns.conf, queues, false)
       Enum.each(queues, &Oban.resume_queue(socket.assigns.conf.name, queue: &1))
     end)
 

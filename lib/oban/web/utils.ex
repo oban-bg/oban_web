@@ -5,8 +5,7 @@ defmodule Oban.Web.Utils do
 
   alias Oban.Repo
 
-  # Oban v2.24 and Pro v1.8 flattened engine, plugin, and service module names. Legacy modules
-  # still delegate, and they're valid in a config, so detection maps both names to the new one.
+  # Oban v2.24 and Pro v1.8 flattened engine, plugin, and service module names.
   @renamed %{
     Oban.Plugins.Cron => Oban.Cron,
     Oban.Plugins.Lifeline => Oban.Lifeline,
@@ -18,6 +17,8 @@ defmodule Oban.Web.Utils do
     Oban.Pro.Plugins.DynamicPruner => Oban.Pro.Pruner,
     Oban.Pro.Plugins.DynamicQueues => Oban.Pro.Queues
   }
+
+  # Services
 
   def engine(%{engine: engine}), do: normalize_module(engine)
 
@@ -41,6 +42,13 @@ defmodule Oban.Web.Utils do
 
   def fetch_service(_conf, _service), do: :error
 
+  defp normalize_module(module) when is_atom(module), do: Map.get(@renamed, module, module)
+
+  defp normalize_plugin({module, opts}), do: {normalize_module(module), opts}
+  defp normalize_plugin(module) when is_atom(module), do: {normalize_module(module), []}
+
+  # Feature Detection
+
   def has_archive?(conf), do: has_table?("oban_jobs_archive", conf)
 
   def has_compensations?(conf) do
@@ -53,23 +61,13 @@ defmodule Oban.Web.Utils do
 
   def has_pruners?(conf), do: has_table?("oban_pruners", conf)
 
+  def has_queues?(conf), do: has_table?("oban_queues", conf)
+
   def has_workflows?(conf), do: has_table?("oban_workflows", conf)
 
   def pro_loaded? do
     persistent_cache(:pro_loaded?, fn -> Code.ensure_loaded?(Oban.Pro) end)
   end
-
-  def persistent_cache(key, fun) when is_function(fun, 0) do
-    case :persistent_term.get(key, nil) do
-      nil -> tap(fun.(), &:persistent_term.put(key, &1))
-      val -> val
-    end
-  end
-
-  defp normalize_module(module) when is_atom(module), do: Map.get(@renamed, module, module)
-
-  defp normalize_plugin({module, opts}), do: {normalize_module(module), opts}
-  defp normalize_plugin(module) when is_atom(module), do: {normalize_module(module), []}
 
   defp has_table?(_table_name, %{engine: Oban.Engines.Dolphin}), do: false
   defp has_table?(_table_name, %{engine: Oban.Engines.Lite}), do: false
@@ -102,5 +100,14 @@ defmodule Oban.Web.Utils do
 
       Repo.one(conf, query) == true
     end)
+  end
+
+  # Caching
+
+  def persistent_cache(key, fun) when is_function(fun, 0) do
+    case :persistent_term.get(key, nil) do
+      nil -> tap(fun.(), &:persistent_term.put(key, &1))
+      val -> val
+    end
   end
 end

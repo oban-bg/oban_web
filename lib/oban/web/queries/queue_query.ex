@@ -3,10 +3,11 @@ defmodule Oban.Web.QueueQuery do
 
   use Oban.Web.Queryable
 
+  import Ecto.Query, only: [where: 3]
   import Oban.Web.Helpers.QueueHelper, only: [executing_count: 1]
 
-  alias Oban.Met
-  alias Oban.Web.Queue
+  alias Oban.{Met, Repo}
+  alias Oban.Web.{Queue, QueueEntry, Utils}
 
   @suggest_mode [
     {"global_limit", "the queue has a global limit", "global_limit"},
@@ -75,6 +76,41 @@ defmodule Oban.Web.QueueQuery do
     counts = Map.new(counts, fn {state, counts} -> {state, Map.get(counts, name, 0)} end)
 
     struct!(Queue, %{name: name, checks: checks, counts: counts})
+  end
+
+  # Persisting
+
+  @doc """
+  Store whether Pro queues are paused, returning how many queues were changed.
+
+  Pro queues restart from their stored options, and a pause or resume signal only reaches storage
+  when a leader that runs the queues service hears it. Writing directly guarantees the change
+  outlives a restart. Queues without a stored entry are left to the signal alone.
+  """
+  def persist_paused(conf, names, paused?) when is_boolean(paused?) do
+    if Utils.has_queues?(conf) do
+      names = Enum.map(names, &to_string/1)
+
+      {:ok, count} =
+        Repo.transaction(conf, fn ->
+          entries = Repo.all(conf, where(QueueEntry, [q], q.name in ^names))
+
+          Enum.each(entries, &update_paused(conf, &1, paused?))
+
+          length(entries)
+        end)
+
+      count
+    else
+      0
+    end
+  end
+
+  defp update_paused(conf, entry, paused?) do
+    Repo.update!(conf, QueueEntry.paused_changeset(entry, paused?))
+  rescue
+    Ecto.StaleEntryError ->
+      update_paused(conf, Repo.reload!(conf, entry), paused?)
   end
 
   # Filtering
